@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
   Version: 7
-  AppName: MultiChat_Chatty [v7]
-  Updated: 7/13/2025 @7:30PM
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -1469,6 +1469,7 @@
     margin: 28px 0 0 0;
     flex-wrap: wrap;
     justify-content: flex-start;
+    margin-top: 80px;
 }
 
 .media-library-cast-item {
@@ -1563,6 +1564,15 @@
 
 .media-library-details-description {
     margin-bottom: 0;
+}
+
+.media-library-seasons-description {
+    margin-bottom: 0;
+    position: absolute;
+    width: 945px;
+    right: -120px;
+    text-align: justify;
+    top: 6px;
 }
 
 .media-library-details-buttons {
@@ -1879,7 +1889,7 @@
     border-radius: 50%;
     z-index: 1000;
     position: relative;
-    bottom: 40px;
+    top: 90px;
     left: -10px;
 }
 
@@ -1894,8 +1904,8 @@
     font-size: 24px;
     border-radius: 50%;
     position: absolute;
-    top: 82px;
-    right: 190px !important;
+    top: 160px;
+    right: -172px !important;
 }
 
 .media-library-seasons-arrows-wrapper {
@@ -2020,7 +2030,7 @@
     background: #fafbfc;
     position: absolute;
     right: 30px;
-    top: 20px;
+    top: 30px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -2031,7 +2041,7 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  width: 100%;
+  /* width: 100%; */
   margin-top: 10px;
   position: static;
 }
@@ -2043,7 +2053,7 @@
     gap: 18px;
     align-items: flex-start;
     justify-content: flex-start;
-    width: 100%;
+    width: 1290px !important;
     overflow-x: auto;
     white-space: nowrap;
     margin-left: -6px;

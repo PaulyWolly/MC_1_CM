@@ -1,3 +1,11 @@
+/*
+  TVSHOWSEASONSPAGE.JS
+  Version: 7
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
+  Created by Paul Welby
+*/
+
 // TVShowSeasonsPage.js
 // Standalone component for TV Show Seasons page (EMBY-style)
 

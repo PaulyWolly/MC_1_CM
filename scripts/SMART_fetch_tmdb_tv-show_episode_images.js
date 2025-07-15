@@ -1,8 +1,8 @@
 /*
   SMART_FETCH_TMDB_TV-SHOW_EPISODE_IMAGES.JS
   Version: 7
-  AppName: MultiChat_Chatty [v7]
-  Updated: 7/13/2025 @7:30PM
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
   Created by Paul Welby
 */
 
