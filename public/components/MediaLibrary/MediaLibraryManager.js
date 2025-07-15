@@ -1027,6 +1027,10 @@ class MediaLibraryManager {
             }
             // Log a warning if no poster found
             console.warn('[MEDIA-LIBRARY] No poster found for:', mediaItem, 'Tried keys:', tryKeys);
+            // --- DEBUG: List all available keys in moviePosters ---
+            if (this.moviePosters) {
+                console.warn('[MEDIA-LIBRARY] Available poster keys:', Object.keys(this.moviePosters));
+            }
         }
         return '/assets/img/placeholder-poster.jpg';
     }
@@ -1625,7 +1629,7 @@ class MediaLibraryManager {
                         ${movies.map(item => `
                             <div class="media-library-movie-card-movies watch-later-card" data-path="${item.path}">
                                 <img class="watch-later-img-movie watch-later-img watch-later-img-clickable" src="${this.getPosterPath(item)}" alt="${item.title}">
-                                ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${formatDateTime(item.lastWatched)}<br><span class=\"watch-later-resume-info\">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
+                                ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${this.formatDateTime(item.lastWatched)}<br><span class=\"watch-later-resume-info\">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
                                 <div class="media-info"><h3 class="watch-later-title">${this.cleanMovieTitle(item.title || item.name || 'Movie')}</h3></div>
                                 <div class="watch-later-btn-row">
                                     <button class="watch-later-resume-btn">Watch</button>
@@ -1645,7 +1649,7 @@ class MediaLibraryManager {
                         ${tvshows.map(item => `
                             <div class="media-library-movie-card-tvshows watch-later-card" data-path="${item.path}">
                                 <img class="watch-later-img-tv watch-later-img watch-later-img-clickable" src="${getTvShowScreenshot(item, this)}" alt="${getTvShowLabel(item)}" onerror="this.onerror=null;this.src='/assets/img/placeholder-poster.jpg';">
-                                ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${formatDateTime(item.lastWatched)}<br><span class=\"watch-later-resume-info\">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
+                                ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${this.formatDateTime(item.lastWatched)}<br><span class=\"watch-later-resume-info\">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
                                 <div class="media-info"><h3 class="watch-later-title">${getTvShowLabel(item)}</h3></div>
                                 <div class="watch-later-btn-row">
                                     <button class="watch-later-resume-btn">Watch</button>
@@ -1776,6 +1780,21 @@ class MediaLibraryManager {
             (item.filename && item.filename.toLowerCase().includes(term)) ||
             (item.path && item.path.toLowerCase().includes(term))
         );
+    }
+
+    formatDateTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return '';
+        // Format: e.g., "Jul 15, 2025 3:17 PM"
+        return date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
     }
 
     sortItems(items, sortBy, field = 'name') {
