@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARYMANAGER.JS
   Version: 7
-  AppName: MultiChat_Chatty [v7]
-  Updated: 7/13/2025 @7:30PM
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -91,6 +91,10 @@ class MediaLibraryManager {
         this.setupVoiceCommandIntegration();
         this.setupTextCommandIntegration();
         console.log('🎬 [MEDIA-LIBRARY] Media library manager initialized with voice/text command support');
+        // Ensure posters are rendered after all poster data is loaded
+        if (this.currentTab === 'movies' && this.isModalOpen) {
+            this.renderMediaGrid();
+        }
     }
 
     async loadMediaLibrary() {
@@ -182,17 +186,30 @@ class MediaLibraryManager {
     async loadMoviePosters() {
         try {
             console.log('🎬 [MEDIA-LIBRARY] Loading movie posters...');
-            const response = await fetch('/components/MediaLibrary/data/movies/movie_posters.json');
+            // Try normalized file first
+            let response = await fetch('/components/MediaLibrary/data/movies/movie_posters_normalized.json');
             if (response.ok) {
                 this.moviePosters = await response.json();
-                console.log(`✅ [MEDIA-LIBRARY] Loaded ${Object.keys(this.moviePosters).length} movie posters`);
+                console.log('✅ [MEDIA-LIBRARY - normalized JSON used] Loaded movie_posters_normalized.json');
             } else {
-                console.warn('⚠️ [MEDIA-LIBRARY] Could not load movie posters');
-                this.moviePosters = {};
+                // Fallback to original
+                response = await fetch('/components/MediaLibrary/data/movies/movie_posters.json');
+                if (response.ok) {
+                    this.moviePosters = await response.json();
+                    console.log('✅ [MEDIA-LIBRARY - default JSON used] Loaded movie_posters.json (fallback)');
+                } else {
+                    console.warn('⚠️ [MEDIA-LIBRARY] Could not load movie posters');
+                    this.moviePosters = {};
+                }
             }
         } catch (error) {
             console.warn('⚠️ [MEDIA-LIBRARY] Error loading movie posters:', error);
             this.moviePosters = {};
+        }
+
+        // Always re-render the grid after loading posters if on movies tab
+        if (this.currentTab === 'movies') {
+            this.renderMediaGrid();
         }
     }
 
@@ -307,9 +324,6 @@ class MediaLibraryManager {
 
     async openMediaBrowser() {
         this.isModalOpen = true;
-        if (this.currentTab === 'movies') {
-            await this.loadMoviePosters();
-        }
         await this.loadMediaLibrary();
         this.renderModal();
     }
@@ -560,11 +574,21 @@ class MediaLibraryManager {
                         const selector = new window.PosterSelector(mode);
                         selector.getMediaContext = () => {
                             if (item) {
+                                // Always use a relative path for movies
+                                let relPath = item.path;
+                                if (relPath && relPath.includes(':')) {
+                                    // Remove drive letter and leading directories if present
+                                    relPath = relPath.replace(/^.*[\\/](movies[\\/][^\\/]+).*$/i, '$1').replace(/\\/g, '/');
+                                    // If still absolute, fallback to just the folder name
+                                    if (relPath.includes(':')) {
+                                        relPath = (item.name || item.title || '').replace(/[^a-zA-Z0-9\s\[\]\(\)\-]/g, '').trim();
+                                    }
+                                }
                                 return {
-                            mediaId: item.path,
-                            name: item.name || item.title,
-                            path: item.path,
-                            type: mode
+                                    mediaId: relPath,
+                                    name: item.name || item.title,
+                                    path: relPath,
+                                    type: mode
                                 };
                             } else {
                                 // Minimal fallback context
@@ -764,6 +788,9 @@ class MediaLibraryManager {
     renderMediaGrid() {
         console.log('>> 1. >>>>[MOVIE-LIBRARY] renderMediaGrid called');
 
+        // Show spinner overlay while images load
+        this.showGridSpinner();
+
         if (this.currentTab === 'tvshows' && !this.currentTVShow && !this.currentTVSeason) {
             const grid = document.getElementById('mediaGrid');
             if (grid) {
@@ -786,6 +813,7 @@ class MediaLibraryManager {
                     };
                 });
             }
+            this.hideGridSpinner();
             return;
         }
 
@@ -803,7 +831,7 @@ class MediaLibraryManager {
             card.style.position = 'relative';
             
             // Get the first letter of the movie title for anchor
-            const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '').toLowerCase();
+            const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
             
             // Add anchor if this is the first movie starting with this letter
@@ -846,6 +874,53 @@ class MediaLibraryManager {
         });
         // After rendering the grid, attach poster selector handlers
         this.attachPosterSelectorHandlers();
+
+        // Wait for all images to load or error, then hide spinner
+        const images = grid.querySelectorAll('img');
+        let loaded = 0;
+        const total = images.length;
+        if (total === 0) {
+            this.hideGridSpinner();
+        } else {
+            images.forEach(img => {
+                const done = () => {
+                    loaded++;
+                    if (loaded === total) this.hideGridSpinner();
+                };
+                img.onload = done;
+                img.onerror = done;
+            });
+        }
+    }
+
+    showGridSpinner() {
+        const grid = document.getElementById('mediaGrid');
+        if (!grid) return;
+        const parent = grid.parentElement;
+        if (!parent) return;
+        if (!document.getElementById('mediaGridSpinnerOverlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'mediaGridSpinnerOverlay';
+            overlay.className = 'media-library-spinner-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = 0;
+            overlay.style.left = 0;
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.background = 'rgba(255,255,255,0.7)';
+            overlay.style.zIndex = 10000;
+            overlay.innerHTML = `<div class="media-library-spinner"></div>`;
+            parent.style.position = 'relative';
+            parent.appendChild(overlay);
+        }
+    }
+
+    hideGridSpinner() {
+        const overlay = document.getElementById('mediaGridSpinnerOverlay');
+        if (overlay) overlay.remove();
     }
 
     getItemsForCurrentTab() {
@@ -890,7 +965,11 @@ class MediaLibraryManager {
                 mediaItem.title,
                 mediaItem.name
             ].filter(Boolean);
-            
+            // Add folder name as a key to try
+            if (mediaItem.path) {
+                const folderName = mediaItem.path.split(/[\\/]/).pop();
+                tryKeys.push(folderName);
+            }
             // For movies, we need to construct the full file path that matches the poster data
             if (mediaItem.path && mediaItem.files && mediaItem.files.length > 0) {
                 // Get the first video file in the folder
@@ -905,7 +984,6 @@ class MediaLibraryManager {
                     tryKeys.push(fullPath.replace(/\//g, '\\'));
                 }
             }
-            
             // Also try normalized slashes and just the filename
             if (mediaItem.path) {
                 tryKeys.push(mediaItem.path.replace(/\\/g, '/'));
@@ -917,7 +995,6 @@ class MediaLibraryManager {
                 tryKeys.push(mediaItem.relPath.replace(/\//g, '\\'));
                 tryKeys.push(mediaItem.relPath.split(/[\\/]/).pop());
             }
-            
             if (this.moviePosters) {
                 for (const key of tryKeys) {
                     if (this.moviePosters[key]) {
@@ -939,7 +1016,6 @@ class MediaLibraryManager {
                     }
                 }
             }
-            
             // Fallback: try to find a poster by filename only
             if (this.moviePosters) {
                 const filename = (mediaItem.path || mediaItem.relPath || mediaItem.title || mediaItem.name || '').split(/[\\/]/).pop();
@@ -949,7 +1025,6 @@ class MediaLibraryManager {
                     }
                 }
             }
-            
             // Log a warning if no poster found
             console.warn('[MEDIA-LIBRARY] No poster found for:', mediaItem, 'Tried keys:', tryKeys);
         }
@@ -1241,13 +1316,20 @@ class MediaLibraryManager {
         return items;
     }
 
+    // Utility to capitalize each word in a string
+    capitalizeTitle(str) {
+        if (!str || typeof str !== 'string') return '';
+        return str.replace(/\b\w/g, c => c.toUpperCase());
+    }
+
     // Utility to clean up movie titles for display
     cleanMovieTitle(filename) {
         if (!filename || typeof filename !== 'string') return '';
         // Remove extension
         let name = filename.replace(/\.[^/.]+$/, "");
-        // Remove bracketed/parenthetical tags
-        name = name.replace(/\[[^\]]*\]|\([^\)]*\)/g, "");
+        // Remove (year) and [quality] only
+        name = name.replace(/\((19|20)\d{2}\)/g, ""); // Remove (2021)
+        name = name.replace(/\[\d{3,4}p\]/gi, "");    // Remove [1080p], [720p], etc.
         // Remove years
         name = name.replace(/\b(19|20)\d{2}\b/g, "");
         // Remove audio channel tags like AAC5 1, AAC51, DDP5 1, DDP51, etc.
@@ -1262,7 +1344,7 @@ class MediaLibraryManager {
         // Remove extra spaces
         name = name.replace(/\s+/g, " ").trim();
         // Capitalize each word
-        name = name.replace(/\b\w/g, c => c.toUpperCase());
+        name = this.capitalizeTitle(name);
         return name;
     }
 
@@ -1380,7 +1462,7 @@ class MediaLibraryManager {
     getFilteredAndSortedItems() {
         const items = this.getItemsForCurrentTab();
         console.log('[MOVIE DEBUG] Items before filtering:', items.length, items.slice(0, 3));
-        let filtered = this.filterItems(items, this.searchTerm);
+        let filtered = this.filterItems(items, this.searchQuery);
         console.log('[MOVIE DEBUG] Items after filtering:', filtered.length, filtered.slice(0, 3));
         // For movies, sort by clean display title; for TV shows, keep as is
         if (this.currentTab === 'movies') {
@@ -1688,9 +1770,11 @@ class MediaLibraryManager {
     filterItems(items, searchTerm) {
         if (!searchTerm) return items;
         const term = searchTerm.toLowerCase();
-        return items.filter(item => 
+        return items.filter(item =>
             (item.name && item.name.toLowerCase().includes(term)) ||
-            (item.title && item.title.toLowerCase().includes(term))
+            (item.title && item.title.toLowerCase().includes(term)) ||
+            (item.filename && item.filename.toLowerCase().includes(term)) ||
+            (item.path && item.path.toLowerCase().includes(term))
         );
     }
 
@@ -2538,7 +2622,10 @@ class MediaLibraryManager {
     }
 
     // --- TV SHOW UI METHODS ---
-    async loadTVShowDetails(showName) {
+    async loadTVShowDetails(showObjOrName) {
+        // Accepts either a show object or a show name
+        let showName = typeof showObjOrName === 'string' ? showObjOrName : (showObjOrName?.name || showObjOrName?.title || showObjOrName?.path || '');
+        let showPath = typeof showObjOrName === 'object' ? (showObjOrName.path || '') : '';
         if (!this.tvShowDescriptions) {
             try {
                 const descResp = await fetch('/components/MediaLibrary/data/tv-shows/tv-show_descriptions.json');
@@ -2551,9 +2638,42 @@ class MediaLibraryManager {
                 this.tvShowCast = castResp.ok ? await castResp.json() : {};
             } catch (e) { this.tvShowCast = {}; }
         }
+        // Try multiple possible keys for robust lookup
+        const possibleKeys = [];
+        if (showPath) possibleKeys.push(showPath);
+        if (showName) possibleKeys.push(showName);
+        // Try folder name from path
+        if (showPath) possibleKeys.push(showPath.split(/[\\/]/).pop());
+        // Try all lowercased
+        if (showName) possibleKeys.push(showName.toLowerCase());
+        if (showPath) possibleKeys.push(showPath.toLowerCase());
+        // Description lookup
+        let description = '';
+        for (const key of possibleKeys) {
+            if (this.tvShowDescriptions[key]) {
+                description = this.tvShowDescriptions[key];
+                break;
+            }
+        }
+        if (!description && this.tvShowDescriptions) {
+            const folderKey = Object.keys(this.tvShowDescriptions).find(k => k.includes(showName) || k.includes(showPath));
+            if (folderKey) description = this.tvShowDescriptions[folderKey];
+        }
+        // Cast lookup
+        let cast = [];
+        for (const key of possibleKeys) {
+            if (this.tvShowCast[key] && Array.isArray(this.tvShowCast[key])) {
+                cast = this.tvShowCast[key];
+                break;
+            }
+        }
+        if ((!cast || cast.length === 0) && this.tvShowCast) {
+            const folderKey = Object.keys(this.tvShowCast).find(k => k.includes(showName) || k.includes(showPath));
+            if (folderKey && Array.isArray(this.tvShowCast[folderKey])) cast = this.tvShowCast[folderKey];
+        }
         return {
-            description: this.tvShowDescriptions[showName] || '',
-            cast: this.tvShowCast[showName] || []
+            description,
+            cast
         };
     }
 
@@ -2604,7 +2724,7 @@ class MediaLibraryManager {
         if (Array.isArray(cast) && cast.length > 0) {
             castRow = `<div class=\"media-library-cast-horizontal-row\">${cast.map(actor => `
                 <div class=\"media-library-cast-card\">
-                    <div class=\"media-library-cast-avatar\" style=\"background-image:url('${actor.image || '/assets/img/placeholder-poster.jpg'}');\"></div>
+                    <div class=\"media-library-cast-avatar\" style=\"background-image:url('${actor.profile || '/assets/img/placeholder-poster.jpg'}');\"></div>
                     <div class=\"media-library-cast-name\">${actor.name || actor}</div>
                 </div>
             `).join('')}</div>`;
@@ -2630,11 +2750,11 @@ class MediaLibraryManager {
                         <h2>${showName}</h2>
                         <p>${seasons.length} ${seasons.length === 1 ? 'Season' : 'Seasons'}</p>
                     </div>
-                    <div class="media-library-details-description">${description}</div>
+                    <div class="media-library-seasons-description">${description}</div>
                 </div>
-                <div class="${wrapperClass}" style="position:relative;display:flex;align-items:center;width: 100%;">
+                <div class="${wrapperClass}">
                     ${showArrows ? `<button class="media-library-arrow-btn left" type="button">&#8592;</button>` : ''}
-                    <div class="${gridClass}" style="width: 1080px; overflow-x: auto;">
+                    <div class="${gridClass}">
                         ${seasons.map(season => {
                             const seasonImage = this.getSeasonImage(showName, season.path);
                             const episodeCount = this.getEpisodesForSeason(show, season.path).length;
@@ -2878,9 +2998,11 @@ class MediaLibraryManager {
     filterItems(items, searchTerm) {
         if (!searchTerm) return items;
         const term = searchTerm.toLowerCase();
-        return items.filter(item => 
+        return items.filter(item =>
             (item.name && item.name.toLowerCase().includes(term)) ||
-            (item.title && item.title.toLowerCase().includes(term))
+            (item.title && item.title.toLowerCase().includes(term)) ||
+            (item.filename && item.filename.toLowerCase().includes(term)) ||
+            (item.path && item.path.toLowerCase().includes(term))
         );
     }
 
@@ -3215,20 +3337,6 @@ class MediaLibraryManager {
         return this.movieCast;
     }
 
-    openMediaManager() {
-        this.closeMediaLibrary();
-        if (window.MediaManager) {
-            const mm = new window.MediaManager();
-            mm.init();
-        } else {
-            if (window.showToast) {
-                window.showToast('MediaManager component not loaded.', 'error', 4000);
-            } else {
-                console.error('MediaManager component not loaded.');
-            }
-        }
-    }
-
     attachSeasonArrowHandlers() {
         const wrapper = document.querySelector('.media-library-seasons-arrows-wrapper');
         if (!wrapper) return;
@@ -3246,47 +3354,6 @@ class MediaLibraryManager {
             grid.scrollBy({left: scrollAmount, behavior: 'smooth'});
         };
     }
-}
-
-// Initialize the media library manager
-window.mediaLibraryManager = new MediaLibraryManager(); 
-
-// After rendering the TV shows grid in renderTVShowsTab or after renderModal, attach click handlers to .media-library-card.poster img
-setTimeout(() => {
-  document.querySelectorAll('.media-library-card.poster img').forEach(img => {
-    img.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const card = img.closest('.media-library-card.poster');
-      if (card) {
-        window.mediaLibraryManager.openTVShowFromData(card);
-      } else {
-        console.error('[DEBUG] No card found for clicked poster');
-      }
-    };
-  });
-}, 0);
-
-// Find the code that attaches the close (red X) button and ESC key handler for the MediaLibrary modal
-// Replace calls to this.removeModal() with this.closeMediaLibrary()
-
-// Example for red X button:
-// document.getElementById('mediaLibraryCloseBtn').onclick = () => this.closeMediaLibrary();
-
-// Example for ESC key:
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('mediaLibraryModal');
-        if (modal) {
-            this.closeMediaLibrary();
-        }
-    }
-});
-
-function formatDateTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    return d.toLocaleString();
 }
 
 export default MediaLibraryManager;

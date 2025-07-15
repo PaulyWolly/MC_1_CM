@@ -1,10 +1,20 @@
+/*
+  FETCH_TV_SHOW_DETAILS_FROM_TMDB.JS
+  Version: 7
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
+  Created by Paul Welby
+*/
+
 // Fetch TV Show Descriptions and Cast from TMDB
 // Usage: node scripts/fetch_tv_show_details_from_tmdb.js
 
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-require('dotenv').config();
+const dotenvPath = path.resolve(__dirname, '../server/.env');
+require('dotenv').config({ path: dotenvPath });
+console.log('Loaded TMDB_API_KEY:', process.env.TMDB_API_KEY);
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 if (!TMDB_API_KEY) {
@@ -17,6 +27,13 @@ const INPUT_FILE = process.argv[2] ? path.resolve(process.argv[2]) : path.join(_
 
 const DESC_OUT = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_descriptions.json');
 const CAST_OUT = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_cast.json');
+
+require('dotenv').config({ path: dotenvPath });
+
+function cleanShowName(name) {
+    // Remove year in parentheses at the end, e.g., "V (2009)" -> "V"
+    return name.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+}
 
 async function readShowNames() {
     const data = JSON.parse(fs.readFileSync(INPUT_FILE, 'utf-8'));
@@ -52,22 +69,41 @@ async function main() {
     const shows = await readShowNames();
     const descriptions = {};
     const castData = {};
+    // Spinner helpers
+    let spinnerInterval = null;
+    function startSpinner(message) {
+        let dots = 0;
+        process.stdout.write(message);
+        spinnerInterval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            process.stdout.write('\r' + message + '.'.repeat(dots) + '   ');
+        }, 400);
+    }
+    function stopSpinner(finalMessage) {
+        if (spinnerInterval) clearInterval(spinnerInterval);
+        process.stdout.write('\r' + finalMessage + '\n');
+    }
     for (const showName of shows) {
-        console.log(`Processing: ${showName}`);
+        const cleanName = cleanShowName(showName);
+        startSpinner(`Processing: ${showName}`);
         try {
-            const tmdbShow = await searchShowOnTMDB(showName);
+            const tmdbShow = await searchShowOnTMDB(cleanName);
+            stopSpinner(tmdbShow ? `Done: ${showName}` : `No TMDB match for: ${showName}`);
             if (!tmdbShow) {
-                console.warn(`No TMDB match for: ${showName}`);
                 continue;
             }
+            startSpinner(`Fetching details for: ${showName}`);
             const details = await fetchShowDetails(tmdbShow.id);
+            stopSpinner(`Fetched details for: ${showName}`);
             descriptions[showName] = details.overview || '';
+            startSpinner(`Fetching cast for: ${showName}`);
             const cast = await fetchShowCast(tmdbShow.id);
+            stopSpinner(`Fetched cast for: ${showName}`);
             castData[showName] = cast;
             // TMDB rate limit: 40 requests per 10 seconds
             await new Promise(r => setTimeout(r, 300));
         } catch (e) {
-            console.error(`Error for ${showName}:`, e.message);
+            stopSpinner(`Error for ${showName}: ${e.message}`);
         }
     }
     fs.mkdirSync(path.dirname(DESC_OUT), { recursive: true });

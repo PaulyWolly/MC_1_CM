@@ -1,13 +1,14 @@
 /*
   SCAN_MEDIA_LIBRARY_MOVIES.JS
   Version: 7
-  AppName: MultiChat_Chatty [v7]
-  Updated: 7/13/2025 @7:30PM
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const MEDIA_ROOT = 'S:/MEDIA/MOVIES';
 const OUTPUT_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/media-library-movies.json');
@@ -54,6 +55,17 @@ function main() {
     const mediaTree = walkMedia(MEDIA_ROOT);
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(mediaTree, null, 2));
     console.log(`MOVIES scan complete. Output written to: ${OUTPUT_FILE}`);
+    // Run normalization script after scan
+    const normScript = path.join(__dirname, 'normalize_movie_posters_keys.js');
+    if (fs.existsSync(normScript)) {
+        console.log('Running poster normalization script...');
+        const result = spawnSync('node', [normScript], { stdio: 'inherit' });
+        if (result.error) {
+            console.error('Failed to run normalization script:', result.error);
+        }
+    } else {
+        console.warn('Normalization script not found:', normScript);
+    }
 }
 
 if (require.main === module) {

@@ -1,3 +1,11 @@
+/*
+  CONVERT_SRT_TO_VTT.JS
+  Version: 7
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
+  Created by Paul Welby
+*/
+
 const fs = require('fs');
 const path = require('path');
 

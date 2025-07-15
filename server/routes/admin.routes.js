@@ -1,8 +1,8 @@
 /*
   ADMIN.ROUTES.JS
   Version: 7
-  AppName: MultiChat_Chatty [v7]
-  Updated: 7/13/2025 @7:30PM
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/15/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -319,8 +319,13 @@ router.post('/posters/download', async (req, res) => {
     // Determine base folder
     let basePath;
     if (mediaType === 'movie') {
-      // Use the folder containing the movie file (root movie folder)
-      basePath = path.dirname(mediaId);
+      // Always resolve to the full movie folder path
+      // If mediaId is just the folder name, prepend the root
+      let folderName = mediaId;
+      if (folderName.startsWith('movies/')) {
+        folderName = folderName.replace(/^movies[\\/]/i, '');
+      }
+      basePath = path.join('S:/MEDIA/MOVIES', folderName);
     } else if (mediaType === 'tv') {
       // For TV, use normalized name
       console.log('[POSTER DEBUG] Incoming TV show name:', name);
