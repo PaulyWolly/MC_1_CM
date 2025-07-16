@@ -3752,12 +3752,14 @@ app.get('/api/video', (req, res) => {
     // Convert /media/ path to actual file system path
     const relativePath = videoPath.substring(7); // Remove '/media/' prefix
     
-    // Try different media roots to find the file
+    // NEW: Remove leading 'movies/' or 'tv-shows/' if present
+    const cleanedPath = relativePath.replace(/^movies[\\/]/i, '').replace(/^tv-shows[\\/]/i, '');
+    
     const possiblePaths = [
-      path.join('S:/MEDIA/TV-SHOWS', relativePath),
-      path.join('S:/MEDIA/MOVIES', relativePath),
-      path.join('S:\\MEDIA\\TV-SHOWS', relativePath),
-      path.join('S:\\MEDIA\\MOVIES', relativePath)
+      path.join('S:/MEDIA/TV-SHOWS', cleanedPath),
+      path.join('S:/MEDIA/MOVIES', cleanedPath),
+      path.join('S:\\MEDIA\\TV-SHOWS', cleanedPath),
+      path.join('S:\\MEDIA\\MOVIES', cleanedPath)
     ];
     
     resolvedPath = possiblePaths.find(p => fs.existsSync(p));

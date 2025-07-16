@@ -564,7 +564,21 @@ class VideoPlayer {
             // Ensure title and path are set
             if (!movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
             if (!movie.path && movie.absPath) movie.path = movie.absPath;
-            
+
+            // Ensure absPath is set for movies
+            console.log('[DEBUG - PRECONDITION]', movie, window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary);
+            if (
+              movie &&
+              (!movie.absPath || movie.absPath === movie.path) &&
+              movie.path && !movie.path.includes('/')
+            ) {
+              // Use the first video file in the files array if available
+              const fileObj = movie.files && movie.files.find(f => f.name.endsWith('.mp4') || f.name.endsWith('.mkv'));
+              if (fileObj) {
+                movie.absPath = `/media/movies/${movie.path}/${fileObj.name}`;
+              }
+            }
+
             // Save to Watch Later using MediaLibraryManager
             if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie) {
                 window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save

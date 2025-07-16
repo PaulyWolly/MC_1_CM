@@ -1337,7 +1337,7 @@
   .watch-later-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 10px;
   }
   .watch-later-card {
     position: relative;
@@ -1405,7 +1405,7 @@
   }
   
   .media-library-movie-card-movies {
-    width: 200px;
+    /* width: 200px; */
     padding: 10px;
   }
   .media-library-movie-card-tvshows {
