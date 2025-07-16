@@ -3101,6 +3101,7 @@ class MediaLibraryManager {
 
         // Always use absolute path for saving
         let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
+        let absPath = mediaItem.absPath || '';
         // If path is missing, try to look up from main media library by filename or title
         if (!mediaItem.path && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
             const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
@@ -3114,6 +3115,9 @@ class MediaLibraryManager {
             if (found && found.path) {
                 savePath = found.path;
             }
+            if (found && found.absPath) {
+                absPath = found.absPath;
+            }
         }
         if (savePath && savePath.startsWith('/media/')) {
             savePath = savePath.replace(/^\/media\//, '');
@@ -3126,7 +3130,8 @@ class MediaLibraryManager {
         // For automatic saves (pause events), only save if not near the end
         if (isManualSave || (duration - currentTime > 60)) {
             resumeList.push({
-                path: savePath,
+                path: savePath, // folder name for poster lookup
+                absPath: absPath || mediaItem.absPath || '', // full file path for playback
                 title: mediaItem.title,
                 poster: this.getPosterPath(mediaItem),
                 currentTime,
