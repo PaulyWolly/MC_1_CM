@@ -2,7 +2,7 @@
   VIDEOPLAYER.CSS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -276,4 +276,134 @@
 
 .vjs-tech, .vjs-poster, .vjs-player {
     cursor: pointer !important;
+} 
+
+/* Custom Video.js Seek Buttons */
+.vjs-back10-button, .vjs-forward10-button {
+  z-index: 10010 !important;
+  background: #222 !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  margin: 0 4px !important;
+  border: none !important;
+  font-size: 1.2em !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  transition: background 0.2s, color 0.2s;
+}
+.vjs-back10-button:hover, .vjs-forward10-button:hover {
+  background: #1976d2 !important;
+  color: #fff !important;
+}
+.vjs-back10-icon, .vjs-forward10-icon {
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin-right: 2px;
+  margin-left: 2px;
+  pointer-events: none;
+} 
+
+/* Base Video.js Player Styles */
+
+.video-js, .video-js .vjs-control-bar {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #181818 !important;
+  color: #fff !important;
+}
+
+.video-js {
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.vjs-control-bar {
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 8px 16px;
+  border-radius: 0 0 10px 10px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vjs-control {
+  color: #fff !important;
+  background: none !important;
+  border: none !important;
+  font-size: 1.1em;
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: background 0.2s, color 0.2s;
+}
+.vjs-control:hover, .vjs-control:focus {
+  background: #1976d2 !important;
+  color: #fff !important;
+}
+
+.vjs-progress-control {
+  max-width: 350px !important;
+  min-width: 120px;
+  flex: 0 1 auto !important;
+  margin: 0 12px !important;
+  margin-left: 50px !important;
+}
+
+.vjs-play-progress, .vjs-load-progress {
+  border-radius: 3px;
+}
+
+.vjs-play-progress {
+  background: #ff1744 !important;
+}
+
+.vjs-load-progress {
+  background: #fff3 !important;
+}
+
+.vjs-current-time, .vjs-duration, .vjs-remaining-time {
+  font-family: monospace;
+  font-size: 1em;
+  color: #fff !important;
+  min-width: 60px;
+  text-align: center;
+}
+
+.vjs-volume-panel {
+  min-width: 80px;
+}
+
+.vjs-fullscreen-control {
+  font-size: 1.2em;
+}
+
+/* Responsive: allow timeline to grow a bit on small screens */
+@media (max-width: 600px) {
+  .vjs-progress-control {
+    max-width: 60vw !important;
+    min-width: 80px;
+  }
+  .vjs-control-bar {
+    padding: 6px 4px;
+    min-height: 36px;
+  }
+} 
+
+/* --- CLEANED Video.js Control Icon Sizing and Spacing --- */
+.vjs-control-bar .vjs-control,
+.vjs-back10-button, .vjs-forward10-button, .vjs-playpause-toggle-button, .vjs-save-later-button, .vjs-fullscreen-control, .vjs-fullscreen-toggle {
+  font-size: 1.3em !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  width: 32px !important;
+}
+.vjs-control-bar {
+  gap: 6px;
+  padding: 6px 10px;
+}
+.custom-save-later {
+  margin-left: auto !important;
+  margin-right: 12px !important;
+  order: 99 !important;
+  color: #1976d2 !important;
 } 

@@ -1,3 +1,11 @@
+/*
+  MIGRATE_WATCH_LATER_ABSPATH.JS
+  Version: 7
+  AppName: MCC_1_CCM [v7]
+  Updated: 7/16/2025 @7:00AM
+  Created by Paul Welby
+*/
+
 // migrate_watch_later_absPath.js
 // Usage: node scripts/migrate_watch_later_absPath.js
 // Make sure watch_later.json and media-library-movies.json are in the correct locations.

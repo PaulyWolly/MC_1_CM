@@ -2,7 +2,7 @@
   MEDIAMANAGER.HTML
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 -->
 <div class="media-manager-overlay">
@@ -28,6 +28,15 @@
                 <input class="media-manager-input" id="media-manager-title" type="text" placeholder="e.g. Batman: The Movie or 2661">
                 <div class="media-manager-field-error" id="title-error" style="display: none;">Title or TMDB ID is required</div>
             </div>
+            <!-- NEW: TMDB ID button and hidden field -->
+            <div class="media-manager-form-row">
+                <button type="button" class="media-manager-tmdbid-reveal-btn">TMDB ID (Optional)</button>
+                <div class="media-manager-tmdbid-inline-row hidden">
+                    <label class="media-manager-label" for="media-manager-tmdbid">TMDB ID</label>
+                    <input class="media-manager-input media-manager-tmdbId-input" id="media-manager-tmdbid" type="text" placeholder="e.g. 11778">
+                </div>
+            </div>
+            <div class="media-manager-tmdbid-msg" style="display:none;color:#ff9800;margin-bottom:8px;"></div>
             <div class="media-manager-form-row">
                 <label class="media-manager-label" for="media-manager-path">File/Folder Path
                     <span class="media-manager-required">*</span>

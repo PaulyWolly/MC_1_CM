@@ -2,7 +2,7 @@
   MEDIALIBRARYMANAGER.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -184,30 +184,23 @@ class MediaLibraryManager {
     }
 
     async loadMoviePosters() {
+        console.log('[DEBUG] loadMoviePosters called');
         try {
             console.log('🎬 [MEDIA-LIBRARY] Loading movie posters...');
-            // Try normalized file first
-            let response = await fetch('/components/MediaLibrary/data/movies/movie_posters_normalized.json');
+            let response = await fetch('/components/MediaLibrary/data/movies/movie_posters_normalized.json?t=' + Date.now());
             if (response.ok) {
                 this.moviePosters = await response.json();
+                const keys = Object.keys(this.moviePosters);
+                console.log(`[DEBUG] Loaded movie_posters_normalized.json with ${keys.length} keys. First 5:`, keys.slice(0,5));
                 console.log('✅ [MEDIA-LIBRARY - normalized JSON used] Loaded movie_posters_normalized.json');
             } else {
-                // Fallback to original
-                response = await fetch('/components/MediaLibrary/data/movies/movie_posters.json');
-                if (response.ok) {
-                    this.moviePosters = await response.json();
-                    console.log('✅ [MEDIA-LIBRARY - default JSON used] Loaded movie_posters.json (fallback)');
-                } else {
-                    console.warn('⚠️ [MEDIA-LIBRARY] Could not load movie posters');
-                    this.moviePosters = {};
-                }
+                console.error('❌ [MEDIA-LIBRARY] Failed to load movie_posters_normalized.json');
+                this.moviePosters = {};
             }
         } catch (error) {
-            console.warn('⚠️ [MEDIA-LIBRARY] Error loading movie posters:', error);
+            console.error('❌ [MEDIA-LIBRARY] Error loading movie_posters_normalized.json:', error);
             this.moviePosters = {};
         }
-
-        // Always re-render the grid after loading posters if on movies tab
         if (this.currentTab === 'movies') {
             this.renderMediaGrid();
         }
@@ -384,19 +377,12 @@ class MediaLibraryManager {
         if (existingModal) {
             existingModal.remove();
         }
-
         // --- Ensure correct tab is highlighted based on navigation state ---
-        // Only override currentTab if navigating within TV shows or collections
         if (this.currentTab === 'tvshows' && this.currentTVShow) {
             this.currentTab = 'tvshows';
         } else if (this.currentTab === 'collections' && this.currentCollectionView) {
             this.currentTab = 'collections';
         }
-        
-        console.log('[DEBUG - RenderModal] currentTab:', this.currentTab);
-        console.log('[DEBUG - RenderModal] currentTVShow:', this.currentTVShow);
-        console.log('[DEBUG - RenderModal] currentTVSeason:', this.currentTVSeason);
-
         const getSearchPlaceholder = () => {
             switch (this.currentTab) {
                 case 'tvshows': return 'Search TV-Shows...';
@@ -407,7 +393,6 @@ class MediaLibraryManager {
                 default: return 'Search Movies...';
             }
         };
-
         const getShuffleButtonText = () => {
             switch (this.currentTab) {
                 case 'tvshows': return 'Shuffle Shows';
@@ -418,7 +403,6 @@ class MediaLibraryManager {
                 default: return 'Shuffle';
             }
         };
-
         // Create only the modal, no overlay
         const modal = document.createElement('div');
         modal.id = 'mediaLibraryModal';
@@ -446,9 +430,8 @@ class MediaLibraryManager {
               </div>
               <div class="media-library-content-wrapper">
                 <div class="media-library-flex-row">
+                  <div id="mediaGrid" class="media-library-movie-grid media-library-movie-grid-scroll"></div>
                   <div class="media-library-az-sidebar" id="mediaLibraryAZSidebar"></div>
-                  <div id="mediaGrid" class="media-library-movie-grid media-library-movie-grid-scroll">
-                  </div>
                 </div>
               </div>
             </div>
@@ -612,14 +595,11 @@ class MediaLibraryManager {
                                 };
                             }
                         };
-                        selector.onPosterSelected = ({filePath, posterType, poster}) => {
-                            if ((mode === 'movie' || mode === 'tv') && this.moviePosters && item) {
-                                // Always use item.path as the key for both movies and TV shows
-                                this.moviePosters[item.path] = filePath;
-                                this.cacheBusters[item.path] = Date.now();
-                                this.renderMediaGrid();
-                                this.showToast('Poster updated!');
-                            }
+                        selector.onPosterSelected = async ({filePath, posterType, poster}) => {
+                            // Always reload the full poster mapping after update
+                            await this.loadMoviePosters();
+                            this.renderMediaGrid();
+                            this.showToast('Poster updated!');
                         };
                         selector.init();
                         if (!item) {
@@ -759,18 +739,35 @@ class MediaLibraryManager {
     }
 
     async renderTabContent() {
+        console.log('[DEBUG - RenderTabContent] currentTab:', this.currentTab);
+        console.log('[DEBUG - RenderTabContent] currentTVShow:', this.currentTVShow);
+        console.log('[DEBUG - RenderTabContent] currentTVSeason:', this.currentTVSeason);
+        
         switch (this.currentTab) {
             case 'movies':
-                return this.renderMoviesContent();
+                console.log('[DEBUG - RenderTabContent] Rendering movies tab');
+                return `
+                    <div class="media-library-az-sidebar-movies">${this.renderAZSidebar()}</div>
+                    ${this.renderMoviesContent()}
+                `;
             case 'tvshows':
                 if (this.currentTVShow) {
                     if (this.currentTVSeason) {
+                        console.log('[DEBUG - RenderTabContent] Rendering episodes view');
                         return this.renderEpisodesView();
                     } else {
-                        return await this.renderSeasonsView(this.currentTVShow);
+                        console.log('[DEBUG - RenderTabContent] Rendering seasons view');
+                        return `
+                            <div class="media-library-az-sidebar-tvshows">${this.renderAZSidebar()}</div>
+                            ${await this.renderSeasonsView(this.currentTVShow)}
+                        `;
                     }
                 } else {
-                    return this.renderTVShowsTab();
+                    console.log('[DEBUG - RenderTabContent] Rendering TV shows tab');
+                    return `
+                        <div class="media-library-az-sidebar-tvshows">${this.renderAZSidebar()}</div>
+                        ${this.renderTVShowsTab()}
+                    `;
                 }
             case 'favorites':
                 return this.renderFavoritesContent();
@@ -834,22 +831,20 @@ class MediaLibraryManager {
             const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
             
-            // Add anchor if this is the first movie starting with this letter
-            let anchorHTML = '';
+            // INTERNAL ANCHOR: Add data-anchor if this is the first movie starting with this letter
             if (!addedAnchors.has(firstLetter)) {
-                anchorHTML = `<a name="${firstLetter}" id="anchor-${firstLetter}"></a>`;
+                card.setAttribute('data-anchor', firstLetter);
                 addedAnchors.add(firstLetter);
             }
             
             // For movies, use the HTML string method
             card.innerHTML = `
-                ${anchorHTML}
-                <div class="media-card-actions" style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 10px 0 10px;">
+                <div class="media-card-actions">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
-                    <button class="favorite-btn" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.5em;line-height:1;">${this.isFavorite(item.path) ? '❤️' : '🤍'}</button>
-                    <button class="collection-btn" title="Add to Collection" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">➕</button>
+                    <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(item.path) ? '❤️' : '🤍'}</button>
+                    <button class="collection-btn" title="Add to Collection">➕</button>
                 </div>
-                <img src="${this.getPosterPath(item)}" alt="${item.title}" style="margin-top:6px;">
+                <img src="${this.getPosterPath(item)}" alt="${item.title}" class="media-library-poster">
                 <div class="media-info"><h3>${cleanTitle}</h3></div>
             `;
 
@@ -941,30 +936,49 @@ class MediaLibraryManager {
             if (this.tvPosters && mediaItem.name) {
                 // Try exact match
                 if (this.tvPosters[mediaItem.name]) {
-                    return this.tvPosters[mediaItem.name];
+                    let url = this.tvPosters[mediaItem.name];
+                    if (this.cacheBusters && this.cacheBusters[mediaItem.name]) {
+                        url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[mediaItem.name];
+                    }
+                    return url;
                 }
                 // Try case-insensitive match
                 const lowerName = mediaItem.name.toLowerCase();
                 for (const [key, value] of Object.entries(this.tvPosters)) {
                     if (key.toLowerCase() === lowerName) {
-                        return value;
+                        let url = value;
+                        if (this.cacheBusters && this.cacheBusters[key]) {
+                            url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[key];
+                        }
+                        return url;
                     }
                 }
             }
             // Fallback: Construct root poster path
             let showRoot = mediaItem.path.replace(/\\/g, '/');
             if (!showRoot.endsWith('/')) showRoot += '/';
-            const rootPosterUrl = `/media${showRoot.split('/media').pop()}/poster.jpg`;
+            let rootPosterUrl = `/media${showRoot.split('/media').pop()}/poster.jpg`;
+            if (this.cacheBusters && this.cacheBusters[mediaItem.path]) {
+                rootPosterUrl += '?t=' + this.cacheBusters[mediaItem.path];
+            }
             return rootPosterUrl;
         }
         // Movies: robust lookup
         if (mediaItem) {
-            const tryKeys = [
-                mediaItem.path,
-                mediaItem.relPath,
-                mediaItem.title,
-                mediaItem.name
-            ].filter(Boolean);
+            const tryKeys = [];
+            // --- NEW: Try dot notation folder name as key ---
+            if (mediaItem.path) {
+                let folderName = mediaItem.path.split(/[\\/]/).pop();
+                // Normalize to dot notation (match backend)
+                let dotKey = folderName
+                    .replace(/\s+/g, '.')
+                    .replace(/[^\w.\[\]()-]/g, '') // keep word chars, dot, brackets, parens, dash
+                    .replace(/\.+/g, '.') // collapse multiple dots
+                    .replace(/\.$/, ''); // remove trailing dot
+                tryKeys.push(dotKey);
+            }
+            // --- Existing keys ---
+            tryKeys.push(mediaItem.path, mediaItem.relPath, mediaItem.title, mediaItem.name);
             // Add folder name as a key to try
             if (mediaItem.path) {
                 const folderName = mediaItem.path.split(/[\\/]/).pop();
@@ -997,6 +1011,7 @@ class MediaLibraryManager {
             }
             if (this.moviePosters) {
                 for (const key of tryKeys) {
+                    if (!key) continue; // Skip undefined/null/empty keys
                     if (this.moviePosters[key]) {
                         let url = this.moviePosters[key];
                         if (this.cacheBusters && this.cacheBusters[key]) {
@@ -1004,9 +1019,9 @@ class MediaLibraryManager {
                         }
                         return url;
                     }
-                    const lowerKey = key.toLowerCase();
+                    const lowerKey = typeof key === 'string' ? key.toLowerCase() : '';
                     for (const [k, v] of Object.entries(this.moviePosters)) {
-                        if (k.toLowerCase() === lowerKey) {
+                        if (typeof k === 'string' && k.toLowerCase() === lowerKey) {
                             let url = v;
                             if (this.cacheBusters && this.cacheBusters[k]) {
                                 url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[k];
@@ -1021,7 +1036,11 @@ class MediaLibraryManager {
                 const filename = (mediaItem.path || mediaItem.relPath || mediaItem.title || mediaItem.name || '').split(/[\\/]/).pop();
                 for (const [k, v] of Object.entries(this.moviePosters)) {
                     if (k.endsWith(filename)) {
-                        return v;
+                        let url = v;
+                        if (this.cacheBusters && this.cacheBusters[k]) {
+                            url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[k];
+                        }
+                        return url;
                     }
                 }
             }
@@ -1035,9 +1054,23 @@ class MediaLibraryManager {
         return '/assets/img/placeholder-poster.jpg';
     }
 
-    playMedia(mediaItem, startTime = 0) {
+    // Add this helper to wait for the Video.js player to be ready
+    async waitForVideoPlayerReady(timeout = 2000) {
+        const start = Date.now();
+        while (!this.videoPlayer || typeof this.videoPlayer.playUrl !== 'function') {
+            if (Date.now() - start > timeout) {
+                throw new Error('Video.js player not initialized after waiting');
+            }
+            await new Promise(res => setTimeout(res, 100));
+        }
+    }
+
+    async playMedia(mediaItem, startTime = 0) {
+        window.mediaLibraryManager.currentMediaItem = mediaItem;
+        window.mediaLibraryManager.currentFile = mediaItem;
         console.log('[MEDIA-LIBRARY] playMedia called:', {mediaItem, startTime});
         this.closeMediaBrowser();
+        await this.waitForVideoPlayerReady(); // Ensure player is ready before playback
         if (!this.videoPlayer) {
             console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available');
             if (window.addMessageToChat) {
@@ -1045,38 +1078,158 @@ class MediaLibraryManager {
             }
             return;
         }
+        
+        // Handle Watch Later items that don't have full file information
+        let fullMediaItem = mediaItem;
+        if (!mediaItem.files && !mediaItem.absPath && mediaItem.path) {
+            console.log('[MEDIA-LIBRARY] Watch Later item missing file info, searching media library...');
+            console.log('[MEDIA-LIBRARY] Watch Later item path:', mediaItem.path);
+            console.log('[MEDIA-LIBRARY] Watch Later item title:', mediaItem.title);
+            
+            // Ensure media library is loaded
+            if (!this.mediaLibraryRaw || this.mediaLibraryRaw.length === 0) {
+                console.log('[MEDIA-LIBRARY] Media library not loaded, loading now...');
+                await this.loadMediaLibrary();
+            }
+            
+            console.log('[MEDIA-LIBRARY] Media library length:', this.mediaLibraryRaw.length);
+            console.log('[MEDIA-LIBRARY] Media library structure:', this.mediaLibraryRaw.map(item => ({
+                name: item.name,
+                path: item.path,
+                hasFolders: !!(item.folders && item.folders.length),
+                hasFiles: !!(item.files && item.files.length)
+            })));
+            
+            // Debug: Let's see what's actually in the MOVIES folder
+            const moviesFolder = this.mediaLibraryRaw.find(item => item.name === 'MOVIES' || item.path === 'MOVIES');
+            if (moviesFolder && moviesFolder.folders) {
+                console.log('[MEDIA-LIBRARY] MOVIES folder contents:', moviesFolder.folders.map(folder => ({
+                    name: folder.name,
+                    path: folder.path,
+                    hasFiles: !!(folder.files && folder.files.length)
+                })));
+            }
+            
+            // Try to find the original movie in the media library
+            // First, try direct match
+            let originalMovie = this.mediaLibraryRaw.find(item => 
+                item.path === mediaItem.path || 
+                item.title === mediaItem.title ||
+                (item.name && item.name === mediaItem.title)
+            );
+            
+            // If not found, search recursively through folders
+            if (!originalMovie) {
+                console.log('[MEDIA-LIBRARY] Direct match failed, searching recursively...');
+                const searchInFolders = (folders, depth = 0) => {
+                    for (const folder of folders) {
+                        console.log(`[MEDIA-LIBRARY] Searching at depth ${depth}:`, folder.name, folder.path);
+                        
+                        // Check if this folder matches
+                        if (folder.path === mediaItem.path || 
+                            folder.title === mediaItem.title ||
+                            (folder.name && folder.name === mediaItem.title)) {
+                            console.log('[MEDIA-LIBRARY] Found matching folder:', folder);
+                            return folder;
+                        }
+                        
+                        // Search in subfolders
+                        if (folder.folders && folder.folders.length > 0) {
+                            const found = searchInFolders(folder.folders, depth + 1);
+                            if (found) return found;
+                        }
+                        
+                        // Search in files
+                        if (folder.files && folder.files.length > 0) {
+                            console.log(`[MEDIA-LIBRARY] Checking ${folder.files.length} files in ${folder.name}`);
+                            const found = folder.files.find(file => 
+                                file.path === mediaItem.path ||
+                                file.title === mediaItem.title ||
+                                (file.name && file.name === mediaItem.title)
+                            );
+                            if (found) {
+                                console.log('[MEDIA-LIBRARY] Found matching file:', found);
+                                return found;
+                            }
+                        }
+                    }
+                    return null;
+                };
+                
+                originalMovie = searchInFolders(this.mediaLibraryRaw);
+            }
+            
+            if (originalMovie) {
+                console.log('[MEDIA-LIBRARY] Found original movie for Watch Later item:', originalMovie);
+                console.log('[MEDIA-LIBRARY] Original movie has files:', !!originalMovie.files);
+                console.log('[MEDIA-LIBRARY] Original movie has absPath:', !!originalMovie.absPath);
+                fullMediaItem = originalMovie;
+                // Update the current media item to use the full version
+                window.mediaLibraryManager.currentMediaItem = fullMediaItem;
+                window.mediaLibraryManager.currentFile = fullMediaItem;
+            } else {
+                console.warn('[MEDIA-LIBRARY] Could not find original movie in media library for:', mediaItem.path);
+                console.warn('[MEDIA-LIBRARY] Available movie paths:', this.mediaLibraryRaw.map(item => item.path).slice(0, 5));
+            }
+        }
+        
         // Always use absolute path for playback
         let pathParam = '';
-        if (mediaItem.absPath) {
-            pathParam = mediaItem.absPath;
-        } else if (mediaItem.files && mediaItem.files.length > 0 && mediaItem.files[0].absPath) {
-            pathParam = mediaItem.files[0].absPath;
-        } else if (mediaItem.path && mediaItem.files && mediaItem.files.length > 0 && mediaItem.files[0].name) {
+        if (fullMediaItem.absPath) {
+            pathParam = fullMediaItem.absPath;
+        } else if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
+            pathParam = fullMediaItem.files[0].absPath;
+        } else if (fullMediaItem.path && fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].name) {
             // Construct the full path
-            pathParam = `S:/MEDIA/MOVIES/${mediaItem.path}/${mediaItem.files[0].name}`;
+            pathParam = `S:/MEDIA/MOVIES/${fullMediaItem.path}/${fullMediaItem.files[0].name}`;
         } else {
-            pathParam = mediaItem.path || mediaItem.relPath || '';
+            pathParam = fullMediaItem.path || fullMediaItem.relPath || '';
         }
         if (!pathParam.includes('%')) {
             pathParam = encodeURIComponent(pathParam);
         }
         const videoUrl = `/api/video?path=${pathParam}`;
-        this.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, mediaItem);
-        this.currentVideo = mediaItem;
-        this.findNextVideo(mediaItem);
+        console.log('[MEDIA-LIBRARY] Final video URL:', videoUrl);
+        this.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, fullMediaItem);
+        this.currentVideo = fullMediaItem;
+        this.findNextVideo(fullMediaItem);
         // Attach resume event listeners
-        this.attachResumeEvents(mediaItem);
+        this.attachResumeEvents(fullMediaItem);
     }
 
     createVideoPlayer() {
-        const playerContainer = document.createElement('div');
-        playerContainer.id = 'videoPlayerContainer';
-        playerContainer.className = 'video-player-container';
-        playerContainer.innerHTML = `
-            <video id="videoPlayer" class="video-js vjs-default-skin" controls>
-                <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video.</p>
-            </video>
-            <div id="upNextOverlay" class="up-next-overlay" style="display: none;">
+        // Remove any existing player container
+        const container = document.getElementById('videoPlayerContainer');
+        if (container) {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+        } else {
+            const newContainer = document.createElement('div');
+            newContainer.id = 'videoPlayerContainer';
+            newContainer.className = 'video-player-container';
+            document.body.appendChild(newContainer);
+        }
+        const playerContainer = document.getElementById('videoPlayerContainer');
+
+        // Insert a <video> element without a fixed id (let Video.js assign one)
+        const video = document.createElement('video');
+        video.className = 'video-js vjs-default-skin';
+        video.setAttribute('controls', '');
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'contain';
+        video.style.background = '#000';
+        playerContainer.appendChild(video);
+
+        // Add overlays/buttons as needed (Up Next, Skip Intro, etc.)
+        let upNextOverlay = document.getElementById('upNextOverlay');
+        if (!upNextOverlay) {
+            upNextOverlay = document.createElement('div');
+            upNextOverlay.id = 'upNextOverlay';
+            upNextOverlay.className = 'up-next-overlay';
+            upNextOverlay.style.display = 'none';
+            upNextOverlay.innerHTML = `
                 <div class="up-next-content">
                     <h3>Up Next</h3>
                     <div id="nextVideoInfo"></div>
@@ -1085,22 +1238,60 @@ class MediaLibraryManager {
                         <button id="cancelNextBtn" class="btn btn-secondary">Cancel</button>
                     </div>
                 </div>
-            </div>
-            <button id="skipIntroBtn" class="skip-intro-btn" style="display: none;">Skip Intro</button>
-        `;
+            `;
+            playerContainer.appendChild(upNextOverlay);
+        }
+        let skipIntroBtn = document.getElementById('skipIntroBtn');
+        if (!skipIntroBtn) {
+            skipIntroBtn = document.createElement('button');
+            skipIntroBtn.id = 'skipIntroBtn';
+            skipIntroBtn.className = 'skip-intro-btn';
+            skipIntroBtn.style.display = 'none';
+            skipIntroBtn.textContent = 'Skip Intro';
+            playerContainer.appendChild(skipIntroBtn);
+        }
 
-        document.body.appendChild(playerContainer);
-        
-        // Initialize Video.js
-        const player = videojs('videoPlayer', {
+        // --- Custom Seek Buttons ---
+        const Button = videojs.getComponent('Button');
+        class Back10Button extends Button {
+            handleClick() {
+                const player = this.player();
+                player.currentTime(Math.max(0, player.currentTime() - 10));
+            }
+        }
+        Back10Button.prototype.controlText_ = 'Back 10 seconds';
+        videojs.registerComponent('Back10Button', Back10Button);
+        class Forward10Button extends Button {
+            handleClick() {
+                const player = this.player();
+                player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
+            }
+        }
+        Forward10Button.prototype.controlText_ = 'Forward 10 seconds';
+        videojs.registerComponent('Forward10Button', Forward10Button);
+
+        // Initialize Video.js on the video element (let it assign a dynamic id)
+        const player = videojs(video, {
+            controlBar: {
+                volumePanel: {inline: false}
+            },
             fluid: true,
-            responsive: true
+            preload: 'auto',
+            playbackRates: [0.5, 1, 1.25, 1.5, 2]
         });
-
-        // Set up event listeners
+        // Add custom buttons after player is ready
+        player.ready(function() {
+            // Only add if not already present
+            if (!player.getChild('controlBar').getChild('Back10Button')) {
+                player.getChild('controlBar').addChild('Back10Button', {}, 1);
+            }
+            if (!player.getChild('controlBar').getChild('Forward10Button')) {
+                player.getChild('controlBar').addChild('Forward10Button', {}, 2);
+            }
+        });
+        // Continue with any other setup (events, overlays, etc.)
         this.setupVideoPlayerEvents(player);
-        
-        return player;
+        this.videoPlayer = player;
     }
 
     setupVideoPlayerEvents(player) {
@@ -1129,6 +1320,15 @@ class MediaLibraryManager {
             if (duration && currentTime > duration - 30) {
                 this.showUpNextOverlay();
             }
+            // --- Show Skip to Next Button 2 minutes before end ---
+            const skipToNextBtn = document.getElementById('skipToNextBtn');
+            if (skipToNextBtn) {
+                if (duration && (duration - currentTime <= 120) && this.nextVideo) {
+                    skipToNextBtn.style.display = 'block';
+                } else {
+                    skipToNextBtn.style.display = 'none';
+                }
+            }
         });
 
         player.on('ended', () => {
@@ -1138,6 +1338,9 @@ class MediaLibraryManager {
                     this.playNextVideo();
                 }, 5000);
             }
+            // Hide skip to next button on end
+            const skipToNextBtn = document.getElementById('skipToNextBtn');
+            if (skipToNextBtn) skipToNextBtn.style.display = 'none';
         });
     }
 
@@ -1427,36 +1630,28 @@ class MediaLibraryManager {
 
     scrollToLetter(letter) {
         console.log('🔤 [A-Z] scrollToLetter called with letter:', letter);
-        // Find the anchor for this letter
-        const anchor = document.getElementById(`anchor-${letter}`);
+        // Find the card for this letter using data-anchor
+        const anchor = document.querySelector(`.media-library-movie-card[data-anchor="${letter}"]`);
+        // Highlight the active letter in the A-Z sidebar
+        const azSidebar = document.getElementById('mediaLibraryAZSidebar');
+        if (azSidebar) {
+            azSidebar.querySelectorAll('.media-library-az-letter').forEach(btn => btn.classList.remove('az-active'));
+            const activeBtn = azSidebar.querySelector(`.media-library-az-letter[data-letter='${letter}']`);
+            if (activeBtn) activeBtn.classList.add('az-active');
+        }
         if (anchor) {
             console.log('🔤 [A-Z] Found anchor for letter:', letter);
-            // Scroll to the anchor smoothly (same as MOVIES)
             anchor.scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'nearest' 
             });
-            // Highlight the card containing the anchor (support both movie and tv cards)
-            let movieCard = anchor.closest('.media-library-movie-card');
-            let tvCard = anchor.closest('.media-library-tv-card');  
-
-            if (movieCard) {
-                movieCard.style.transition = 'background 0.3s';
-                const originalBg = movieCard.style.background;
-                movieCard.style.background = '#fff9c4'; // light yellow
-                setTimeout(() => {
-                    movieCard.style.background = originalBg || '';
-                }, 600);
-            }
-            else if (tvCard) {
-                tvCard.style.transition = 'background 0.3s';
-                const originalBg = tvCard.style.background;
-                tvCard.style.background = '#fff9c4'; // light yellow
-                setTimeout(() => {
-                    tvCard.style.background = originalBg || '';
-                }, 600);
-            }
-
+            // Highlight the card containing the anchor
+            anchor.style.transition = 'background 0.3s';
+            const originalBg = anchor.style.background;
+            anchor.style.background = '#fff9c4'; // light yellow
+            setTimeout(() => {
+                anchor.style.background = originalBg || '';
+            }, 600);
         } else {
             console.warn('🔤 [A-Z] No anchor found for letter:', letter);
         }
@@ -1813,48 +2008,36 @@ class MediaLibraryManager {
     }
 
     renderTVShowsTab() {
-        const tvShows = this.getTVShows();
-        console.log('[TV DEBUG] renderTVShowsTab: tvShows.length =', tvShows.length);
-        const filteredShows = this.filterItems(tvShows, this.searchTerm);
-        let sortedShows = this.sortItems(filteredShows, this.sortBy, 'name');
-
-        // Apply shuffle if requested
-        if (this.shuffle) {
-            for (let i = sortedShows.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [sortedShows[i], sortedShows[j]] = [sortedShows[j], sortedShows[i]];
-            }
-        }
-
-        // Track which letters we've already added anchors for
+        const sortedShows = this.getFilteredAndSortedItems();
         const addedAnchors = new Set();
-        const html = `
-            <div class="media-library-movie-grid">
-                ${sortedShows.map(show => {
-                    // Use the same cleanTitle logic as MOVIES
-                    const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '').toLowerCase();
-                    const firstLetter = cleanTitle.charAt(0).toUpperCase();
-                    let anchorHTML = '';
-                    if (!addedAnchors.has(firstLetter)) {
-                        anchorHTML = `<a name="${firstLetter}" id="anchor-${firstLetter}"></a>`;
-                        addedAnchors.add(firstLetter);
-                    }
-                    return `
-                    <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
-                      ${anchorHTML}
-                      <div class="media-card-actions" style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 10px 0 10px;">
-                        <button class="poster-selector-btn" title="Change Poster" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">🖼️</button>
-                        <button class="favorite-btn" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.5em;line-height:1;">${this.isFavorite(show.path) ? '❤️' : '🤍'}</button>
-                        <button class="collection-btn" title="Add to Collection" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">➕</button>
-                      </div>
-                      <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
-                      <div class="media-info"><h3>${cleanTitle}</h3></div>
-                    </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-        console.log('[TV DEBUG] renderTVShowsTab: html =', html);
+        let html = '<div class="media-library-movie-grid">';
+        sortedShows.forEach(show => {
+            const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '').toLowerCase();
+            const firstLetter = cleanTitle.charAt(0).toUpperCase();
+            let anchorHTML = '';
+            if (!addedAnchors.has(firstLetter)) {
+                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                addedAnchors.add(firstLetter);
+            }
+            html += `
+                <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
+                  ${anchorHTML}
+                  <div class="media-card-actions">
+                    <button class="poster-selector-btn" title="Change Poster">🖼️</button>
+                    <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? '❤️' : '🩷'}</button>
+                    <button class="collection-btn" title="Add to Collection">➕</button>
+                  </div>
+                  <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
+                  <div class="media-info"><h3>${cleanTitle}</h3></div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        // Insert the A-Z sidebar inside the grid container
+        html = `<div class="media-library-grid-container">
+            <div id="mediaLibraryAZSidebar" class="media-library-az-sidebar"></div>
+            ${html}
+        </div>`;
         return html;
     }
 
@@ -2827,6 +3010,14 @@ class MediaLibraryManager {
 
             console.log('[DEBUG] episode:', episodes);
 
+            // Only show arrows if more than 4 episodes
+            const showArrows = episodes.length > 4;
+            const gridClass = 'media-library-episodes-grid' + (episodes.length < 6 ? ' center-episodes' : '');
+            const wrapperClass = 'media-library-episodes-arrows-wrapper';
+
+            // Attach handlers after render
+            setTimeout(() => this.attachEpisodeArrowHandlers(), 0);
+
             return `
                 <div class="media-library-breadcrumbs">
                     <span class="breadcrumb-link" onclick="mediaLibraryManager.backToTVShows()">TV Shows</span>
@@ -2839,40 +3030,40 @@ class MediaLibraryManager {
                     <h2>${seasonName}</h2>
                     <p>${episodes.length} Episodes</p>
                 </div>
-                <div class="media-library-episodes-scroll">
-                <div class="media-library-grid" style="width: 396px; overflow-x: auto;">
-                    ${episodes.map(episode => {
-                        const episodeImage = this.getEpisodeImage(showName, seasonName, episode);
-                        // Robust relPath for playback
-                        const relPath = ((episode.relPath) ? episode.relPath : (this.currentTVSeason.replace(/\\/g, '/') + '/' + (episode.name || episode.filename || '').replace(/\\/g, '/'))).replace(/\\/g, '/');
-                        return `
-                        <div class="media-library-card episode" onclick="mediaLibraryManager.playEpisode('${relPath}')">
-                            <div class="media-library-card-poster">
-                                <img src="${episodeImage}" alt="${episode.name || episode.filename}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
-                                <div class="media-library-play-overlay">▶</div>
-                            </div>
-                            <div class="media-library-card-info">
-                                <h3 class="tv-show-season-episode-name" style="font-size:1em;line-height:1.2;margin-bottom:2px;">
-                                    ${showName} - ${seasonName} - ${(() => {
-                                        const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
-                                        return match ? `E${match[1].padStart(2, '0')}` : '';
-                                    })()}
-                                </h3>
-                                <div class="tv-show-episode-name" style="font-size:0.98em;line-height:1.2;white-space:normal;">
-                                    ${this.extractEpisodeTitle((episode.name || episode.filename || episode.path || '').split(/[\\/]/).pop())}
+                <div class="${wrapperClass}">
+                    ${showArrows ? `<button class=\"media-library-arrow-episode-btn left\" type=\"button\">&#8592;</button>` : ''}
+                    <div class="${gridClass}">
+                        ${episodes.map(episode => {
+                            const episodeImage = this.getEpisodeImage(showName, seasonName, episode);
+                            // Robust relPath for playback
+                            let relPath = ((episode.relPath) ? episode.relPath : (this.currentTVSeason.replace(/\\/g, '/') + '/' + (episode.name || episode.filename || '').replace(/\\/g, '/'))).replace(/\\/g, '/');
+                            relPath = relPath.replace(/'/g, "\\'");
+                            return `
+                            <div class=\"media-library-card episode\" onclick=\"mediaLibraryManager.playEpisode('${relPath}')\">
+                                <div class=\"media-library-card-poster\">
+                                    <img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">
+                                    <div class=\"media-library-play-overlay\">▶</div>
+                                </div>
+                                <div class=\"media-library-card-info\">
+                                    <h3 class=\"tv-show-season-episode-name\">
+                                        ${showName} - ${seasonName} - ${(() => {
+                                            const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
+                                            return match ? `E${match[1].padStart(2, '0')}` : '';
+                                        })()}
+                                    </h3>
+                                    <div class=\"tv-show-episode-name\">
+                                        ${this.extractEpisodeTitle((episode.name || episode.filename || episode.path || '').split(/[\\/]/).pop())}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    }).join('')}
+                        `;
+                        }).join('')}
                     </div>
+                    ${showArrows ? `<button class=\"media-library-arrow-episode-btn right\" type=\"button\">&#8594;</button>` : ''}
                 </div>
             `;
-        } catch (error) {
-            console.error('[EPISODE VIEW ERROR]', error);
-            this.showError('Failed to load episodes for this season. Please check the data or try again.');
-            // Fallback: keep modal open and show error message
-            return `<div class="media-library-error">An error occurred loading episodes. Please check the console for details.</div>`;
+        } catch (e) {
+            return `<div style=\"color:red;\">[ERROR] Failed to render episodes: ${e.message}</div>`;
         }
     }
 
@@ -2888,6 +3079,18 @@ class MediaLibraryManager {
     }
 
     playEpisode(episodePath, startTime = 0) {
+        // Try to find the episode object in the media library by path
+        let episodeObj = null;
+        if (this.mediaLibrary && episodePath) {
+            episodeObj = this.mediaLibrary.find(item => item.path === episodePath || item.absPath === episodePath || (item.relPath && item.relPath === episodePath));
+        }
+        if (episodeObj) {
+            window.mediaLibraryManager.currentMediaItem = episodeObj;
+            window.mediaLibraryManager.currentFile = episodeObj;
+        } else {
+            window.mediaLibraryManager.currentMediaItem = { path: episodePath };
+            window.mediaLibraryManager.currentFile = { path: episodePath };
+        }
         // Remove both modal and overlay
         this.closeMediaBrowser();
         // Always normalize to forward slashes for URL
@@ -2915,7 +3118,7 @@ class MediaLibraryManager {
     }
 
     // --- TAB RENDERING ---
-    renderTabContent() {
+    async renderTabContent() {
         console.log('[DEBUG - RenderTabContent] currentTab:', this.currentTab);
         console.log('[DEBUG - RenderTabContent] currentTVShow:', this.currentTVShow);
         console.log('[DEBUG - RenderTabContent] currentTVSeason:', this.currentTVSeason);
@@ -2923,7 +3126,10 @@ class MediaLibraryManager {
         switch (this.currentTab) {
             case 'movies':
                 console.log('[DEBUG - RenderTabContent] Rendering movies tab');
-                return this.renderMoviesContent();
+                return `
+                    <div class="media-library-az-sidebar-movies">${this.renderAZSidebar()}</div>
+                    ${this.renderMoviesContent()}
+                `;
             case 'tvshows':
                 if (this.currentTVShow) {
                     if (this.currentTVSeason) {
@@ -2931,11 +3137,17 @@ class MediaLibraryManager {
                         return this.renderEpisodesView();
                     } else {
                         console.log('[DEBUG - RenderTabContent] Rendering seasons view');
-                        return this.renderSeasonsView(this.currentTVShow);
+                        return `
+                            <div class="media-library-az-sidebar-tvshows">${this.renderAZSidebar()}</div>
+                            ${await this.renderSeasonsView(this.currentTVShow)}
+                        `;
                     }
                 } else {
                     console.log('[DEBUG - RenderTabContent] Rendering TV shows tab');
-                    return this.renderTVShowsTab();
+                    return `
+                        <div class="media-library-az-sidebar-tvshows">${this.renderAZSidebar()}</div>
+                        ${this.renderTVShowsTab()}
+                    `;
                 }
             case 'favorites':
                 return this.renderFavoritesContent();
@@ -2953,31 +3165,28 @@ class MediaLibraryManager {
     // --- TAB CONTENT RENDERING METHODS ---
     renderMoviesContent() {
         const items = this.getFilteredAndSortedItems();
-        // Track which letters we've already added anchors for
-        const addedAnchors = new Set();
-        return items.map(item => {
-            const cleanTitle = this.cleanMovieTitle(item.title);
-            const firstLetter = cleanTitle.charAt(0).toUpperCase();
-            let anchorHTML = '';
-            if (!addedAnchors.has(firstLetter)) {
-                anchorHTML = `<a name="${firstLetter}" id="anchor-${firstLetter}"></a>`;
-                addedAnchors.add(firstLetter);
-            }
-            return `
-                <div class="media-library-movie-card" data-path="${item.path}" style="position: relative;">
-                    ${anchorHTML}
-                    <div class="media-card-actions" style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 10px 0 10px;">
-                        <button class="poster-selector-btn" title="Change Poster" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">🖼️</button>
-                        <button class="favorite-btn" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.5em;line-height:1;">${this.isFavorite(item.path) ? '❤️' : '🤍'}</button>
-                        <button class="collection-btn" title="Add to Collection" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">➕</button>
+        let html = '<div class="media-library-movie-grid">';
+        items.forEach((item, index) => {
+            const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
+            html += `
+                <div class="media-library-movie-card" data-item-index="${index}" data-item-path="${item.path}">
+                    <div class="media-card-actions">
+                        <button class="poster-selector-btn" title="Change Poster">🖼️</button>
+                        <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(item.path) ? '❤️' : '🩷'}</button>
+                        <button class="collection-btn" title="Add to Collection">➕</button>
                     </div>
-                    <img src="${this.getPosterPath(item)}" alt="${item.title}" style="margin-top:6px;">
-                    <div class="media-info">
-                        <h3>${cleanTitle}</h3>
-                    </div>
+                    <img src="${this.getPosterPath(item)}" alt="${cleanTitle}" class="media-library-poster">
+                    <div class="media-info"><h3>${cleanTitle}</h3></div>
                 </div>
             `;
-        }).join('');
+        });
+        html += '</div>';
+        // Insert the A-Z sidebar inside the grid container
+        html = `<div class="media-library-grid-container">
+            <div id="mediaLibraryAZSidebar" class="media-library-az-sidebar"></div>
+            ${html}
+        </div>`;
+        return html;
     }
 
     renderFavoritesContent() {
@@ -3041,48 +3250,36 @@ class MediaLibraryManager {
     }
 
     renderTVShowsTab() {
-        const tvShows = this.getTVShows();
-        console.log('[TV DEBUG] renderTVShowsTab: tvShows.length =', tvShows.length);
-        const filteredShows = this.filterItems(tvShows, this.searchTerm);
-        let sortedShows = this.sortItems(filteredShows, this.sortBy, 'name');
-
-        // Apply shuffle if requested
-        if (this.shuffle) {
-            for (let i = sortedShows.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [sortedShows[i], sortedShows[j]] = [sortedShows[j], sortedShows[i]];
-            }
-        }
-
-        // Track which letters we've already added anchors for
+        const sortedShows = this.getFilteredAndSortedItems();
         const addedAnchors = new Set();
-        const html = `
-            <div class="media-library-movie-grid">
-                ${sortedShows.map(show => {
-                    // Use the same cleanTitle logic as MOVIES
-                    const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '').toLowerCase();
-                    const firstLetter = cleanTitle.charAt(0).toUpperCase();
-                    let anchorHTML = '';
-                    if (!addedAnchors.has(firstLetter)) {
-                        anchorHTML = `<a name="${firstLetter}" id="anchor-${firstLetter}"></a>`;
-                        addedAnchors.add(firstLetter);
-                    }
-                    return `
-                    <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
-                      ${anchorHTML}
-                      <div class="media-card-actions" style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 10px 0 10px;">
-                        <button class="poster-selector-btn" title="Change Poster" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">🖼️</button>
-                        <button class="favorite-btn" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.5em;line-height:1;">${this.isFavorite(show.path) ? '❤️' : '🤍'}</button>
-                        <button class="collection-btn" title="Add to Collection" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">➕</button>
-                      </div>
-                      <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
-                      <div class="media-info"><h3>${cleanTitle}</h3></div>
-                    </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-        console.log('[TV DEBUG] renderTVShowsTab: html =', html);
+        let html = '<div class="media-library-movie-grid">';
+        sortedShows.forEach(show => {
+            const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '').toLowerCase();
+            const firstLetter = cleanTitle.charAt(0).toUpperCase();
+            let anchorHTML = '';
+            if (!addedAnchors.has(firstLetter)) {
+                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                addedAnchors.add(firstLetter);
+            }
+            html += `
+                <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
+                  ${anchorHTML}
+                  <div class="media-card-actions">
+                    <button class="poster-selector-btn" title="Change Poster">🖼️</button>
+                    <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? '❤️' : '🩷'}</button>
+                    <button class="collection-btn" title="Add to Collection">➕</button>
+                  </div>
+                  <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
+                  <div class="media-info"><h3>${cleanTitle}</h3></div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        // Insert the A-Z sidebar inside the grid container
+        html = `<div class="media-library-grid-container">
+            <div id="mediaLibraryAZSidebar" class="media-library-az-sidebar"></div>
+            ${html}
+        </div>`;
         return html;
     }
 
@@ -3096,12 +3293,11 @@ class MediaLibraryManager {
     saveResumeProgress(mediaItem, currentTime, duration, isManualSave = false) {
         console.log('[MEDIA-LIBRARY] saveResumeProgress called:', {mediaItem, currentTime, duration, isManualSave});
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
-        // Remove any existing entry for this path
+        // Remove any existing entry for this path or relPath
         resumeList = resumeList.filter(item => item.path !== mediaItem.path && item.path !== mediaItem.relPath);
 
         // Always use absolute path for saving
         let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
-        let absPath = mediaItem.absPath || '';
         // If path is missing, try to look up from main media library by filename or title
         if (!mediaItem.path && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
             const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
@@ -3115,9 +3311,6 @@ class MediaLibraryManager {
             if (found && found.path) {
                 savePath = found.path;
             }
-            if (found && found.absPath) {
-                absPath = found.absPath;
-            }
         }
         if (savePath && savePath.startsWith('/media/')) {
             savePath = savePath.replace(/^\/media\//, '');
@@ -3129,23 +3322,30 @@ class MediaLibraryManager {
         // For manual saves (Save for Later button), always save regardless of position
         // For automatic saves (pause events), only save if not near the end
         if (isManualSave || (duration - currentTime > 60)) {
-            resumeList.push({
-                path: savePath, // folder name for poster lookup
-                absPath: absPath || mediaItem.absPath || '', // full file path for playback
+            const savedItem = {
+                path: savePath,
                 title: mediaItem.title,
                 poster: this.getPosterPath(mediaItem),
                 currentTime,
                 duration,
                 lastWatched: Date.now()
-            });
+            };
+            // --- Ensure absPath is included for movies ---
+            if (!mediaItem.absPath && mediaItem.files && mediaItem.files.length > 0) {
+                // Find the first video file
+                const videoFile = mediaItem.files.find(f => f.name && /\.(mp4|mkv|avi)$/i.test(f.name));
+                if (videoFile) {
+                    savedItem.absPath = `/media/movies/${mediaItem.path}/${videoFile.name}`;
+                }
+            } else if (mediaItem.absPath) {
+                savedItem.absPath = mediaItem.absPath;
+            }
+            resumeList.push(savedItem);
+            console.log('[MEDIA-LIBRARY] Saved to Watch Later:', savedItem);
         }
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
         console.log('[MEDIA-LIBRARY] Updated resumeList:', resumeList);
-        // Always re-render Watch Later UI if modal is open
-        const mediaGrid = document.getElementById('mediaGrid');
-        if (mediaGrid) {
-            mediaGrid.innerHTML = this.renderWatchLaterContent();
-        }
+        this.renderWatchLaterContent();
         if (isManualSave) {
             this.showToast('Saved to Watch Later!');
         }
@@ -3170,30 +3370,22 @@ class MediaLibraryManager {
         return resumeList.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
     }
 
-    showToast(msg) {
+    showToast(msg, type) {
+        if (type === 'success') type = 'blue';
+        if (type === 'error') type = 'red';
+        console.log(`[TOAST][${type}] ${msg}`);
         let toast = document.getElementById('mediaLibraryToast');
         if (!toast) {
             toast = document.createElement('div');
             toast.id = 'mediaLibraryToast';
-            toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1976d2;color:#fff;padding:12px 28px;border-radius:8px;font-size:1.1em;z-index:30000;box-shadow:0 2px 8px rgba(0,0,0,0.18);opacity:0.95;transition:opacity 0.3s;';
         }
+        toast.className = 'media-library-toast';
         toast.textContent = msg;
-        toast.style.display = 'block';
-        // Try to append to the topmost open modal
-        let modal = document.querySelector('.media-manager-overlay[style*="display: flex"], .media-library-modal');
-        if (modal) {
-            modal.appendChild(toast);
-            toast.style.position = 'absolute';
-            toast.style.left = '50%';
-            toast.style.bottom = '40px';
-            toast.style.transform = 'translateX(-50%)';
-        } else {
-            document.body.appendChild(toast);
-            toast.style.position = 'fixed';
-            toast.style.left = '50%';
-            toast.style.bottom = '80px';
-            toast.style.transform = 'translateX(-50%)';
-        }
+        toast.classList.remove('success', 'error');
+        if (type === 'blue') toast.classList.add('success');
+        if (type === 'red') toast.classList.add('error');
+        toast.style.display = 'flex';
+        document.body.appendChild(toast);
         setTimeout(() => { toast.style.display = 'none'; }, 1800);
     }
 
@@ -3229,12 +3421,12 @@ class MediaLibraryManager {
 
     async reloadMoviePostersAndRefreshGrid() {
         try {
-            const response = await fetch('/components/MediaLibrary/data/movies/movie_posters.json?_=' + Date.now());
+            const response = await fetch('/components/MediaLibrary/data/movies/movie_posters_normalized.json?_=' + Date.now());
             if (response.ok) {
                 this.moviePosters = await response.json();
             }
         } catch (e) {
-            console.warn('[MediaLibrary] Failed to reload movie_posters.json:', e);
+            console.warn('[MediaLibrary] Failed to reload movie_posters_normalized.json:', e);
         }
         this.renderMediaGrid();
         this.attachPosterSelectorHandlers();
@@ -3306,14 +3498,11 @@ class MediaLibraryManager {
                                 };
                             }
                         };
-                        selector.onPosterSelected = ({filePath, posterType, poster}) => {
-                            if ((mode === 'movie' || mode === 'tv') && this.moviePosters && item) {
-                                // Always use item.path as the key for both movies and TV shows
-                                this.moviePosters[item.path] = filePath;
-                                this.cacheBusters[item.path] = Date.now();
-                                this.renderMediaGrid();
-                                this.showToast('Poster updated!');
-                            }
+                        selector.onPosterSelected = async ({filePath, posterType, poster}) => {
+                            // Always reload the full poster mapping after update
+                            await this.loadMoviePosters();
+                            this.renderMediaGrid();
+                            this.showToast('Poster updated!');
                         };
                         selector.init();
                         if (!item) {
@@ -3377,6 +3566,44 @@ class MediaLibraryManager {
             e.preventDefault();
             grid.scrollBy({left: scrollAmount, behavior: 'smooth'});
         };
+    }
+
+    // Attach arrow scroll handlers after render
+    attachEpisodeArrowHandlers() {
+        const wrapper = document.querySelector('.media-library-episodes-arrows-wrapper');
+        if (!wrapper) return;
+        const grid = wrapper.querySelector('.media-library-episodes-grid');
+        if (!grid) return;
+        const left = wrapper.querySelector('.media-library-arrow-episode-btn.left');
+        const right = wrapper.querySelector('.media-library-arrow-episode-btn.right');
+        const scrollAmount = 1170; // width of 6 cards
+        if (left) left.onclick = function(e) {
+            e.preventDefault();
+            console.log('[EPISODE ARROW] Left arrow clicked');
+            grid.scrollBy({left: -scrollAmount, behavior: 'smooth'});
+        };
+        if (right) right.onclick = function(e) {
+            e.preventDefault();
+            console.log('[EPISODE ARROW] Right arrow clicked');
+            grid.scrollBy({left: scrollAmount, behavior: 'smooth'});
+        };
+    }
+
+    // Call this after rendering episodes view
+    // Example: setTimeout(() => mediaLibraryManager.attachEpisodeArrowHandlers(), 0);
+
+    openMediaManager() {
+        this.closeMediaLibrary();
+        if (window.MediaManager) {
+            const mm = new window.MediaManager();
+            mm.init();
+        } else {
+            if (window.showToast) {
+                window.showToast('MediaManager component not loaded.', 'error', 4000);
+            } else {
+                console.error('MediaManager component not loaded.');
+            }
+        }
     }
 }
 

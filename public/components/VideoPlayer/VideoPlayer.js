@@ -2,7 +2,7 @@
   VIDEOPLAYER.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -35,6 +35,9 @@ class VideoPlayer {
             'video player launch'
         ];
         
+        this.readyPromise = new Promise(resolve => {
+            this._resolveReady = resolve;
+        });
         this.init();
     }
 
@@ -175,30 +178,91 @@ class VideoPlayer {
     }
 
     createPlayer() {
+        // Inject global CSS for player and controls (no inline styles)
+        if (!document.getElementById('videojs-force-controls-style')) {
+            const style = document.createElement('style');
+            style.id = 'videojs-force-controls-style';
+            style.innerHTML = `
+                .video-player-container, .video-js {
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-height: 300px;
+                    position: relative;
+                }
+                .vjs-control-bar {
+                    display: flex !important;
+                    opacity: 0;
+                    visibility: visible !important;
+                    transition: opacity 0.3s;
+                    bottom: 80px !important;
+                    border: none !important;
+                }
+                .video-js:hover .vjs-control-bar,
+                .video-player-container:hover .vjs-control-bar {
+                    opacity: 1 !important;
+                }
+                .video-js .vjs-control-bar {
+                    z-index: 10010 !important;
+                }
+                .video-js {
+                    background: #000 !important;
+                }
+                .vjs-progress-control {
+                    min-width: 500px !important;
+                    max-width: 900px !important;
+                    flex: 0 1 600px !important;
+                    margin: 0 30px !important;
+                }
+                /* Unique classes for each custom control */
+                .vjs-back10-button.custom-back10 { }
+                .vjs-forward10-button.custom-forward10 { }
+                .vjs-playpause-toggle-button.custom-playpause { }
+                .vjs-save-later-button.custom-save-later { }
+                /* Example: .custom-back10 { color: red !important; } */
+                .vjs-control-bar .vjs-control {
+                    font-size: 1.3em !important;
+                    min-width: 48px !important;
+                    min-height: 48px !important;
+                    height: 48px !important;
+                    width: 48px !important;
+                }
+                .vjs-back10-button, .vjs-forward10-button, .vjs-playpause-toggle-button, .vjs-save-later-button, .vjs-fullscreen-control, .vjs-fullscreen-toggle {
+                    font-size: 1.3em !important;
+                    min-width: 48px !important;
+                    min-height: 48px !important;
+                    height: 48px !important;
+                    width: 48px !important;
+                }
+                .custom-save-later {
+                    margin-left: auto !important;
+                    margin-right: 20px !important;
+                    order: 99 !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
         // Create container
         this.container = document.createElement('div');
         if (!this.container) {
             console.error('🎬 [VIDEO-PLAYER] Failed to create container element');
             return;
         }
-        
         this.container.id = this.containerId;
         this.container.className = 'video-player-container';
-        this.container.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90vw;
-            height: 90vh;
-            background: #000;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            z-index: 10000;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-        `;
+        // Remove all inline styles except for essential layout
+        this.container.style.position = 'fixed';
+        this.container.style.top = '50%';
+        this.container.style.left = '50%';
+        this.container.style.transform = 'translate(-50%, -50%)';
+        this.container.style.width = '90vw';
+        this.container.style.height = '90vh';
+        this.container.style.background = '#000';
+        this.container.style.borderRadius = '12px';
+        this.container.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)';
+        this.container.style.zIndex = '10000';
+        this.container.style.display = 'none';
+        this.container.style.flexDirection = 'column';
+        this.container.style.overflow = 'hidden';
 
         // Create Video.js video element
         this.video = document.createElement('video');
@@ -206,42 +270,21 @@ class VideoPlayer {
             console.error('🎬 [VIDEO-PLAYER] Failed to create video element');
             return;
         }
-        
         this.video.className = 'video-js vjs-default-skin';
         this.video.setAttribute('controls', '');
         this.video.setAttribute('preload', 'auto');
-        this.video.style.cssText = `
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: #000;
-        `;
+        // Remove all inline styles from video
+        this.video.removeAttribute('style');
 
         // Create custom controls
-        this.createControls();
-        if (!this.controls) {
-            console.error('🎬 [VIDEO-PLAYER] Failed to create controls');
-            return;
-        }
+        // REMOVE the old custom controls bar
+        // (Do NOT call this.createControls() or append this.controls)
 
         // Create file browser button
         const fileButton = document.createElement('button');
         fileButton.className = 'video-player-file-btn';
         fileButton.innerHTML = '📁 Open Video File';
-        fileButton.style.cssText = `
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            padding: 12px 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            z-index: 10001;
-            transition: background 0.3s;
-        `;
+        fileButton.removeAttribute('style');
         fileButton.onmouseover = () => fileButton.style.background = 'rgba(0,0,0,0.9)';
         fileButton.onmouseout = () => fileButton.style.background = 'rgba(0,0,0,0.7)';
         fileButton.onclick = () => this.openFileBrowser();
@@ -250,21 +293,7 @@ class VideoPlayer {
         const closeButton = document.createElement('button');
         closeButton.className = 'video-player-close-btn';
         closeButton.innerHTML = '✕';
-        closeButton.style.cssText = `
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(255,0,0,0.8);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            z-index: 10001;
-            transition: background 0.3s;
-        `;
+        closeButton.removeAttribute('style');
         closeButton.onmouseover = () => closeButton.style.background = 'rgba(255,0,0,1)';
         closeButton.onmouseout = () => closeButton.style.background = 'rgba(255,0,0,0.8)';
         closeButton.onclick = () => this.hide();
@@ -308,7 +337,8 @@ class VideoPlayer {
 
         // Assemble the player
         this.container.appendChild(this.video);
-        this.container.appendChild(this.controls);
+        // REMOVE the old custom controls bar
+        // (Do NOT append this.controls)
         this.container.appendChild(fileButton);
         this.container.appendChild(closeButton);
         this.container.appendChild(this.episodeInfoHeader);
@@ -321,8 +351,130 @@ class VideoPlayer {
             console.error('🎬 [VIDEO-PLAYER] Document body not available');
             return;
         }
-
-        // Initialize Video.js
+        // Register custom Video.js seek buttons BEFORE player creation
+        if (typeof window.videojs !== 'undefined') {
+            const Button = window.videojs.getComponent('Button');
+            // Custom Back 10s Button
+            if (!window.videojs.getComponent('Back10Button')) {
+                class Back10Button extends Button {
+                    constructor(player, options) {
+                        super(player, options);
+                        this.controlText('Back 10 seconds');
+                        this.addClass('vjs-back10-button');
+                        this.addClass('custom-back10');
+                        this.el().innerHTML = `<span title="Back 10 seconds">⏪ 10s</span>`;
+                        this.el().setAttribute('title', 'Back 10 seconds');
+                    }
+                    handleClick() {
+                        const player = this.player();
+                        player.currentTime(Math.max(0, player.currentTime() - 10));
+                    }
+                }
+                window.videojs.registerComponent('Back10Button', Back10Button);
+            }
+            // Custom Forward 10s Button
+            if (!window.videojs.getComponent('Forward10Button')) {
+                class Forward10Button extends Button {
+                    constructor(player, options) {
+                        super(player, options);
+                        this.controlText('Forward 10 seconds');
+                        this.addClass('vjs-forward10-button');
+                        this.addClass('custom-forward10');
+                        this.el().innerHTML = `<span title="Forward 10 seconds">10s ⏩</span>`;
+                        this.el().setAttribute('title', 'Forward 10 seconds');
+                    }
+                    handleClick() {
+                        const player = this.player();
+                        player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
+                    }
+                }
+                window.videojs.registerComponent('Forward10Button', Forward10Button);
+            }
+            // Custom Play/Pause Toggle Button
+            if (!window.videojs.getComponent('PlayPauseToggleButton')) {
+                class PlayPauseToggleButton extends Button {
+                    constructor(player, options) {
+                        super(player, options);
+                        this.addClass('vjs-playpause-toggle-button');
+                        this.addClass('custom-playpause');
+                        this.updateIcon();
+                        player.on('play', () => this.updateIcon());
+                        player.on('pause', () => this.updateIcon());
+                        this.el().setAttribute('title', 'Play/Pause');
+                    }
+                    handleClick() {
+                        const player = this.player();
+                        if (player.paused()) {
+                            player.play();
+                        } else {
+                            player.pause();
+                        }
+                        this.updateIcon();
+                    }
+                    updateIcon() {
+                        const player = this.player();
+                        if (player.paused()) {
+                            this.el().innerHTML = '<span title="Play">▶️</span>';
+                            this.el().setAttribute('title', 'Play');
+                        } else {
+                            this.el().innerHTML = '<span title="Pause">⏸️</span>';
+                            this.el().setAttribute('title', 'Pause');
+                        }
+                    }
+                }
+                window.videojs.registerComponent('PlayPauseToggleButton', PlayPauseToggleButton);
+            }
+            // Custom Save for Later Button
+            if (!window.videojs.getComponent('SaveLaterButton')) {
+                class SaveLaterButton extends Button {
+                    constructor(player, options) {
+                        super(player, options);
+                        this.addClass('vjs-save-later-button');
+                        this.addClass('custom-save-later');
+                        this.el().innerHTML = '<span>🔖</span>';
+                        this.el().setAttribute('title', 'Save for Later');
+                    }
+                    handleClick() {
+                        let movie = window.mediaLibraryManager?.currentMediaItem || window.mediaLibraryManager?.currentFile;
+                        let currentTime = 0, duration = 0;
+                        if (this.player()) {
+                            currentTime = this.player().currentTime();
+                            duration = this.player().duration();
+                        }
+                        console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
+                        // Try to find the media item in the library by path or name if not already a full object
+                        if ((!movie?.path || !movie?.title) && window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary) {
+                            const found = window.mediaLibraryManager.mediaLibrary.find(item =>
+                                (movie?.path && item.path === movie.path) ||
+                                (movie?.title && item.title === movie.title) ||
+                                (movie?.name && item.name === movie.name)
+                            );
+                            if (found) movie = found;
+                        }
+                        // Ensure title and path are set
+                        if (movie && !movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
+                        if (movie && !movie.path && movie.absPath) movie.path = movie.absPath;
+                        // Save to Watch Later using MediaLibraryManager
+                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && movie.path) {
+                            window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
+                            if (typeof window.mediaLibraryManager.showToast === 'function') {
+                                window.mediaLibraryManager.showToast('Saved to Watch Later!', 'success');
+                            }
+                            this.player().showOverlayAlert?.('Saved to Watch Later!');
+                            console.log('[VIDEO-PLAYER] Saved to Watch Later:', movie, currentTime, duration);
+                        } else {
+                            if (typeof window.mediaLibraryManager?.showToast === 'function') {
+                                window.mediaLibraryManager.showToast('Cannot save - no media data available', 'error');
+                            }
+                            this.player().showOverlayAlert?.('Cannot save - no media data available');
+                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later - missing data or MediaLibraryManager');
+                        }
+                    }
+                }
+                window.videojs.registerComponent('SaveLaterButton', SaveLaterButton);
+            }
+        }
+        // Initialize Video.js with all desired controls and force control bar to show
         try {
             if (typeof window.videojs === 'undefined') {
                 console.warn('🎬 [VIDEO-PLAYER] Video.js library not loaded, using native video element');
@@ -331,20 +483,61 @@ class VideoPlayer {
                 this.setupNativeVideoEvents();
                 return;
             }
-            
             if (!this.video) {
                 console.error('🎬 [VIDEO-PLAYER] Video element not created');
                 this.vjsPlayer = null;
                 return;
             }
-            
             this.vjsPlayer = window.videojs(this.video, {
                 controls: true,
                 autoplay: false,
                 preload: 'auto',
                 fluid: true,
                 aspectRatio: '16:9',
+                controlBar: {
+                    children: [
+                        'PlayPauseToggleButton',
+                        'Back10Button',
+                        'Forward10Button',
+                        'volumePanel',
+                        'currentTimeDisplay',
+                        'timeDivider',
+                        'durationDisplay',
+                        'progressControl',
+                        'SaveLaterButton',
+                        'fullscreenToggle',
+                        'remainingTimeDisplay',
+                        'subsCapsButton',
+                        'playbackRateMenuButton',
+                        'chaptersButton',
+                        'descriptionsButton',
+                        'audioTrackButton',
+                    ]
+                },
+                userActions: {
+                    hotkeys: true
+                }
             });
+            // Force control bar to always show
+            this.vjsPlayer.controlBar.show();
+            this.vjsPlayer.controlBar.el().style.display = 'flex';
+            this.vjsPlayer.addClass('vjs-has-controls');
+            this.vjsPlayer.hasStarted(true);
+            this.vjsPlayer.controls(true);
+            this.vjsPlayer.on('userinactive', () => {
+                this.vjsPlayer.controlBar.show();
+                this.vjsPlayer.controlBar.el().style.display = 'flex';
+            });
+            this.vjsPlayer.on('useractive', () => {
+                this.vjsPlayer.controlBar.show();
+                this.vjsPlayer.controlBar.el().style.display = 'flex';
+            });
+            this.vjsPlayer.ready(() => {
+                if (this._resolveReady) this._resolveReady();
+                this.vjsPlayer.controlBar.show();
+                this.vjsPlayer.controlBar.el().style.display = 'flex';
+            });
+            // Add Save for Later button as a custom overlay or Video.js button if needed
             
             // Add persistent click-to-pause handler using Video.js API
             this.vjsPlayer.on('click', (e) => {
@@ -419,34 +612,13 @@ class VideoPlayer {
     createControls() {
         this.controls = document.createElement('div');
         this.controls.className = 'video-player-controls';
-        this.controls.style.cssText = `
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        `;
+        this.controls.removeAttribute('style');
 
         // Play/Pause button
         this.playButton = document.createElement('button');
         this.playButton.innerHTML = '▶️';
         this.playButton.className = 'video-player-play-btn';
-        this.playButton.style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background 0.3s;
-        `;
+        this.playButton.removeAttribute('style');
         this.playButton.onclick = () => this.togglePlay();
         this.playButton.onmouseover = () => this.playButton.style.background = 'rgba(255,255,255,0.2)';
         this.playButton.onmouseout = () => this.playButton.style.background = 'transparent';
@@ -454,23 +626,11 @@ class VideoPlayer {
         // Progress bar
         this.progressBar = document.createElement('div');
         this.progressBar.className = 'video-player-progress';
-        this.progressBar.style.cssText = `
-            flex: 1;
-            height: 6px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
-            cursor: pointer;
-            position: relative;
-        `;
+        this.progressBar.removeAttribute('style');
 
         this.progressFill = document.createElement('div');
-        this.progressFill.style.cssText = `
-            height: 100%;
-            background: #ff0000;
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.1s;
-        `;
+        this.progressFill.className = 'video-player-progress-fill';
+        this.progressFill.removeAttribute('style');
 
         this.progressBar.appendChild(this.progressFill);
         this.progressBar.onclick = (e) => this.seek(e);
@@ -479,12 +639,7 @@ class VideoPlayer {
         this.timeDisplay = document.createElement('div');
         this.timeDisplay.className = 'video-player-time';
         this.timeDisplay.innerHTML = '0:00 / 0:00';
-        this.timeDisplay.style.cssText = `
-            color: white;
-            font-size: 14px;
-            font-family: monospace;
-            min-width: 120px;
-        `;
+        this.timeDisplay.removeAttribute('style');
 
         // Volume control
         this.volumeControl = document.createElement('input');
@@ -493,30 +648,14 @@ class VideoPlayer {
         this.volumeControl.max = '100';
         this.volumeControl.value = '100';
         this.volumeControl.className = 'video-player-volume';
-        this.volumeControl.style.cssText = `
-            width: 80px;
-            height: 6px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
-            outline: none;
-            cursor: pointer;
-        `;
+        this.volumeControl.removeAttribute('style');
         this.volumeControl.oninput = (e) => this.setVolume(e.target.value / 100);
 
         // Fullscreen button
         this.fullscreenButton = document.createElement('button');
         this.fullscreenButton.innerHTML = '⛶';
         this.fullscreenButton.className = 'video-player-fullscreen-btn';
-        this.fullscreenButton.style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background 0.3s;
-        `;
+        this.fullscreenButton.removeAttribute('style');
         this.fullscreenButton.onclick = () => this.toggleFullscreen();
         this.fullscreenButton.onmouseover = () => this.fullscreenButton.style.background = 'rgba(255,255,255,0.2)';
         this.fullscreenButton.onmouseout = () => this.fullscreenButton.style.background = 'transparent';
@@ -524,20 +663,9 @@ class VideoPlayer {
         // Watch Later (Bookmark) button
         this.watchLaterButton = document.createElement('button');
         this.watchLaterButton.className = 'video-player-watch-later-btn';
-        this.watchLaterButton.innerHTML = '<span style="font-size:1.3em;">&#128278;</span>'; // Unicode bookmark icon
+        this.watchLaterButton.innerHTML = '<span style="font-size:1.3em;">&#128278;</span>';
         this.watchLaterButton.title = 'Watch Later';
-        this.watchLaterButton.style.cssText = `
-            background: none;
-            border: none;
-            color: white;
-            font-size: 22px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background 0.3s;
-        `;
-        this.watchLaterButton.onmouseover = () => this.watchLaterButton.style.background = 'rgba(255,255,255,0.2)';
-        this.watchLaterButton.onmouseout = () => this.watchLaterButton.style.background = 'transparent';
+        this.watchLaterButton.removeAttribute('style');
         this.watchLaterButton.onclick = () => {
             let movie = this.currentMediaItem || this.currentFile;
             let currentTime = 0, duration = 0;
@@ -564,20 +692,6 @@ class VideoPlayer {
             // Ensure title and path are set
             if (!movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
             if (!movie.path && movie.absPath) movie.path = movie.absPath;
-
-            // Ensure absPath is set for movies
-            console.log('[DEBUG - PRECONDITION]', movie, window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary);
-            if (
-              movie &&
-              (!movie.absPath || movie.absPath === movie.path) &&
-              movie.path && !movie.path.includes('/')
-            ) {
-              // Use the first video file in the files array if available
-              const fileObj = movie.files && movie.files.find(f => f.name.endsWith('.mp4') || f.name.endsWith('.mkv'));
-              if (fileObj) {
-                movie.absPath = `/media/movies/${movie.path}/${fileObj.name}`;
-              }
-            }
 
             // Save to Watch Later using MediaLibraryManager
             if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie) {
@@ -852,12 +966,12 @@ class VideoPlayer {
             
             if (this.vjsPlayer.paused()) {
                 this.vjsPlayer.play();
-                this.playButton.innerHTML = '⏸️';
+                // this.playButton.innerHTML = '⏸️'; // Removed custom play button
                 this.isPlaying = true;
                 console.log('🎬 [VIDEO-PLAYER] Video started playing');
             } else {
                 this.vjsPlayer.pause();
-                this.playButton.innerHTML = '▶️';
+                // this.playButton.innerHTML = '▶️'; // Removed custom play button
                 this.isPlaying = false;
                 console.log('🎬 [VIDEO-PLAYER] Video paused');
             }
@@ -867,12 +981,12 @@ class VideoPlayer {
             
             if (this.video.paused) {
                 this.video.play();
-                this.playButton.innerHTML = '⏸️';
+                // this.playButton.innerHTML = '⏸️'; // Removed custom play button
                 this.isPlaying = true;
                 console.log('🎬 [VIDEO-PLAYER] Native video started playing');
             } else {
                 this.video.pause();
-                this.playButton.innerHTML = '▶️';
+                // this.playButton.innerHTML = '▶️'; // Removed custom play button
                 this.isPlaying = false;
                 console.log('🎬 [VIDEO-PLAYER] Native video paused');
             }
@@ -924,7 +1038,7 @@ class VideoPlayer {
         }
         
         const percent = (currentTime / duration) * 100;
-        this.progressFill.style.width = percent + '%';
+        // this.progressFill.style.width = percent + '%'; // Removed custom progress bar
         this.updateTimeDisplay();
     }
 
@@ -943,7 +1057,7 @@ class VideoPlayer {
         
         const current = this.formatTime(currentTime);
         const total = this.formatTime(duration);
-        this.timeDisplay.innerHTML = `${current} / ${total}`;
+        // this.timeDisplay.innerHTML = `${current} / ${total}`; // Removed custom time display
     }
 
     formatTime(seconds) {
@@ -955,17 +1069,17 @@ class VideoPlayer {
     }
 
     showControls() {
-        this.controls.style.opacity = '1';
+        // this.controls.style.opacity = '1'; // Removed custom controls
         clearTimeout(this.controlsTimer);
         this.controlsTimer = setTimeout(() => this.hideControls(), 3000);
     }
 
     hideControls() {
-        this.controls.style.opacity = '0';
+        // this.controls.style.opacity = '0'; // Removed custom controls
     }
 
     onVideoEnd() {
-        this.playButton.innerHTML = '▶️';
+        // this.playButton.innerHTML = '▶️'; // Removed custom play button
         this.isPlaying = false;
     }
 
@@ -997,20 +1111,20 @@ class VideoPlayer {
                 event.preventDefault();
                 if (this.vjsPlayer) {
                     this.vjsPlayer.volume(Math.min(1, this.vjsPlayer.volume() + 0.1));
-                    this.volumeControl.value = this.vjsPlayer.volume() * 100;
+                    // this.volumeSlider.value = this.vjsPlayer.volume() * 100; // Removed custom volume slider
                 } else if (this.video) {
                     this.video.volume = Math.min(1, this.video.volume + 0.1);
-                    this.volumeControl.value = this.video.volume * 100;
+                    // this.volumeSlider.value = this.video.volume * 100; // Removed custom volume slider
                 }
                 break;
             case 'ArrowDown':
                 event.preventDefault();
                 if (this.vjsPlayer) {
                     this.vjsPlayer.volume(Math.max(0, this.vjsPlayer.volume() - 0.1));
-                    this.volumeControl.value = this.vjsPlayer.volume() * 100;
+                    // this.volumeSlider.value = this.vjsPlayer.volume() * 100; // Removed custom volume slider
                 } else if (this.video) {
                     this.video.volume = Math.max(0, this.video.volume - 0.1);
-                    this.volumeControl.value = this.video.volume * 100;
+                    // this.volumeSlider.value = this.video.volume * 100; // Removed custom volume slider
                 }
                 break;
             case 'KeyF':
@@ -1328,7 +1442,8 @@ class VideoPlayer {
 
     // Public method to play a video from a URL
     // Accepts optional mediaItem for robust Watch Later saving
-    playUrl(src, type = 'video/mp4', startTime = 0, mediaItem = null) {
+    async playUrl(src, type = 'video/mp4', startTime = 0, mediaItem = null) {
+        await this.readyPromise;
         if (!this.vjsPlayer) {
             console.error('🎬 [VIDEO-PLAYER] Video.js player not initialized');
             return;

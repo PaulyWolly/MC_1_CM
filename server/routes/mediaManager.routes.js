@@ -2,7 +2,7 @@
   MEDIAMANAGER.ROUTES.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -13,8 +13,10 @@ const TMDBPosterService = require('../services/TMDBPosterService');
 const config = require('../../config/config');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const NormalizationService = require('../services/NormalizationService');
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY || config.TMDB_API_KEY || config.tmdbApiKey;
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_MOVIE_URL = 'https://api.themoviedb.org/3/movie';
 const TMDB_TV_URL = 'https://api.themoviedb.org/3/tv';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
@@ -23,6 +25,7 @@ const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/d
 const TV_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows.json');
 const MOVIE_CAST_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_cast.json');
 const MOVIE_DESC_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_descriptions.json');
+const MOVIE_POSTERS_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
 
 // GET /api/media/unconfigured
 router.get('/api/media/unconfigured', (req, res) => {
@@ -53,6 +56,11 @@ router.post('/fetch-tmdb', async (req, res) => {
     if (!title && !tmdbId) {
       return res.status(400).json({ success: false, error: 'Must provide title or tmdbId' });
     }
+    if (!TMDB_API_KEY) {
+      console.error('[TMDB FETCH] ERROR: TMDB_API_KEY is missing at request time!');
+      return res.status(500).json({ success: false, error: 'TMDB API key not found' });
+    }
+    console.log('[TMDB FETCH] TMDB_API_KEY at request time:', TMDB_API_KEY);
     if (tmdbId) {
       // Fetch by TMDB ID (full details)
       const url = type === 'movie'
@@ -123,7 +131,7 @@ router.post('/fetch-tmdb', async (req, res) => {
 });
 
 // POST /api/media/save
-router.post('/save', (req, res) => {
+router.post('/save', async (req, res) => {
   try {
     const { type } = req.body;
     if (!type || (type !== 'movie' && type !== 'tv')) {
@@ -176,38 +184,21 @@ router.post('/save', (req, res) => {
       fs.writeFileSync(TV_JSON, JSON.stringify(tvData, null, 2));
       return res.json({ success: true, saved: showObj });
     }
-    // --- MOVIE SAVE LOGIC (unchanged) ---
+    // --- MOVIE SAVE LOGIC (updated) ---
     const { absPath, poster, description, cast, title, year } = req.body;
     if (!absPath) {
       return res.status(400).json({ success: false, error: 'Missing absPath' });
     }
-    // Save under ONE key: the full absPath
-    console.log('[MEDIA SAVE] Saving under key:', absPath);
-    // Save description
-    let descData = {};
-    if (fs.existsSync(MOVIE_DESC_JSON)) descData = JSON.parse(fs.readFileSync(MOVIE_DESC_JSON, 'utf8'));
-    if (!descData[absPath]) descData[absPath] = {};
-    descData[absPath].title = title || '';
-    descData[absPath].year = year || '';
-    descData[absPath].description = description || '';
-    fs.writeFileSync(MOVIE_DESC_JSON, JSON.stringify(descData, null, 2));
-    // Save cast
-    let castData = {};
-    if (fs.existsSync(MOVIE_CAST_JSON)) castData = JSON.parse(fs.readFileSync(MOVIE_CAST_JSON, 'utf8'));
-    castData[absPath] = { 
-      title: title || '', 
-      year: year || '', 
-      cast: cast || [] 
-    };
-    fs.writeFileSync(MOVIE_CAST_JSON, JSON.stringify(castData, null, 2));
-    // --- NEW: Save to main movies data file so it appears in the Movies page ---
+    // Load or initialize movies data
     let moviesData = {};
     if (fs.existsSync(MOVIES_JSON)) {
       moviesData = JSON.parse(fs.readFileSync(MOVIES_JSON, 'utf8'));
     }
     if (!moviesData.library) moviesData.library = {};
     if (!Array.isArray(moviesData.library.folders)) moviesData.library.folders = [];
-    // Create or update the movie entry
+    // Remove any folder entry for this absPath
+    moviesData.library.folders = moviesData.library.folders.filter(m => m.path !== absPath);
+    // Add or update the flat movie object
     const newMovie = {
       path: absPath,
       title: title || '',
@@ -216,16 +207,74 @@ router.post('/save', (req, res) => {
       description: description || '',
       cast: cast || []
     };
-    const existingIdx = moviesData.library.folders.findIndex(m => m.path === absPath);
-    if (existingIdx !== -1) {
-      moviesData.library.folders[existingIdx] = newMovie;
-    } else {
-      moviesData.library.folders.push(newMovie);
-    }
+    moviesData.library.folders.push(newMovie);
     fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
-    // --- END NEW ---
+    // --- END UPDATED LOGIC ---
+
+    // --- NEW: Robust poster download and persistence ---
+    if (poster && poster.startsWith('http')) {
+      try {
+        // Normalize path: convert backslashes to forward slashes
+        const normalizedPath = absPath.replace(/\\/g, '/');
+        // Compute movie folder
+        const movieFolder = path.dirname(normalizedPath);
+        // Compute local poster path
+        const posterFileName = 'poster.jpg';
+        const posterFilePath = path.join(movieFolder, posterFileName);
+        // Compute web-accessible path (relative to S:/MEDIA/MOVIES)
+        let relPath = path.relative('S:/MEDIA/MOVIES', posterFilePath).replace(/\\/g, '/');
+        const webPosterUrl = `/media/movies/${relPath}`;
+        // --- Use dot notation folder name as key ---
+        const folderName = path.basename(movieFolder);
+        const dotNotationKey = NormalizationService.createFolderName(folderName);
+        // Download the image
+        const download = (url, dest, cb) => {
+          const file = require('fs').createWriteStream(dest);
+          https.get(url, (response) => {
+            if (response.statusCode !== 200) {
+              file.close();
+              require('fs').unlinkSync(dest);
+              return cb(new Error('Failed to download image, status: ' + response.statusCode));
+            }
+            response.pipe(file);
+            file.on('finish', () => file.close(cb));
+          }).on('error', (err) => {
+            file.close();
+            require('fs').unlinkSync(dest);
+            cb(err);
+          });
+        };
+        // Download poster and update movie_posters.json
+        await new Promise((resolve, reject) => {
+          download(poster, posterFilePath, (err) => {
+            if (err) {
+              console.error('[MEDIA SAVE] Failed to download poster:', err);
+              return reject(new Error('Failed to download poster: ' + err.message));
+            }
+            // Update movie_posters.json
+            let posters = {};
+            try {
+              if (fs.existsSync(MOVIE_POSTERS_JSON)) {
+                posters = JSON.parse(fs.readFileSync(MOVIE_POSTERS_JSON, 'utf8'));
+              }
+            } catch (e) { posters = {}; }
+            posters[dotNotationKey] = webPosterUrl;
+            try {
+              fs.writeFileSync(MOVIE_POSTERS_JSON, JSON.stringify(posters, null, 2));
+              console.log('[MEDIA SAVE] Poster saved and movie_posters.json updated:', webPosterUrl);
+              resolve();
+            } catch (err) {
+              console.error('[MEDIA SAVE] Failed to update movie_posters.json:', err);
+              reject(new Error('Failed to update movie_posters.json: ' + err.message));
+            }
+          });
+        });
+      } catch (err) {
+        console.error('[MEDIA SAVE] Error in poster download/persist:', err);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    }
     console.log('[MEDIA SAVE] Saved data under key:', absPath);
-    // Poster saving would be handled elsewhere (file copy/upload), but can store poster URL/path here if needed
     return res.json({ success: true, keySaved: absPath });
   } catch (err) {
     console.error('[MEDIA SAVE] Error:', err);
@@ -306,6 +355,70 @@ router.post('/scan-tv-structure', (req, res) => {
     console.error('[TV STRUCTURE SCAN] Error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// --- NEW: Save poster to movie_posters.json ---
+router.post('/save-poster', (req, res) => {
+  const { absPath, poster } = req.body;
+  if (!absPath || !poster) {
+    return res.status(400).json({ success: false, error: 'Missing absPath or poster' });
+  }
+  // Normalize path: convert backslashes to forward slashes
+  const normalizedPath = absPath.replace(/\\/g, '/');
+  // Compute movie folder
+  const movieFolder = path.dirname(normalizedPath);
+  // Compute local poster path
+  const posterFileName = 'poster.jpg';
+  const posterFilePath = path.join(movieFolder, posterFileName);
+  // Compute web-accessible path (relative to S:/MEDIA/MOVIES)
+  let relPath = path.relative('S:/MEDIA/MOVIES', posterFilePath).replace(/\\/g, '/');
+  const webPosterUrl = `/media/movies/${relPath}`;
+
+  // Download the image
+  const download = (url, dest, cb) => {
+    const file = require('fs').createWriteStream(dest);
+    https.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        file.close();
+        require('fs').unlinkSync(dest);
+        return cb(new Error('Failed to download image, status: ' + response.statusCode));
+      }
+      response.pipe(file);
+      file.on('finish', () => file.close(cb));
+    }).on('error', (err) => {
+      file.close();
+      require('fs').unlinkSync(dest);
+      cb(err);
+    });
+  };
+
+  download(poster, posterFilePath, (err) => {
+    if (err) {
+      return res.status(500).json({ success: false, error: 'Failed to download poster: ' + err.message });
+    }
+    // --- NEW WORKFLOW ---
+    const NORMALIZED_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
+    const NEW_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/newly_added_movies.json');
+    // Use pretty name as key
+    const folderName = path.basename(movieFolder);
+    // Save to newly_added_movies.json
+    let newEntries = {};
+    if (fs.existsSync(NEW_FILE)) {
+      newEntries = JSON.parse(fs.readFileSync(NEW_FILE, 'utf8'));
+    }
+    newEntries[folderName] = webPosterUrl;
+    console.log('[DEBUG] Writing to newly_added_movies.json:', newEntries);
+    fs.writeFileSync(NEW_FILE, JSON.stringify(newEntries, null, 2));
+    // Merge into movie_posters_normalized.json
+    let normalized = {};
+    if (fs.existsSync(NORMALIZED_FILE)) {
+      normalized = JSON.parse(fs.readFileSync(NORMALIZED_FILE, 'utf8'));
+    }
+    Object.assign(normalized, newEntries);
+    console.log('[DEBUG] Writing to movie_posters_normalized.json:', normalized);
+    fs.writeFileSync(NORMALIZED_FILE, JSON.stringify(normalized, null, 2));
+    return res.json({ success: true });
+  });
 });
 
 module.exports = router;

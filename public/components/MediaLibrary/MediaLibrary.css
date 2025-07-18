@@ -2,7 +2,7 @@
   MEDIALIBRARY.CSS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -78,7 +78,7 @@
     flex-direction: column;
     align-items: center;
     width: 135px;
-    height: 29.5vh;
+    height: 32.0vh;
     min-width: 120px;
     max-width: 150px;
     padding: 10px 6px 12px 6px;
@@ -138,7 +138,7 @@
 
 .media-info h3 {
     margin: 0 0 4px 0;
-    font-size: 14px;
+    font-size: .8em;
     font-weight: 600;
     color: #333;
     line-height: 1.3;
@@ -158,6 +158,7 @@
     width: 98vw !important;
     height: 98vh !important;
     background: #000;
+    border-radius: 0px !important;
     z-index: 100000 !important;
     display: none;
 }
@@ -648,21 +649,6 @@
     padding: 20px;
 }
 
-.media-library-az-sidebar {
-    position: fixed;
-    top: 250px;
-    right: 30px;
-    bottom: 0;
-    width: 32px;
-    z-index: 10;
-    background: transparent;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: auto;
-    justify-content: center;
-}
-
 .media-library-az-letter {
     font-size: 13px;
     color: #888;
@@ -1034,31 +1020,47 @@
     top: -22px;
 }
 
+/* --- A-Z Sidebar Styles (from backup) --- */
 .media-library-az-sidebar {
-    width: 36px;
-    min-width: 36px;
-    background: #f5f5f5;
+    position: fixed;
+    top: 250px;
+    right: 30px;
+    bottom: 0;
+    width: 32px;
+    z-index: 10;
+    background: transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
-    border-right: 1px solid #ddd;
-    overflow-y: unset !important;
-    /* Remove scroll from sidebar */
+    pointer-events: auto;
+    justify-content: center;
+}
+@media (max-width: 900px) {
+    .media-library-az-sidebar {
+        display: none;
+    }
 }
 
+/* --- A-Z Letter Styles (from backup) --- */
 .media-library-az-letter {
-    font-size: .7em;
-    color: #1976d2;
-    padding: 4px 0;
+    font-size: 13px;
+    color: #888;
+    padding: 2px 0;
     cursor: pointer;
-    user-select: none;
-    transition: background 0.2s, color 0.2s;
+    width: 100%;
+    text-align: center;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
 }
-
 .media-library-az-letter:hover {
     background: #007bff;
     color: #fff;
+}
+
+.media-library-az-letter.az-active {
+    background: #1976d2 !important;
+    color: #fff !important;
+  border-radius: 4px;
 }
 
 .media-library-modal-content>div[style*="display:flex"] {
@@ -1088,17 +1090,19 @@
 .media-library-az-sidebar {
     width: 24px !important;
     min-width: 24px;
-    height: 60.5vh;
+    height: 58.0vh;
+    font-size: .85em !important;
     border-radius: 8px;
     background: #f5f5f5;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
+    padding: 6px 0;
     border-radius: 8px !important;
     overflow-y: unset !important;
-    position: absolute;
-    top: 0px;
+    position: fixed;
+    /* top: 240px; */
+    right: 20px;
     font-size: .9em;
 }
 
@@ -1111,15 +1115,15 @@
 }
 
 .media-library-content-wrapper {
-    max-width: 1470px;
+    /* max-width: 1027px; */
     margin: 0px auto;
-    width: 100%;
+    width: 94%;
     padding-top: 10px;
+    padding-right: 20px;
     display: flex;
     flex-direction: column;
     position: relative;
-    top: 10px;
-    right: -10px;
+    right: 20px;
 }
 
 .media-library-flex-row {
@@ -1878,19 +1882,56 @@
     color: #fff;
 }
 
-.media-library-arrow-btn.left {
-    background-color: #0056b3;
-    color: #fff;
-    color: #fff;
+/* ARROW EPISODE buttons */
+/* .media-library-arrow-episode-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    font-size: 2em;
+    background: rgba(0,0,0,0.3);
+    color: white;
+    border: none;
+    border-radius: 50%;
     width: 40px;
     height: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    pointer-events: auto;
+  } */
+
+.media-library-arrow-btn.left {
+
+    background-color: #0056b3;
+    color: #fff;
+    border-radius: 50%;
+    width: 40px !important;
+    height: 40px !important;
     border: 2px solid #fff !important;
     font-size: 24px;
     border-radius: 50%;
+
     z-index: 1000;
     position: relative;
     top: 90px;
     left: -10px;
+}
+
+.media-library-arrow-episode-btn.left {
+    background-color: #0056b3 !important;
+    color: #fff;
+    border-radius: 50%;
+    width: 40px !important;
+    height: 40px !important;
+    border: 2px solid #fff !important;
+    font-size: 24px;
+    border-radius: 50%;
+    z-index: 1000000000;
+    position: relative;
+    top: -30px;
 }
 
 .media-library-arrow-btn.right {
@@ -1907,6 +1948,32 @@
     top: 160px;
     right: -172px !important;
 }
+
+.media-library-arrow-episode-btn.right {
+    background-color: #0056b3;
+    color: #fff;
+    border-radius: 50%;
+    background-color: #0056b3;
+    /* width: 40px; */
+    /* height: 40px; */
+    border: 2px solid #fff !important;
+    font-size: 24px;
+    border-radius: 50%;
+    position: relative;
+    top: -35px;
+}
+
+/* .media-library-arrow-episode-btn.left {
+    left: -48px;
+}
+.media-library-arrow-episode-btn.right {
+    right: -48px;
+} */
+.media-library-arrow-episode-btn:hover {
+    background: rgba(0,0,0,0.5);
+}
+
+/* END ARROW Episode buttons styles */
 
 .media-library-seasons-arrows-wrapper {
     width: 1350px !important;
@@ -1943,10 +2010,10 @@
 
 /* --- POSTER CARD IMAGE --- */
 .media-library-card-poster img {
-  object-fit: cover;
-  display: block;
-  margin: 0 auto;
-  width: 200px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+    width: 170px;
 }
 
 /* --- BASE POSTER IMAGE STYLES --- */
@@ -2030,7 +2097,7 @@
     background: #fafbfc;
     position: absolute;
     right: 30px;
-    top: 30px;
+    top: 55px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -2143,5 +2210,181 @@
 
 /* Toast notifications should always appear above modals */
 #mediaLibraryToast, .toast, .toast-container {
-  z-index: 30000 !important;
+  /* z-index: 30000 !important; */
+}
+/* --- EPISODES ARROW NAVIGATION & GRID (ROBUST, VISUALLY APPEALING) --- */
+.media-library-episodes-arrows-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 1170px;
+    margin: 0 auto 24px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 240px;
+    top: 25%;
+    right: 100%;
+}
+
+.media-library-episodes-grid {
+    display: flex;
+    flex-direction: row;
+    /* gap: 18px; */
+    overflow-x: auto;
+    width: 1270px;
+    min-width: 1270px;
+    max-width: 1270px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: flex-start;
+    scroll-behavior: smooth;
+    background: none;
+}
+.center-episodes {
+  justify-content: center !important;
+}
+
+.media-library-card.episode {
+  min-width: 180px;
+  max-width: 180px;
+  flex: 0 0 180px;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding: 10px 6px 12px 6px;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.media-library-card.episode .media-library-card-poster img {
+  width: 160px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.media-library-arrow-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-size: 2em;
+  background: rgba(0,0,0,0.3);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  pointer-events: auto;
+}
+.media-library-arrow-btn.left {
+  /* left: -48px; */
+}
+.media-library-arrow-btn.right {
+  right: -48px;
+}
+.media-library-arrow-btn:hover {
+  background: rgba(0,0,0,0.5);
+}
+
+/* Ensure the scrollbar is visible and styled */
+.media-library-episodes-grid::-webkit-scrollbar {
+  height: 12px;
+}
+.media-library-episodes-grid::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 6px;
+}
+
+/* A-Z Sidebar for Movies */
+.media-library-az-sidebar-movies {
+  width: 24px !important;
+  height: 55.5vh;
+  font-size: .85em !important;
+  border-radius: 8px;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  position: absolute;
+  top: 100px;
+  right: 19px;
+  z-index: 1000;
+}
+
+/* A-Z Sidebar for TV Shows */
+.media-library-az-sidebar-tvshows {
+  width: 24px !important;
+  height: 55.5vh;
+  font-size: .85em !important;
+  border-radius: 8px;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+  position: absolute;
+  top: 100px;
+  right: 19px;
+  z-index: 1000;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.media-manager-tmdbid-reveal-btn {
+  margin-bottom: 6px;
+}
+
+.media-manager-tmdbid-inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* Toast alert styles */
+.media-library-toast {
+    position: fixed;
+    bottom: 67px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    z-index: 1000000000 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    opacity: 0.95;
+    transition: opacity 0.3s;
+    display: flex;
+    border: 3px solid yellow; /* For debugging, remove when done */
+    background: #1976d2;
+}
+.media-library-toast.success {
+    background: #1976d2;
+}
+.media-library-toast.error {
+    background: #e53935;
 }

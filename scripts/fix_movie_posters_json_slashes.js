@@ -2,14 +2,14 @@
   FIX_MOVIE_POSTERS_JSON_SLASHES.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
 
-const POSTERS_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters.json');
+const POSTERS_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
 
 const data = JSON.parse(fs.readFileSync(POSTERS_JSON, 'utf8'));
 const fixed = {};

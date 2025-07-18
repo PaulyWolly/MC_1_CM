@@ -2,7 +2,7 @@
   SERVER.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -11,14 +11,13 @@ const fetch = require('node-fetch');
 // Required dependencies
 const express          = require('express');
 const cors             = require('cors');
+// get dotenv set up to read .env
 const dotenv           = require('dotenv');
-
 const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 const fs = require('fs');
-// Load environment variables FIRST
-const envPath = path.join(__dirname, '.env');
-console.log('Looking for .env file at:', envPath);
-dotenv.config({ path: envPath });
+
 
 const { MongoClient }  = require('mongodb');
 const sdk              = require('microsoft-cognitiveservices-speech-sdk');
@@ -43,7 +42,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-i
 const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'superadmin-secret-2025';
 const SALT_ROUNDS = 12;
 
-console.log('TMDB_API_KEY:', process.env.TMDB_API_KEY);
+console.log('++++ -->>>[TMDB_API_KEY]:', process.env.TMDB_API_KEY);
 
 // Debug log environment variables
 console.log('Environment variables loaded:');

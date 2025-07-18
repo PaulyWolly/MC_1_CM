@@ -2,7 +2,7 @@
   ADMIN.ROUTES.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -432,8 +432,8 @@ router.post('/posters/download', async (req, res) => {
       // Compute the web-accessible URL for the poster
       const relPath = path.relative('S:/MEDIA/MOVIES', filePath).replace(/\\/g, '/');
       const webPosterUrl = `/media/movies/${relPath}`;
-      // Update movie_posters.json to point to the web URL
-      const postersJsonPath = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters.json');
+      // Update movie_posters_normalized.json to point to the web URL
+      const postersJsonPath = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
       let postersJson = {};
       try {
         if (require('fs').existsSync(postersJsonPath)) {

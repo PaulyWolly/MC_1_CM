@@ -2,7 +2,7 @@
   MEDIAMANAGER.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -108,10 +108,28 @@ class MediaManager {
     this.seasonsModalSaveBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-save-btn') : null;
 
     // TMDB Selection Modal
-    this.tmdbSelectModalOverlay = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-overlay') : null;
-    this.tmdbSelectModalContent = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-content') : null;
-    this.tmdbSelectModalCloseBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-close-btn') : null;
-    this.tmdbSelectModalCancelBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-cancel-btn') : null;
+    // this.tmdbSelectModalOverlay = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-overlay') : null;
+    // this.tmdbSelectModalContent = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-content') : null;
+    // this.tmdbSelectModalCloseBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-close-btn') : null;
+    // this.tmdbSelectModalCancelBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdb-select-modal-cancel-btn') : null;
+    // this.tmdbSelectModalMovie = null; // Initialize for new movie modal
+
+    // Hidden TMDB ID field
+    this.inputTMDBId = this.containerElement ? this.containerElement.querySelector('#media-manager-tmdbid') : null;
+    this.tmdbIdRow = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-row') : null;
+    this.tmdbIdMsg = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-msg') : null;
+
+    // TMDB ID reveal button logic
+    const tmdbIdRevealBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-reveal-btn') : null;
+    const tmdbIdInlineRow = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-inline-row') : null;
+    if (tmdbIdRevealBtn && tmdbIdInlineRow) {
+        tmdbIdRevealBtn.onclick = () => {
+            tmdbIdRevealBtn.classList.add('hidden');
+            tmdbIdInlineRow.classList.remove('hidden');
+            const input = tmdbIdInlineRow.querySelector('#media-manager-tmdbid');
+            if (input) input.focus();
+        };
+    }
   }
 
   setupEventListeners() {
@@ -134,6 +152,10 @@ class MediaManager {
     }
     if (this.viewJsonBtn) {
       this.viewJsonBtn.onclick = () => this.handleViewJson();
+    }
+    if (this.modeAll) {
+      const fetchAllBtn = document.querySelector('.media-manager-fetch-all-btn');
+      if (fetchAllBtn) fetchAllBtn.onclick = () => this.handleFetchAllInfo();
     }
     // TV Show fetch info
     if (this.fetchBtnTV) {
@@ -199,8 +221,8 @@ class MediaManager {
     };
 
     // TMDB Selection Modal event listeners
-    if (this.tmdbSelectModalCloseBtn) this.tmdbSelectModalCloseBtn.onclick = () => this.closeTMDBSelectModal();
-    if (this.tmdbSelectModalCancelBtn) this.tmdbSelectModalCancelBtn.onclick = () => this.closeTMDBSelectModal();
+    // if (this.tmdbSelectModalCloseBtn) this.tmdbSelectModalCloseBtn.onclick = () => this.closeTMDBSelectModal();
+    // if (this.tmdbSelectModalCancelBtn) this.tmdbSelectModalCancelBtn.onclick = () => this.closeTMDBSelectModal();
     
     document.addEventListener('keydown', this.handleKeyDown);
   }
@@ -225,38 +247,46 @@ class MediaManager {
 
   async handleFetchInfo() {
     const title = this.inputTitle ? this.inputTitle.value.trim() : '';
+    const tmdbId = this.inputTMDBId && this.inputTMDBId.value.trim();
     const type = this.tabMovie && this.tabMovie.classList.contains('active') ? 'movie' : 'tv';
-    if (!title) {
-      if (window.showToast) {
-        window.showToast('Please enter a title or TMDB ID.', 'error');
-        console.error('[MediaManager] Please enter a title or TMDB ID.');
-      }
+    if (!title && !tmdbId) {
+      this.showModalAlert('Please enter a title or TMDB ID.', 'error');
       return;
     }
     try {
-      if (window.showToast) {
-        window.showToast('Fetching info from TMDB...', 'info');
-        console.info('[MediaManager] Fetching info from TMDB...');
+      this.showModalAlert('Fetching info from TMDB...', 'info');
+      let body;
+      if (tmdbId) {
+        body = { type, tmdbId };
+      } else {
+        const isId = /^\d+$/.test(title);
+        body = isId ? { type, tmdbId: title } : { type, title };
       }
-      // If input is all digits, treat as TMDB ID
-      const isId = /^\d+$/.test(title);
-      const body = isId ? { type, tmdbId: title } : { type, title };
+
+
+      console.log('[FETCH - TMDB] Calling TMDB')
       const res = await fetch('/api/media/fetch-tmdb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
       const data = await res.json();
-      // Defensive check for missing data
-      if (!data.success) throw new Error(data.error || 'Failed to fetch info');
-      if (!data.data) {
-        // Log the full response for debugging
-        console.error('[MediaManager] TMDB fetch returned no data:', data);
-        let errorMsg = 'No TMDB data returned.';
-        if (data.error) errorMsg += ' Error: ' + data.error;
-        else if (typeof data === 'object') errorMsg += ' Response: ' + JSON.stringify(data);
-        throw new Error(errorMsg);
+      // --- NEW: If multiple results, show selection modal for movies ---
+      if (!tmdbId && !(/^\d+$/.test(title)) && data.results && Array.isArray(data.results) && data.results.length > 1) {
+        this.showTMDBSelectModalMovie(data.results);
+        this.hideModalAlert();
+        return;
       }
+      // Defensive check for missing data
+      if (!data.success || !data.data) {
+        this.showNoPosterManualTMDB();
+        throw new Error('No TMDB data returned.');
+      }
+      // Hide TMDB ID field, message, and manual button on success
+      if (this.tmdbIdRow) this.tmdbIdRow.classList.add('hidden');
+      if (this.tmdbIdMsg) this.tmdbIdMsg.classList.add('hidden');
+      this.hideNoPosterManualTMDB();
       // Populate UI fields
       if (this.posterImg) this.posterImg.src = data.data.poster || '';
       if (this.descInput) this.descInput.value = data.data.description || '';
@@ -282,15 +312,15 @@ class MediaManager {
           this.castList.appendChild(div);
         });
       }
-      if (window.showToast) {
-        window.showToast('Fetched info from TMDB.', 'success');
-        console.info('[MediaManager] Fetched info from TMDB.');
+      // --- NEW: If no poster, show manual TMDB ID option ---
+      if (this.posterImg && (!this.posterImg.src || this.posterImg.src.endsWith('undefined') || this.posterImg.src.endsWith('/'))) {
+          this.showNoPosterManualTMDB();
+      } else {
+          this.hideNoPosterManualTMDB();
       }
+      this.showModalAlert('Fetched info from TMDB.', 'success');
     } catch (err) {
-      if (window.showToast) {
-        window.showToast('Error: ' + err.message, 'error');
-        console.error('[MediaManager] Error:', err.message);
-      }
+      this.showModalAlert('Error: ' + err.message, 'error');
     }
   }
 
@@ -312,6 +342,11 @@ class MediaManager {
       console.error('[MediaManager] Form validation failed.');
       return;
     }
+    // --- Spinner logic ---
+    if (this.confirmBtn) {
+      this.confirmBtn.disabled = true;
+      this.confirmBtn.innerHTML = '<span class="mm-btn-spinner"></span> Saving...';
+    }
     try {
       const res = await fetch('/api/media/save', {
         method: 'POST',
@@ -325,19 +360,22 @@ class MediaManager {
         console.info('[MediaManager] Saved info successfully.');
         console.info('[MediaManager] Key saved:', data.keySaved || '');
       }
-      this.destroy();
-      // Optionally refresh DETAILS page or media library
-      if (window.mediaLibraryManager && typeof window.mediaLibraryManager.refresh === 'function') {
-        window.mediaLibraryManager.refresh();
+      // Always reload movie posters and refresh grid after save
+      if (window.mediaLibraryManager && typeof window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid === 'function') {
+        window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
       }
-      // --- NEW: If Movies tab is open, re-render it so the new movie appears ---
-      if (window.mediaLibraryManager && window.mediaLibraryManager.currentTab === 'movies') {
-        setTimeout(() => window.mediaLibraryManager.renderModal(), 0);
-      }
+      // Wait for user to see the success message, then close modal (1.5s delay)
+      setTimeout(() => {
+        this.destroy();
+      }, 1500);
     } catch (err) {
       if (window.showToast) {
         window.showToast('Error saving: ' + err.message, 'error');
         console.error('[MediaManager] Error saving:', err.message);
+      }
+      if (this.confirmBtn) {
+        this.confirmBtn.disabled = false;
+        this.confirmBtn.innerHTML = 'Confirm';
       }
     }
   }
@@ -1074,7 +1112,190 @@ Modified: ${new Date(episode.modified).toLocaleString()}
       if (this.fetchBtnTV) this.fetchBtnTV.disabled = false;
     }
   }
+
+  // --- NEW: Show TMDB select modal for movies ---
+  showTMDBSelectModalMovie(results) {
+    // Create modal if not exists
+    if (!this.tmdbSelectModalMovie) {
+      this.tmdbSelectModalMovie = document.createElement('div');
+      this.tmdbSelectModalMovie.className = 'media-manager-tmdb-select-modal-overlay';
+      this.tmdbSelectModalMovie.innerHTML = `
+        <div class="media-manager-tmdb-select-modal">
+          <div class="media-manager-tmdb-select-modal-header">
+            <h3>Select a Movie</h3>
+            <button class="media-manager-tmdb-select-modal-close-btn" type="button">&times;</button>
+          </div>
+          <div class="media-manager-tmdb-select-modal-content"></div>
+          <div class="media-manager-tmdb-select-modal-actions">
+            <button class="media-manager-btn media-manager-tmdb-select-modal-cancel-btn" type="button">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(this.tmdbSelectModalMovie);
+    }
+    const content = this.tmdbSelectModalMovie.querySelector('.media-manager-tmdb-select-modal-content');
+    content.innerHTML = '';
+    results.forEach(result => {
+      const div = document.createElement('div');
+      div.className = 'media-manager-tmdb-select-result';
+      div.innerHTML = `
+        <img src="${result.poster}" alt="Poster" style="width:40px;height:60px;object-fit:cover;margin-right:10px;vertical-align:middle;">
+        <span style="font-weight:bold;">${result.title}</span> <span style="color:#888;">(${result.year || ''})</span>
+      `;
+      div.onclick = () => this.handleSelectTMDBResultMovie(result.tmdbId);
+      content.appendChild(div);
+    });
+    // Show modal
+    this.tmdbSelectModalMovie.style.display = 'flex';
+    // Close/cancel logic
+    const closeBtn = this.tmdbSelectModalMovie.querySelector('.media-manager-tmdb-select-modal-close-btn');
+    const cancelBtn = this.tmdbSelectModalMovie.querySelector('.media-manager-tmdb-select-modal-cancel-btn');
+    closeBtn.onclick = cancelBtn.onclick = () => {
+      this.tmdbSelectModalMovie.style.display = 'none';
+    };
+  }
+
+  // --- NEW: Handle movie selection from TMDB modal ---
+  async handleSelectTMDBResultMovie(tmdbId) {
+    this.tmdbSelectModalMovie.style.display = 'none';
+    if (!tmdbId) return;
+    if (this.fetchBtn) this.fetchBtn.disabled = true;
+    try {
+      const res = await fetch('/api/media/fetch-tmdb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'movie', tmdbId })
+      });
+      const data = await res.json();
+      if (!data.success || !data.data) throw new Error(data.error || 'Failed to fetch details');
+      if (this.posterImg) this.posterImg.src = data.data.poster || '';
+      if (this.descInput) this.descInput.value = data.data.description || '';
+      if (this.castList) {
+        this.castList.innerHTML = '';
+        (data.data.cast || []).forEach(actor => {
+          const div = document.createElement('div');
+          div.className = 'media-manager-cast-item';
+          div.textContent = actor.name + (actor.character ? ` (${actor.character})` : '');
+          this.castList.appendChild(div);
+        });
+      }
+      if (window.showToast) {
+        window.showToast('Fetched info from TMDB.', 'success');
+        console.info('[MediaManager] Fetched info from TMDB.');
+      }
+    } catch (err) {
+      if (window.showToast) {
+        window.showToast('Failed to load TMDB details: ' + err.message, 'error');
+        console.error('[MediaManager] Failed to load TMDB details: ' + err.message);
+      }
+    } finally {
+      if (this.fetchBtn) this.fetchBtn.disabled = false;
+    }
+  }
+
+  // Show alert inside modal (not global toast)
+  showModalAlert(msg, type) {
+    const alertDiv = this.containerElement.querySelector('.media-manager-tmdbid-noresult-msg');
+    if (alertDiv) {
+      alertDiv.style.display = 'block';
+      alertDiv.style.color = type === 'error' ? '#ff1744' : (type === 'success' ? '#4caf50' : '#ff9800');
+      alertDiv.textContent = msg;
+    }
+  }
+  hideModalAlert() {
+    const alertDiv = this.containerElement.querySelector('.media-manager-tmdbid-noresult-msg');
+    if (alertDiv) alertDiv.style.display = 'none';
+  }
+  // Show manual TMDB ID button and message
+  showNoPosterManualTMDB() {
+    const btn = this.containerElement.querySelector('.media-manager-tmdbid-manual-btn');
+    const msg = this.containerElement.querySelector('.media-manager-tmdbid-noresult-msg');
+    if (btn) btn.style.display = 'inline-block';
+    if (msg) {
+      msg.style.display = 'block';
+      msg.textContent = 'No results found. You can enter a TMDB ID manually.';
+    }
+    if (btn) {
+      btn.onclick = () => {
+        if (this.tmdbIdRow) {
+          this.tmdbIdRow.classList.remove('hidden');
+          if (this.inputTMDBId) this.inputTMDBId.focus();
+        }
+        btn.style.display = 'none';
+      };
+    }
+  }
+  hideNoPosterManualTMDB() {
+    const btn = this.containerElement.querySelector('.media-manager-tmdbid-manual-btn');
+    const msg = this.containerElement.querySelector('.media-manager-tmdbid-noresult-msg');
+    if (btn) btn.style.display = 'none';
+    if (msg) msg.style.display = 'none';
+  }
 }
+
+// Add TMDB fetch logic for poster, description, and cast
+async function fetchMovieDetailsFromTMDB(title, year) {
+    const TMDB_API_KEY = window.TMDB_API_KEY || (window.process && window.process.env && window.process.env.TMDB_API_KEY);
+    if (!TMDB_API_KEY) throw new Error('TMDB API key not found');
+    const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+    let url = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}`;
+    if (year) url += `&year=${year}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) throw new Error('No TMDB results');
+    const movie = data.results[0];
+    // Fetch full details for cast
+    const detailsRes = await fetch(`${TMDB_BASE_URL}/movie/${movie.id}?api_key=${TMDB_API_KEY}&append_to_response=credits`);
+    const details = await detailsRes.json();
+    const poster = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '';
+    const description = movie.overview || details.overview || '';
+    const cast = (details.credits && details.credits.cast) ? details.credits.cast.slice(0, 12).map(actor => ({
+        name: actor.name,
+        character: actor.character,
+        profile: actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : null
+    })) : [];
+    return { poster, description, cast, tmdbId: movie.id, year: (movie.release_date || '').slice(0,4) };
+}
+
+
+// ALL mode: add batch fetch logic
+MediaManager.prototype.handleFetchAllInfo = async function() {
+    const progressBar = document.querySelector('.media-manager-progress');
+    const summaryDiv = document.querySelector('.media-manager-summary');
+    summaryDiv.innerHTML = '';
+    // Simulate scanning the movies directory (replace with real scan if needed)
+    const movies = window.scanMoviesDirectory ? await window.scanMoviesDirectory() : [];
+    if (!movies.length) {
+        summaryDiv.innerHTML = 'No new movies found.';
+        return;
+    }
+    let completed = 0;
+    for (const movie of movies) {
+        try {
+            const details = await fetchMovieDetailsFromTMDB(movie.title, movie.year);
+            // Save details to backend (simulate confirm)
+            await fetch('/api/media/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'movie',
+                    absPath: movie.absPath,
+                    poster: details.poster,
+                    description: details.description,
+                    cast: details.cast,
+                    title: movie.title,
+                    year: details.year
+                })
+            });
+            summaryDiv.innerHTML += `<div>✅ ${movie.title} - Saved</div>`;
+        } catch (err) {
+            summaryDiv.innerHTML += `<div>❌ ${movie.title} - ${err.message}</div>`;
+        }
+        completed++;
+        progressBar.style.width = `${Math.round((completed / movies.length) * 100)}%`;
+    }
+    window.showToast && window.showToast('Batch fetch complete.', 'success');
+};
 
 if (typeof window !== 'undefined') {
   window.MediaManager = MediaManager;
