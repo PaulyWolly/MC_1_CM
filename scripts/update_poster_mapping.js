@@ -2,7 +2,7 @@
   UPDATE_POSTER_MAPPING.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -10,7 +10,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
-const POSTER_MAPPING_FILE = 'public/components/MediaLibrary/data/movies/movie_posters.json';
+const POSTER_MAPPING_FILE = 'public/components/MediaLibrary/data/movies/movie_posters_normalized.json';
 const BACKUP_FILE = 'public/components/MediaLibrary/data/movie_posters_backup.json';
 
 async function updatePosterMapping() {

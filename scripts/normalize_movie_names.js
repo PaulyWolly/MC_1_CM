@@ -2,7 +2,7 @@
   NORMALIZE_MOVIE_NAMES.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -22,7 +22,7 @@ const NormalizationService = require('../server/services/NormalizationService');
 class MovieNameNormalizer {
     constructor() {
         this.moviesDir = 'S:/MEDIA/MOVIES';
-        this.posterMappingFile = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters.json');
+        this.posterMappingFile = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
         this.backupDir = path.join(__dirname, '../backups/normalization');
         this.renameFolders = process.argv.includes('--rename-folders');
         this.dryRun = process.argv.includes('--dry-run');
@@ -248,36 +248,31 @@ class MovieNameNormalizer {
      * Process a single movie
      */
     async processMovie(movie, posterMapping) {
+        // Use only the dot notation folder name as the key
         const oldKey = movie.filePath.replace(/\\/g, '/');
-        const newKey = NormalizationService.createMappingKey(movie.filePath);
-        
+        const newKey = NormalizationService.createFolderName(movie.folderName);
         // Check if this movie needs normalization
         const needsNormalization = oldKey !== newKey;
-        
         if (needsNormalization) {
             this.stats.normalizedMovies++;
-            
             console.log(`🎬 ${movie.fileName}`);
             console.log(`   📁 Folder: ${movie.folderName} → ${movie.normalizedName}`);
             console.log(`   📄 File: ${movie.fileName} → ${movie.normalizedFileName}`);
-            console.log(`   🔑 Key: ${oldKey.substring(0, 80)}...`);
-            console.log(`   🔑 New: ${newKey.substring(0, 80)}...`);
-            
-            // Update poster mapping
+            console.log(`   🔑 Old Key: ${oldKey.substring(0, 80)}...`);
+            console.log(`   🔑 New Key: ${newKey}`);
+            // Update poster mapping to use only the dot notation folder name as key
             if (posterMapping[oldKey]) {
                 posterMapping[newKey] = posterMapping[oldKey];
                 delete posterMapping[oldKey];
                 this.stats.updatedMappings++;
                 console.log(`   ✅ Mapping updated`);
             } else {
-                console.log(`   ⚠️  No existing mapping found`);
+                console.log(`   ⚠️  No existing mapping found for old key`);
             }
-            
             // Rename folder if requested
             if (this.renameFolders && !this.dryRun) {
                 await this.renameMovieFolder(movie);
             }
-            
             console.log('');
         }
     }

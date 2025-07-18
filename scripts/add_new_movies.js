@@ -2,7 +2,7 @@
   ADD_NEW_MOVIES.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -12,7 +12,7 @@ const { execSync } = require('child_process');
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
 const MEDIA_LIBRARY_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/media-library-movies.json');
-const POSTER_MAPPING_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters.json');
+const POSTER_MAPPING_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
 const MOVIE_DETAILS_FILE = path.join(__dirname, '../server/data/movie_details.json');
 
 class NewMovieProcessor {

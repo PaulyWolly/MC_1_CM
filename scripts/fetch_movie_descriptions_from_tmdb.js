@@ -2,7 +2,7 @@
   FETCH_MOVIE_DESCRIPTIONS_FROM_TMDB.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -32,7 +32,7 @@ if (!TMDB_API_KEY) {
   process.exit(1);
 }
 
-const MOVIES_JSON = path.join(__dirname, '../server/data/media-library-movies.json');
+const MOVIES_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/movies/media-library-movies.json');
 const OUTPUT_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_descriptions.json');
 const TMDB_SEARCH_URL = 'https://api.themoviedb.org/3/search/movie';
 const TMDB_MOVIE_URL = 'https://api.themoviedb.org/3/movie';

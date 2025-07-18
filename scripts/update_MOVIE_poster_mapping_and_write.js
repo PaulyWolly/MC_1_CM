@@ -2,7 +2,7 @@
   UPDATE_MOVIE_POSTER_MAPPING_AND_WRITE.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -11,7 +11,7 @@ const path = require('path');
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
 const ORIGINAL_MAPPING_FILE = 'public/components/MediaLibrary/data/movie_posters_backup.json';
-const NEW_MAPPING_FILE = 'public/components/MediaLibrary/data/movies/movie_posters.json';
+const NEW_MAPPING_FILE = 'public/components/MediaLibrary/data/movies/movie_posters_normalized.json';
 const BACKUP_FILE = 'public/components/MediaLibrary/data/movie_posters_prewrite_backup.json';
 
 function isVideoFile(filename) {

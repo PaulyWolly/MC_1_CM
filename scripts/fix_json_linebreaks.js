@@ -2,7 +2,7 @@
   FIX_JSON_LINEBREAKS.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const inputPath = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters.json');
+const inputPath = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
 const outputPath = path.join(__dirname, '../public/components/MediaLibrary/data/movie_posters.fixed.json');
 
 // Read the file as a single string

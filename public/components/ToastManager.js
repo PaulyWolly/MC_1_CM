@@ -2,7 +2,7 @@
   TOASTMANAGER.JS
   Version: 7
   AppName: MCC_1_CCM [v7]
-  Updated: 7/15/2025 @10:00AM
+  Updated: 7/16/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -97,6 +97,7 @@ export default class ToastManager {
      * @param {number} duration - Duration in milliseconds (default: 3000)
      */
     showToast(message, type = 'info', duration = 3000) {
+        console.log(`[TOAST][${type}] ${message} (duration: ${duration}ms)`);
         // Ensure container exists
         this.createContainer();
 
