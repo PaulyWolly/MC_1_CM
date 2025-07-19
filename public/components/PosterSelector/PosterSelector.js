@@ -9,12 +9,23 @@
 // PosterSelector.js
 // Modular component for selecting and saving TMDB posters for TV or movies
 
+function normalizeKey(name) {
+  return name
+    .replace(/\\/g, '/')
+    .replace(/\s+/g, '.')
+    .replace(/[^a-zA-Z0-9.\[\]()]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/^\.|\.$/g, '');
+}
+// Use normalizeKey for all mapping key normalization in this file.
+
 class PosterSelector {
-    constructor(mode = 'tv') {
+    constructor(mode = 'tv', options = {}) {
         this.mode = mode;
         this.isInitialized = false;
         this.htmlTemplate = null;
         this.containerElement = null;
+        this.passedTitle = options.title || '';
     }
 
     async init() {
@@ -28,6 +39,12 @@ class PosterSelector {
         this.setupEventListeners();
         this.isInitialized = true;
         this.show();
+        // Robustly set the title field after modal is visible
+        if (this.queryInput && this.passedTitle) {
+            setTimeout(() => {
+                this.queryInput.value = this.passedTitle;
+            }, 0);
+        }
     }
 
     async loadCSS() {

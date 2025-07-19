@@ -558,30 +558,35 @@ class MediaLibraryManager {
                     }
                     if (window.PosterSelector) {
                         const mode = this.currentTab === 'tvshows' ? 'tv' : 'movie';
-                        const selector = new window.PosterSelector(mode);
+                        const selector = new window.PosterSelector(mode, { title: item?.title || item?.name || '' });
                         selector.getMediaContext = () => {
                             if (item) {
-                                let relPath = item.path;
-                                // If path is a file, get the folder
-                                if (relPath && (relPath.endsWith('.mp4') || relPath.endsWith('.mkv') || relPath.endsWith('.avi') || relPath.endsWith('.mov') || relPath.endsWith('.wmv') || relPath.endsWith('.flv') || relPath.endsWith('.webm'))) {
-                                    relPath = relPath.replace(/\\/g, '/');
-                                    relPath = relPath.substring(0, relPath.lastIndexOf('/'));
-                                }
-                                // If absolute, extract after 'S:/MEDIA/MOVIES/'
-                                if (relPath && relPath.includes('S:/MEDIA/MOVIES/')) {
-                                    relPath = relPath.split('S:/MEDIA/MOVIES/')[1];
-                                }
-                                // Use relPath as-is, do not modify or sanitize
-                                console.log('[PosterSelector FINAL PATCH] getMediaContext mediaId:', relPath);
                                 return {
-                                    mediaId: relPath,
-                                    name: item.name || item.title,
-                                    path: relPath,
-                                    type: mode
+                            mediaId: item.path,
+                            name: item.name || item.title,
+                            path: item.path,
+                            type: mode
                                 };
                             } else {
-                                console.error('[PosterSelector ERROR] No item found for getMediaContext. Poster save aborted.');
-                                return null;
+                                // Minimal fallback context
+                                // --- DEBUG LOGGING FOR PATH MISMATCH ---
+                                console.warn('[PosterSelector DEBUG] Fallback context used!');
+                                console.warn('[PosterSelector DEBUG] itemPath:', itemPath);
+                                if (this.currentTab === 'tvshows') {
+                                    const tvShows = this.getTVShows();
+                                    console.warn('[PosterSelector DEBUG] Available TV show paths:', tvShows.map(s => s.path));
+                                } else {
+                                    const items = this.getFilteredAndSortedItems();
+                                    console.warn('[PosterSelector DEBUG] Available movie paths:', items.map(i => i.path));
+                                }
+                                console.warn('[PosterSelector DEBUG] Card HTML:', card ? card.outerHTML : '[none]');
+                                // --- END DEBUG LOGGING ---
+                                return {
+                                    mediaId: itemPath || '[unknown]',
+                                    name: card?.querySelector('h3')?.textContent || '[unknown]',
+                                    path: itemPath || '[unknown]',
+                                    type: mode
+                                };
                             }
                         };
                         selector.onPosterSelected = async ({filePath, posterType, poster}) => {
@@ -922,6 +927,15 @@ class MediaLibraryManager {
     }
 
     getPosterPath(mediaItem) {
+        // Normalization logic (should match shared/NormalizationService.js)
+        function normalizeKey(name) {
+            return name
+                .replace(/\\/g, '/')
+                .replace(/\s+/g, '.')
+                .replace(/[^a-zA-Z0-9.\[\]()]/g, '')
+                .replace(/\.+/g, '.')
+                .replace(/^\.|\.$/g, '');
+        }
         // TV Shows: Prefer mapping, then constructed root poster path, then placeholder
         if (this.currentTab === 'tvshows' && mediaItem && mediaItem.path) {
             if (this.tvPosters && mediaItem.name) {
@@ -957,15 +971,9 @@ class MediaLibraryManager {
         // Movies: robust lookup
         if (mediaItem) {
             const tryKeys = [];
-            // --- NEW: Try dot notation folder name as key ---
             if (mediaItem.path) {
                 let folderName = mediaItem.path.split(/[\\/]/).pop();
-                // Normalize to dot notation (match backend)
-                let dotKey = folderName
-                    .replace(/\s+/g, '.')
-                    .replace(/[^\w.\[\]()-]/g, '') // keep word chars, dot, brackets, parens, dash
-                    .replace(/\.+/g, '.') // collapse multiple dots
-                    .replace(/\.$/, ''); // remove trailing dot
+                let dotKey = normalizeKey(folderName);
                 tryKeys.push(dotKey);
             }
             // --- Existing keys ---
@@ -3563,7 +3571,8 @@ class MediaLibraryManager {
                     }
                     if (window.PosterSelector) {
                         const mode = this.currentTab === 'tvshows' ? 'tv' : 'movie';
-                        const selector = new window.PosterSelector(mode);
+                        const fallbackTitle = card?.querySelector('h3')?.textContent || '';
+                        const selector = new window.PosterSelector(mode, { title: (item?.title || item?.name || fallbackTitle) });
                         selector.getMediaContext = () => {
                             if (item) {
                                 return {
@@ -3588,7 +3597,7 @@ class MediaLibraryManager {
                                 // --- END DEBUG LOGGING ---
                                 return {
                                     mediaId: itemPath || '[unknown]',
-                                    name: card?.querySelector('h3')?.textContent || '[unknown]',
+                                    name: fallbackTitle || '[unknown]',
                                     path: itemPath || '[unknown]',
                                     type: mode
                                 };
