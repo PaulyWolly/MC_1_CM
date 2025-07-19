@@ -1704,6 +1704,7 @@
     margin-left: 18px;
     margin-right: 20px;
     transition: background 0.2s;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 }
 .media-library-media-manager-btn:hover {
   background: #357ab8;

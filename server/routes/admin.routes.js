@@ -276,11 +276,17 @@ router.get('/tmdb/posters/tv', async (req, res) => {
 });
 
 router.get('/tmdb/posters/movie', async (req, res) => {
-    const query = req.query.query;
-    if (!query) return res.status(400).json({ error: 'Missing query parameter' });
+    const { query, tmdbId } = req.query;
+    if (!query && !tmdbId) return res.status(400).json({ error: 'Missing query or tmdbId parameter' });
     try {
-        const { title, year } = TMDBPosterService.cleanMovieTitle(query);
-        const posters = await TMDBPosterService.searchMovieOptions(title, year);
+        let posters;
+        if (tmdbId) {
+            // You may need to implement this in TMDBPosterService if not present
+            posters = await TMDBPosterService.searchMovieById(tmdbId);
+        } else {
+            const { title, year } = TMDBPosterService.cleanMovieTitle(query);
+            posters = await TMDBPosterService.searchMovieOptions(title, year);
+        }
         res.json({ posters });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -312,6 +318,7 @@ router.post('/tmdb/posters/selection', (req, res) => {
 router.post('/posters/download', async (req, res) => {
   try {
     const { mediaType, mediaId, name, season, episode, tmdbPoster, isAlternative } = req.body;
+    console.log('[POSTER DEBUG] Incoming mediaId:', mediaId);
     if (!mediaType || !mediaId || !name || !tmdbPoster || !tmdbPoster.poster_url) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -326,6 +333,7 @@ router.post('/posters/download', async (req, res) => {
         folderName = folderName.replace(/^movies[\\/]/i, '');
       }
       basePath = path.join('S:/MEDIA/MOVIES', folderName);
+      console.log('[POSTER DEBUG] Computed basePath:', basePath);
     } else if (mediaType === 'tv') {
       // For TV, use normalized name
       console.log('[POSTER DEBUG] Incoming TV show name:', name);

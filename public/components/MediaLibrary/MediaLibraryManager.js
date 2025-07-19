@@ -339,6 +339,10 @@ class MediaLibraryManager {
                 this.videoPlayer.currentTime = 0;
             }
         }
+        // Always reopen MediaLibrary modal
+        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
+            setTimeout(() => window.mediaLibraryManager.openMediaBrowser(), 0);
+        }
     }
 
     // Dedicated function to render the tab bar/header
@@ -557,16 +561,18 @@ class MediaLibraryManager {
                         const selector = new window.PosterSelector(mode);
                         selector.getMediaContext = () => {
                             if (item) {
-                                // Always use a relative path for movies
                                 let relPath = item.path;
-                                if (relPath && relPath.includes(':')) {
-                                    // Remove drive letter and leading directories if present
-                                    relPath = relPath.replace(/^.*[\\/](movies[\\/][^\\/]+).*$/i, '$1').replace(/\\/g, '/');
-                                    // If still absolute, fallback to just the folder name
-                                    if (relPath.includes(':')) {
-                                        relPath = (item.name || item.title || '').replace(/[^a-zA-Z0-9\s\[\]\(\)\-]/g, '').trim();
-                                    }
+                                // If path is a file, get the folder
+                                if (relPath && (relPath.endsWith('.mp4') || relPath.endsWith('.mkv') || relPath.endsWith('.avi') || relPath.endsWith('.mov') || relPath.endsWith('.wmv') || relPath.endsWith('.flv') || relPath.endsWith('.webm'))) {
+                                    relPath = relPath.replace(/\\/g, '/');
+                                    relPath = relPath.substring(0, relPath.lastIndexOf('/'));
                                 }
+                                // If absolute, extract after 'S:/MEDIA/MOVIES/'
+                                if (relPath && relPath.includes('S:/MEDIA/MOVIES/')) {
+                                    relPath = relPath.split('S:/MEDIA/MOVIES/')[1];
+                                }
+                                // Use relPath as-is, do not modify or sanitize
+                                console.log('[PosterSelector FINAL PATCH] getMediaContext mediaId:', relPath);
                                 return {
                                     mediaId: relPath,
                                     name: item.name || item.title,
@@ -574,25 +580,8 @@ class MediaLibraryManager {
                                     type: mode
                                 };
                             } else {
-                                // Minimal fallback context
-                                // --- DEBUG LOGGING FOR PATH MISMATCH ---
-                                console.warn('[PosterSelector DEBUG] Fallback context used!');
-                                console.warn('[PosterSelector DEBUG] itemPath:', itemPath);
-                                if (this.currentTab === 'tvshows') {
-                                    const tvShows = this.getTVShows();
-                                    console.warn('[PosterSelector DEBUG] Available TV show paths:', tvShows.map(s => s.path));
-                                } else {
-                                    const items = this.getFilteredAndSortedItems();
-                                    console.warn('[PosterSelector DEBUG] Available movie paths:', items.map(i => i.path));
-                                }
-                                console.warn('[PosterSelector DEBUG] Card HTML:', card ? card.outerHTML : '[none]');
-                                // --- END DEBUG LOGGING ---
-                                return {
-                                    mediaId: itemPath || '[unknown]',
-                                    name: card?.querySelector('h3')?.textContent || '[unknown]',
-                                    path: itemPath || '[unknown]',
-                                    type: mode
-                                };
+                                console.error('[PosterSelector ERROR] No item found for getMediaContext. Poster save aborted.');
+                                return null;
                             }
                         };
                         selector.onPosterSelected = async ({filePath, posterType, poster}) => {
@@ -851,7 +840,9 @@ class MediaLibraryManager {
             // Ensure favorite and collection buttons do not trigger card click
             card.querySelector('.favorite-btn').onclick = (e) => {
                 e.stopPropagation();
-                this.toggleFavorite(item.path);
+                // Determine type: if current tab is 'tvshows', use 'tv', else 'movie'
+                const type = this.currentTab === 'tvshows' ? 'tv' : 'movie';
+                this.toggleFavorite(item.path, type);
             };
             card.querySelector('.collection-btn').onclick = (e) => {
                 e.stopPropagation();
@@ -1297,30 +1288,24 @@ class MediaLibraryManager {
     setupVideoPlayerEvents(player) {
         let skipIntroTimeout;
         let upNextTimeout;
-
         player.on('loadedmetadata', () => {
-            // Show skip intro button after 5 seconds
             setTimeout(() => {
                 const skipBtn = document.getElementById('skipIntroBtn');
                 if (skipBtn) {
                     skipBtn.style.display = 'block';
                     skipBtn.onclick = () => {
-                        player.currentTime(90); // Skip to 90 seconds
+                        player.currentTime(90);
                         skipBtn.style.display = 'none';
                     };
                 }
             }, 5000);
         });
-
         player.on('timeupdate', () => {
             const currentTime = player.currentTime();
             const duration = player.duration();
-            
-            // Show "Up Next" overlay 30 seconds before end
             if (duration && currentTime > duration - 30) {
                 this.showUpNextOverlay();
             }
-            // --- Show Skip to Next Button 2 minutes before end ---
             const skipToNextBtn = document.getElementById('skipToNextBtn');
             if (skipToNextBtn) {
                 if (duration && (duration - currentTime <= 120) && this.nextVideo) {
@@ -1330,17 +1315,20 @@ class MediaLibraryManager {
                 }
             }
         });
-
         player.on('ended', () => {
-            // Auto-play next episode after 5 seconds
-            if (this.nextVideo) {
-                upNextTimeout = setTimeout(() => {
-                    this.playNextVideo();
-                }, 5000);
+            // Always reopen MediaLibrary modal when video ends
+            if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
+                setTimeout(() => window.mediaLibraryManager.openMediaBrowser(), 0);
             }
             // Hide skip to next button on end
             const skipToNextBtn = document.getElementById('skipToNextBtn');
             if (skipToNextBtn) skipToNextBtn.style.display = 'none';
+        });
+        // Patch player close event to always reopen MediaLibrary
+        player.on('close', () => {
+            if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
+                setTimeout(() => window.mediaLibraryManager.openMediaBrowser(), 0);
+            }
         });
     }
 
@@ -2049,22 +2037,95 @@ class MediaLibraryManager {
 
     // --- FAVORITES LOGIC ---
     isFavorite(path) {
-        const favs = JSON.parse(localStorage.getItem('mediaLibraryFavorites') || '[]');
-        return favs.includes(path);
+        const favs = JSON.parse(localStorage.getItem('mediaLibraryFavoritesByType') || '{}');
+        return (favs.movies || []).includes(path) || (favs.tvshows || []).includes(path);
     }
-    toggleFavorite(path) {
-        let favs = JSON.parse(localStorage.getItem('mediaLibraryFavorites') || '[]');
-        if (favs.includes(path)) {
-            favs = favs.filter(p => p !== path);
+    toggleFavorite(path, type) {
+        let favs = JSON.parse(localStorage.getItem('mediaLibraryFavoritesByType') || '{}');
+        if (!favs.movies) favs.movies = [];
+        if (!favs.tvshows) favs.tvshows = [];
+        const list = (type === 'tv' || type === 'tvshow' || type === 'tvshows') ? favs.tvshows : favs.movies;
+        if (list.includes(path)) {
+            favs.movies = favs.movies.filter(p => p !== path);
+            favs.tvshows = favs.tvshows.filter(p => p !== path);
         } else {
-            favs.push(path);
+            if (type === 'tv' || type === 'tvshow' || type === 'tvshows') {
+                favs.tvshows.push(path);
+            } else {
+                favs.movies.push(path);
+            }
         }
-        localStorage.setItem('mediaLibraryFavorites', JSON.stringify(favs));
+        localStorage.setItem('mediaLibraryFavoritesByType', JSON.stringify(favs));
         this.renderMediaGrid();
     }
     getFavoritesList() {
-        const favs = JSON.parse(localStorage.getItem('mediaLibraryFavorites') || '[]');
-        return this.mediaLibrary.filter(item => favs.includes(item.path));
+        const favs = JSON.parse(localStorage.getItem('mediaLibraryFavoritesByType') || '{}');
+        return {
+            movies: this.mediaLibrary.filter(item => (favs.movies || []).includes(item.path)),
+            tvshows: this.mediaLibrary.filter(item => (favs.tvshows || []).includes(item.path)),
+        };
+    }
+    renderFavoritesContent() {
+        const { movies, tvshows } = this.getFavoritesList();
+        const html = `
+        <div class="watch-later-flex-container">
+            <div class="watch-later-column">
+                <div class="watch-later-section-title">Favorited MOVIES</div>
+                <hr class="watch-later-section-divider">
+                <div class="watch-later-scroll">
+                    <div class="watch-later-grid">
+                        ${movies.map(item => `
+                            <div class="media-library-movie-card-movies watch-later-card" data-path="${item.path}">
+                                <img class="watch-later-img-movie watch-later-img watch-later-img-clickable" src="${this.getPosterPath(item)}" alt="${item.title}">
+                                <div class="media-info"><h3 class="watch-later-title">${this.cleanMovieTitle(item.title || item.name || 'Movie')}</h3></div>
+                                <div class="watch-later-btn-row">
+                                    <button class="favorite-btn" title="Toggle Favorite">❤️</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${movies.length === 0 ? '<div class="watch-later-empty">(No items)</div>' : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="watch-later-column">
+                <div class="watch-later-section-title">Favorited TV-SHOWS</div>
+                <hr class="watch-later-section-divider">
+                <div class="watch-later-scroll">
+                    <div class="watch-later-grid">
+                        ${tvshows.map(item => `
+                            <div class="media-library-movie-card-tvshows watch-later-card" data-path="${item.path}">
+                                <img class="watch-later-img-tv watch-later-img watch-later-img-clickable" src="${this.getPosterPath(item)}" alt="${item.title}">
+                                <div class="media-info"><h3 class="watch-later-title">${this.cleanMovieTitle(item.title || item.name || 'Show')}</h3></div>
+                                <div class="watch-later-btn-row">
+                                    <button class="favorite-btn" title="Toggle Favorite">❤️</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${tvshows.length === 0 ? '<div class="watch-later-empty">(No items)</div>' : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        setTimeout(() => {
+            document.querySelectorAll('.media-library-movie-card-movies .favorite-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.media-library-movie-card-movies');
+                    const path = card ? card.getAttribute('data-path') : null;
+                    this.toggleFavorite(path, 'movie');
+                };
+            });
+            document.querySelectorAll('.media-library-movie-card-tvshows .favorite-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.media-library-movie-card-tvshows');
+                    const path = card ? card.getAttribute('data-path') : null;
+                    this.toggleFavorite(path, 'tv');
+                };
+            });
+        }, 0);
+        return html;
     }
 
     // --- COLLECTIONS LOGIC ---
@@ -2414,7 +2475,8 @@ class MediaLibraryManager {
         };
         document.getElementById('detailsFavoriteBtn').onclick = async (e) => {
             e.stopPropagation();
-            this.toggleFavorite(movie.path);
+            const type = (movie.type && movie.type.toLowerCase().includes('tv')) ? 'tv' : 'movie';
+            this.toggleFavorite(movie.path, type);
             await this.showMovieDetailsModal(movie); // Re-render to update icon
         };
         document.getElementById('detailsCollectionBtn').onclick = (e) => {
@@ -3190,32 +3252,66 @@ class MediaLibraryManager {
     }
 
     renderFavoritesContent() {
-        const favorites = this.getFavoritesList();
-        // Track which letters we've already added anchors for
-        const addedAnchors = new Set();
-        return favorites.map(item => {
-            const cleanTitle = this.cleanMovieTitle(item.title);
-            const firstLetter = cleanTitle.charAt(0).toUpperCase();
-            let anchorHTML = '';
-            if (!addedAnchors.has(firstLetter)) {
-                anchorHTML = `<a name="${firstLetter}" id="anchor-${firstLetter}"></a>`;
-                addedAnchors.add(firstLetter);
-            }
-            return `
-                <div class="media-library-movie-card" data-path="${item.path}" style="position: relative;">
-                    ${anchorHTML}
-                    <div class="media-card-actions" style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:6px 10px 0 10px;">
-                        <button class="poster-selector-btn" title="Change Poster" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">🖼️</button>
-                        <button class="favorite-btn" title="Toggle Favorite" style="background:none;border:none;cursor:pointer;font-size:1.5em;line-height:1;">❤️</button>
-                        <button class="collection-btn" title="Add to Collection" style="background:none;border:none;cursor:pointer;font-size:1.4em;line-height:1;">➕</button>
-                    </div>
-                    <img src="${this.getPosterPath(item)}" alt="${item.title}" style="margin-top:6px;">
-                    <div class="media-info">
-                        <h3>${cleanTitle}</h3>
+        const { movies, tvshows } = this.getFavoritesList();
+        const html = `
+        <div class="watch-later-flex-container">
+            <div class="watch-later-column">
+                <div class="watch-later-section-title">Favorited MOVIES</div>
+                <hr class="watch-later-section-divider">
+                <div class="watch-later-scroll">
+                    <div class="watch-later-grid">
+                        ${movies.map(item => `
+                            <div class="media-library-movie-card-movies watch-later-card" data-path="${item.path}">
+                                <img class="watch-later-img-movie watch-later-img watch-later-img-clickable" src="${this.getPosterPath(item)}" alt="${item.title}">
+                                <div class="media-info"><h3 class="watch-later-title">${this.cleanMovieTitle(item.title || item.name || 'Movie')}</h3></div>
+                                <div class="watch-later-btn-row">
+                                    <button class="favorite-btn" title="Toggle Favorite">❤️</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${movies.length === 0 ? '<div class="watch-later-empty">(No items)</div>' : ''}
                     </div>
                 </div>
-            `;
-        }).join('');
+            </div>
+            <div class="watch-later-column">
+                <div class="watch-later-section-title">Favorited TV-SHOWS</div>
+                <hr class="watch-later-section-divider">
+                <div class="watch-later-scroll">
+                    <div class="watch-later-grid">
+                        ${tvshows.map(item => `
+                            <div class="media-library-movie-card-tvshows watch-later-card" data-path="${item.path}">
+                                <img class="watch-later-img-tv watch-later-img watch-later-img-clickable" src="${this.getPosterPath(item)}" alt="${item.title}">
+                                <div class="media-info"><h3 class="watch-later-title">${this.cleanMovieTitle(item.title || item.name || 'Show')}</h3></div>
+                                <div class="watch-later-btn-row">
+                                    <button class="favorite-btn" title="Toggle Favorite">❤️</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${tvshows.length === 0 ? '<div class="watch-later-empty">(No items)</div>' : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        setTimeout(() => {
+            document.querySelectorAll('.media-library-movie-card-movies .favorite-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.media-library-movie-card-movies');
+                    const path = card ? card.getAttribute('data-path') : null;
+                    this.toggleFavorite(path, 'movie');
+                };
+            });
+            document.querySelectorAll('.media-library-movie-card-tvshows .favorite-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.media-library-movie-card-tvshows');
+                    const path = card ? card.getAttribute('data-path') : null;
+                    this.toggleFavorite(path, 'tv');
+                };
+            });
+        }, 0);
+        return html;
     }
 
     renderSuggestionsContent() {
