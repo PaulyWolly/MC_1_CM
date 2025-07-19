@@ -138,6 +138,46 @@ async function searchMovieOptions(title, year) {
     return [];
 }
 
+async function searchMovieById(tmdbId) {
+    if (!TMDB_API_KEY) throw new Error('TMDB_API_KEY not set');
+    const movieUrl = `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}`;
+    const imagesUrl = `${TMDB_BASE_URL}/movie/${tmdbId}/images?api_key=${TMDB_API_KEY}`;
+    const response = await fetch(movieUrl);
+    const movie = await response.json();
+    if (!movie || !movie.poster_path) return [];
+    const imagesResponse = await fetch(imagesUrl);
+    const imagesData = await imagesResponse.json();
+    const options = [];
+    // Main poster
+    options.push({
+        id: movie.id,
+        title: movie.title,
+        year: movie.release_date ? movie.release_date.split('-')[0] : 'Unknown',
+        poster_path: movie.poster_path,
+        poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+        vote_average: movie.vote_average,
+        overview: movie.overview,
+        type: 'main'
+    });
+    // Alternative posters
+    if (imagesData.posters && imagesData.posters.length > 1) {
+        const altPosters = imagesData.posters.filter(p => p.file_path !== movie.poster_path).slice(0, 3);
+        for (const altPoster of altPosters) {
+            options.push({
+                id: movie.id,
+                title: movie.title,
+                year: movie.release_date ? movie.release_date.split('-')[0] : 'Unknown',
+                poster_path: altPoster.file_path,
+                poster_url: `https://image.tmdb.org/t/p/w500${altPoster.file_path}`,
+                vote_average: movie.vote_average,
+                overview: movie.overview,
+                type: 'alternative'
+            });
+        }
+    }
+    return options;
+}
+
 // Poster override helpers (JSON for now)
 function loadOverrides(filepath) {
     if (fs.existsSync(filepath)) {
@@ -165,6 +205,7 @@ module.exports = {
     extractYear,
     searchTVShowOptions,
     searchMovieOptions,
+    searchMovieById,
     loadOverrides,
     saveOverrides
 }; 

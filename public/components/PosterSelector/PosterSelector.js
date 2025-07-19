@@ -148,9 +148,9 @@ class PosterSelector {
         let url;
         if (this.selectedSource === 'tmdb') {
             if (tmdbId) {
-                url = `/api/tmdb/posters/${this.mode}?tmdbId=${encodeURIComponent(tmdbId)}`;
+                url = `/api/tmdb/posters/${this.mode}?type=${this.mode}&tmdbId=${encodeURIComponent(tmdbId)}`;
             } else {
-                url = `/api/tmdb/posters/${this.mode}?query=${encodeURIComponent(query)}`;
+                url = `/api/tmdb/posters/${this.mode}?type=${this.mode}&query=${encodeURIComponent(query)}`;
             }
         } else if (this.selectedSource === 'imdb') {
             if (spinner) spinner.style.display = 'none';

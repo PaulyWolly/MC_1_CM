@@ -209,6 +209,22 @@ router.post('/save', async (req, res) => {
     };
     moviesData.library.folders.push(newMovie);
     fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
+
+    // --- FIX: Also save description and cast for movies ---
+    // Save description
+    let descData = {};
+    if (fs.existsSync(MOVIE_DESC_JSON)) descData = JSON.parse(fs.readFileSync(MOVIE_DESC_JSON, 'utf8'));
+    if (!descData[absPath]) descData[absPath] = {};
+    descData[absPath].title = title || '';
+    descData[absPath].year = year || '';
+    descData[absPath].description = description || '';
+    fs.writeFileSync(MOVIE_DESC_JSON, JSON.stringify(descData, null, 2));
+    // Save cast
+    let castData = {};
+    if (fs.existsSync(MOVIE_CAST_JSON)) castData = JSON.parse(fs.readFileSync(MOVIE_CAST_JSON, 'utf8'));
+    castData[absPath] = { title: title || '', year: year || '', cast: cast || [] };
+    fs.writeFileSync(MOVIE_CAST_JSON, JSON.stringify(castData, null, 2));
+    // --- END FIX ---
     // --- END UPDATED LOGIC ---
 
     // --- NEW: Robust poster download and persistence ---

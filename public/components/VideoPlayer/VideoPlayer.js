@@ -211,7 +211,6 @@ class VideoPlayer {
                     min-width: 500px !important;
                     max-width: 900px !important;
                     flex: 0 1 600px !important;
-                    margin: 0 30px !important;
                 }
                 /* Unique classes for each custom control */
                 .vjs-back10-button.custom-back10 { }
