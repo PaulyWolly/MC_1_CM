@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.CSS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -32,6 +32,7 @@
     flex-direction: column;
     gap: 18px;
     position: relative;
+    overflow: hidden;
 }
 
 .media-manager-tabs {
@@ -106,9 +107,13 @@
 .media-manager-content {
   display: none;
 }
-.media-manager-content-single.active,
-.media-manager-content-all.active {
+.media-manager-content-single.active {
   display: block;
+}
+
+.media-manager-content-all.active {
+  display: flex;
+  flex-direction: column;
 }
 
 .media-manager-single-form {
@@ -225,7 +230,7 @@
 }
 
 .media-manager-edit-poster-btn {
-  margin-top: 8px;
+  margin-top: 0px;
   padding: 6px 18px;
   background: #4a90e2;
   color: #fff;
@@ -330,7 +335,7 @@
 .media-manager-actions {
   display: flex;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 26px;
 }
 
 .media-manager-tmdbId-input {
@@ -381,8 +386,9 @@
 }
 
 .media-manager-content-all {
-  text-align: center;
-  padding: 40px;
+  display: none;
+  flex: 1;
+  overflow: hidden;
 }
 
 .media-manager-progress-bar {
@@ -1353,4 +1359,710 @@
   justify-content: flex-end;
   padding: 20px 24px;
   border-top: 1px solid #444a56;
+}
+
+#media-manager-temp-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 32px;
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-top: 40px;
+  transition: background 0.2s;
+}
+#media-manager-temp-btn:hover {
+  background: #357ab8;
+}
+
+.media-manager-movie-grid-all {
+  width: 74.0vw;
+  height: 45vh;
+  background: #444a56;
+  border-radius: 0 0 12px 12px;
+  margin: 0 auto;
+  position: relative;
+  top: 20px;
+}
+
+/* Removed conflicting header positioning that was taking headers outside table */
+
+/* TRUE HTML TABLE - Perfect alignment with proper table structure */
+.movie-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: none;
+  font-family: Arial, sans-serif;
+}
+
+/* TRUE TABLE ALIGNMENT - Using actual class names from HTML */
+.movie-grid-header-col-select,
+.movie-grid-col-select { 
+  width: 60px; 
+  text-align: center; 
+}
+
+.movie-grid-header-col-poster,
+.movie-grid-col-poster { 
+  width: 120px; 
+  text-align: center; 
+}
+
+.movie-grid-header-col-title,
+.movie-grid-col-title { 
+  width: 200px; 
+  text-align: left; 
+}
+
+.movie-grid-header-col-year,
+.movie-grid-col-year { 
+  width: 80px; 
+  text-align: center; 
+}
+
+.movie-grid-header-col-path,
+.movie-grid-col-path { 
+  width: 400px; 
+  text-align: left; 
+}
+
+.movie-grid-header-col-status,
+.movie-grid-col-status { 
+  width: 100px; 
+  text-align: center; 
+}
+
+.movie-grid-col.movie-grid-col-select input {
+  width: 18px;
+  height: 18px;
+}
+
+.movie-grid-placeholder {
+  padding: 0;
+  background: none;
+  margin-top: 8px;
+}
+.movie-grid-table th, .movie-grid-table td {
+  padding: 10px 12px;
+}
+
+/* Table styles are now handled above with fixed layout */
+/* TRUE TABLE CELL STYLING - Perfect alignment */
+.movie-grid-table th,
+.movie-grid-table td {
+  border: none;
+  background: #6c757d;
+  font-size: 0.95em;
+  color: #fff;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 8px 12px;
+  box-sizing: border-box;
+}
+
+/* Header specific styling */
+.movie-grid-table th {
+  background: #333e4a;
+  font-weight: 700;
+  font-size: 1em;
+  color: #fff;
+  letter-spacing: 0.02em;
+  border-bottom: 2px solid #222c36;
+}
+
+/* Data row styling */
+.movie-grid-table td {
+  background: #444a4f;
+}
+/* Row styling - handled by individual cell styling above */
+/*
+  IMPORTANT: The following header and row column classes MUST match for perfect alignment.
+  If you change a width or alignment, change it in both places.
+*/
+/* Column widths and alignment handled by the rules above with margin-left values */
+
+/* Remove any flexbox or display overrides from th, td */
+.movie-grid-table th, .movie-grid-table td {
+  padding: 8px 8px;
+  vertical-align: middle;
+  font-size: 0.95em;
+  font-weight: 400;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movie-poster-thumb {
+  width: 48px;
+  height: 68px;
+  background: #222;
+  border-radius: 4px;
+  border: 1px solid #555;
+  display: inline-block;
+}
+
+/* NEW: Poster placeholder styling for processed movies */
+.poster-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #4a90e2, #357ab8);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.poster-placeholder .poster-title {
+  font-size: 8px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.poster-placeholder .poster-year {
+  font-size: 7px;
+  color: #fff;
+  opacity: 0.9;
+  margin-bottom: 2px;
+}
+
+.poster-placeholder .poster-status {
+  font-size: 6px;
+  color: #28a745;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+/* Real poster image styling */
+.poster-real {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.poster-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.poster-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  padding: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.poster-overlay .poster-status {
+  font-size: 8px;
+  color: white;
+  background: rgba(40, 167, 69, 0.9);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: bold;
+}
+
+/* NEW: Poster detail modal styling */
+.poster-detail-modal {
+  position: fixed;
+  z-index: 1000000;
+  background: #23272f;
+  border: 2px solid #4a90e2;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  max-width: 800px;
+  min-width: 700px;
+  display: none;
+  animation: posterModalFadeIn 0.2s ease-out;
+}
+
+/* Positioning classes for poster modal */
+.poster-detail-modal-positioned {
+  /* Default positioning - will be overridden by specific classes */
+}
+
+.poster-detail-modal-centered {
+  /* Position modal in center of screen - easily adjustable in DevTools */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes posterModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.poster-detail-content {
+  padding: 0;
+}
+
+.poster-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 12px 20px;
+  border-bottom: 1px solid #444a56;
+  background: #2d313a;
+  border-radius: 10px 10px 0 0;
+}
+
+.poster-detail-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.poster-detail-close {
+  color: #6c757d;
+  font-size: 1.5em;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.poster-detail-close:hover {
+  color: #fff;
+  background: #444a56;
+}
+
+.poster-detail-body {
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.poster-detail-poster {
+  flex-shrink: 0;
+}
+
+.poster-detail-image {
+  width: 240px;
+  height: 360px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #222;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.poster-detail-placeholder {
+  width: 120px;
+  height: 180px;
+  background: linear-gradient(135deg, #4a90e2, #357ab8);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 2px solid #222;
+}
+
+.poster-detail-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.poster-detail-year {
+  font-size: 12px;
+  color: #fff;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.poster-detail-status {
+  font-size: 10px;
+  color: #28a745;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 6px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.poster-detail-path {
+  font-size: 8px;
+  color: #fff;
+  opacity: 0.7;
+  word-break: break-all;
+  line-height: 1.2;
+}
+
+.poster-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.poster-detail-section {
+  margin-bottom: 16px;
+}
+
+.poster-detail-section h4 {
+  color: #4a90e2;
+  font-size: 0.9em;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.poster-detail-section p {
+  color: #b0b8c1;
+  font-size: 0.85em;
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.poster-detail-section strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.status-processed {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.media-manager-grid-parent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.media-manager-batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #2d313a;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.media-manager-batch-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b0b8c1;
+  font-size: 0.9em;
+}
+
+.media-manager-batch-toolbar .batch-select-all-checkbox {
+  margin: 0;
+}
+
+.media-manager-batch-toolbar .batch-action-dropdown {
+  background: #353a45;
+  color: #fff;
+  border: 1px solid #444a56;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+/* NEW: Scan movies button styling */
+.media-manager-scan-movies-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-scan-movies-btn:hover {
+  background: #357ab8;
+}
+
+.media-manager-scan-movies-btn:active {
+  background: #2c5aa0;
+}
+
+/* NEW: Counter display styling */
+.media-manager-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 6px 12px;
+  background: #353a45;
+  border-radius: 4px;
+  border: 1px solid #444a56;
+}
+
+.media-manager-counter .counter-label {
+  color: #b0b8c1;
+  font-size: 0.9em;
+}
+
+.media-manager-counter .counter-value {
+  color: #4a90e2;
+  font-weight: bold;
+  font-size: 1.1em;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* NEW: Progress bar styling */
+.media-manager-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #2d313a;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.media-manager-progress {
+  width: 100%;
+  height: 8px;
+  background: #444a56;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.media-manager-progress-bar {
+  height: 100%;
+  background: #4a90e2;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.media-manager-progress-text {
+  color: #b0b8c1;
+  font-size: 0.9em;
+  text-align: center;
+}
+
+.media-manager-batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #2d313a;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* NEW: Scrollable movie grid container - reduced height for action buttons */
+.media-manager-movie-grid-all {
+  flex: 1;
+  max-height: 58vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #2d313a;
+  border-radius: 6px;
+  border: 1px solid #444a56;
+}
+
+.movie-grid-placeholder {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+/* Clean table structure - no conflicting rules */
+
+/* Column widths and alignment handled by the rules above with margin-left values */
+
+/* Scrollbar styling for the grid */
+.movie-grid-placeholder::-webkit-scrollbar {
+  width: 12px;
+}
+
+.movie-grid-placeholder::-webkit-scrollbar-track {
+  background: #2d313a;
+  border-radius: 6px;
+}
+
+.movie-grid-placeholder::-webkit-scrollbar-thumb {
+  background: #444a56;
+  border-radius: 6px;
+  border: 2px solid #2d313a;
+}
+
+.movie-grid-placeholder::-webkit-scrollbar-thumb:hover {
+  background: #4a90e2;
+}
+
+/* Progress container styling - just the bar */
+.media-manager-progress-container {
+  flex-shrink: 0;
+  margin: 0 8px;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.media-manager-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #444a56;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.media-manager-progress {
+  height: 100%;
+  background: #4a90e2;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.media-manager-summary {
+  color: #b0b8c1;
+  font-size: 0.7em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* NEW: Grid action buttons styling */
+.media-manager-grid-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #2d313a;
+  border-radius: 6px;
+  border: 1px solid #444a56;
+  margin-top: 30px;
+  flex-shrink: 0;
+}
+
+.media-manager-grid-actions-left {
+  display: flex;
+  gap: 12px;
+}
+
+.media-manager-grid-actions-right {
+  display: flex;
+  gap: 12px;
+}
+
+.media-manager-process-selected-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-process-selected-btn:hover:not(:disabled) {
+  background: #357ab8;
+}
+
+.media-manager-process-selected-btn:disabled {
+  background: #444a56;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.media-manager-process-all-btn {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-process-all-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.media-manager-process-all-btn:disabled {
+  background: #444a56;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.media-manager-clear-selection-btn {
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-clear-selection-btn:hover {
+  background: #5a6268;
+}
+
+.media-manager-close-grid-btn {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-close-grid-btn:hover {
+  background: #c82333;
 }

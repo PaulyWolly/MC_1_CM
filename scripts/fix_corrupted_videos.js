@@ -1,5 +1,13 @@
 /*
   FIX_CORRUPTED_VIDEOS.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
+/*
+  FIX_CORRUPTED_VIDEOS.JS
   Batch fix corrupted video files using FFmpeg
   Usage: node scripts/fix_corrupted_videos.js "path/to/video/folder"
 */

@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -12,6 +12,7 @@ class MediaManager {
     this.htmlTemplate = null;
     this.containerElement = null;
     this.currentCastData = []; // Store full cast data including profile URLs
+    this.activeSubTab = 'single';
   }
 
   async init() {
@@ -64,7 +65,6 @@ class MediaManager {
     this.tabMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-movie') : null;
     this.tabTV = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-tv') : null;
     this.modeSingle = this.containerElement ? this.containerElement.querySelector('.media-manager-mode-single') : null;
-    this.modeAll = this.containerElement ? this.containerElement.querySelector('.media-manager-mode-all') : null;
     this.contentSingle = this.containerElement ? this.containerElement.querySelector('.media-manager-content-single') : null;
     this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
     this.inputTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-title') : null;
@@ -125,19 +125,42 @@ class MediaManager {
             if (input) input.focus();
         };
     }
+    this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
+    
+    // NEW: Grid elements for All mode
+    this.step1ScanBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-step1-scan-btn') : null;
+    this.scanMoviesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-scan-movies-btn') : null;
+    this.fixCastProfilesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fix-cast-profiles-btn') : null;
+    this.clearSelectionBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-clear-selection-btn') : null;
+    this.closeGridBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-grid-btn') : null;
+    
+    // NEW: Progress elements
+    this.progressContainer = this.containerElement ? this.containerElement.querySelector('.media-manager-progress-container') : null;
+    this.progressBar = this.containerElement ? this.containerElement.querySelector('.media-manager-progress') : null;
+    this.progressSummary = this.containerElement ? this.containerElement.querySelector('.media-manager-summary') : null;
   }
 
   setupEventListeners() {
     if (this.closeBtn) {
       this.closeBtn.onclick = () => this.handleClose();
     }
-    if (this.tabMovie && this.tabTV) {
-      this.tabMovie.onclick = () => this.switchTab('movie');
-      this.tabTV.onclick = () => this.switchTab('tv');
+    if (this.tabMovie) {
+      this.tabMovie.onclick = () => {
+        this.switchTab('movie');
+        this.switchMode(this.activeSubTab); // Restore last sub-tab
+      };
     }
-    if (this.modeSingle && this.modeAll) {
-      this.modeSingle.onclick = () => this.switchMode('single');
-      this.modeAll.onclick = () => this.switchMode('all');
+    if (this.tabTV) {
+      this.tabTV.onclick = () => {
+        this.switchTab('tv');
+        this.switchMode(this.activeSubTab); // Restore last sub-tab
+      };
+    }
+    if (this.modeSingle) {
+      this.modeSingle.onclick = () => {
+        this.activeSubTab = 'single';
+        this.switchMode('single');
+      };
     }
     
     // Shared button event listeners (work for both Movie and TV Show)
@@ -157,6 +180,27 @@ class MediaManager {
       this.fetchBtnTV.onclick = () => {
         this.handleFetchInfoTV();
       };
+    }
+    
+    // NEW: Grid functionality event listeners
+    if (this.step1ScanBtn) {
+      this.step1ScanBtn.onclick = () => this.handleStep1Scan();
+    }
+    
+    if (this.scanMoviesBtn) {
+      this.scanMoviesBtn.onclick = () => this.handleScanMovies();
+    }
+    
+    if (this.fixCastProfilesBtn) {
+      this.fixCastProfilesBtn.onclick = () => this.handleFixCastProfiles();
+    }
+    
+    if (this.clearSelectionBtn) {
+      this.clearSelectionBtn.onclick = () => this.handleClearSelection();
+    }
+    
+    if (this.closeGridBtn) {
+      this.closeGridBtn.onclick = () => this.handleClose();
     }
     if (this.confirmBtn) {
       this.confirmBtn.onclick = () => {
@@ -183,8 +227,16 @@ class MediaManager {
     // Note: Shared buttons (Fetch Info, Confirm, View/Edit JSON) are handled above
     
     if (this.modeAll) {
+      
+      // HIDE the button for now
+      this.modeAll.style.display = 'none';
+
       const fetchAllBtn = document.querySelector('.media-manager-fetch-all-btn');
       if (fetchAllBtn) fetchAllBtn.onclick = () => this.handleFetchAllInfo();
+      
+      // NEW: Add event listener for scan movies button
+      const scanMoviesBtn = document.querySelector('.media-manager-scan-movies-btn');
+      if (scanMoviesBtn) scanMoviesBtn.onclick = () => this.handleFetchAllInfo();
     }
     
     // Add season
@@ -341,6 +393,57 @@ class MediaManager {
           this.closeTVPostersModal();
         }
       };
+    }
+
+    function setupBatchSelectAll() {
+      const batchSelectAll = document.querySelector('.batch-select-all-checkbox');
+      const rowCheckboxes = document.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+      if (batchSelectAll && rowCheckboxes.length) {
+        batchSelectAll.addEventListener('change', function() {
+          rowCheckboxes.forEach(cb => { cb.checked = batchSelectAll.checked; });
+        });
+        rowCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function() {
+            const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
+            batchSelectAll.checked = allChecked;
+          });
+        });
+      }
+    }
+
+    function setupBatchActionDropdown() {
+      const dropdown = document.querySelector('.batch-action-dropdown');
+      const rowCheckboxes = document.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+      if (dropdown && rowCheckboxes.length) {
+        dropdown.addEventListener('change', function() {
+          const action = dropdown.value;
+          if (!action) return;
+          const selectedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
+          
+          if (selectedCount === 0) {
+            alert('Please select at least one movie first.');
+            dropdown.selectedIndex = 0;
+            return;
+          }
+          
+          // Call the batch action handler
+          if (window.mediaManager && window.mediaManager.handleBatchAction) {
+            window.mediaManager.handleBatchAction(action, selectedCount);
+          } else {
+          alert(`Batch action: ${action}\nRows selected: ${selectedCount}`);
+          }
+          
+          dropdown.selectedIndex = 0;
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupBatchSelectAll);
+      document.addEventListener('DOMContentLoaded', setupBatchActionDropdown);
+    } else {
+      setupBatchSelectAll();
+      setupBatchActionDropdown();
     }
   }
 
@@ -503,12 +606,29 @@ class MediaManager {
         cast = Array.from(this.castList.querySelectorAll('.media-manager-cast-item')).map(div => {
           const img = div.querySelector('img');
           const profile = img ? img.src : null;
-          const match = div.textContent.match(/^(.*?) \((.*?)\)$/);
-          if (match) {
-            return { name: match[1], character: match[2], profile };
+          let name = '';
+          let character = '';
+          // Try to extract from <span>
+          const span = div.querySelector('span');
+          if (span) {
+            const match = span.textContent.match(/^(.*?) \((.*?)\)$/);
+            if (match) {
+              name = match[1];
+              character = match[2];
+            } else {
+              name = span.textContent;
+            }
           } else {
-            return { name: div.textContent, character: '', profile };
+            // fallback: try div.textContent
+            const match = div.textContent.match(/^(.*?) \((.*?)\)$/);
+            if (match) {
+              name = match[1];
+              character = match[2];
+            } else {
+              name = div.textContent;
+            }
           }
+          return { name, character, profile };
         });
       }
     } else {
@@ -639,25 +759,23 @@ class MediaManager {
   }
 
   switchMode(mode) {
-    const isTV = this.tabTV && this.tabTV.classList.contains('active');
-    const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
+    console.log('[MediaManager] switchMode called:', mode);
     if (mode === 'single') {
       this.modeSingle.classList.add('active');
-      this.modeAll.classList.remove('active');
-      if (isTV) {
-        if (tvContent) tvContent.style.display = 'block';
-        if (this.contentSingle) this.contentSingle.style.display = 'none';
-      } else {
-        if (this.contentSingle) this.contentSingle.style.display = 'block';
-        if (tvContent) tvContent.style.display = 'none';
-      }
+      this.modeAll && this.modeAll.classList.remove('active');
+      if (this.contentSingle) this.contentSingle.style.display = 'block';
       if (this.contentAll) this.contentAll.style.display = 'none';
-    } else {
-      this.modeSingle.classList.remove('active');
-      this.modeAll.classList.add('active');
-      if (this.contentSingle) this.contentSingle.style.display = 'none';
+      // Hide TV content if present
+      const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
       if (tvContent) tvContent.style.display = 'none';
+    } else if (mode === 'all') {
+      this.modeSingle.classList.remove('active');
+      this.modeAll && this.modeAll.classList.add('active');
+      if (this.contentSingle) this.contentSingle.style.display = 'none';
       if (this.contentAll) this.contentAll.style.display = 'block';
+      // Hide TV content if present
+      const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
+      if (tvContent) tvContent.style.display = 'none';
     }
   }
 
@@ -986,6 +1104,8 @@ class MediaManager {
     this.switchMode('single');
     // Initialize form validation
     this.validateForm();
+    // Set global instance for batch actions
+    window.mediaManager = this;
   }
 
   destroy() {
@@ -1581,7 +1701,115 @@ Modified: ${new Date(episode.modified).toLocaleString()}
   }
 }
 
-// Add TMDB fetch logic for poster, description, and cast
+// Add function to fix missing actor profile images
+MediaManager.prototype.fixMissingActorProfiles = async function(cast) {
+    if (!Array.isArray(cast)) return cast;
+    
+    const TMDB_API_KEY = window.TMDB_API_KEY || (window.process && window.process.env && window.process.env.TMDB_API_KEY);
+    if (!TMDB_API_KEY) {
+        console.warn('[MediaManager] TMDB API key not found, skipping profile fixes');
+        return cast;
+    }
+    
+    const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+    const updatedCast = [...cast];
+    
+    for (let i = 0; i < updatedCast.length; i++) {
+        const actor = updatedCast[i];
+        
+        // Skip if actor already has a profile image
+        if (actor.profile && actor.profile !== 'null' && !actor.profile.includes('placeholder')) {
+            continue;
+        }
+        
+        try {
+            console.log(`[MediaManager] Fetching profile for: ${actor.name}`);
+            
+            // Search for actor in TMDB
+            const searchUrl = `${TMDB_BASE_URL}/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(actor.name)}`;
+            const response = await fetch(searchUrl);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                const tmdbActor = data.results[0];
+                if (tmdbActor.profile_path) {
+                    updatedCast[i].profile = `https://image.tmdb.org/t/p/w185${tmdbActor.profile_path}`;
+                    console.log(`[MediaManager] ✅ Found profile for ${actor.name}`);
+                } else {
+                    console.log(`[MediaManager] ⚠️  No profile image for ${actor.name}`);
+                }
+            } else {
+                console.log(`[MediaManager] ❌ Actor not found: ${actor.name}`);
+            }
+            
+            // Rate limit to avoid hitting TMDB too fast
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+        } catch (error) {
+            console.error(`[MediaManager] Error fetching profile for ${actor.name}:`, error);
+        }
+    }
+    
+    return updatedCast;
+};
+
+// Add function to automatically fix cast data when loading
+MediaManager.prototype.loadAndFixCastData = async function(movieTitle) {
+    try {
+        // Load existing cast data
+        const response = await fetch('/components/MediaLibrary/data/movies/movie_cast_normalized.json');
+        if (!response.ok) return null;
+        
+        const castData = await response.json();
+        const movieKey = movieTitle.replace(/\s+/g, '.').replace(/\.+/g, '.') + '.[1080p]';
+        
+        if (castData[movieKey] && castData[movieKey].cast) {
+            let cast = castData[movieKey].cast;
+            
+            // Check if any actors have missing profiles
+            const hasMissingProfiles = cast.some(actor => 
+                !actor.profile || actor.profile === 'null' || actor.profile.includes('placeholder')
+            );
+            
+            if (hasMissingProfiles) {
+                console.log(`[MediaManager] Found missing profiles in cast for ${movieTitle}, fixing...`);
+                cast = await this.fixMissingActorProfiles(cast);
+                
+                // Update the cast data in the JSON file
+                castData[movieKey].cast = cast;
+                await this.saveCastData(castData);
+                
+                console.log(`[MediaManager] ✅ Cast profiles updated for ${movieTitle}`);
+            }
+            
+            return cast;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('[MediaManager] Error loading/fixing cast data:', error);
+        return null;
+    }
+};
+
+// Add function to save cast data back to JSON
+MediaManager.prototype.saveCastData = async function(castData) {
+    try {
+        const response = await fetch('/api/media/save-cast-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(castData)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save cast data');
+        }
+        
+        console.log('[MediaManager] Cast data saved successfully');
+    } catch (error) {
+        console.error('[MediaManager] Error saving cast data:', error);
+    }
+};
 async function fetchMovieDetailsFromTMDB(title, year) {
     const TMDB_API_KEY = window.TMDB_API_KEY || (window.process && window.process.env && window.process.env.TMDB_API_KEY);
     if (!TMDB_API_KEY) throw new Error('TMDB API key not found');
@@ -1608,43 +1836,818 @@ async function fetchMovieDetailsFromTMDB(title, year) {
 
 // ALL mode: add batch fetch logic
 MediaManager.prototype.handleFetchAllInfo = async function() {
-    const progressBar = document.querySelector('.media-manager-progress');
-    const summaryDiv = document.querySelector('.media-manager-summary');
-    summaryDiv.innerHTML = '';
-    // Simulate scanning the movies directory (replace with real scan if needed)
-    const movies = window.scanMoviesDirectory ? await window.scanMoviesDirectory() : [];
+    const progressContainer = this.containerElement.querySelector('.media-manager-progress-container');
+    const progressBar = this.containerElement.querySelector('.media-manager-progress-bar');
+    const progressText = this.containerElement.querySelector('.media-manager-progress-text');
+    const counterValue = this.containerElement.querySelector('.counter-value');
+    
+    try {
+        console.log('[MediaManager] Starting movie scan...');
+        
+        // Show progress
+        if (progressContainer) progressContainer.style.display = 'flex';
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressText) progressText.textContent = 'Scanning for new movies...';
+        
+        // Call the new backend API to scan for movies
+        const response = await fetch('/api/media/scan-movies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to scan movies');
+        }
+        
+        const movies = data.data.newMovies || [];
+        const totalScanned = data.data.totalScanned || 0;
+        const totalExisting = data.data.totalExisting || 0;
+        
+        // Update progress
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = `Scan complete: ${movies.length} new movies found out of ${totalScanned} total`;
+        
+        // Update counter
+        console.log(`[MediaManager] Updating counter: ${movies.length} movies`);
+        if (counterValue) {
+            counterValue.textContent = movies.length;
+            console.log(`[MediaManager] Counter updated to: ${counterValue.textContent}`);
+        } else {
+            console.error('[MediaManager] Counter element not found!');
+        }
+        
     if (!movies.length) {
-        summaryDiv.innerHTML = 'No new movies found.';
+            if (window.showToast) window.showToast('No new movies found.', 'info');
+            // Hide progress after a delay
+            setTimeout(() => {
+                if (progressContainer) progressContainer.style.display = 'none';
+            }, 2000);
         return;
     }
-    let completed = 0;
-    for (const movie of movies) {
-        try {
-            const details = await fetchMovieDetailsFromTMDB(movie.title, movie.year);
-            // Save details to backend (simulate confirm)
-            await fetch('/api/media/save', {
+        
+        console.log(`[MediaManager] Found ${movies.length} new movies out of ${totalScanned} total (${totalExisting} already have posters)`);
+        
+        // Populate the movie grid with new movies
+        this.populateMovieGrid(movies);
+        
+        if (window.showToast) {
+            window.showToast(`Found ${movies.length} new movies`, 'success');
+        }
+        
+        // Hide progress after a delay
+        setTimeout(() => {
+            if (progressContainer) progressContainer.style.display = 'none';
+        }, 3000);
+        
+    } catch (err) {
+        console.error('[MediaManager] Error scanning movies:', err);
+        if (progressText) progressText.textContent = `Error: ${err.message}`;
+        if (window.showToast) window.showToast(`Error: ${err.message}`, 'error');
+        
+        // Hide progress after error
+        setTimeout(() => {
+            if (progressContainer) progressContainer.style.display = 'none';
+        }, 3000);
+    }
+};
+
+// NEW: Function to populate the movie grid
+MediaManager.prototype.populateMovieGrid = function(movies) {
+    const tbody = this.containerElement.querySelector('.movie-grid-table tbody');
+    if (!tbody) {
+        console.error('[MediaManager] Movie grid tbody not found');
+        return;
+    }
+    
+    console.log(`[MediaManager] Populating grid with ${movies.length} movies`);
+    
+    // Clear ALL existing rows
+    const existingRows = tbody.querySelectorAll('.movie-grid-row');
+    console.log(`[MediaManager] Clearing ${existingRows.length} existing rows`);
+    existingRows.forEach(row => row.remove());
+    
+    // Add new movie rows
+    movies.forEach((movie, index) => {
+        const row = document.createElement('tr');
+        row.className = 'movie-grid-row';
+        row.innerHTML = `
+            <td class="movie-grid-col movie-grid-col-select">
+                <input type="checkbox" data-movie-index="${index}" />
+            </td>
+            <td class="movie-grid-col movie-grid-col-poster">
+                <div class="movie-poster-thumb"></div>
+            </td>
+            <td class="movie-grid-col movie-grid-col-title">${movie.title}</td>
+            <td class="movie-grid-col movie-grid-col-year">${movie.year}</td>
+            <td class="movie-grid-col movie-grid-col-path">${movie.absPath}</td>
+            <td class="movie-grid-col movie-grid-col-status">New</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Verify the final count
+    const finalRows = tbody.querySelectorAll('.movie-grid-row');
+    console.log(`[MediaManager] Final grid has ${finalRows.length} rows (should be ${movies.length} movies only)`);
+    
+    // Store movies data for later use
+    this.currentMovies = movies;
+    
+    // Setup checkbox listeners for selection tracking
+    this.setupGridCheckboxListeners();
+    
+    // Re-setup batch select all functionality
+    this.setupBatchSelectAll();
+};
+
+// NEW: Function to setup batch select all
+MediaManager.prototype.setupBatchSelectAll = function() {
+    const batchSelectAll = this.containerElement.querySelector('.batch-select-all-checkbox');
+    const rowCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+    
+    if (batchSelectAll && rowCheckboxes.length) {
+        batchSelectAll.addEventListener('change', function() {
+            rowCheckboxes.forEach(cb => { cb.checked = batchSelectAll.checked; });
+        });
+        
+        rowCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
+                batchSelectAll.checked = allChecked;
+            });
+        });
+    }
+};
+
+// NEW: Global function for scanMoviesDirectory (for backward compatibility)
+window.scanMoviesDirectory = async function() {
+    try {
+        const response = await fetch('/api/media/scan-movies', {
+        method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to scan movies');
+        }
+        
+        return data.data.newMovies || [];
+    } catch (err) {
+        console.error('[scanMoviesDirectory] Error:', err);
+        return [];
+    }
+};
+
+// NEW: Batch action handler with progress
+MediaManager.prototype.handleBatchAction = async function(action, selectedCount) {
+    const progressContainer = this.containerElement.querySelector('.media-manager-progress-container');
+    const progressBar = this.containerElement.querySelector('.media-manager-progress-bar');
+    const progressText = this.containerElement.querySelector('.media-manager-progress-text');
+    
+    // Get selected movies
+    const selectedCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]:checked');
+    const selectedMovies = Array.from(selectedCheckboxes).map(cb => {
+        const index = parseInt(cb.dataset.movieIndex);
+        return this.currentMovies[index];
+    }).filter(Boolean);
+    
+    if (!selectedMovies.length) {
+        if (window.showToast) window.showToast('No movies selected', 'error');
+        return;
+    }
+    
+    try {
+        // Show progress
+        if (progressContainer) progressContainer.style.display = 'flex';
+        if (progressBar) progressBar.style.width = '0%';
+        
+        let processed = 0;
+        const total = selectedMovies.length;
+        
+        for (const movie of selectedMovies) {
+            // Update progress
+            processed++;
+            const percent = (processed / total) * 100;
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressText) progressText.textContent = `Processing ${processed}/${total}: ${movie.title}`;
+            
+            try {
+                switch (action) {
+                    case 'fetch-info':
+                        await this.processMovieInfo(movie);
+                        break;
+                    case 'assign-poster':
+                        await this.processMoviePoster(movie);
+                        break;
+                    case 'delete':
+                        await this.processMovieDelete(movie);
+                        break;
+                    default:
+                        console.warn(`Unknown batch action: ${action}`);
+                }
+            } catch (err) {
+                console.error(`Error processing ${movie.title}:`, err);
+            }
+            
+            // Small delay to show progress
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Complete
+        if (progressText) progressText.textContent = `Completed: ${action} for ${total} movies`;
+        if (window.showToast) window.showToast(`Completed ${action} for ${total} movies`, 'success');
+        
+        // Hide progress after delay
+        setTimeout(() => {
+            if (progressContainer) progressContainer.style.display = 'none';
+        }, 3000);
+        
+    } catch (err) {
+        console.error('[MediaManager] Batch action error:', err);
+        if (progressText) progressText.textContent = `Error: ${err.message}`;
+        if (window.showToast) window.showToast(`Error: ${err.message}`, 'error');
+        
+        setTimeout(() => {
+            if (progressContainer) progressContainer.style.display = 'none';
+        }, 3000);
+    }
+};
+
+// NEW: Process individual movie info
+MediaManager.prototype.processMovieInfo = async function(movie) {
+    console.log(`[MediaManager] Processing info for: ${movie.title}`);
+    // TODO: Implement TMDB fetch for this movie
+    // This would call the TMDB API to get description and cast
+};
+
+// NEW: Process individual movie poster
+MediaManager.prototype.processMoviePoster = async function(movie) {
+    console.log(`[MediaManager] Processing poster for: ${movie.title}`);
+    // TODO: Implement poster assignment for this movie
+    // This would call the poster selection/assignment logic
+};
+
+// NEW: Process individual movie delete
+MediaManager.prototype.processMovieDelete = async function(movie) {
+    console.log(`[MediaManager] Processing delete for: ${movie.title}`);
+    // TODO: Implement movie deletion logic
+    // This would remove the movie from the list and potentially the filesystem
+};
+
+// NEW: Grid handler methods
+MediaManager.prototype.handleScanMovies = async function() {
+  try {
+    console.log('[MediaManager] Starting movie scan...');
+    
+    // Show progress
+    if (this.progressContainer) this.progressContainer.style.display = 'flex';
+    if (this.progressBar) this.progressBar.style.width = '0%';
+    if (this.progressSummary) this.progressSummary.textContent = 'Scanning for new movies...';
+    
+    const response = await fetch('/api/media/scan-movies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to scan movies');
+    }
+    
+    const newMovies = data.data.newMovies || [];
+    console.log(`[MediaManager] Found ${newMovies.length} new movies`);
+    
+    // Update counter
+    if (this.counterValue) {
+      this.counterValue.textContent = newMovies.length;
+    }
+    
+    // Populate grid
+    this.populateMovieGrid(newMovies);
+    
+    // Update button states
+    this.updateButtonStates(newMovies.length);
+    
+    // Show completion
+    if (this.progressBar) this.progressBar.style.width = '100%';
+    if (this.progressSummary) this.progressSummary.textContent = `Scan complete: ${newMovies.length} new movies found`;
+    
+    if (window.showToast) {
+      window.showToast(`Found ${newMovies.length} new movies`, 'success');
+    }
+    
+    // Hide progress after delay
+    setTimeout(() => {
+      if (this.progressContainer) this.progressContainer.style.display = 'none';
+    }, 3000);
+    
+  } catch (err) {
+    console.error('[MediaManager] Scan error:', err);
+    if (this.progressSummary) this.progressSummary.textContent = `Error: ${err.message}`;
+    if (window.showToast) window.showToast(`Scan error: ${err.message}`, 'error');
+    
+    setTimeout(() => {
+      if (this.progressContainer) this.progressContainer.style.display = 'none';
+    }, 3000);
+  }
+};
+
+MediaManager.prototype.handleSelectAll = function() {
+  const isChecked = this.batchSelectAllCheckbox.checked;
+  const rowCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+  
+  rowCheckboxes.forEach(cb => {
+    cb.checked = isChecked;
+  });
+  
+  this.updateSelectedCount();
+};
+
+MediaManager.prototype.handleClearSelection = function() {
+  const rowCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+  rowCheckboxes.forEach(cb => cb.checked = false);
+  
+  if (this.batchSelectAllCheckbox) {
+    this.batchSelectAllCheckbox.checked = false;
+  }
+  
+  this.updateSelectedCount();
+  
+  if (window.showToast) window.showToast('Selection cleared', 'info');
+};
+
+MediaManager.prototype.updateSelectedCount = function() {
+  const selectedCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]:checked');
+  const selectedCount = selectedCheckboxes.length;
+  
+  if (this.processSelectedBtn) {
+    this.processSelectedBtn.textContent = `Process Selected (${selectedCount})`;
+    this.processSelectedBtn.disabled = selectedCount === 0;
+  }
+};
+
+MediaManager.prototype.updateButtonStates = function(movieCount) {
+  if (this.processAllBtn) {
+    this.processAllBtn.disabled = movieCount === 0;
+  }
+  
+  if (this.processSelectedBtn) {
+    this.processSelectedBtn.disabled = true;
+    this.processSelectedBtn.textContent = 'Process Selected (0)';
+  }
+};
+
+// Setup checkbox change listeners after grid population
+MediaManager.prototype.setupGridCheckboxListeners = function() {
+  const rowCheckboxes = this.containerElement.querySelectorAll('.movie-grid-col-select input[type="checkbox"]');
+  
+  rowCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+      this.updateSelectedCount();
+      
+      // Update select all checkbox
+      const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
+      if (this.batchSelectAllCheckbox) {
+        this.batchSelectAllCheckbox.checked = allChecked;
+      }
+    });
+  });
+};
+
+// NEW: Update poster thumbnail for processed movies
+MediaManager.prototype.updateMoviePosterThumbnail = function(movie, processedIndex) {
+  // Find the row for this movie by title
+  const movieRows = this.containerElement.querySelectorAll('.movie-grid-row');
+  let targetRow = null;
+  
+  for (const row of movieRows) {
+    const titleCell = row.querySelector('.movie-grid-col-title');
+    if (titleCell && titleCell.textContent.trim() === movie.title) {
+      targetRow = row;
+      break;
+    }
+  }
+  
+  if (!targetRow) {
+    console.warn(`[MediaManager] Could not find row for movie: ${movie.title}`);
+    return;
+  }
+  
+  const row = targetRow;
+  
+  // Find the poster column
+  const posterCell = row.querySelector('.movie-grid-col-poster');
+  if (!posterCell) {
+    console.warn(`[MediaManager] Could not find poster cell for movie: ${movie.title}`);
+    return;
+  }
+  
+  // Create or update the poster thumbnail
+  let posterThumb = posterCell.querySelector('.movie-poster-thumb');
+  if (!posterThumb) {
+    posterThumb = document.createElement('div');
+    posterThumb.className = 'movie-poster-thumb';
+    posterCell.appendChild(posterThumb);
+  }
+  
+  // Get the actual poster URL from the JSON file
+  this.getMoviePosterUrl(movie).then(posterUrl => {
+    if (posterUrl) {
+      // Show real poster thumbnail
+      posterThumb.innerHTML = `
+        <div class="poster-real" data-movie-title="${movie.title}" data-movie-year="${movie.year}" data-movie-path="${movie.absPath}">
+          <img src="${posterUrl}" alt="${movie.title}" class="poster-image" />
+          <div class="poster-overlay">
+            <div class="poster-status">✓ Processed</div>
+          </div>
+        </div>
+      `;
+      console.log(`[MediaManager] Updated with real poster for: ${movie.title}`);
+    } else {
+      // Fallback to placeholder
+      posterThumb.innerHTML = `
+        <div class="poster-placeholder" data-movie-title="${movie.title}" data-movie-year="${movie.year}" data-movie-path="${movie.absPath}">
+          <div class="poster-title">${movie.title}</div>
+          <div class="poster-year">${movie.year}</div>
+          <div class="poster-status">✓ Processed</div>
+        </div>
+      `;
+      console.log(`[MediaManager] Updated with placeholder for: ${movie.title} (no poster found)`);
+    }
+    
+    // Add hover event listener for poster modal
+    this.setupPosterHoverEvents(posterThumb);
+  });
+  
+  // Update the status column to show "Processed"
+  const statusCell = row.querySelector('.movie-grid-col-status');
+  if (statusCell) {
+    statusCell.textContent = 'Processed';
+    statusCell.style.color = '#28a745'; // Green color for processed
+  }
+  
+  console.log(`[MediaManager] Updated poster thumbnail for: ${movie.title}`);
+};
+
+// NEW: Get movie poster URL from JSON file
+MediaManager.prototype.getMoviePosterUrl = async function(movie) {
+  try {
+    console.log(`[MediaManager] Looking for poster for movie: ${movie.title}`);
+    console.log(`[MediaManager] Movie absPath: ${movie.absPath}`);
+    console.log(`[MediaManager] Movie year: ${movie.year}`);
+    
+    // The JSON files use the full path as the key
+    // Try the exact path first, then variations
+    const possibleKeys = [
+      // Primary: exact path as stored in JSON
+      movie.absPath,
+      // Alternative: path with forward slashes
+      movie.absPath.replace(/\\/g, '/'),
+      // Alternative: path with backslashes
+      movie.absPath.replace(/\//g, '\\')
+    ];
+    
+    console.log(`[MediaManager] Trying keys:`, possibleKeys);
+    
+    // Fetch the posters JSON file
+    const response = await fetch('/api/media/get-movie-posters');
+    const data = await response.json();
+    
+    if (data.success && data.posters) {
+      console.log(`[MediaManager] Available poster keys (first 10):`, Object.keys(data.posters).slice(0, 10));
+      
+      // Try all possible keys
+      for (const tryKey of possibleKeys) {
+        if (data.posters[tryKey]) {
+          const posterUrl = data.posters[tryKey];
+          console.log(`[MediaManager] Found poster URL with key "${tryKey}": ${posterUrl}`);
+          return posterUrl;
+        }
+      }
+    }
+    
+    console.warn(`[MediaManager] No poster found for any key. Tried:`, possibleKeys);
+    return null;
+    
+  } catch (err) {
+    console.error(`[MediaManager] Error getting poster URL for ${movie.title}:`, err);
+    return null;
+  }
+};
+
+// NEW: Setup poster hover events for modal popup
+MediaManager.prototype.setupPosterHoverEvents = function(posterThumb) {
+  // Try to find either poster element (placeholder or real)
+  const posterElement = posterThumb.querySelector('.poster-placeholder') || posterThumb.querySelector('.poster-real');
+  if (!posterElement) return;
+  
+  let hoverTimeout;
+  let posterModal = null;
+  
+  posterElement.addEventListener('mouseenter', () => {
+    // Clear any existing timeout
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    
+    // Show modal after short delay
+    hoverTimeout = setTimeout(() => {
+      this.showPosterModal(posterElement);
+    }, 300); // 300ms delay before showing
+  });
+  
+  // Remove mouseleave event - modal will stay open until manually closed
+  // posterElement.addEventListener('mouseleave', () => {
+  //   // Clear timeout if mouse leaves before delay
+  //   if (hoverTimeout) clearTimeout(hoverTimeout);
+  //   
+  //   // Hide modal after short delay
+  //   hoverTimeout = setTimeout(() => {
+  //     this.hidePosterModal();
+  //   }, 500); // 500ms delay before hiding
+  // });
+};
+
+// NEW: Show poster modal with full details
+MediaManager.prototype.showPosterModal = function(posterElement) {
+  const title = posterElement.dataset.movieTitle;
+  const year = posterElement.dataset.movieYear;
+  const path = posterElement.dataset.moviePath;
+  
+  // Get the actual poster URL from the movie data
+  const posterUrl = posterElement.querySelector('img')?.src || null;
+  
+  // Create modal if it doesn't exist
+  let posterModal = document.querySelector('.poster-detail-modal');
+  if (!posterModal) {
+    posterModal = document.createElement('div');
+    posterModal.className = 'poster-detail-modal';
+    document.body.appendChild(posterModal);
+  }
+  
+  // Update modal content
+  posterModal.innerHTML = `
+    <div class="poster-detail-content">
+      <div class="poster-detail-header">
+        <h3>${title} (${year})</h3>
+        <div class="poster-detail-close">&times;</div>
+      </div>
+      <div class="poster-detail-body">
+        <div class="poster-detail-poster">
+          ${posterUrl ? 
+            `<img src="${posterUrl}" alt="${title}" class="poster-detail-image" />` :
+            `<div class="poster-detail-placeholder">
+              <div class="poster-detail-title">${title}</div>
+              <div class="poster-detail-year">${year}</div>
+              <div class="poster-detail-status">✓ Processed</div>
+              <div class="poster-detail-path">${path}</div>
+            </div>`
+          }
+        </div>
+        <div class="poster-detail-info">
+          <div class="poster-detail-section">
+            <h4>Movie Details</h4>
+            <p><strong>Title:</strong> ${title}</p>
+            <p><strong>Year:</strong> ${year}</p>
+            <p><strong>Status:</strong> <span class="status-processed">Processed</span></p>
+          </div>
+          <div class="poster-detail-section">
+            <h4>File Information</h4>
+            <p><strong>Path:</strong> ${path}</p>
+            <p><strong>Processing Date:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Show modal first, then position it in center
+  posterModal.style.display = 'block';
+  
+  // Position modal in center of screen using CSS classes
+  // Remove any existing positioning classes
+  posterModal.classList.remove('poster-detail-modal-centered');
+  
+  // Add positioning class for centered modal
+  posterModal.classList.add('poster-detail-modal-centered');
+  
+  // Add close button functionality
+  const closeBtn = posterModal.querySelector('.poster-detail-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      this.hidePosterModal();
+    });
+  }
+  
+  console.log(`[MediaManager] Showing poster modal for: ${title}`);
+};
+
+// NEW: Hide poster modal
+MediaManager.prototype.hidePosterModal = function() {
+  const posterModal = document.querySelector('.poster-detail-modal');
+  if (posterModal) {
+    posterModal.style.display = 'none';
+  }
+};
+
+// NEW: Step 1 - Scan app for new movies
+MediaManager.prototype.handleStep1Scan = async function() {
+  try {
+    console.log('[MediaManager] Starting Step 1: Scan app for new movies...');
+    
+    // Disable the button and show loading state
+    if (this.step1ScanBtn) {
+      this.step1ScanBtn.disabled = true;
+      this.step1ScanBtn.textContent = 'Scanning...';
+    }
+    
+    // Call the backend endpoint to run the scan script
+    const response = await fetch('/api/media/step1-scan-app', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('[MediaManager] Step 1 scan completed successfully:', data.message);
+      this.showModalAlert('✅ Step 1 completed! App has been scanned for new movies. You can now proceed to Step 2.', 'success');
+      
+      // Re-enable the button
+      if (this.step1ScanBtn) {
+        this.step1ScanBtn.disabled = false;
+        this.step1ScanBtn.textContent = 'Step 1: Scan App for New Movies';
+      }
+    } else {
+      console.error('[MediaManager] Step 1 scan failed:', data.error);
+      this.showModalAlert(`❌ Step 1 failed: ${data.error}`, 'error');
+      
+      // Re-enable the button
+      if (this.step1ScanBtn) {
+        this.step1ScanBtn.disabled = false;
+        this.step1ScanBtn.textContent = 'Step 1: Scan App for New Movies';
+      }
+    }
+    
+  } catch (err) {
+    console.error('[MediaManager] Error in Step 1 scan:', err);
+    this.showModalAlert(`❌ Step 1 failed: ${err.message}`, 'error');
+    
+    // Re-enable the button
+    if (this.step1ScanBtn) {
+      this.step1ScanBtn.disabled = false;
+      this.step1ScanBtn.textContent = 'Step 1: Scan App for New Movies';
+    }
+  }
+};
+
+// NEW: Fix missing cast profiles
+MediaManager.prototype.handleFixCastProfiles = async function() {
+  try {
+    console.log('[MediaManager] Starting Fix Missing Cast Profiles...');
+    
+    // Disable the button and show loading state
+    if (this.fixCastProfilesBtn) {
+      this.fixCastProfilesBtn.disabled = true;
+      this.fixCastProfilesBtn.textContent = 'Fixing Cast Profiles...';
+    }
+    
+    // Call the backend endpoint to run the cast fix script
+    const response = await fetch('/api/media/fix-cast-profiles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('[MediaManager] Cast profiles fix completed successfully:', data.message);
+      this.showModalAlert('✅ Cast profiles fix completed! Missing actor profile images have been updated.', 'success');
+      
+      // Re-enable the button
+      if (this.fixCastProfilesBtn) {
+        this.fixCastProfilesBtn.disabled = false;
+        this.fixCastProfilesBtn.textContent = 'Fix Missing Cast Profiles';
+      }
+    } else {
+      console.error('[MediaManager] Cast profiles fix failed:', data.error);
+      this.showModalAlert(`❌ Cast profiles fix failed: ${data.error}`, 'error');
+      
+      // Re-enable the button
+      if (this.fixCastProfilesBtn) {
+        this.fixCastProfilesBtn.disabled = false;
+        this.fixCastProfilesBtn.textContent = 'Fix Missing Cast Profiles';
+      }
+    }
+    
+  } catch (err) {
+    console.error('[MediaManager] Error in cast profiles fix:', err);
+    this.showModalAlert(`❌ Cast profiles fix failed: ${err.message}`, 'error');
+    
+    // Re-enable the button
+    if (this.fixCastProfilesBtn) {
+      this.fixCastProfilesBtn.disabled = false;
+      this.fixCastProfilesBtn.textContent = 'Fix Missing Cast Profiles';
+    }
+  }
+};
+
+// NEW: Process movie using existing scripts
+MediaManager.prototype.processMovieWithScripts = async function(movie) {
+  try {
+    console.log(`[MediaManager] Processing movie with scripts: ${movie.title}`);
+    
+    // Call the existing scripts to fetch and save all data
+    const response = await fetch('/api/media/process-movie-scripts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'movie',
-                    absPath: movie.absPath,
-                    poster: details.poster,
-                    description: details.description,
-                    cast: details.cast,
                     title: movie.title,
-                    year: details.year
+        year: movie.year,
+        absPath: movie.absPath
                 })
             });
-            summaryDiv.innerHTML += `<div>✅ ${movie.title} - Saved</div>`;
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      console.error(`[MediaManager] Script processing failed for ${movie.title}:`, data.error);
+      return false;
+    }
+    
+    console.log(`[MediaManager] Successfully processed: ${movie.title}`);
+    return true;
+    
     } catch (err) {
-            summaryDiv.innerHTML += `<div>❌ ${movie.title} - ${err.message}</div>`;
+    console.error(`[MediaManager] Error processing ${movie.title} with scripts:`, err);
+    return false;
     }
-        completed++;
-        progressBar.style.width = `${Math.round((completed / movies.length) * 100)}%`;
+};
+
+// Helper: Process a single movie using the exact same logic as MOVIE | Single
+MediaManager.prototype.processMovieSingleLogic = async function({ title, year, absPath }) {
+  // 1. Fetch TMDB info
+  let tmdbInfo = null;
+  try {
+    const fetchRes = await fetch('/api/media/fetch-tmdb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'movie', title, year })
+    });
+    const fetchData = await fetchRes.json();
+    if (!fetchData.success) {
+      console.warn(`[MediaManager] TMDB fetch failed for: ${title} (${year}) - ${fetchData.error}`);
+      return false;
     }
-    window.showToast && window.showToast('Batch fetch complete.', 'success');
+    tmdbInfo = fetchData.data;
+    // If multiple results (from search), pick the first
+    if (!tmdbInfo && fetchData.results && Array.isArray(fetchData.results) && fetchData.results.length > 0) {
+      tmdbInfo = fetchData.results[0];
+      console.warn(`[MediaManager] Multiple TMDB results for ${title}, picking first:`, tmdbInfo.title || tmdbInfo.name);
+    }
+    if (!tmdbInfo) {
+      console.warn(`[MediaManager] No TMDB info found for: ${title}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`[MediaManager] Error fetching TMDB info for ${title}:`, err);
+    return false;
+  }
+  // 2. Save movie info
+  try {
+    const saveRes = await fetch('/api/media/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'movie',
+        absPath,
+        title: tmdbInfo.title || title,
+        year: tmdbInfo.year || year,
+        poster: tmdbInfo.poster,
+        description: tmdbInfo.description,
+        cast: tmdbInfo.cast
+      })
+    });
+    const saveData = await saveRes.json();
+    if (!saveData.success) {
+      console.warn(`[MediaManager] Save failed for: ${title} - ${saveData.error}`);
+      return false;
+    }
+    // Always reload movie posters and refresh grid after save
+    if (window.mediaLibraryManager && typeof window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid === 'function') {
+      await window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+    }
+    return true;
+  } catch (err) {
+    console.error(`[MediaManager] Error saving info for ${title}:`, err);
+    return false;
+  }
 };
 
 if (typeof window !== 'undefined') {
   window.MediaManager = MediaManager;
+  // Make the instance available globally for batch actions
+  window.mediaManager = null;
 } 

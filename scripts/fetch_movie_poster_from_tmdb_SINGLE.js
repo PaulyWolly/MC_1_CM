@@ -1,5 +1,13 @@
 /*
   FETCH_MOVIE_POSTER_FROM_TMDB_SINGLE.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
+/*
+  FETCH_MOVIE_POSTER_FROM_TMDB_SINGLE.JS
   Fetches the poster for a single movie from TMDB by title (and optional year).
   Usage: node fetch_movie_poster_from_tmdb_SINGLE.js "Movie Title" [Year]
 
@@ -12,6 +20,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '../server/.env
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+const { normalizeKey } = require('../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';

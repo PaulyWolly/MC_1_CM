@@ -1,5 +1,13 @@
 /*
   FETCH_MOVIE_DESCRIPTIONS_FROM_TMDB_SINGLE.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
+/*
+  FETCH_MOVIE_DESCRIPTIONS_FROM_TMDB_SINGLE.JS
   Fetch description for a single movie from TMDB by title (and optional year)
   Usage: node fetch_movie_descriptions_from_tmdb_SINGLE.js "Movie Title" [Year]
 */

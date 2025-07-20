@@ -1,8 +1,8 @@
 /*
   ADMIN.ROUTES.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -16,6 +16,8 @@ const TMDBPosterService = require('../services/TMDBPosterService');
 const Poster = require('../models/Poster');
 const https = require('https');
 const NormalizationService = require('../services/NormalizationService');
+const { normalizeKey } = require('../../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 // Script runners
 async function runTvShowsScan() {
@@ -327,10 +329,15 @@ router.post('/posters/download', async (req, res) => {
     let basePath;
     if (mediaType === 'movie') {
       // Always resolve to the full movie folder path
-      // If mediaId is just the folder name, prepend the root
+      // If mediaId is a file path, extract the folder
       let folderName = mediaId;
       if (folderName.startsWith('movies/')) {
         folderName = folderName.replace(/^movies[\\/]/i, '');
+      }
+      // If mediaId is a file path, extract the folder
+      if (folderName.match(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i)) {
+        folderName = folderName.replace(/\\/g, '/');
+        folderName = folderName.substring(0, folderName.lastIndexOf('/'));
       }
       basePath = path.join('S:/MEDIA/MOVIES', folderName);
       console.log('[POSTER DEBUG] Computed basePath:', basePath);
@@ -448,9 +455,15 @@ router.post('/posters/download', async (req, res) => {
           postersJson = JSON.parse(require('fs').readFileSync(postersJsonPath, 'utf8'));
         }
       } catch (e) { postersJson = {}; }
-      // Always use forward slashes in the key
-      const normalizedMediaId = mediaId.replace(/\\/g, '/');
-      postersJson[normalizedMediaId] = webPosterUrl;
+      // --- PATCH: Always use normalized key for mapping ---
+      let folderName = mediaId;
+      if (folderName.match(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i)) {
+        folderName = folderName.replace(/\\/g, '/');
+        folderName = folderName.substring(0, folderName.lastIndexOf('/'));
+      }
+      const normalizedKey = normalizeKey(folderName);
+      postersJson[normalizedKey] = webPosterUrl;
+      // --- END PATCH ---
       require('fs').writeFileSync(postersJsonPath, JSON.stringify(postersJson, null, 2));
     }
     // After downloading the image, update the mapping for TV shows

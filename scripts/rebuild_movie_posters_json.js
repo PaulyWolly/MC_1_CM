@@ -1,9 +1,18 @@
+/*
+  REBUILD_MOVIE_POSTERS_JSON.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
 // rebuild_movie_posters_json.js
 // Scans S:/MEDIA/MOVIES and writes a new movie_posters.json mapping for all movies with a poster.jpg
 
 const fs = require('fs');
 const path = require('path');
-const NormalizationService = require('../server/services/NormalizationService');
+const { normalizeKey } = require('../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
 const POSTERS_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
@@ -33,7 +42,7 @@ function rebuildMapping() {
     const folderPath = path.join(MOVIES_DIR, folderName);
     const posterPath = path.join(folderPath, 'poster.jpg');
     if (fs.existsSync(posterPath)) {
-      const dotKey = NormalizationService.createFolderName(folderName);
+      const dotKey = normalizeKey(folderName);
       const webPosterUrl = `/media/movies/${folderName}/poster.jpg`;
       mapping[dotKey] = webPosterUrl;
       count++;

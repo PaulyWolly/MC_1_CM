@@ -1,3 +1,11 @@
+/*
+  FIX_MOVIE_PATHS_TO_MATCH_FOLDERS.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
 // fix_movie_paths_to_match_folders.js
 // Scans S:/MEDIA/MOVIES and updates movie paths in media-library-movies.json to match actual folder names
 

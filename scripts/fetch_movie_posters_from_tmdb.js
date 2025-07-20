@@ -1,5 +1,13 @@
 /*
   FETCH_MOVIE_POSTERS_FROM_TMDB.JS
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
+  Created by Paul Welby
+*/
+
+/*
+  FETCH_MOVIE_POSTERS_FROM_TMDB.JS
   Fetches posters for all movies in the movies directory using TMDB API.
   Outputs to movie_posters_normalized.json for use in the Media Library.
   Supports manual TMDB ID overrides.
@@ -9,6 +17,8 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
+const { normalizeKey } = require('../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -111,7 +121,7 @@ async function main() {
         }
         if (posterUrl) {
             // Use pretty name as key
-            const prettyKey = toPrettyName(folderName);
+            const prettyKey = normalizeKey(folderName);
             // Add to newly_added_movies.json
             let newEntries = {};
             if (fs.existsSync(NEWLY_ADDED_JSON)) {

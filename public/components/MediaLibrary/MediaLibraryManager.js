@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -532,28 +532,25 @@ class MediaLibraryManager {
                     const card = btn.closest('.media-library-movie-card');
                     let itemPath = card ? card.getAttribute('data-path') : '';
                     let item = null;
-                    let errorDetails = '';
                     if (this.currentTab === 'tvshows') {
                         const tvShows = this.getTVShows();
                         item = tvShows.find(show =>
                             (show.path || '').replace(/\\/g, '/').toLowerCase().trim() === (itemPath || '').replace(/\\/g, '/').toLowerCase().trim()
                         );
-                        if (!item && card) {
-                            // Fallback: try by title
-                            const title = card.querySelector('h3')?.textContent?.trim().toLowerCase();
-                            item = tvShows.find(show => (show.name || show.title || '').trim().toLowerCase() === title);
-                            errorDetails += `\nTried fallback by title: ${title}`;
+                        if (!item) {
+                            console.error(`[ERROR] TV Show not found by path: ${itemPath}`);
+                            this.showToast(`Error: TV Show not found by path: ${itemPath}`, 'error');
+                            return false;
                         }
                     } else {
                         const items = this.getFilteredAndSortedItems();
                         item = items.find(i =>
                             (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (itemPath || '').replace(/\\/g, '/').toLowerCase().trim()
                         );
-                        if (!item && card) {
-                            // Fallback: try by title
-                            const title = card.querySelector('h3')?.textContent?.trim().toLowerCase();
-                            item = items.find(i => (i.title || i.name || '').trim().toLowerCase() === title);
-                            errorDetails += `\nTried fallback by title: ${title}`;
+                        if (!item) {
+                            console.error(`[ERROR] Movie not found by path: ${itemPath}`);
+                            this.showToast(`Error: Movie not found by path: ${itemPath}`, 'error');
+                            return false;
                         }
                     }
                     if (window.PosterSelector) {
@@ -568,25 +565,8 @@ class MediaLibraryManager {
                             type: mode
                                 };
                             } else {
-                                // Minimal fallback context
-                                // --- DEBUG LOGGING FOR PATH MISMATCH ---
-                                console.warn('[PosterSelector DEBUG] Fallback context used!');
-                                console.warn('[PosterSelector DEBUG] itemPath:', itemPath);
-                                if (this.currentTab === 'tvshows') {
-                                    const tvShows = this.getTVShows();
-                                    console.warn('[PosterSelector DEBUG] Available TV show paths:', tvShows.map(s => s.path));
-                                } else {
-                                    const items = this.getFilteredAndSortedItems();
-                                    console.warn('[PosterSelector DEBUG] Available movie paths:', items.map(i => i.path));
-                                }
-                                console.warn('[PosterSelector DEBUG] Card HTML:', card ? card.outerHTML : '[none]');
-                                // --- END DEBUG LOGGING ---
-                                return {
-                                    mediaId: itemPath || '[unknown]',
-                                    name: card?.querySelector('h3')?.textContent || '[unknown]',
-                                    path: itemPath || '[unknown]',
-                                    type: mode
-                                };
+                                console.error('[ERROR] No item found for PosterSelector context');
+                                return null;
                             }
                         };
                         selector.onPosterSelected = async ({filePath, posterType, poster}) => {
@@ -936,116 +916,19 @@ class MediaLibraryManager {
                 .replace(/\.+/g, '.')
                 .replace(/^\.|\.$/g, '');
         }
-        // TV Shows: Prefer mapping, then constructed root poster path, then placeholder
-        if (this.currentTab === 'tvshows' && mediaItem && mediaItem.path) {
-            if (this.tvPosters && mediaItem.name) {
-                // Try exact match
-                if (this.tvPosters[mediaItem.name]) {
-                    let url = this.tvPosters[mediaItem.name];
-                    if (this.cacheBusters && this.cacheBusters[mediaItem.name]) {
-                        url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[mediaItem.name];
-                    }
-                    return url;
+        if (mediaItem && mediaItem.path) {
+            // Use only the normalized dot notation key
+            const folderName = mediaItem.path.split(/[\\/]/).pop();
+            const dotKey = normalizeKey(folderName);
+            if (this.moviePosters && this.moviePosters[dotKey]) {
+                let url = this.moviePosters[dotKey];
+                if (this.cacheBusters && this.cacheBusters[dotKey]) {
+                    url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[dotKey];
                 }
-                // Try case-insensitive match
-                const lowerName = mediaItem.name.toLowerCase();
-                for (const [key, value] of Object.entries(this.tvPosters)) {
-                    if (key.toLowerCase() === lowerName) {
-                        let url = value;
-                        if (this.cacheBusters && this.cacheBusters[key]) {
-                            url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[key];
-                        }
-                        return url;
-                    }
-                }
-            }
-            // Fallback: Construct root poster path
-            let showRoot = mediaItem.path.replace(/\\/g, '/');
-            if (!showRoot.endsWith('/')) showRoot += '/';
-            let rootPosterUrl = `/media${showRoot.split('/media').pop()}/poster.jpg`;
-            if (this.cacheBusters && this.cacheBusters[mediaItem.path]) {
-                rootPosterUrl += '?t=' + this.cacheBusters[mediaItem.path];
-            }
-            return rootPosterUrl;
-        }
-        // Movies: robust lookup
-        if (mediaItem) {
-            const tryKeys = [];
-            if (mediaItem.path) {
-                let folderName = mediaItem.path.split(/[\\/]/).pop();
-                let dotKey = normalizeKey(folderName);
-                tryKeys.push(dotKey);
-            }
-            // --- Existing keys ---
-            tryKeys.push(mediaItem.path, mediaItem.relPath, mediaItem.title, mediaItem.name);
-            // Add folder name as a key to try
-            if (mediaItem.path) {
-                const folderName = mediaItem.path.split(/[\\/]/).pop();
-                tryKeys.push(folderName);
-            }
-            // For movies, we need to construct the full file path that matches the poster data
-            if (mediaItem.path && mediaItem.files && mediaItem.files.length > 0) {
-                // Get the first video file in the folder
-                const videoFile = mediaItem.files.find(file => 
-                    file.name && (file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.avi'))
-                );
-                if (videoFile) {
-                    // Construct the full path that matches the poster data format
-                    const fullPath = `S:/MEDIA/MOVIES/${mediaItem.path}/${videoFile.name}`;
-                    tryKeys.unshift(fullPath); // Add this as the first key to try
-                    tryKeys.push(fullPath.replace(/\\/g, '/'));
-                    tryKeys.push(fullPath.replace(/\//g, '\\'));
-                }
-            }
-            // Also try normalized slashes and just the filename
-            if (mediaItem.path) {
-                tryKeys.push(mediaItem.path.replace(/\\/g, '/'));
-                tryKeys.push(mediaItem.path.replace(/\//g, '\\'));
-                tryKeys.push(mediaItem.path.split(/[\\/]/).pop());
-            }
-            if (mediaItem.relPath) {
-                tryKeys.push(mediaItem.relPath.replace(/\\/g, '/'));
-                tryKeys.push(mediaItem.relPath.replace(/\//g, '\\'));
-                tryKeys.push(mediaItem.relPath.split(/[\\/]/).pop());
-            }
-            if (this.moviePosters) {
-                for (const key of tryKeys) {
-                    if (!key) continue; // Skip undefined/null/empty keys
-                    if (this.moviePosters[key]) {
-                        let url = this.moviePosters[key];
-                        if (this.cacheBusters && this.cacheBusters[key]) {
-                            url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[key];
-                        }
-                        return url;
-                    }
-                    const lowerKey = typeof key === 'string' ? key.toLowerCase() : '';
-                    for (const [k, v] of Object.entries(this.moviePosters)) {
-                        if (typeof k === 'string' && k.toLowerCase() === lowerKey) {
-                            let url = v;
-                            if (this.cacheBusters && this.cacheBusters[k]) {
-                                url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[k];
-                            }
-                            return url;
-                        }
-                    }
-                }
-            }
-            // Fallback: try to find a poster by filename only
-            if (this.moviePosters) {
-                const filename = (mediaItem.path || mediaItem.relPath || mediaItem.title || mediaItem.name || '').split(/[\\/]/).pop();
-                for (const [k, v] of Object.entries(this.moviePosters)) {
-                    if (k.endsWith(filename)) {
-                        let url = v;
-                        if (this.cacheBusters && this.cacheBusters[k]) {
-                            url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[k];
-                        }
-                        return url;
-                    }
-                }
+                return url;
             }
             // Log a warning if no poster found
-            console.warn('[MEDIA-LIBRARY] No poster found for:', mediaItem, 'Tried keys:', tryKeys);
-            // --- DEBUG: List all available keys in moviePosters ---
+            console.warn('[MEDIA-LIBRARY] No poster found for:', mediaItem, 'Tried dot notation key:', dotKey);
             if (this.moviePosters) {
                 console.warn('[MEDIA-LIBRARY] Available poster keys:', Object.keys(this.moviePosters));
             }
@@ -2377,7 +2260,7 @@ class MediaLibraryManager {
         if (!grid) return;
         let movieDescriptions = {};
         try {
-            const response = await fetch('/components/MediaLibrary/data/movies/movie_descriptions.json');
+            const response = await fetch('/components/MediaLibrary/data/movies/movie_descriptions_normalized.json');
             if (response.ok) {
                 movieDescriptions = await response.json();
             }
@@ -2418,16 +2301,22 @@ class MediaLibraryManager {
             }
         }
         if (!foundDesc && movieDescriptions) {
-            const folderKey = Object.keys(movieDescriptions).find(k => k.includes(movie.path));
-            if (folderKey && movieDescriptions[folderKey].description) {
-                desc = movieDescriptions[folderKey].description;
-                console.log('[DETAILS DEBUG] Fallback found description with folderKey:', folderKey);
+            // Try to generate the normalized key that matches the JSON format
+            const normalizedKey = movie.path.replace(/\s+/g, '.').replace(/\.+/g, '.') + '.[1080p]';
+            console.log('[DETAILS DEBUG] Generated normalized key:', normalizedKey);
+            console.log('[DETAILS DEBUG] Available keys in descriptions:', Object.keys(movieDescriptions).filter(k => k.includes('Family')));
+            
+            if (movieDescriptions[normalizedKey] && movieDescriptions[normalizedKey].description) {
+                desc = movieDescriptions[normalizedKey].description;
+                console.log('[DETAILS DEBUG] Found description with normalized key:', normalizedKey);
             } else {
                 console.log('[DETAILS DEBUG] No description found for:', movie.path);
             }
         }
         // --- ACTOR IMAGES ROW ---
         let castRow = '';
+        // Force reload cast data to ensure we have the latest
+        this.movieCast = null;
         const movieCast = await this.loadMovieCast();
         let castData = null;
         for (const key of possibleKeys) {
@@ -2438,15 +2327,21 @@ class MediaLibraryManager {
             }
         }
         if (!castData && movieCast) {
-            const folderKey = Object.keys(movieCast).find(k => k.includes(movie.path));
-            if (folderKey && Array.isArray(movieCast[folderKey].cast) && movieCast[folderKey].cast.length > 0) {
-                castData = movieCast[folderKey].cast;
-                console.log('[DETAILS DEBUG] Fallback found cast with folderKey:', folderKey);
+            // Try to generate the normalized key that matches the JSON format
+            // Convert folder name to dot notation format
+            const normalizedKey = movie.path.replace(/\s+/g, '.').replace(/\.+/g, '.') + '.[1080p]';
+            console.log('[DETAILS DEBUG] Generated normalized key for cast:', normalizedKey);
+            console.log('[DETAILS DEBUG] Available keys in cast:', Object.keys(movieCast).filter(k => k.includes('Family')));
+            
+            if (movieCast[normalizedKey] && Array.isArray(movieCast[normalizedKey].cast) && movieCast[normalizedKey].cast.length > 0) {
+                castData = movieCast[normalizedKey].cast;
+                console.log('[DETAILS DEBUG] Found cast with normalized key:', normalizedKey);
             } else {
                 console.log('[DETAILS DEBUG] No cast found for:', movie.path);
             }
         }
         if (castData && castData.length > 0) {
+            console.log('[CAST DEBUG] Rendering cast data:', castData);
             castRow = `<div class="media-library-cast-row">
                 ${castData.map(actor => `
                     <div class="media-library-cast-item">
@@ -2457,6 +2352,8 @@ class MediaLibraryManager {
                     </div>
                 `).join('')}
             </div>`;
+        } else {
+            console.log('[CAST DEBUG] No cast data found or cast data is empty');
         }
         grid.innerHTML = `
             <div class="media-library-details-modal">
@@ -3643,9 +3540,10 @@ class MediaLibraryManager {
     async loadMovieCast() {
         if (this.movieCast) return this.movieCast;
         try {
-            const response = await fetch('/components/MediaLibrary/data/movies/movie_cast.json');
+            const response = await fetch('/components/MediaLibrary/data/movies/movie_cast_normalized.json?t=' + Date.now());
             if (response.ok) {
                 this.movieCast = await response.json();
+                console.log('[CAST DEBUG] Loaded movie cast data with keys:', Object.keys(this.movieCast).filter(k => k.includes('Family')));
                 return this.movieCast;
             }
         } catch (error) {

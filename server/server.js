@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -178,12 +178,16 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
     }
 });
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, '../public')));
-
 // =====================================================
 // API ROUTES
 // =====================================================
+
+// Mount mediaManager routes BEFORE static file serving
+const mediaManagerRoutes = require('./routes/mediaManager.routes');
+app.use('/api/media', mediaManagerRoutes);
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../public')));
 
 // YouTube Search Route
 app.get('/api/youtube/search', async (req, res) => {
@@ -3918,8 +3922,5 @@ app.post('/api/admin/backfill-youtube-timestamps', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
-const mediaManagerRoutes = require('./routes/mediaManager.routes');
-app.use('/api/media', mediaManagerRoutes);
 
 

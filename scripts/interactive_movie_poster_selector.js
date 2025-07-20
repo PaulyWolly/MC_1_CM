@@ -1,8 +1,8 @@
 /*
   INTERACTIVE_MOVIE_POSTER_SELECTOR.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
@@ -31,6 +31,8 @@ const path = require('path');
 const fetch = require('node-fetch');
 const express = require('express');
 const { spawn } = require('child_process');
+const { normalizeKey } = require('../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 // Configuration
 const TMDB_API_KEY = process.env.TMDB_API_KEY;

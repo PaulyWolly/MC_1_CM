@@ -1,13 +1,15 @@
 /*
   UPDATE_MOVIE_POSTER_MAPPING_AND_WRITE.JS
-  Version: 7
-  AppName: MCC_1_CCM [v7]
-  Updated: 7/16/2025 @7:00AM
+  Version: 8
+  AppName: MCC_1_CCM [v8]
+  Updated: 7/20/2025 @8:30AM
   Created by Paul Welby
 */
 
 const fs = require('fs').promises;
 const path = require('path');
+const { normalizeKey } = require('../shared/NormalizationService');
+// Use normalizeKey for all mapping key normalization in this file.
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
 const ORIGINAL_MAPPING_FILE = 'public/components/MediaLibrary/data/movie_posters_backup.json';
@@ -17,10 +19,6 @@ const BACKUP_FILE = 'public/components/MediaLibrary/data/movie_posters_prewrite_
 function isVideoFile(filename) {
     const exts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
     return exts.includes(path.extname(filename).toLowerCase());
-}
-
-function normalizeString(str) {
-    return str.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
 function extractTitleYear(filename) {
@@ -61,7 +59,7 @@ async function main() {
     for (const key of oldKeys) {
         const base = path.basename(key, path.extname(key));
         const { title, year } = extractTitleYear(base);
-        const norm = normalizeString(title + (year || ''));
+        const norm = normalizeKey(title + (year || ''));
         oldLookup[norm] = oldMapping[key];
     }
 
@@ -92,7 +90,7 @@ async function main() {
             } catch (e) {}
             // 2. Else, try to match to old mapping by normalized title/year
             const { title, year } = extractTitleYear(file);
-            const norm = normalizeString(title + (year || ''));
+            const norm = normalizeKey(title + (year || ''));
             if (oldLookup[norm]) {
                 newMapping[movieFilePath] = oldLookup[norm];
                 mappedRemote++;
