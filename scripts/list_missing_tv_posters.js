@@ -1,20 +1,11 @@
 // Node.js script to list missing TV show poster keys and generate a template for tv_posters.json
 const fs = require('fs');
 const path = require('path');
+const { normalizeKey } = require('../shared/NormalizationService');
 
 // --- CONFIG ---
 const TV_SHOWS_JSON = path.join(__dirname, '../server/data/media-library-tv-shows.json');
 const TV_POSTERS_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv_posters.json');
-
-// --- Normalization logic (must match frontend/backend) ---
-function normalizeKey(name) {
-    return name
-        .replace(/\\/g, '/')
-        .replace(/\s+/g, '.')
-        .replace(/[^a-zA-Z0-9.\[\]()]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^\.|\.$/g, '');
-}
 
 // --- Load TV shows ---
 let tvShows = [];

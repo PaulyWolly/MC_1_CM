@@ -1,22 +1,13 @@
 // Node script to normalize TV show cast and descriptions JSON files
 const fs = require('fs');
 const path = require('path');
+const { normalizeKey } = require('../shared/NormalizationService');
 
 const DATA_DIR = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows');
 const CAST_FILE = path.join(DATA_DIR, 'tv-show_cast.json');
 const DESC_FILE = path.join(DATA_DIR, 'tv-show_descriptions.json');
 const CAST_OUT = path.join(DATA_DIR, 'tv-show_cast_normalized.json');
 const DESC_OUT = path.join(DATA_DIR, 'tv-show_descriptions_normalized.json');
-
-function normalizeKey(name) {
-  return name
-    .replace(/\\/g, '/')
-    .replace(/\s*&\s*/g, '.&.') // preserve ampersand as dot-ampersand-dot
-    .replace(/\s+/g, '.')
-    .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-    .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '');
-}
 
 function normalizeObjectKeys(obj) {
   const out = {};

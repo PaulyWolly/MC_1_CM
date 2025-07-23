@@ -7,17 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 // Configuration
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TV_CAST_NORMALIZED_PATH = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json');
-
-// Function to normalize TV show title to dot notation key
-function normalizeKey(name) {
-    return name
-        .replace(/\\/g, '/')
-        .replace(/\s*&\s*/g, '.&.')
-        .replace(/\s+/g, '.')
-        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^\\.|\\.$/g, '');
-}
+const { normalizeKey } = require('../shared/NormalizationService');
 
 // Function to search for TV show by title
 async function searchTVShow(title) {

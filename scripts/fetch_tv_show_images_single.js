@@ -9,17 +9,7 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TV_POSTERS_NORMALIZED_PATH = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_posters_normalized.json');
 const TV_EPISODE_IMAGES_NORMALIZED_PATH = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
 const TV_SEASON_IMAGES_NORMALIZED_PATH = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
-
-// Function to normalize TV show title to dot notation key
-function normalizeKey(name) {
-    return name
-        .replace(/\\/g, '/')
-        .replace(/\s*&\s*/g, '.&.')
-        .replace(/\s+/g, '.')
-        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^\\.|\\.$/g, '');
-}
+const { normalizeKey } = require('../shared/NormalizationService');
 
 // Function to search for TV show by title
 async function searchTVShow(title) {
