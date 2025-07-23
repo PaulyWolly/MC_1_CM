@@ -441,6 +441,7 @@ class MediaLibraryManager {
                   <option value="desc">Z-A</option>
                 </select>
                 <button class="media-library-shuffle-btn" onclick="mediaLibraryManager.shuffleMovies()">${getShuffleButtonText()}</button>
+                <span class="media-library-total-count" id="mediaLibraryTotalCount"></span>
                 <button class="media-library-refresh-btn" onclick="mediaLibraryManager.refreshCurrentContent()" title="Refresh Content">🔄</button>
               </div>
               <div class="media-library-content-wrapper">
@@ -479,6 +480,23 @@ class MediaLibraryManager {
             }
         }
         // ... rest of renderModal ...
+        // ... after rendering the modal and grid ...
+        // Attach click handler to TV show cards (main TV Shows tab only)
+        if (this.currentTab === 'tvshows' && !this.currentTVShow && !this.currentTVSeason) {
+            const grid = document.getElementById('mediaGrid');
+            if (grid) {
+                grid.innerHTML = this.renderTVShowsTab();
+                grid.querySelectorAll('.media-library-card.poster').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        if (e.target.closest('.poster-selector-btn')) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.mediaLibraryManager.openTVShowFromData(card);
+                    });
+                });
+            }
+        }
+        // ... rest of renderModal ...
     }
 
     removeModal() {
@@ -500,6 +518,9 @@ class MediaLibraryManager {
         if (this.currentTab === 'collections') {
             setTimeout(() => this.renderCollectionsTab(), 0);
         }
+        
+        // Update counts when switching tabs
+        setTimeout(() => this.updateCount(), 100);
 
         this.currentTab = tab;
         this.currentTVShow = null;
@@ -560,7 +581,6 @@ class MediaLibraryManager {
         if (this.currentTab === 'movies') {
             this.renderMediaGrid();
         }
-        // ... existing code ...
     }
 
     async renderTabContent() {
@@ -633,6 +653,14 @@ class MediaLibraryManager {
                             console.error('[DEBUG] No card found for clicked poster');
                         }
                     };
+                });
+                grid.querySelectorAll('.media-library-card.poster').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        if (e.target.closest('.poster-selector-btn')) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.mediaLibraryManager.openTVShowFromData(card);
+                    });
                 });
             }
             this.hideGridSpinner();
@@ -1336,14 +1364,28 @@ class MediaLibraryManager {
     updateCount() {
         const countSpan = document.getElementById('mediaLibraryCount');
         if (!countSpan) return;
+        
         // Hide count on Watch Later tab
         if (this.currentTab === 'watchlater') {
             countSpan.textContent = '';
             countSpan.style.display = 'none';
             return;
         }
+        
         const items = this.getFilteredAndSortedItems();
-        countSpan.textContent = `${items.length} Items`;
+        let countText = '';
+        
+        if (this.currentTab === 'movies') {
+            const totalMovies = this.getTotalMovieCount();
+            countText = `Movies: ${totalMovies} | Showing: ${items.length}`;
+        } else if (this.currentTab === 'tvshows') {
+            const totalTVShows = this.getTotalTVShowCount();
+            countText = `TV Shows: ${totalTVShows} | Showing: ${items.length}`;
+        } else {
+            countText = `${items.length} Items`;
+        }
+        
+        countSpan.textContent = countText;
         countSpan.style.display = '';
     }
 
@@ -2604,7 +2646,7 @@ class MediaLibraryManager {
         }
 
         // Handle flat array structure where episodes are directly in seasons
-        if (show.seasons && Array.isArray(show.seasons)) {
+        if (show.seasons && Array.isArray(show.seasons) && show.seasons.length > 0) {
             console.log('[EPISODE DEBUG] Found seasons array with', show.seasons.length, 'seasons');
             
             // Extract season number from seasonPath (e.g., "Season 01" -> 1)
@@ -2624,10 +2666,28 @@ class MediaLibraryManager {
             }
             
             console.log('[EPISODE DEBUG] Found season with', season.episodes?.length || 0, 'episodes');
-            return season.episodes || [];
+            // PATCH: Ensure every episode has a filePath property
+            return (season.episodes || []).map(ep => {
+                if (!ep.filePath) {
+                    ep.filePath = ep.absPath || ep.path || ep.relPath;
+                    if (!ep.filePath) {
+                        // Try to construct from season path and episode name/filename
+                        const seasonFolderPath = season.path || season.relPath || '';
+                        const epName = ep.name || ep.filename || '';
+                        if (seasonFolderPath && epName) {
+                            ep.filePath = seasonFolderPath.replace(/\\/g, '/') + '/' + epName;
+                        } else if (epName) {
+                            ep.filePath = epName;
+                        } else {
+                            ep.filePath = '';
+                        }
+                    }
+                }
+                return ep;
+            });
         }
 
-        // Fallback to folder-based detection for legacy support
+        // Fallback to folder-based detection for legacy support (or if seasons array is missing/empty)
         if (show.folders && Array.isArray(show.folders)) {
             console.log('[EPISODE DEBUG] Using folder-based episode detection');
             
@@ -2679,13 +2739,25 @@ class MediaLibraryManager {
             });
             
             console.log('[EPISODE DEBUG] Sorted episodes:', episodes.map(e => e.name));
-            
-            // Debug: Check if S01E01 and S04E01 are present
-            const hasS01E01 = episodes.some(e => e.name && e.name.includes('S01E01'));
-            const hasS04E01 = episodes.some(e => e.name && e.name.includes('S04E01'));
-            console.log('[EPISODE DEBUG] Has S01E01:', hasS01E01, 'Has S04E01:', hasS04E01);
-            
-            return episodes;
+            // PATCH: Ensure every episode has a filePath property
+            return episodes.map(ep => {
+                if (!ep.filePath) {
+                    ep.filePath = ep.absPath || ep.path || ep.relPath;
+                    if (!ep.filePath) {
+                        // Try to construct from season folder path and episode name/filename
+                        const seasonFolderPath = seasonFolder.path || seasonFolder.relPath || '';
+                        const epName = ep.name || ep.filename || '';
+                        if (seasonFolderPath && epName) {
+                            ep.filePath = seasonFolderPath.replace(/\\/g, '/') + '/' + epName;
+                        } else if (epName) {
+                            ep.filePath = epName;
+                        } else {
+                            ep.filePath = '';
+                        }
+                    }
+                }
+                return ep;
+            });
         }
 
         return [];
@@ -3066,27 +3138,26 @@ class MediaLibraryManager {
                             // Robust relPath for playback
                             let relPath = ((episode.relPath) ? episode.relPath : (this.currentTVSeason.replace(/\\/g, '/') + '/' + (episode.name || episode.filename || '').replace(/\\/g, '/'))).replace(/\\/g, '/');
                             relPath = relPath.replace(/'/g, "\\'");
-                            // Store episode data in data attribute to avoid JSON escaping issues
+                            // Ensure filePath is present and correct
+                            if (!episode.filePath) {
+                                episode.filePath = episode.absPath || episode.path || episode.relPath || '';
+                            }
                             const episodeData = JSON.stringify(episode);
-                            return `
-                            <div class=\"media-library-card episode\" data-episode='${episodeData}' onclick=\"mediaLibraryManager.playEpisodeFromDataAttribute(this)\">
-                                <div class=\"media-library-card-poster\">
-                                    <img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">
-                                    <div class=\"media-library-play-overlay\">▶</div>
-                                </div>
-                                <div class=\"media-library-card-info\">
-                                    <h3 class=\"tv-show-season-episode-name\">
-                                        ${showName} - ${seasonName} - ${(() => {
-                                            const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
-                                            return match ? `E${match[1].padStart(2, '0')}` : '';
-                                        })()}
-                                    </h3>
-                                    <div class=\"tv-show-episode-name\">
-                                        ${this.extractEpisodeTitle((episode.name || episode.filename || episode.path || '').split(/[\\/]/).pop())}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                            const epNum = (() => {
+                                const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
+                                return match ? `E${match[1].padStart(2, '0')}` : '';
+                            })();
+                            const epTitle = this.extractEpisodeTitle((episode.name || episode.filename || episode.path || '').split(/[\\/]/).pop());
+                            return `<div class=\"media-library-card episode\" data-episode='${episodeData}' onclick=\"mediaLibraryManager.playEpisodeFromDataAttribute(this)\">`
+                                + `<div class=\"media-library-card-poster\">`
+                                + `<img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">`
+                                + `<div class=\"media-library-play-overlay\">▶</div>`
+                                + `</div>`
+                                + `<div class=\"media-library-card-info\">`
+                                + `<h3 class=\"tv-show-season-episode-name\">${showName} - ${seasonName} - ${epNum}</h3>`
+                                + `<div class=\"tv-show-episode-name\">${epTitle}</div>`
+                                + `</div>`
+                                + `</div>`;
                         }).join('')}
                     </div>
                     ${showArrows ? `<button class=\"media-library-arrow-episode-btn right\" type=\"button\">&#8594;</button>` : ''}
@@ -3884,6 +3955,16 @@ class MediaLibraryManager {
             }
         }
     }
+
+    // Add methods to get total counts
+    getTotalMovieCount() {
+        return this.mediaLibraryRaw ? this.mediaLibraryRaw.length : 0;
+    }
+
+    getTotalTVShowCount() {
+        return this.getTVShows().length;
+    }
+
 }
 
 export default MediaLibraryManager;

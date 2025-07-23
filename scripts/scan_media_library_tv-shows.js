@@ -45,7 +45,8 @@ function walkMedia(dir, relPath = '', images = {}, tvPosters = {}) {
         files: files.map(f => ({
             name: f,
             absPath: path.join(absPath, f),
-            relPath: path.join(relPath, f)
+            relPath: path.join(relPath, f),
+            filePath: path.join(absPath, f)
         }))
     };
     for (const folder of folders) {

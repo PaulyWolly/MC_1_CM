@@ -1,9 +1,9 @@
 /*
-  CHECK_AUDIO_CODECS_TV-SHOWS.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
-  Created by Paul Welby
+  CHECK_AUDIO_CODECS_TV-SHOWS_SINGLE_SHOW.JS
+  Version: 1
+  AppName: MCC_1_CCM [v1]
+  Created by Paul Welby, adapted by AI
+  Usage: node check_audio_codecs_tv-shows_SINGLE_SHOW.js "Show Name"
 */
 
 const fs = require('fs');
@@ -14,8 +14,8 @@ const execAsync = util.promisify(exec);
 
 // Paths
 const MEDIA_LIBRARY_PATH = path.join(__dirname, '../server/data/media-library.json');
-const OUTPUT_PATH = path.join(__dirname, 'audio_codec_report_tv-shows.json');
-const LOG_PATH = path.join(__dirname, '../logs/check_audio_codecs_tv-shows.js.log');
+const LOG_PATH = path.join(__dirname, '../logs/check_audio_codecs_tv-shows_SINGLE_SHOW.js.log');
+const OUTPUT_PATH = path.join(__dirname, 'audio_codec_report_tv-shows_SINGLE_SHOW.json');
 
 // Helper to log to both console and file
 function logLine(line) {
@@ -28,20 +28,15 @@ const INCOMPATIBLE_CODECS = ['ac3', 'dts', 'eac3', 'truehd', 'atmos'];
 
 async function checkAudioCodec(filePath) {
     try {
-        // Use ffprobe to get audio stream info
         const command = `ffprobe -v quiet -print_format json -show_streams "${filePath}"`;
         const { stdout } = await execAsync(command);
         const data = JSON.parse(stdout);
-        
         const audioStreams = data.streams?.filter(stream => stream.codec_type === 'audio') || [];
-        
         if (audioStreams.length === 0) {
             return { hasAudio: false, codecs: [], error: 'No audio streams found' };
         }
-        
         const codecs = audioStreams.map(stream => stream.codec_name?.toLowerCase()).filter(Boolean);
         const hasIncompatibleCodec = codecs.some(codec => INCOMPATIBLE_CODECS.includes(codec));
-        
         return {
             hasAudio: true,
             codecs,
@@ -53,7 +48,6 @@ async function checkAudioCodec(filePath) {
     }
 }
 
-// Recursively collect all files from the nested folder structure
 function collectAllFiles(folder) {
     let files = [];
     if (folder.files && Array.isArray(folder.files)) {
@@ -67,85 +61,40 @@ function collectAllFiles(folder) {
     return files;
 }
 
-async function scanAllTVShows() {
+async function scanSingleShow(showName) {
     try {
-        // Clear previous log
         fs.writeFileSync(LOG_PATH, '');
-        logLine('🎵 [AUDIO-SCAN] Loading media library...');
+        logLine(`[AUDIO-SCAN] Loading media library...`);
         const mediaLibraryData = JSON.parse(fs.readFileSync(MEDIA_LIBRARY_PATH, 'utf8'));
-        // Recursively collect all files
         const allFiles = collectAllFiles(mediaLibraryData);
-        // Only scan files that are in TV-SHOWS path
-        const tvshows = allFiles.filter(item =>
-            item.absPath && (
-                item.absPath.includes('TV-SHOWS') ||
-                item.absPath.includes('TV_SHOWS') ||
-                item.absPath.includes('tv-shows') ||
-                item.absPath.includes('tv_shows')
-            )
+        // Only scan files that match the show name (case-insensitive)
+        const showFiles = allFiles.filter(item =>
+            item.absPath && item.absPath.toLowerCase().includes(showName.toLowerCase())
         );
-        logLine(`🎵 [AUDIO-SCAN] Found ${tvshows.length} TV show episodes to scan...`);
-        
+        logLine(`[AUDIO-SCAN] Found ${showFiles.length} episodes for show: ${showName}`);
         const results = [];
         let processed = 0;
-        
-        for (const episode of tvshows) {
+        for (const episode of showFiles) {
             processed++;
-            logLine(`🎵 [AUDIO-SCAN] Processing ${processed}/${tvshows.length}: ${path.basename(episode.absPath)}`);
-            
+            logLine(`[AUDIO-SCAN] Processing ${processed}/${showFiles.length}: ${path.basename(episode.absPath)}`);
             const audioInfo = await checkAudioCodec(episode.absPath);
             results.push({
                 title: episode.name || path.basename(episode.absPath),
                 path: episode.absPath,
                 ...audioInfo
             });
-            
-            // Small delay to avoid overwhelming the system
-            await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
-        // Filter problematic files
-        const problematicFiles = results.filter(result => 
-            !result.hasAudio || result.hasIncompatibleCodec
-        );
-        
-        const summary = {
-            totalEpisodes: tvshows.length,
-            noAudio: results.filter(r => !r.hasAudio).length,
-            incompatibleCodecs: results.filter(r => r.hasIncompatibleCodec).length,
-            problematicFiles: problematicFiles.length,
-            results: results,
-            problematicFiles: problematicFiles
-        };
-        
-        // Save detailed report
-        fs.writeFileSync(OUTPUT_PATH, JSON.stringify(summary, null, 2));
-        
-        logLine('\n🎵 [AUDIO-SCAN] Scan complete!');
-        logLine(`📊 Summary:`);
-        logLine(`   Total episodes: ${summary.totalEpisodes}`);
-        logLine(`   No audio: ${summary.noAudio}`);
-        logLine(`   Incompatible codecs: ${summary.incompatibleCodecs}`);
-        logLine(`   Problematic files: ${summary.problematicFiles}`);
-        
-        if (problematicFiles.length > 0) {
-            logLine('\n🚨 Problematic files:');
-            problematicFiles.forEach(file => {
-                logLine(`   - ${file.title}`);
-                if (file.error) {
-                    logLine(`     Error: ${file.error}`);
-                } else if (file.incompatibleCodecs.length > 0) {
-                    logLine(`     Incompatible codecs: ${file.incompatibleCodecs.join(', ')}`);
-                }
-            });
-        }
-        
-        logLine(`\n📄 Detailed report saved to: ${OUTPUT_PATH}`);
-        
-    } catch (error) {
-        logLine('❌ [AUDIO-SCAN] Error: ' + error);
+        fs.writeFileSync(OUTPUT_PATH, JSON.stringify(results, null, 2));
+        logLine(`[AUDIO-SCAN] Scan complete. Results written to ${OUTPUT_PATH}`);
+    } catch (err) {
+        logLine(`[AUDIO-SCAN] Error: ${err}`);
     }
 }
 
-// Run the scan
-scanAllTVShows(); 
+// Entry point
+const showName = process.argv[2];
+if (!showName) {
+    console.log('Usage: node check_audio_codecs_tv-shows_SINGLE_SHOW.js "Show Name"');
+    process.exit(1);
+}
+scanSingleShow(showName); 

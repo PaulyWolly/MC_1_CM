@@ -641,6 +641,17 @@
     border-color: #007bff; */
 }
 
+.media-library-total-count {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+    margin-left: 12px;
+    padding: 4px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
 .media-library-refresh-btn {
     padding: 6px 12px;
     background: transparent;
