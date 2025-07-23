@@ -637,16 +637,17 @@
 }
 
 .media-library-shuffle-btn:hover {
-    background: #d1eaff;
-    border-color: #007bff;
+    /* background: #d1eaff;
+    border-color: #007bff; */
 }
 
 .media-library-refresh-btn {
     padding: 6px 12px;
-    background: #28a745;
-    border: 1px solid #1e7e34;
-    border-radius: 4px;
-    font-size: 15px;
+    background: transparent;
+    border: none;
+    position: absolute;
+    right: 127px;
+    font-size: 28px;
     cursor: pointer;
     transition: all 0.2s ease;
     margin-left: 8px;
@@ -659,10 +660,10 @@
 }
 
 .media-library-refresh-btn:hover {
-    background: #218838;
-    border-color: #1e7e34;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* background: #218838;
+    border-color: #1e7e34; */
+    transform: scale(1.2, 1.2);
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); */
 }
 
 .media-library-refresh-btn:active {

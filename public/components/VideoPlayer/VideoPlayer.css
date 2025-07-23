@@ -407,3 +407,7 @@
   order: 99 !important;
   color: #1976d2 !important;
 } 
+
+.video-player-skip-intro-btn {
+  bottom: 35px;
+}
