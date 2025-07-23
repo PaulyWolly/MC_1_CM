@@ -10,4 +10,8 @@ function normalizeKey(name) {
     .replace(/^\.|\.$/g, '');
 }
 
+if (typeof window !== 'undefined') {
+  window.normalizeKey = normalizeKey;
+}
+
 module.exports = { normalizeKey }; 

@@ -13,8 +13,8 @@ const { normalizeKey } = require('../shared/NormalizationService');
 
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
 const OUTPUT_FILE = path.join(__dirname, '../server/data/media-library-tv-shows.json');
-const SEASON_IMAGES_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_season_images.json');
-const EPISODE_IMAGES_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images.json');
+const SEASON_IMAGES_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
+const EPISODE_IMAGES_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
 const TV_POSTERS_JSON = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv_posters.json');
 
 function isVideoFile(filename) {
