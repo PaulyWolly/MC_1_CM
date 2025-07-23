@@ -1453,14 +1453,17 @@ class VideoPlayer {
     async playUrl(src, type = 'video/mp4', startTime = 0, mediaItem = null) {
         await this.readyPromise;
         if (!this.vjsPlayer) {
-            console.error('🎬 [VIDEO-PLAYER] Video.js player not initialized');
+            console.error('[DEBUG - VIDEO-PLAYER] Video.js player not initialized');
             return;
         }
         if (!src) {
-            console.error('🎬 [VIDEO-PLAYER] No source URL provided');
+            console.error('[DEBUG - VIDEO-PLAYER] No source URL provided');
             return;
         }
-        console.log('🎬 [VIDEO-PLAYER] Playing URL:', src);
+        console.log('[DEBUG - VIDEO-PLAYER] Playing URL:', src);
+        console.log('[DEBUG - VIDEO-PLAYER] URL type:', type);
+        console.log('[DEBUG - VIDEO-PLAYER] Start time:', startTime);
+        console.log('[DEBUG - VIDEO-PLAYER] Media item:', mediaItem);
         this.currentMediaItem = mediaItem;
         this.currentFile = { name: src, absPath: src };
         try {

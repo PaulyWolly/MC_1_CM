@@ -1,19 +1,10 @@
 // Node.js script to normalize TV show poster keys to dot notation
 const fs = require('fs');
 const path = require('path');
+const { normalizeKey } = require('../shared/NormalizationService');
 
 const SRC = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv_posters.json');
 const DEST = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json');
-
-function normalizeKey(name) {
-    return name
-        .replace(/\\/g, '/')
-        .replace(/\s*&\s*/g, '.&.') // preserve ampersand as dot-ampersand-dot
-        .replace(/\s+/g, '.')
-        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^\.|\.$/g, '');
-}
 
 const posters = JSON.parse(fs.readFileSync(SRC, 'utf8'));
 const normalized = {};
