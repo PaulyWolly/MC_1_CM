@@ -1615,7 +1615,7 @@
 }
 
 .media-library-details-cast-list {
-    margin-bottom: 16px;
+    margin-top: 70px;
 }
 
 @media print {
@@ -2087,7 +2087,7 @@
 }
 
 .media-library-details-description {
-    max-width: 700px;
+    max-width: 620px;
     font-size: 1.08rem;
     color: #222;
     text-align: justify;
@@ -2348,6 +2348,7 @@
   top: 100px;
   right: 19px;
   z-index: 1000;
+  display: none;
 }
 
 .hidden {

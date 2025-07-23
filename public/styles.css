@@ -2589,11 +2589,11 @@ button {
 
 .status-msg,
 .status-default {
-    font-size: .9em;
+    font-size: .85em !important;
     font-weight: bold;
     color: #140cf5 !important;
     margin-bottom: 0px;
-    width: 150px !important;
+    width: 260px !important;
     height: 30px;
     padding: 10px 16px;
 }
@@ -4944,7 +4944,7 @@ button.next-page-btn {
     border: none !important;
     padding: 6px 12px !important;
     border-radius: 6px !important;
-    font-size: .67em !important;
+    font-size: .57em !important;
     font-weight: 500 !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
@@ -6638,7 +6638,7 @@ button.next-page-btn {
     vertical-align: middle;
     margin: 0;
     padding: 2px 2px;
-    font-size: 1.0em !important;
+    /* font-size: 1.0em !important; */
 }
 
 .conversation-msg {

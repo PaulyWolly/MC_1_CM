@@ -441,6 +441,12 @@ class VideoPlayer {
                             duration = this.player().duration();
                         }
                         console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
+                        
+                        // Handle TV show episodes that have filePath instead of path
+                        if (movie && movie.filePath && !movie.path) {
+                            movie.path = movie.filePath;
+                        }
+                        
                         // Try to find the media item in the library by path or name if not already a full object
                         if ((!movie?.path || !movie?.title) && window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary) {
                             const found = window.mediaLibraryManager.mediaLibrary.find(item =>
@@ -450,9 +456,12 @@ class VideoPlayer {
                             );
                             if (found) movie = found;
                         }
+                        
                         // Ensure title and path are set
                         if (movie && !movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
                         if (movie && !movie.path && movie.absPath) movie.path = movie.absPath;
+                        if (movie && !movie.path && movie.filePath) movie.path = movie.filePath;
+                        
                         // Save to Watch Later using MediaLibraryManager
                         if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && movie.path) {
                             window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save

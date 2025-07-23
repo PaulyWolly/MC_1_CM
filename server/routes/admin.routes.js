@@ -483,6 +483,27 @@ router.post('/posters/download', async (req, res) => {
       const normalizedMediaId = mediaId.replace(/\\/g, '/');
       postersJson[normalizedMediaId] = webPosterUrl;
       require('fs').writeFileSync(postersJsonPath, JSON.stringify(postersJson, null, 2));
+
+      // --- NEW: Also update tv_posters_normalized.json with dot notation key ---
+      const normalizeKey = (name) => {
+        return name
+          .replace(/\\/g, '/')
+          .replace(/\s*&\s*/g, '.&.') // preserve ampersand as dot-ampersand-dot
+          .replace(/\s+/g, '.')
+          .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+          .replace(/\.+/g, '.')
+          .replace(/^\.|\.$/g, '');
+      };
+      const normalizedKey = normalizeKey(mediaId);
+      const postersNormalizedPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json');
+      let postersNormalized = {};
+      try {
+        if (require('fs').existsSync(postersNormalizedPath)) {
+          postersNormalized = JSON.parse(require('fs').readFileSync(postersNormalizedPath, 'utf8'));
+        }
+      } catch (e) { postersNormalized = {}; }
+      postersNormalized[normalizedKey] = webPosterUrl;
+      require('fs').writeFileSync(postersNormalizedPath, JSON.stringify(postersNormalized, null, 2));
     }
 
     res.json({ success: true, filePath, posterType });

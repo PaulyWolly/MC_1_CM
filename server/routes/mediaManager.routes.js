@@ -288,11 +288,9 @@ router.post('/save', async (req, res) => {
         tvData = tvData.folders.map(showFolder => {
           const showTitle = showFolder.path.split(/[/\\]/)[0] || showFolder.path;
           const showSeasons = (showFolder.folders || []).map(seasonFolder => {
-            // Try to extract season number from folder name
             let seasonNumber = 1;
             const match = seasonFolder.path.match(/Season\s*(-?\d+)/i);
             if (match) seasonNumber = Math.abs(parseInt(match[1], 10));
-            // Fallback: try to extract from first episode filename
             if (!seasonNumber && seasonFolder.files && seasonFolder.files[0]) {
               const epMatch = seasonFolder.files[0].name.match(/S(\d{1,2})E\d{1,2}/i);
               if (epMatch) seasonNumber = parseInt(epMatch[1], 10);
@@ -317,6 +315,29 @@ router.post('/save', async (req, res) => {
         tvData.push(showObj);
       }
       fs.writeFileSync(TV_JSON, JSON.stringify(tvData, null, 2));
+      // --- NEW: Save to normalized cast and description files ---
+      const normalizeKey = (name) => {
+        return name
+          .replace(/\\/g, '/')
+          .replace(/\s*&\s*/g, '.&.')
+          .replace(/\s+/g, '.')
+          .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+          .replace(/\.+/g, '.')
+          .replace(/^\.|\.$/g, '');
+      };
+      const dotKey = normalizeKey(title);
+      // Save cast
+      const castPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json');
+      let castData = {};
+      if (fs.existsSync(castPath)) castData = JSON.parse(fs.readFileSync(castPath, 'utf8'));
+      castData[dotKey] = cast || [];
+      fs.writeFileSync(castPath, JSON.stringify(castData, null, 2));
+      // Save description
+      const descPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_descriptions_normalized.json');
+      let descData = {};
+      if (fs.existsSync(descPath)) descData = JSON.parse(fs.readFileSync(descPath, 'utf8'));
+      descData[dotKey] = description || '';
+      fs.writeFileSync(descPath, JSON.stringify(descData, null, 2));
       return res.json({ success: true, saved: showObj });
     }
     // --- MOVIE SAVE LOGIC (updated) ---
@@ -809,6 +830,46 @@ router.post('/fix-cast-profiles', async (req, res) => {
     
   } catch (err) {
     console.error('[FIX-CAST-PROFILES] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- NEW: Fetch TV Show Season & Episode Images ---
+router.post('/fetch-tv-images', async (req, res) => {
+  try {
+    const { title, tmdbId, absPath } = req.body;
+    if (!title || !tmdbId || !absPath) {
+      return res.status(400).json({ success: false, error: 'Missing required fields: title, tmdbId, absPath' });
+    }
+    const { exec } = require('child_process');
+    const seasonScript = path.join(__dirname, '../../scripts/SMART_fetch_tmdb_tv-show_season_images.js');
+    const episodeScript = path.join(__dirname, '../../scripts/SMART_fetch_tmdb_tv-show_episode_images.js');
+    // Build command for both scripts
+    const seasonCmd = `node "${seasonScript}" --title "${title}" --tmdbId "${tmdbId}" --absPath "${absPath}"`;
+    const episodeCmd = `node "${episodeScript}" --title "${title}" --tmdbId "${tmdbId}" --absPath "${absPath}"`;
+    // Run season script
+    exec(seasonCmd, { cwd: path.join(__dirname, '../..') }, (seasonErr, seasonStdout, seasonStderr) => {
+      if (seasonErr) {
+        console.error('[FETCH-TV-IMAGES][SEASON] Script error:', seasonErr);
+        return res.status(500).json({ success: false, error: 'Season image script failed', details: seasonErr.message });
+      }
+      // Run episode script
+      exec(episodeCmd, { cwd: path.join(__dirname, '../..') }, (epErr, epStdout, epStderr) => {
+        if (epErr) {
+          console.error('[FETCH-TV-IMAGES][EPISODE] Script error:', epErr);
+          return res.status(500).json({ success: false, error: 'Episode image script failed', details: epErr.message });
+        }
+        // Success
+        return res.json({
+          success: true,
+          message: 'Fetched season and episode images',
+          seasonOutput: seasonStdout,
+          episodeOutput: epStdout
+        });
+      });
+    });
+  } catch (err) {
+    console.error('[FETCH-TV-IMAGES] Error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

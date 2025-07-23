@@ -95,6 +95,9 @@
   border-radius: 5px;
   padding: 7px 22px;
   font-size: 1em;
+  position: relative;
+  left: 670px;
+  bottom: 12px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -107,7 +110,7 @@
 .media-manager-content {
   display: none;
 }
-.media-manager-content-single.active {
+.media-manager-content-movie.active {
   display: block;
 }
 
@@ -116,7 +119,11 @@
   flex-direction: column;
 }
 
-.media-manager-single-form {
+.media-manager-tab.media-manager-tab-movie-test {
+  display: none;
+}
+
+.media-manager-movie-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -129,7 +136,7 @@
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
-  width: 25%;
+  width: 40%;
 }
 .media-manager-input {
   background: #2d313a;
@@ -187,6 +194,22 @@
 }
 .media-manager-fetch-btn:hover,
 .media-manager-fetch-all-btn:hover {
+  background: #357ab8;
+}
+
+.media-manager-fetch-btn-tv {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-top: 8px;
+  align-self: flex-start;
+  transition: background 0.2s;
+}
+.media-manager-fetch-btn-tv:hover {
   background: #357ab8;
 }
 
@@ -270,10 +293,15 @@
   resize: vertical;
 }
 
+.media-manager-description-input-tv {
+  min-height: 80px;
+  resize: vertical;
+}
+
 .media-manager-preview-cast {
   margin-bottom: 25px;
   position: relative;
-  top: 25px;
+  top: 14px;
 }
 
 .media-manager-cast-list {
@@ -285,6 +313,12 @@
   background: #2d313a;
   margin-bottom: 8px;
   min-height: 40px;
+}
+
+.media-manager-view-season-episode-images-btn-tv {
+  position: relative;
+  top: 20px;
+  background: coral;
 }
 
 .media-manager-cast-list::-webkit-scrollbar {
@@ -339,7 +373,7 @@
 }
 
 .media-manager-tmdbId-input {
-  width: 100%;
+  width: 40% !important;
 }
 
 .media-manager-confirm-btn,
@@ -642,6 +676,7 @@
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
+  width: 25%;
 }
 
 .media-manager-input-tv,
@@ -743,11 +778,15 @@
 
 .media-manager-actions-fixed {
   position: sticky;
-  bottom: 0;
+  position: sticky;
+  bottom: 0px;
   background: #23272f;
-  padding: 16px 0;
-  border-top: 1px solid #444a56;
-  margin-top: 24px;
+  position: relative;
+  top: -15px;
+  display: flex;
+  gap: 12px;
+  padding: 16px 0px;
+  margin-top: 25px;
 }
 
 .media-manager-seasons-modal-overlay {
@@ -1063,7 +1102,7 @@
 }
 
 #media-manager-tv-path {
-  width: 100%;
+  width: 96%;
 }
 
 .media-manager-tmdb-select-modal-overlay {
@@ -1230,6 +1269,7 @@
   position: absolute;
   bottom: 100%;
   left: 50%;
+  display: none;;
   transform: translateX(-50%);
   background: #23272f;
   color: #f5f5f5;
@@ -1248,7 +1288,7 @@
   border: 1px solid #444a56;
   border-radius: 4px;
   padding: 8px;
-  background: #2d313a;
+  background: #2d313a !important;
   margin-bottom: 8px;
   min-height: 40px;
 }
@@ -1509,17 +1549,19 @@
 
 /* NEW: Poster placeholder styling for processed movies */
 .poster-placeholder {
+  background: #fff;
+  padding: 32px 32px 24px 32px;
+  border-radius: 14px;
+  box-shadow: rgba(57, 57, 57, 0.35) 0px 5px 15px;
+  min-width: 340px;
+  max-width: 1220px;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #4a90e2, #357ab8);
-  border-radius: 4px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 4px;
-  box-sizing: border-box;
+  gap: 40px;
+  align-items: flex-start;
 }
 
 .poster-placeholder .poster-title {
@@ -2065,4 +2107,295 @@
 
 .media-manager-close-grid-btn:hover {
   background: #c82333;
+}
+
+/* TV-SHOW: Match MOVIE form block styling */
+.MM-form-fields-BKGD-tv {
+  background: #2d313a;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+}
+
+/* TV-SHOW: Match MOVIE label styling */
+.media-manager-label-tv {
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: #b0b8c1;
+  width: 25%;
+}
+
+/* TV-SHOW: Match MOVIE input styling */
+.media-manager-input-tv {
+  background: #2d313a;
+  color: #fff;
+  border: 1px solid #444a56;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 1em;
+  text-align: justify;
+  margin-bottom: 6px;
+  width: 96%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.media-manager-input-tv:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* TV-SHOW: Match MOVIE poster image styling */
+.media-manager-poster-img-tv {
+  width: 160px;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  border: 2px solid #222;
+  background: #222;
+  margin-bottom: 8px;
+}
+
+/* Global button group for all tabs */
+.media-manager-btn-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 26px;
+  justify-content: flex-start;
+}
+
+/* Global button style for all action buttons */
+.media-manager-btn,
+.media-manager-edit-poster-btn,
+.media-manager-edit-cast-btn,
+.media-manager-view-json-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-btn:hover,
+.media-manager-edit-poster-btn:hover,
+.media-manager-edit-cast-btn:hover,
+.media-manager-view-json-btn:hover {
+  background: #357ab8;
+}
+
+.media-manager-btn:disabled,
+.media-manager-edit-poster-btn:disabled,
+.media-manager-edit-cast-btn:disabled,
+.media-manager-view-json-btn:disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Special color for Edit/Resubmit and Cancel if needed */
+.media-manager-edit-btn,
+.media-manager-edit-btn-tv,
+.media-manager-edit-btn-movie-test {
+  background: #f39c12;
+}
+.media-manager-edit-btn:hover,
+.media-manager-edit-btn-tv:hover,
+.media-manager-edit-btn-movie-test:hover {
+  background: #e67e22;
+}
+.media-manager-cancel-btn,
+.media-manager-cancel-btn-tv,
+.media-manager-cancel-btn-movie-test {
+  background: #95a5a6;
+}
+.media-manager-cancel-btn:hover,
+.media-manager-cancel-btn-tv:hover,
+.media-manager-cancel-btn-movie-test:hover {
+  background: #7f8c8d;
+}
+
+/* Defensive: Only show .media-manager-content if display: block is set */
+.media-manager-content {
+  display: none !important;
+}
+.media-manager-content[style*='display: block'] {
+  display: block !important;
+}
+
+/* Defensive: Hide all non-active tab content completely */
+.media-manager-content[style*='display: none'] {
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure TV cast list is always visible and styled like MOVIE */
+.media-manager-cast-list-tv {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 40px;
+  min-width: 120px;
+  background: none;
+  color: #fff;
+}
+
+.media-manager-cast-item-tv {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1em;
+  color: #fff;
+}
+
+.media-manager-cast-item-tv img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #4a90e2;
+}
+
+/* Season & Episode Images Modal Styles */
+.media-manager-season-episode-images-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-images-btn-tv-CONFIRM-text {
+  font-size: 0.8em;
+  color: #fff;
+  margin-left: 10px;
+  position: relative;
+  top: 18px;
+}
+
+.media-manager-season-episode-images-modal {
+  background: #23272f;
+  border-radius: 10px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+  width: 1300px;
+  max-width: 98vw;
+  max-height: 90vh;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.media-manager-season-episode-images-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 8px 24px;
+  border-bottom: 1px solid #444;
+}
+.media-manager-season-episode-images-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.3em;
+}
+.media-manager-season-episode-images-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2em;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.media-manager-season-episode-images-close-btn:hover {
+  color: #ff9800;
+}
+.media-manager-season-episode-images-actions {
+  padding: 12px 24px 0 24px;
+  display: flex;
+  gap: 16px;
+}
+.media-manager-fetch-all-images-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.media-manager-fetch-all-images-btn:hover {
+  background: #357ab8;
+}
+.media-manager-season-episode-images-content {
+  padding: 18px 24px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.media-manager-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 18px;
+}
+.media-manager-image-card {
+  background: #2c313a;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.media-manager-image-card img {
+  width: 120px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: #111;
+}
+.media-manager-image-card .media-manager-image-label {
+  color: #fff;
+  font-size: 0.98em;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.media-manager-image-card .media-manager-image-edit-btn {
+  background: #ff9800;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.95em;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.2s;
+}
+.media-manager-image-card .media-manager-image-edit-btn:hover {
+  background: #e67c00;
+}
+.media-manager-image-card .media-manager-image-placeholder {
+  width: 120px;
+  height: 180px;
+  background: #444;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+  font-size: 1.1em;
+  margin-bottom: 8px;
+}
+
+.json-editor-overlay-tv {
+  position: relative;
+  z-index: 100000000;
 }

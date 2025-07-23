@@ -1269,6 +1269,10 @@ body.vjs-pip-window .video-js {
   content: none;
 }
 
+.vjs-volume-level {
+  width: 8vw !important;
+}
+
 .vjs-volume-level .vjs-svg-icon {
   position: absolute;
   width: 0.9em;
