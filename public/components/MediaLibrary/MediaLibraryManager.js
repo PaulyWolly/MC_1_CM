@@ -465,6 +465,7 @@ class MediaLibraryManager {
         
         // Use updateModalContent to properly render the grid with click handlers
         await this.updateModalContent();
+        
         // After rendering the modal and before calling renderAZSidebar, add:
         if (this.currentTab === 'tvshows' && !this.currentTVShow && !this.currentTVSeason) {
             const grid = document.getElementById('mediaGrid');
@@ -800,14 +801,16 @@ class MediaLibraryManager {
             const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
             
-            // INTERNAL ANCHOR: Add data-anchor if this is the first movie starting with this letter
+            // Create anchor element if this is the first movie starting with this letter
+            let anchorHTML = '';
             if (!addedAnchors.has(firstLetter)) {
-                card.setAttribute('data-anchor', firstLetter);
+                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
                 addedAnchors.add(firstLetter);
             }
             
-            // For movies, use the HTML string method
+            // For movies, use the HTML string method with proper anchor elements
             card.innerHTML = `
+                ${anchorHTML}
                 <div class="media-card-actions">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
                     <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(item.path) ? '❤️' : '🤍'}</button>
@@ -1562,8 +1565,8 @@ class MediaLibraryManager {
             if (activeBtn) activeBtn.classList.add('az-active');
         }
         if (anchor) {
-            // Find the parent card
-            const card = anchor.closest('.media-library-card');
+            // Find the parent card (works for both .media-library-card and .media-library-movie-card)
+            const card = anchor.closest('.media-library-card, .media-library-movie-card');
             if (card) {
                 card.scrollIntoView({ 
                 behavior: 'smooth', 
@@ -3437,11 +3440,22 @@ class MediaLibraryManager {
     // --- TAB CONTENT RENDERING METHODS ---
     renderMoviesContent() {
         const items = this.getFilteredAndSortedItems();
+        const addedAnchors = new Set();
         let html = '<div class="media-library-movie-grid">';
         items.forEach((item, index) => {
             const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
+            const firstLetter = cleanTitle.charAt(0).toUpperCase();
+            
+            // Create anchor element if this is the first movie starting with this letter
+            let anchorHTML = '';
+            if (!addedAnchors.has(firstLetter)) {
+                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                addedAnchors.add(firstLetter);
+            }
+            
             html += `
                 <div class="media-library-movie-card" data-item-index="${index}" data-item-path="${item.path}">
+                    ${anchorHTML}
                     <div class="media-card-actions">
                         <button class="poster-selector-btn" title="Change Poster">🖼️</button>
                         <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(item.path) ? '❤️' : '🩷'}</button>
