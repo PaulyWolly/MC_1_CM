@@ -484,6 +484,8 @@ class MediaLibraryManager {
             }
             // --- Ensure the A-Z sidebar is always populated ---
             this.renderAZSidebar();
+            // Update count for TV shows tab
+            this.updateCount();
             return;
         }
         if (this.currentTab === 'tvshows' && this.currentTVShow && !this.currentTVSeason) {
@@ -509,7 +511,7 @@ class MediaLibraryManager {
         const clearBtn = document.getElementById('mediaLibraryClearSearch');
         const updateClearBtn = () => {
             if (searchInput.value) {
-                clearBtn.style.display = 'block';
+                clearBtn.style.display = 'flex';
             } else {
                 clearBtn.style.display = 'none';
             }
@@ -776,6 +778,8 @@ class MediaLibraryManager {
                 });
             }
             this.hideGridSpinner();
+            // Update count for TV shows tab
+            this.updateCount();
             return;
         }
 
@@ -1500,7 +1504,8 @@ class MediaLibraryManager {
 
     handleSearchInput(event) {
         this.searchQuery = event.target.value;
-        this.renderMediaGrid();
+        // Use updateModalContent to handle all tabs including TV Shows
+        this.updateModalContent();
         this.updateCount();
     }
 
@@ -2103,6 +2108,10 @@ class MediaLibraryManager {
             <div id="mediaLibraryAZSidebar" class="media-library-az-sidebar"></div>
             ${html}
         </div>`;
+        
+        // Update the count after rendering TV shows tab
+        setTimeout(() => this.updateCount(), 0);
+        
         return html;
     }
 
@@ -3218,6 +3227,8 @@ class MediaLibraryManager {
         this.currentTVShow = null;
         this.currentTVSeason = null;
         this.renderModal(); // Re-render modal to update tab highlight
+        // Update count after navigating back to main TV shows page
+        setTimeout(() => this.updateCount(), 0);
     }
 
     backToSeasons() {
