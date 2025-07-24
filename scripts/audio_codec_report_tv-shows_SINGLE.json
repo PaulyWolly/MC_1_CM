@@ -1,0 +1,128 @@
+[
+  {
+    "title": "Superman & Lois - S01E01 - Destroy the Defendroids.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E01 - Destroy the Defendroids.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E01 - Destroy the Defendroids.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E02 - The Adoption.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E02 - The Adoption.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E02 - The Adoption.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E03 - Fugitive from Space.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E03 - Fugitive from Space.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E03 - Fugitive from Space.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E04 - The Supermarket.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E04 - The Supermarket.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E04 - The Supermarket.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E06 - At the Babysitter's.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E06 - At the Babysitter's.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E06 - At the Babysitter's.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E07 - Cybron Strikes.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E07 - Cybron Strikes.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E07 - Cybron Strikes.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E08 - The First Day at School.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E08 - The First Day at School.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E08 - The First Day at School.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E09 - The Big Scoop.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E09 - The Big Scoop.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E09 - The Big Scoop.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E10 - Overnight with the Scouts.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E10 - Overnight with the Scouts.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E10 - Overnight with the Scouts.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E11 - Triple Play.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E11 - Triple Play.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E11 - Triple Play.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E11 - Triple Play.mp4",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E11 - Triple Play.mp4",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E11 - Triple Play.mp4\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E12 - The Circus.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E12 - The Circus.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E12 - The Circus.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E12 - The Circus.mp4",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E12 - The Circus.mp4",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E12 - The Circus.mp4\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E13 - The Hunter.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E13 - The Hunter.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E13 - The Hunter.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E14 - Little Runaway.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E14 - Little Runaway.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E14 - Little Runaway.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv\"\n"
+  },
+  {
+    "title": "Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4",
+    "path": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4",
+    "hasAudio": false,
+    "codecs": [],
+    "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4\"\n"
+  }
+]
