@@ -446,7 +446,7 @@ class MediaLibraryManager {
               <div class="media-library-content-wrapper">
                 <div class="media-library-flex-row">
                   <div id="mediaGrid" class="media-library-movie-grid media-library-movie-grid-scroll"></div>
-                  <div class="media-library-az-sidebar" id="mediaLibraryAZSidebar"></div>
+                  <!-- A-Z sidebar will be inserted dynamically -->
                 </div>
               </div>
             </div>
@@ -465,7 +465,7 @@ class MediaLibraryManager {
         
         // Use updateModalContent to properly render the grid with click handlers
         await this.updateModalContent();
-        
+      
         // After rendering the modal and before calling renderAZSidebar, add:
         if (this.currentTab === 'tvshows' && !this.currentTVShow && !this.currentTVSeason) {
             const grid = document.getElementById('mediaGrid');
@@ -622,6 +622,19 @@ class MediaLibraryManager {
         // if (this.currentTab === 'movies') {
         //     await this.loadMoviePosters();
         // }
+        // Dynamically insert the A-Z sidebar only for Movies and TV Shows (main tab)
+        const flexRow = modal.querySelector('.media-library-flex-row');
+        if (flexRow) {
+            let azSidebar = document.getElementById('mediaLibraryAZSidebar');
+            if (azSidebar) azSidebar.remove(); // Remove any existing sidebar
+            if (this.currentTab === 'movies' || (this.currentTab === 'tvshows' && !this.currentTVShow && !this.currentTVSeason)) {
+                azSidebar = document.createElement('div');
+                azSidebar.className = 'media-library-az-sidebar';
+                azSidebar.id = 'mediaLibraryAZSidebar';
+                flexRow.appendChild(azSidebar);
+                this.renderAZSidebar();
+            }
+        }
     }
 
     removeModal() {
@@ -1540,13 +1553,13 @@ class MediaLibraryManager {
             btn.setAttribute('data-letter', letter);
             azSidebar.appendChild(btn);
         });
-        
         // Use event delegation - single listener on the sidebar
         azSidebar.onclick = (e) => { // ensure arrow function
             const letterElement = e.target.closest('.media-library-az-letter');
             if (letterElement) {
                 const letter = letterElement.getAttribute('data-letter');
                 if (letter) {
+
                     // Call appropriate method based on current tab for separation of concerns
                     if (this.currentTab === 'movies') {
                         this.scrollToLetterMovie(letter);
@@ -1624,6 +1637,30 @@ class MediaLibraryManager {
                 anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         } else {
+            console.warn('🔤 [A-Z] No movie anchor found for letter:', letter);
+        }
+    }
+
+    scrollToLetterTVShows(letter) {
+        console.log('🔤 [A-Z] scrollToLetterTVShows called with letter:', letter);
+        // Match the movie logic: scroll to the card with data-anchor
+        const anchor = document.querySelector(`.media-library-card.poster[data-anchor="${letter}"]`);
+        const azSidebar = document.getElementById('mediaLibraryAZSidebar');
+        if (azSidebar) {
+            azSidebar.querySelectorAll('.media-library-az-letter').forEach(btn => btn.classList.remove('az-active'));
+            const activeBtn = azSidebar.querySelector(`.media-library-az-letter[data-letter='${letter}']`);
+            if (activeBtn) activeBtn.classList.add('az-active');
+        }
+        if (anchor) {
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            anchor.style.transition = 'background 0.3s';
+            const originalBg = anchor.style.background;
+            anchor.style.background = '#fff9c4';
+            setTimeout(() => {
+                anchor.style.background = originalBg || '';
+            }, 600);
+            console.log('🔤 [A-Z] Found and scrolled to TV card for letter:', letter);
+        } else {
             console.warn('🔤 [A-Z] No TV show anchor found for letter:', letter);
         }
     }
@@ -1659,9 +1696,18 @@ class MediaLibraryManager {
     }
 
     renderGrid(items, labelFn) {
-        let grid = '<div class="media-library-movie-grid">';
+        // Add anchors to the grid
+        let lastLetter = null;
         items.forEach((item, index) => {
+            const title = labelFn(item).trim();
+            const firstLetter = title[0] ? title[0].toUpperCase() : '';
+            let anchorHTML = '';
+            if (firstLetter && firstLetter !== lastLetter) {
+                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                lastLetter = firstLetter;
+            }
             grid += `
+                ${anchorHTML}
                 <div class="media-library-movie-card" data-item-index="${index}" data-item-path="${item.path}">
                     <img src="${item.poster}" alt="${labelFn(item)}">
                     <div class="media-info"><h3>${labelFn(item)}</h3></div>
@@ -2127,14 +2173,13 @@ class MediaLibraryManager {
             const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '');
             const displayTitle = this.capitalizeTitle(cleanTitle);
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
-            let anchorHTML = '';
+            let anchorAttr = '';
             if (!addedAnchors.has(firstLetter)) {
-                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                anchorAttr = ` data-anchor="${firstLetter}"`;
                 addedAnchors.add(firstLetter);
             }
             html += `
-                <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
-                  ${anchorHTML}
+                <div class="media-library-card poster"${anchorAttr} data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
                   <div class="media-card-actions">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
                     <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? '❤️' : '🩷'}</button>
@@ -3617,14 +3662,13 @@ class MediaLibraryManager {
             const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '');
             const displayTitle = this.capitalizeTitle(cleanTitle);
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
-            let anchorHTML = '';
+            let anchorAttr = '';
             if (!addedAnchors.has(firstLetter)) {
-                anchorHTML = `<div class="media-library-anchor" data-anchor="${firstLetter}"></div>`;
+                anchorAttr = ` data-anchor="${firstLetter}"`;
                 addedAnchors.add(firstLetter);
             }
             html += `
-                <div class="media-library-card poster" data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
-                  ${anchorHTML}
+                <div class="media-library-card poster"${anchorAttr} data-path="${show.path}" data-show-name="${show.name || show.title || ''}">
                   <div class="media-card-actions">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
                     <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? '❤️' : '🩷'}</button>
