@@ -638,8 +638,8 @@
 }
 
 .media-library-shuffle-btn:hover {
-    background: #d1eaff;
-    border-color: #007bff;
+    /* background: #d1eaff;
+    border-color: #007bff; */
 }
 
 .media-library-refresh-btn {
