@@ -5132,8 +5132,7 @@
             {
               "name": "V (2009) - S00E01 - Special.mkv",
               "absPath": "S:\\MEDIA\\TV-SHOWS\\V (2009)\\Season 00\\V (2009) - S00E01 - Special.mkv",
-              "relPath": "V (2009)\\Season 00\\V (2009) - S00E01 - Special.mkv",
-              "filePath": "S:\\MEDIA\\TV-SHOWS\\V (2009)\\Season 00\\V (2009) - S00E01 - Special.mkv"
+              "relPath": "V (2009)\\Season 00\\V (2009) - S00E01 - Special.mkv"
             }
           ]
         },
@@ -14053,9 +14052,65 @@
               "path": "Another Life\\Season 02\\Episode_images",
               "folders": [],
               "files": []
+            },
+            {
+              "path": "Another Life\\Season 02\\mp4",
+              "folders": [],
+              "files": [
+                {
+                  "name": "Another Life - S02E06 - Gift from the Gods.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E06 - Gift from the Gods.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E06 - Gift from the Gods.mp4"
+                },
+                {
+                  "name": "Another Life - S02E07 - Never Gonna Give You Up.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E07 - Never Gonna Give You Up.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E07 - Never Gonna Give You Up.mp4"
+                },
+                {
+                  "name": "Another Life - S02E08 - Just a Rat in a Cage.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E08 - Just a Rat in a Cage.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E08 - Just a Rat in a Cage.mp4"
+                },
+                {
+                  "name": "Another Life - S02E09 - What's Bourne - What's Left Behind.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E09 - What's Bourne - What's Left Behind.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E09 - What's Bourne - What's Left Behind.mp4"
+                },
+                {
+                  "name": "Another Life - S02E02 - Smoke and Mirrors.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E02 - Smoke and Mirrors.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E02 - Smoke and Mirrors.mp4"
+                },
+                {
+                  "name": "Another Life - S02E03 - My Own Worst Enemy.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E03 - My Own Worst Enemy.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E03 - My Own Worst Enemy.mp4"
+                },
+                {
+                  "name": "Another Life - S02E04 - Will to Power.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E04 - Will to Power.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E04 - Will to Power.mp4"
+                },
+                {
+                  "name": "Another Life - S02E05 - A Better Earth.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E05 - A Better Earth.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E05 - A Better Earth.mp4"
+                },
+                {
+                  "name": "Another Life - S02E10 - D-Day.mp4",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\mp4\\Another Life - S02E10 - D-Day.mp4",
+                  "relPath": "Another Life\\Season 02\\mp4\\Another Life - S02E10 - D-Day.mp4"
+                }
+              ]
             }
           ],
           "files": [
+            {
+              "name": "Another Life - S02E01 - Live to Fight Another Day_backup.mkv",
+              "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\Another Life - S02E01 - Live to Fight Another Day_backup.mkv",
+              "relPath": "Another Life\\Season 02\\Another Life - S02E01 - Live to Fight Another Day_backup.mkv"
+            },
             {
               "name": "Another Life - S02E01 - Live to Fight Another Day.mkv",
               "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\Another Life - S02E01 - Live to Fight Another Day.mkv",
@@ -14085,6 +14140,11 @@
               "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\Another Life - S02E03 - My Own Worst Enemy.mkv",
               "relPath": "Another Life\\Season 02\\Another Life - S02E03 - My Own Worst Enemy.mkv",
               "filePath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\Another Life - S02E03 - My Own Worst Enemy.mkv"
+            },
+            {
+              "name": "Another Life - S02E04 - Will to Power_backup.mkv",
+              "absPath": "S:\\MEDIA\\TV-SHOWS\\Another Life\\Season 02\\Another Life - S02E04 - Will to Power_backup.mkv",
+              "relPath": "Another Life\\Season 02\\Another Life - S02E04 - Will to Power_backup.mkv"
             },
             {
               "name": "Another Life - S02E04 - Will to Power.mkv",
@@ -27017,6 +27077,87 @@
                   "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\mp4\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4",
                   "relPath": "Superman & Lois\\Season 01\\mp4\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4",
                   "filePath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\mp4\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mp4"
+                }
+              ]
+            },
+            {
+              "path": "Superman & Lois\\Season 01\\BKUP",
+              "folders": [],
+              "files": [
+                {
+                  "name": "Superman & Lois - S01E12 - The Circus.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E12 - The Circus.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E12 - The Circus.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E13 - The Hunter.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E13 - The Hunter.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E13 - The Hunter.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E14 - Little Runaway.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E14 - Little Runaway.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E14 - Little Runaway.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E15 - Superman and Wonder Woman vs. the Sorceress of Time.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E01 - Destroy the Defendroids.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E01 - Destroy the Defendroids.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E01 - Destroy the Defendroids.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E02 - The Adoption.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E02 - The Adoption.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E02 - The Adoption.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E03 - Fugitive from Space.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E03 - Fugitive from Space.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E03 - Fugitive from Space.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E04 - The Supermarket.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E04 - The Supermarket.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E04 - The Supermarket.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E05 - By the Skin of the Dragon's Teeth.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E06 - At the Babysitter's.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E06 - At the Babysitter's.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E06 - At the Babysitter's.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E07 - Cybron Strikes.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E07 - Cybron Strikes.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E07 - Cybron Strikes.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E08 - The First Day at School.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E08 - The First Day at School.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E08 - The First Day at School.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E09 - The Big Scoop.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E09 - The Big Scoop.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E09 - The Big Scoop.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E10 - Overnight with the Scouts.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E10 - Overnight with the Scouts.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E10 - Overnight with the Scouts.mkv"
+                },
+                {
+                  "name": "Superman & Lois - S01E11 - Triple Play.mkv",
+                  "absPath": "S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E11 - Triple Play.mkv",
+                  "relPath": "Superman & Lois\\Season 01\\BKUP\\Superman & Lois - S01E11 - Triple Play.mkv"
                 }
               ]
             }

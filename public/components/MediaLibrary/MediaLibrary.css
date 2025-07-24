@@ -611,6 +611,7 @@
 
 .media-library-search {
     padding: 6px 12px;
+    padding-right: 35px;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 15px;
@@ -656,10 +657,10 @@
     padding: 6px 12px;
     background: transparent;
     border: none;
-    position: absolute;
-    right: 127px;
     font-size: 28px;
     cursor: pointer;
+    position: absolute;
+    right: 175px;
     transition: all 0.2s ease;
     margin-left: 8px;
     display: flex;
@@ -671,10 +672,7 @@
 }
 
 .media-library-refresh-btn:hover {
-    /* background: #218838;
-    border-color: #1e7e34; */
     transform: scale(1.2, 1.2);
-    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); */
 }
 
 .media-library-refresh-btn:active {
@@ -796,6 +794,31 @@
     color: #888;
     cursor: pointer;
     display: none;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-library-clear-search:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #333;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.media-library-clear-search:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+
+
+/* Add visual feedback when search has content */
+.media-library-search-container:has(.media-library-search:not([value=""])) .media-library-search {
+    border-color: #007bff;
+    box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25);
 }
 
 .media-library-genre {
