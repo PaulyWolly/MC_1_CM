@@ -1559,8 +1559,10 @@ class MediaLibraryManager {
             if (letterElement) {
                 const letter = letterElement.getAttribute('data-letter');
                 if (letter) {
+
+                    // Call appropriate method based on current tab for separation of concerns
                     if (this.currentTab === 'movies') {
-                        this.scrollToLetterMovies(letter);
+                        this.scrollToLetterMovie(letter);
                     } else if (this.currentTab === 'tvshows') {
                         this.scrollToLetterTVShows(letter);
                     }
@@ -1569,7 +1571,7 @@ class MediaLibraryManager {
         };
     }
 
-scrollToLetterMovie(letter) {
+    scrollToLetterMovie(letter) {
         console.log('🔤 [A-Z] scrollToLetterMovie called with letter:', letter);
         // Find the anchor for this letter (movies use .media-library-anchor)
         const anchor = document.querySelector(`.media-library-anchor[data-anchor="${letter}"]`);
@@ -1595,6 +1597,41 @@ scrollToLetterMovie(letter) {
                     card.style.background = originalBg || '';
                 }, 600);
                 console.log('🔤 [A-Z] Found and scrolled to movie card for letter:', letter);
+            } else {
+                // fallback: scroll to anchor itself
+                anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        } else {
+            console.warn('🔤 [A-Z] No movie anchor found for letter:', letter);
+        }
+    }
+
+    scrollToLetterTVShows(letter) {
+        console.log('🔤 [A-Z] scrollToLetterTVShows called with letter:', letter);
+        // Find the anchor for this letter (TV shows use .media-library-anchor)
+        const anchor = document.querySelector(`.media-library-anchor[data-anchor="${letter}"]`);
+        // Highlight the active letter in the A-Z sidebar
+        const azSidebar = document.getElementById('mediaLibraryAZSidebar');
+        if (azSidebar) {
+            azSidebar.querySelectorAll('.media-library-az-letter').forEach(btn => btn.classList.remove('az-active'));
+            const activeBtn = azSidebar.querySelector(`.media-library-az-letter[data-letter='${letter}']`);
+            if (activeBtn) activeBtn.classList.add('az-active');
+        }
+        if (anchor) {
+            // Find the parent card (TV shows use .media-library-card.poster)
+            const card = anchor.closest('.media-library-card.poster');
+            if (card) {
+                card.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+                card.style.transition = 'background 0.3s';
+                const originalBg = card.style.background;
+                card.style.background = '#fff9c4'; // light yellow
+                setTimeout(() => {
+                    card.style.background = originalBg || '';
+                }, 600);
+                console.log('🔤 [A-Z] Found and scrolled to TV show card for letter:', letter);
             } else {
                 // fallback: scroll to anchor itself
                 anchor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
