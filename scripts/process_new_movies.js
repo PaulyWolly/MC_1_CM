@@ -1,8 +1,8 @@
 /*
   PROCESS_NEW_MOVIES.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -11,9 +11,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const MOVIES_DIR = 'S:/MEDIA/MOVIES';
-const MEDIA_LIBRARY_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/media-library-movies.json');
-const POSTER_MAPPING_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
-const GENRES_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_genres.json');
+const MEDIA_LIBRARY_FILE = path.join(process.cwd(), 'public/components/MediaLibrary/data/movies/media-library-movies.json');
+const POSTER_MAPPING_FILE = path.join(process.cwd(), 'public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
+const GENRES_FILE = path.join(process.cwd(), 'public/components/MediaLibrary/data/movies/movie_genres_normalized.json');
 
 class NewMovieProcessor {
     constructor() {

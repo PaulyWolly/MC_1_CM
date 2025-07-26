@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.CSS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -153,7 +153,7 @@
 
 .media-manager-input:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: #137bf2;
     box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
@@ -166,6 +166,11 @@
     color: #e74c3c;
     font-weight: bold;
     margin-left: 2px;
+}
+
+.media-manager-edit-cast-btn, .media-manager-view-json-btn {
+  margin-top: 20px;
+  cursor: pointer;
 }
 
 .media-manager-field-error {
@@ -285,7 +290,7 @@
 .media-manager-preview-description {
   margin-bottom: 15px;
   position: relative;
-  top: 20px;
+  top: 14px;
 }
 
 .media-manager-description-input {
@@ -319,6 +324,18 @@
   position: relative;
   top: 20px;
   background: coral;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-view-season-episode-images-btn-tv:disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.media-manager-view-season-episode-images-btn-tv:disabled:hover {
+  background: #7f8c8d;
 }
 
 .media-manager-cast-list::-webkit-scrollbar {
@@ -1856,6 +1873,7 @@
   padding: 8px 16px;
   font-size: 0.9em;
   cursor: pointer;
+  margin-top: 20px;
   transition: background 0.2s;
   font-weight: 500;
 }
@@ -2398,4 +2416,95 @@
 .json-editor-overlay-tv {
   position: relative;
   z-index: 100000000;
+}
+
+/* Modal Toast Styles */
+.media-manager-modal-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000000;
+  max-width: 90%;
+  min-width: 300px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid #2196F3;
+  animation: modalToastSlideIn 0.3s ease-out;
+}
+
+.media-manager-modal-toast.success {
+  border-left-color: #4CAF50;
+}
+
+.media-manager-modal-toast.error {
+  border-left-color: #f44336;
+}
+
+.media-manager-modal-toast.warning {
+  border-left-color: #ff9800;
+}
+
+.media-manager-modal-toast.info {
+  border-left-color: #2196F3;
+}
+
+.media-manager-modal-toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.media-manager-modal-toast-message {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.4;
+}
+
+.media-manager-modal-toast-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.media-manager-modal-toast-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+@keyframes modalToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes modalToastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
 }

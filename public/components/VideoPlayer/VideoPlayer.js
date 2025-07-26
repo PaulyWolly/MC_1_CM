@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -798,7 +798,20 @@ class VideoPlayer {
                 this.vjsPlayer.off('pause'); // Remove any previous handler to avoid duplicates
                 this.vjsPlayer.on('pause', () => {
                     console.log('🎬 [VIDEO-PLAYER] Pause event triggered');
-                    // No auto-save on pause. Only Save for Later button saves progress.
+                    
+                    // Auto-save progress for TV shows and movies
+                    if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
+                        const currentTime = this.vjsPlayer.currentTime();
+                        const duration = this.vjsPlayer.duration();
+                        
+                        // Use the current media item from MediaLibraryManager
+                        const mediaItem = window.mediaLibraryManager.currentMediaItem || window.mediaLibraryManager.currentFile;
+                        
+                        if (mediaItem && currentTime > 0 && duration > 0) {
+                            console.log('🎬 [VIDEO-PLAYER] Auto-saving progress:', { mediaItem, currentTime, duration });
+                            window.mediaLibraryManager.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
+                        }
+                    }
                 });
             });
             
@@ -1284,16 +1297,25 @@ class VideoPlayer {
         // Remove any existing overlays
         this.removeUpNextOverlay();
         this.removeSkipIntroButton();
+        this.removeSkipToNextButton();
 
-        // Add Skip Intro button (default 90s)
-        this.addSkipIntroButton(90);
+        // Add Skip Intro button using configurable timing
+        this.addSkipIntroButton(SKIP_INTRO_SECONDS);
 
-        // Listen for timeupdate to show Up Next overlay
+        // Listen for timeupdate to show Up Next overlay and Skip to Next button
         this.vjsPlayer.off('timeupdate'); // Remove previous listeners
         this.vjsPlayer.on('timeupdate', () => {
             const duration = this.vjsPlayer.duration();
             const current = this.vjsPlayer.currentTime();
-            if (duration && current > duration - 60 && !this.upNextShown) {
+            
+            // Show Skip to Next Episode button using configurable timing (for TV shows only)
+            if (duration && current > duration - SKIP_TO_NEXT_BEFORE_END_SECONDS && !this.skipToNextShown) {
+                this.showSkipToNextButton();
+                this.skipToNextShown = true;
+            }
+            
+            // Show Up Next overlay using configurable timing
+            if (duration && current > duration - UP_NEXT_BEFORE_END_SECONDS && !this.upNextShown) {
                 this.showUpNextOverlay();
                 this.upNextShown = true;
             }
@@ -1363,6 +1385,154 @@ class VideoPlayer {
             this.skipIntroBtn.remove();
             this.skipIntroBtn = null;
         }
+    }
+
+    showSkipToNextButton() {
+        // Only show for TV shows
+        let isTVShow = false;
+        if (this.currentMediaItem && this.currentMediaItem.type === 'tv-show') {
+            isTVShow = true;
+        } else if (this.currentMediaItem && this.currentMediaItem.path && /TV[-_ ]SHOWS?/i.test(this.currentMediaItem.path)) {
+            isTVShow = true;
+        } else if (this.currentFile && this.currentFile.absPath && /TV[-_ ]SHOWS?/i.test(this.currentFile.absPath)) {
+            isTVShow = true;
+        }
+        if (!isTVShow) return;
+
+        // Find next episode
+        const filePath = this.currentFile.absPath || this.currentFile.name;
+        const { next } = this.findCurrentAndNextEpisode(filePath);
+        this.nextEpisodeInfo = next;
+        if (!next) return;
+
+        // Remove any existing skip to next button
+        this.removeSkipToNextButton();
+
+        // Create the skip to next button with progress bar
+        this.skipToNextBtn = document.createElement('div');
+        this.skipToNextBtn.className = 'video-player-skip-to-next-btn';
+        this.skipToNextBtn.style.cssText = `
+            position: absolute;
+            bottom: 160px;
+            right: 40px;
+            z-index: 10002;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 280px;
+        `;
+
+        // Create progress bar container
+        const progressContainer = document.createElement('div');
+        progressContainer.style.cssText = `
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin-top: 12px;
+            overflow: hidden;
+        `;
+
+        // Create progress bar
+        const progressBar = document.createElement('div');
+        progressBar.id = 'skip-to-next-progress';
+        progressBar.style.cssText = `
+            height: 100%;
+            background: #43a047;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s linear;
+        `;
+
+        progressContainer.appendChild(progressBar);
+        this.skipToNextBtn.appendChild(progressContainer);
+
+        // Set initial content
+        this.updateSkipToNextContent(10);
+
+        // Add click handler
+        this.skipToNextBtn.onclick = () => {
+            this.skipToNextEpisode();
+        };
+
+        this.container.appendChild(this.skipToNextBtn);
+
+        // Start countdown and progress bar
+        let countdown = 10;
+        this.skipToNextTimer = setInterval(() => {
+            countdown--;
+            this.updateSkipToNextContent(countdown);
+            
+            if (countdown <= 0) {
+                clearInterval(this.skipToNextTimer);
+                this.skipToNextEpisode();
+            }
+        }, 1000);
+    }
+
+    updateSkipToNextContent(countdown) {
+        if (!this.skipToNextBtn) return;
+        
+        const progressBar = this.skipToNextBtn.querySelector('#skip-to-next-progress');
+        if (progressBar) {
+            const progress = ((10 - countdown) / 10) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+        // Update text content
+        const existingText = this.skipToNextBtn.querySelector('.skip-to-next-text');
+        if (existingText) {
+            existingText.remove();
+        }
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'skip-to-next-text';
+        textDiv.style.cssText = `
+            text-align: center;
+            font-weight: bold;
+        `;
+        
+        if (this.nextEpisodeInfo) {
+            textDiv.innerHTML = `
+                <div style="margin-bottom: 4px;">⏭️ Skip to Next Episode</div>
+                <div style="font-size: 14px; opacity: 0.8; margin-bottom: 8px;">${this.nextEpisodeInfo.name}</div>
+                <div style="font-size: 12px; opacity: 0.6;">Auto-skip in ${countdown}s</div>
+            `;
+        } else {
+            textDiv.innerHTML = `
+                <div style="margin-bottom: 4px;">⏭️ Skip to Next Episode</div>
+                <div style="font-size: 12px; opacity: 0.6;">Auto-skip in ${countdown}s</div>
+            `;
+        }
+
+        // Insert at the beginning
+        this.skipToNextBtn.insertBefore(textDiv, this.skipToNextBtn.firstChild);
+    }
+
+    skipToNextEpisode() {
+        this.removeSkipToNextButton();
+        if (this.nextEpisodeInfo) {
+            this.playNextEpisode();
+        }
+    }
+
+    removeSkipToNextButton() {
+        if (this.skipToNextBtn) {
+            this.skipToNextBtn.remove();
+            this.skipToNextBtn = null;
+        }
+        if (this.skipToNextTimer) {
+            clearInterval(this.skipToNextTimer);
+            this.skipToNextTimer = null;
+        }
+        this.skipToNextShown = false;
     }
 
     showUpNextOverlay() {
@@ -1548,14 +1718,42 @@ class VideoPlayer {
             this.vjsPlayer.off('pause'); // Remove any previous handler to avoid duplicates
             this.vjsPlayer.on('pause', () => {
                 console.log('🎬 [VIDEO-PLAYER] Pause event triggered (playUrl)');
-                // No auto-save on pause. Only Save for Later button saves progress.
+                
+                // Auto-save progress for TV shows and movies
+                if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
+                    const currentTime = this.vjsPlayer.currentTime();
+                    const duration = this.vjsPlayer.duration();
+                    
+                    // Use the current media item from MediaLibraryManager
+                    const mediaItem = window.mediaLibraryManager.currentMediaItem || window.mediaLibraryManager.currentFile;
+                    
+                    if (mediaItem && currentTime > 0 && duration > 0) {
+                        console.log('🎬 [VIDEO-PLAYER] Auto-saving progress:', { mediaItem, currentTime, duration });
+                        window.mediaLibraryManager.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
+                    }
+                }
             });
             
             // If video is already ready (cached), set time immediately
             if (startTime > 0 && this.vjsPlayer.readyState() > 0) {
                 setAndPlay({type: 'immediate'});
             } else if (startTime === 0) {
-                this.vjsPlayer.play();
+                // For videos starting from beginning, wait for canplay event before playing
+                console.log('[DEBUG - VIDEO-PLAYER] Video starting from beginning, waiting for canplay event');
+                const playWhenReady = () => {
+                    console.log('[DEBUG - VIDEO-PLAYER] canplay event fired, starting playback');
+                    this.vjsPlayer.play();
+                    this.vjsPlayer.off('canplay', playWhenReady);
+                };
+                this.vjsPlayer.on('canplay', playWhenReady);
+                
+                // If already ready, play immediately
+                if (this.vjsPlayer.readyState() > 0) {
+                    console.log('[DEBUG - VIDEO-PLAYER] Video already ready, playing immediately');
+                    this.vjsPlayer.play();
+                } else {
+                    console.log('[DEBUG - VIDEO-PLAYER] Video not ready yet, waiting for canplay event. ReadyState:', this.vjsPlayer.readyState());
+                }
             }
             // Fetch media library and set up Up Next logic
             this.fetchMediaLibrary().then(() => this.setupUpNextAndSkipIntro());

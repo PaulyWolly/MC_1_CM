@@ -1,8 +1,8 @@
 /*
   APP.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -6420,9 +6420,9 @@ function setupSSEConnection() {
                 // Heartbeat event handler
                 if (data.type === 'heartbeat') {
                     if (data.timestamp) {
-                        console.log('💓 Heartbeat received:', new Date(data.timestamp).toLocaleTimeString());
+                        // console.log('💓 Heartbeat received:', new Date(data.timestamp).toLocaleTimeString());
                     } else {
-                        console.log('💓 Heartbeat received (no valid timestamp)');
+                        // console.log('💓 Heartbeat received (no valid timestamp)');
                     }
         return;
       }

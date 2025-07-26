@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -16,7 +16,7 @@ const path = require('path');
 const https = require('https');
 const NormalizationService = require('../services/NormalizationService');
 const { normalizeKey } = require('../../shared/NormalizationService');
-const { execSync } = require('child_process');
+const { execSync, exec } = require('child_process');
 // Use normalizeKey for all mapping key normalization in this file.
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
@@ -24,7 +24,7 @@ const TMDB_MOVIE_URL = 'https://api.themoviedb.org/3/movie';
 const TMDB_TV_URL = 'https://api.themoviedb.org/3/tv';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
-const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies.json');
+const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
 const TV_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows.json');
 const MOVIE_CAST_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_cast_normalized.json');
 const MOVIE_DESC_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_descriptions_normalized.json');
@@ -275,8 +275,8 @@ router.post('/save', async (req, res) => {
     if (type === 'tv') {
       // --- TV SHOW SAVE LOGIC ---
       const { tmdbId, title, year, description, cast, poster, seasons, showPath } = req.body;
-      if (!title || !seasons || !Array.isArray(seasons) || seasons.length === 0) {
-        return res.status(400).json({ success: false, error: 'Missing required TV show fields (title, at least one season)' });
+      if (!title) {
+        return res.status(400).json({ success: false, error: 'Missing required TV show field: title' });
       }
       // Load existing TV shows
       let tvData = [];
@@ -340,116 +340,74 @@ router.post('/save', async (req, res) => {
       fs.writeFileSync(descPath, JSON.stringify(descData, null, 2));
       return res.json({ success: true, saved: showObj });
     }
-    // --- MOVIE SAVE LOGIC (updated) ---
-    const { absPath, poster, description, cast, title, year } = req.body;
-    if (!absPath) {
-      return res.status(400).json({ success: false, error: 'Missing absPath' });
+    // --- MOVIE SAVE LOGIC (normalized) ---
+    const { normalizedKey, poster, description, cast, title, year } = req.body;
+    if (!normalizedKey) {
+      return res.status(400).json({ success: false, error: 'Missing normalizedKey' });
     }
     // Load or initialize movies data
     let moviesData = {};
     if (fs.existsSync(MOVIES_JSON)) {
       moviesData = JSON.parse(fs.readFileSync(MOVIES_JSON, 'utf8'));
     }
-    if (!moviesData.library) moviesData.library = {};
-    if (!Array.isArray(moviesData.library.folders)) moviesData.library.folders = [];
-    // Remove any folder entry for this absPath
-    moviesData.library.folders = moviesData.library.folders.filter(m => m.path !== absPath);
-    // Add or update the flat movie object
+    // Ensure the normalized structure exists
+    if (!moviesData.path) moviesData.path = "";
+    if (!Array.isArray(moviesData.folders)) moviesData.folders = [];
+    
+    // Remove any existing folder entry for this normalizedKey
+    moviesData.folders = moviesData.folders.filter(m => m.normalizedKey !== normalizedKey);
+    
+    // Create the new movie folder structure
     const newMovie = {
-      path: absPath,
-      title: title || '',
-      year: year || '',
-      poster: poster || '',
-      description: description || '',
-      cast: cast || []
+      path: title || '',
+      normalizedKey: normalizedKey,
+      tmdbId: null, // Will be set when TMDB data is fetched
+      folders: [],
+      files: []
     };
-    moviesData.library.folders.push(newMovie);
+    moviesData.folders.push(newMovie);
     fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
 
-    // --- FIX: Also save description and cast for movies ---
-    // Save description
+    // --- Save description ---
     let descData = {};
     if (fs.existsSync(MOVIE_DESC_JSON)) descData = JSON.parse(fs.readFileSync(MOVIE_DESC_JSON, 'utf8'));
-    if (!descData[absPath]) descData[absPath] = {};
-    descData[absPath].title = title || '';
-    descData[absPath].year = year || '';
-    descData[absPath].description = description || '';
+    if (!descData[normalizedKey]) descData[normalizedKey] = {};
+    descData[normalizedKey].title = title || '';
+    descData[normalizedKey].year = year || '';
+    descData[normalizedKey].description = description || '';
     fs.writeFileSync(MOVIE_DESC_JSON, JSON.stringify(descData, null, 2));
-    // Save cast
+    // --- Save cast ---
     let castData = {};
     if (fs.existsSync(MOVIE_CAST_JSON)) castData = JSON.parse(fs.readFileSync(MOVIE_CAST_JSON, 'utf8'));
-    castData[absPath] = { title: title || '', year: year || '', cast: cast || [] };
+    castData[normalizedKey] = { title: title || '', year: year || '', cast: cast || [] };
     fs.writeFileSync(MOVIE_CAST_JSON, JSON.stringify(castData, null, 2));
-    // --- END FIX ---
-    // --- END UPDATED LOGIC ---
-
-    // --- NEW: Robust poster download and persistence ---
+    // --- Poster mapping ---
     if (poster && poster.startsWith('http')) {
       try {
-        // Normalize path: convert backslashes to forward slashes
-        const normalizedPath = absPath.replace(/\\/g, '/');
-        // Compute movie folder
-        const movieFolder = path.dirname(normalizedPath);
-        // Compute local poster path
-        const posterFileName = 'poster.jpg';
-        const posterFilePath = path.join(movieFolder, posterFileName);
-        // Compute web-accessible path (relative to S:/MEDIA/MOVIES)
-        let relPath = path.relative('S:/MEDIA/MOVIES', posterFilePath).replace(/\\/g, '/');
-        const webPosterUrl = `/media/movies/${relPath}`;
-        // --- Use dot notation folder name as key ---
-        const folderName = path.basename(movieFolder);
-        const dotNotationKey = normalizeKey(folderName);
-        // Download the image
-        const download = (url, dest, cb) => {
-          const file = require('fs').createWriteStream(dest);
-          https.get(url, (response) => {
-            if (response.statusCode !== 200) {
-              file.close();
-              require('fs').unlinkSync(dest);
-              return cb(new Error('Failed to download image, status: ' + response.statusCode));
-            }
-            response.pipe(file);
-            file.on('finish', () => file.close(cb));
-          }).on('error', (err) => {
-            file.close();
-            require('fs').unlinkSync(dest);
-            cb(err);
-          });
-        };
-        // Download poster and update movie_posters.json
-        await new Promise((resolve, reject) => {
-          download(poster, posterFilePath, (err) => {
-            if (err) {
-              console.error('[MEDIA SAVE] Failed to download poster:', err);
-              return reject(new Error('Failed to download poster: ' + err.message));
-            }
-            // Update movie_posters.json
-            let posters = {};
-            try {
-              if (fs.existsSync(MOVIE_POSTERS_JSON)) {
-                posters = JSON.parse(fs.readFileSync(MOVIE_POSTERS_JSON, 'utf8'));
-              }
-            } catch (e) { posters = {}; }
-            // Only use dot notation key for poster mapping
-            posters[dotNotationKey] = webPosterUrl;
-            // Remove any saving under absPath or other keys
-            try {
-              fs.writeFileSync(MOVIE_POSTERS_JSON, JSON.stringify(posters, null, 2));
-              console.log('[MEDIA SAVE] Poster saved and movie_posters.json updated:', webPosterUrl);
-              resolve();
-            } catch (err) {
-              console.error('[MEDIA SAVE] Failed to update movie_posters.json:', err);
-              reject(new Error('Failed to update movie_posters.json: ' + err.message));
-            }
-          });
-        });
+        // Compute web-accessible path (simulate as before)
+        const webPosterUrl = poster;
+        // --- Use dot notation key for poster mapping ---
+        let posters = {};
+        try {
+          if (fs.existsSync(MOVIE_POSTERS_JSON)) {
+            posters = JSON.parse(fs.readFileSync(MOVIE_POSTERS_JSON, 'utf8'));
+          }
+        } catch (e) { posters = {}; }
+        posters[normalizedKey] = webPosterUrl;
+        try {
+          fs.writeFileSync(MOVIE_POSTERS_JSON, JSON.stringify(posters, null, 2));
+          console.log('[MEDIA SAVE] Poster saved and movie_posters.json updated:', webPosterUrl);
+        } catch (err) {
+          console.error('[MEDIA SAVE] Failed to update movie_posters.json:', err);
+          return res.status(500).json({ success: false, error: 'Failed to update movie_posters.json: ' + err.message });
+        }
       } catch (err) {
         console.error('[MEDIA SAVE] Error in poster download/persist:', err);
         return res.status(500).json({ success: false, error: err.message });
       }
     }
-    console.log('[MEDIA SAVE] Saved data under key:', absPath);
-    return res.json({ success: true, keySaved: absPath });
+    console.log('[MEDIA SAVE] Saved data under normalizedKey:', normalizedKey);
+    return res.json({ success: true, keySaved: normalizedKey });
   } catch (err) {
     console.error('[MEDIA SAVE] Error:', err);
     return res.status(500).json({ success: false, error: err.message });
@@ -834,42 +792,64 @@ router.post('/fix-cast-profiles', async (req, res) => {
   }
 });
 
-// --- NEW: Fetch TV Show Season & Episode Images ---
+// POST /api/media/fetch-tv-images
 router.post('/fetch-tv-images', async (req, res) => {
   try {
-    const { title, tmdbId, absPath } = req.body;
-    if (!title || !tmdbId || !absPath) {
-      return res.status(400).json({ success: false, error: 'Missing required fields: title, tmdbId, absPath' });
+    const { normalizedKey, tmdbId, showPath } = req.body;
+    if (!normalizedKey) {
+      return res.status(400).json({ success: false, error: 'Missing normalizedKey' });
     }
-    const { exec } = require('child_process');
-    const seasonScript = path.join(__dirname, '../../scripts/SMART_fetch_tmdb_tv-show_season_images.js');
-    const episodeScript = path.join(__dirname, '../../scripts/SMART_fetch_tmdb_tv-show_episode_images.js');
-    // Build command for both scripts
-    const seasonCmd = `node "${seasonScript}" --title "${title}" --tmdbId "${tmdbId}" --absPath "${absPath}"`;
-    const episodeCmd = `node "${episodeScript}" --title "${title}" --tmdbId "${tmdbId}" --absPath "${absPath}"`;
-    // Run season script
-    exec(seasonCmd, { cwd: path.join(__dirname, '../..') }, (seasonErr, seasonStdout, seasonStderr) => {
-      if (seasonErr) {
-        console.error('[FETCH-TV-IMAGES][SEASON] Script error:', seasonErr);
-        return res.status(500).json({ success: false, error: 'Season image script failed', details: seasonErr.message });
+    console.log('[FETCH-TV-IMAGES] NormalizedKey:', normalizedKey);
+    // Build commands
+    const seasonCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_season_images.js "${normalizedKey}"`;
+    const episodeCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_episode_images.js "${normalizedKey}"`;
+    console.log('[FETCH-TV-IMAGES] Running:', seasonCmd);
+    exec(seasonCmd, { cwd: path.join(__dirname, '../..') }, (err1, stdout1, stderr1) => {
+      if (err1) {
+        console.error('[FETCH-TV-IMAGES] Season script error:', stderr1);
+        return res.status(500).json({ success: false, error: 'Season image script failed', stderr: stderr1 });
       }
-      // Run episode script
-      exec(episodeCmd, { cwd: path.join(__dirname, '../..') }, (epErr, epStdout, epStderr) => {
-        if (epErr) {
-          console.error('[FETCH-TV-IMAGES][EPISODE] Script error:', epErr);
-          return res.status(500).json({ success: false, error: 'Episode image script failed', details: epErr.message });
+      console.log('[FETCH-TV-IMAGES] Season script output:', stdout1);
+      console.log('[FETCH-TV-IMAGES] Running:', episodeCmd);
+      exec(episodeCmd, { cwd: path.join(__dirname, '../..') }, (err2, stdout2, stderr2) => {
+        if (err2) {
+          console.error('[FETCH-TV-IMAGES] Episode script error:', stderr2);
+          return res.status(500).json({ success: false, error: 'Episode image script failed', stderr: stderr2 });
         }
-        // Success
-        return res.json({
-          success: true,
-          message: 'Fetched season and episode images',
-          seasonOutput: seasonStdout,
-          episodeOutput: epStdout
+        console.log('[FETCH-TV-IMAGES] Episode script output:', stdout2);
+        
+        // Run normalization script to convert to normalized format
+        const normalizeCmd = `node scripts/NORMALIZE/normalize_tv_show_season_and_episode_image_keys.js`;
+        console.log('[FETCH-TV-IMAGES] Running normalization:', normalizeCmd);
+        exec(normalizeCmd, { cwd: path.join(__dirname, '../..') }, (err3, stdout3, stderr3) => {
+          if (err3) {
+            console.error('[FETCH-TV-IMAGES] Normalization script error:', stderr3);
+            return res.status(500).json({ success: false, error: 'Normalization script failed', stderr: stderr3 });
+          }
+          console.log('[FETCH-TV-IMAGES] Normalization script output:', stdout3);
+          
+          // Check if the key exists in the normalized files
+          const seasonFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
+          const episodeFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
+          let seasonData = {};
+          let episodeData = {};
+          try {
+            seasonData = JSON.parse(fs.readFileSync(seasonFile, 'utf8'));
+          } catch (e) { seasonData = {}; }
+          try {
+            episodeData = JSON.parse(fs.readFileSync(episodeFile, 'utf8'));
+          } catch (e) { episodeData = {}; }
+          const hasSeason = !!seasonData[normalizedKey];
+          const hasEpisode = !!episodeData[normalizedKey];
+          if (!hasSeason && !hasEpisode) {
+            return res.status(200).json({ success: false, error: `No images found for key: ${normalizedKey}` });
+          }
+          return res.status(200).json({ success: true, season: hasSeason, episode: hasEpisode });
         });
       });
     });
   } catch (err) {
-    console.error('[FETCH-TV-IMAGES] Error:', err);
+    console.error('[FETCH-TV-IMAGES] Fatal error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

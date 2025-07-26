@@ -1,8 +1,8 @@
 <!--
   MEDIAMANAGER.HTML
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 -->
 <div class="media-manager-overlay">
@@ -25,42 +25,42 @@
     <div class="media-manager-tab-contents">
       
       <!-- ==================== BEGIN: MOVIE SECTION ==================== -->
-      <div class="media-manager-content media-manager-content-movie">
+      <div class="media-manager-content-movie" style="display:block;">
         <!-- All MOVIE content below -->
       <div class="media-manager-movie-controls-container">
         <form class="media-manager-movie-form">
           <div class="MM-form-fields-BKGD">
 
             <div class="media-manager-form-row">
-              <label class="media-manager-label" for="media-manager-title">MOVIE Title
+              <label class="media-manager-label" for="media-manager-title-movie">MOVIE Title
                 <span class="media-manager-required">*</span>
                 <span class="media-manager-info-icon"
                   data-tooltip="Enter the movie title. Example: Batman: The Movie"><span
                     class="media-manager-info-icon-inner"></span></span>
               </label>
-              <input class="media-manager-input" id="media-manager-title" type="text"
+              <input class="media-manager-input" id="media-manager-title-movie" type="text"
                 placeholder="e.g. Batman: The Movie -mv">
               <div class="media-manager-field-error" id="title-error" style="display: none;">Title required</div>
             </div>
             <!-- NEW: TMDB ID button and hidden field -->
             <div class="media-manager-form-row">
-                <label class="media-manager-label" for="media-manager-tmdbid">TMDB ID (Optional)
+                <label class="media-manager-label" for="media-manager-tmdbid-movie">TMDB ID (Optional)
                   <span class="media-manager-info-icon"
                     data-tooltip="Enter the TMDB ID for the movie. Example: 11778"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <input class="media-manager-input media-manager-tmdbId-input" id="media-manager-tmdbid" type="text"
+                <input class="media-manager-input media-manager-tmdbId-input" id="media-manager-tmdbid-movie" type="text"
                   placeholder="e.g. 11778">
             </div>
             <div class="media-manager-tmdbid-msg" style="display:none;color:#ff9800;margin-bottom:8px;"></div>
             <div class="media-manager-form-row">
-              <label class="media-manager-label" for="media-manager-path">File/Folder Path
+              <label class="media-manager-label" for="media-manager-path-movie">File/Folder Path
                 <span class="media-manager-required">*</span>
                 <span class="media-manager-info-icon"
                   data-tooltip="Enter the full path to the movie or TV show file/folder. Example: S:/MEDIA/MOVIES/Airplane! (1980) [1080p]/Airplane!.(1980).[1080p].mp4 sMust match your naming convention."><span
                     class="media-manager-info-icon-inner"></span></span>
               </label>
-              <input class="media-manager-input" id="media-manager-path" type="text"
+              <input class="media-manager-input" id="media-manager-path-movie" type="text"
                 placeholder="e.g. S:/MEDIA/MOVIES/Airplane!.(1980).[1080p].mp4 -mv">
               <div class="media-manager-field-error" id="path-error" style="display: none;">File/Folder Path is required
               </div>
@@ -93,12 +93,12 @@
           <div class="media-manager-details-row" style="display: flex; flex-direction: row; gap: 32px;">
             <div class="media-manager-description-section" style="flex: 2;">
               <div class="media-manager-preview-description">
-                <label class="media-manager-label" for="media-manager-description">Description
+                <label class="media-manager-label" for="media-manager-description-movie">Description
                   <span class="media-manager-info-icon"
                     data-tooltip="Edit or review the movie/TV show description.\nExample: 'A caped crusader battles crime in Gotham City.'"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <textarea class="media-manager-input media-manager-description-input" id="media-manager-description"
+                <textarea class="media-manager-input media-manager-description-input" id="media-manager-description-movie"
                   placeholder="e.g. A caped crusader battles crime in Gotham City."></textarea>
                 <!-- TV Show description textarea (hidden by default) -->
                 <textarea class="media-manager-input media-manager-description-input" id="media-manager-tv-description"
@@ -113,7 +113,7 @@
                     data-tooltip="Edit or review the cast list for this title.\nExample: Adam West, Burt Ward, Lee Meriwether"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <div class="media-manager-cast-list">
+                <div class="media-manager-cast-list-movie">
                   <!-- Cast items will be rendered here -->
                 </div>
                 <!-- TV Show cast list (hidden by default) -->
@@ -137,7 +137,7 @@
 
       <!-- Conform/Resubmit/Cancel button group -->
       <div class="media-manager-actions">
-        <button class="media-manager-confirm-btn" type="button">Confirm</button>
+        <button class="media-manager-confirm-btn-movie" type="button">Confirm</button>
         <button class="media-manager-edit-btn" type="button">Edit/Resubmit</button>
         <button class="media-manager-cancel-btn" type="button">Cancel</button>
       </div>
@@ -192,38 +192,38 @@
       <!-- ==================== END: MOVIE SECTION ==================== -->
 
       <!-- ==================== BEGIN: TV-SHOW SECTION ==================== -->
-  <div class="media-manager-content media-manager-content-tv" style="display:none;">
-        <div class="media-manager-movie-controls-container">
-          <form class="media-manager-movie-form">
+  <div class="media-manager-content-tv" style="display:none;">
+        <div class="media-manager-tv-controls-container">
+          <form class="media-manager-tv-form">
             <div class="MM-form-fields-BKGD">
 
               <div class="media-manager-form-row">
-                <label class="media-manager-label-tv" for="media-manager-tv-title">TV-SHOW Title
+                <label class="media-manager-label-tv" for="media-manager-title-tv">TV-SHOW Title
                   <span class="media-manager-required">*</span>
                   <span class="media-manager-info-icon"
                     data-tooltip="Enter the TV show title. Example: Breaking Bad"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <input class="media-manager-input-tv" id="media-manager-tv-title" type="text"
+                <input class="media-manager-input-tv" id="media-manager-title-tv" type="text"
                   placeholder="e.g. Breaking Bad -tv">
                 <div class="media-manager-field-error-tv" id="tv-title-error" style="display: none;">Title required</div>
               </div>
               <div class="media-manager-form-row">
-                <label class="media-manager-label-tv" for="media-manager-tv-tmdbid">TMDB ID (Optional)
+                <label class="media-manager-label-tv" for="media-manager-tmdbid-tv">TMDB ID (Optional)
                   <span class="media-manager-info-icon"
                     data-tooltip="Enter the TMDB ID for the TV show. Example: 79501"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <input class="media-manager-input-tv" id="media-manager-tv-tmdbid" type="text" placeholder="e.g. 79501">
+                <input class="media-manager-input-tv" id="media-manager-tmdbid-tv" type="text" placeholder="e.g. 79501">
               </div>
               <div class="media-manager-form-row">
-                <label class="media-manager-label-tv" for="media-manager-tv-path">Show Path
+                <label class="media-manager-label-tv" for="media-manager-path-tv">Show Path
                   <span class="media-manager-required">*</span>
                   <span class="media-manager-info-icon"
                     data-tooltip="Enter the full path to the TV show folder. Example: S:/MEDIA/TV-SHOWS/Breaking Bad (2008)"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
-                <input class="media-manager-input-tv" id="media-manager-tv-path" type="text"
+                <input class="media-manager-input-tv" id="media-manager-path-tv" type="text"
                   placeholder="e.g. S:/MEDIA/TV-SHOWS/Breaking Bad (2008)">
                 <div class="media-manager-field-error-tv" id="tv-path-error" style="display: none;">Show Path is required</div>
               </div>
@@ -257,13 +257,13 @@
             <div class="media-manager-details-row" style="display: flex; flex-direction: row; gap: 32px;">
               <div class="media-manager-description-section" style="flex: 2;">
                 <div class="media-manager-preview-description">
-                  <label class="media-manager-label-tv" for="media-manager-tv-description">TV Description
+                  <label class="media-manager-label-tv" for="media-manager-description-tv">TV Description
                     <span class="media-manager-info-icon"
                       data-tooltip="Edit or review the TV show description.\nExample: 'A team of young superheroes fight evil and other perils.'"><span
                         class="media-manager-info-icon-inner"></span></span>
                   </label>
                   <button class="media-manager-btn-tv-force-refresh" type="button" style="margin-left: 12px; margin-bottom: 8px;">Force Refresh from TMDB</button>
-                  <textarea class="media-manager-input-tv media-manager-description-input-tv" id="media-manager-tv-description"
+                  <textarea class="media-manager-input-tv media-manager-description-input-tv" id="media-manager-description-tv"
                   placeholder="e.g. A team of young superheroes fight evil and other perils."></textarea>
                 </div>
               </div>
@@ -277,6 +277,8 @@
                   <div class="media-manager-cast-list-tv">
                     <!-- Cast items will be rendered here -->
                   </div>
+                  <!-- TV Show only: this is the empty div that should not show for Movie -->
+                  <div class="media-manager-tv-cast-extra"></div>
                   <button class="media-manager-edit-cast-btn-tv" type="button">Edit Cast
                     <span class="media-manager-info-icon"
                       data-tooltip="Change or update the cast list.\nExample: Add or remove actors as needed."><span

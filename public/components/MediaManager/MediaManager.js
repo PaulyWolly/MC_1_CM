@@ -1,12 +1,12 @@
 /*
-  MEDIAMANAGER.JS - rebuilt by Paul Welby on 7/20/2025
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  MEDIAMANAGER.JS
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
-class MediaManager {normalizedKey
+class MediaManager {
     constructor(containerElement) {
       this.containerElement = containerElement;
     this.isInitialized = false;
@@ -65,25 +65,40 @@ class MediaManager {normalizedKey
   }
 
   setupElements() {
+    // ========================================
+    // CONTAINER AND CLOSE BUTTON
+    // ========================================
     this.containerElement = document.querySelector('.media-manager-overlay');
     this.closeBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-btn') : null;
+
+    // ========================================
+    // TAB AND MODE NAVIGATION ELEMENTS
+    // ========================================
     this.tabMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-movie') : null;
     this.tabTV = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-tv') : null;
     this.modeSingle = this.containerElement ? this.containerElement.querySelector('.media-manager-mode-single') : null;
     this.contentMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-content-movie') : null;
     this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
+
+    // ========================================
+    // MOVIE FORM ELEMENTS
+    // ========================================
     this.inputTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-title') : null;
     this.inputPath = this.containerElement ? this.containerElement.querySelector('#media-manager-path') : null;
     this.fetchBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fetch-btn') : null;
+    this.scanMoviesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-scan-movies-btn') : null;
     this.posterImg = this.containerElement ? this.containerElement.querySelector('.media-manager-poster-img') : null;
     this.descInput = this.containerElement ? this.containerElement.querySelector('#media-manager-description') : null;
     this.castList = this.containerElement ? this.containerElement.querySelector('.media-manager-cast-list') : null;
     this.confirmBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn') : null;
     this.viewJsonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn') : null;
-    // TV Show fields
+
+    // ========================================
+    // TV SHOW FORM ELEMENTS
+    // ========================================
     this.inputTVTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-title') : null;
     this.inputTVYear = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-year') : null;
-    this.inputTVTMDBId = this.containerElement.querySelector('#media-manager-tv-tmdbid');
+    this.inputTVTMDBId = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-tmdbid') : null;
     this.inputTVDescription = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-description') : null;
     this.inputTVPath = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-path') : null;
     this.castListTV = this.containerElement ? this.containerElement.querySelector('.media-manager-cast-list-tv') : null;
@@ -92,20 +107,30 @@ class MediaManager {normalizedKey
     this.addSeasonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-add-season-btn') : null;
     this.confirmBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn-tv') : null;
     this.fetchBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-fetch-btn-tv') : null;
-    
-    // Validation elements
+    this.viewJsonBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn-tv') : null;
+    this.viewImagesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-view-season-episode-images-btn-tv') : null;
+
+    // ========================================
+    // VALIDATION ERROR ELEMENTS
+    // ========================================
     this.titleError = this.containerElement ? this.containerElement.querySelector('#title-error') : null;
     this.pathError = this.containerElement ? this.containerElement.querySelector('#path-error') : null;
     this.titleErrorTV = this.containerElement ? this.containerElement.querySelector('#tv-title-error') : null;
     this.pathErrorTV = this.containerElement ? this.containerElement.querySelector('#tv-path-error') : null;
-    
-    // JSON Editor elements
+
+    // ========================================
+    // JSON EDITOR ELEMENTS (MOVIE)
+    // ========================================
     this.jsonEditorOverlay = this.containerElement ? this.containerElement.querySelector('.json-editor-overlay') : null;
     this.jsonEditorTextarea = this.containerElement ? this.containerElement.querySelector('.json-editor-textarea') : null;
     this.jsonEditorCloseBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-close-btn') : null;
     this.jsonEditorCopyBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-copy-btn') : null;
     this.jsonEditorSaveBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-save-btn') : null;
     this.jsonEditorCancelBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-cancel-btn') : null;
+
+    // ========================================
+    // JSON EDITOR ELEMENTS (TV SHOW)
+    // ========================================
     this.jsonEditorOverlayTV = this.containerElement ? this.containerElement.querySelector('.json-editor-overlay-tv') : null;
     this.jsonEditorTextareaTV = this.containerElement ? this.containerElement.querySelector('.json-editor-textarea-tv') : null;
     this.jsonEditorCloseBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-close-btn-tv') : null;
@@ -113,14 +138,18 @@ class MediaManager {normalizedKey
     this.jsonEditorSaveBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-save-btn-tv') : null;
     this.jsonEditorCancelBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-cancel-btn-tv') : null;
 
-    // Modal for seasons/episodes
+    // ========================================
+    // SEASONS/EPISODES MODAL ELEMENTS
+    // ========================================
     this.manageSeasonsBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-manage-seasons-btn') : null;
     this.seasonsModalOverlay = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-overlay') : null;
     this.seasonsModalCloseBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-close-btn') : null;
     this.seasonsModalCancelBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-cancel-btn') : null;
     this.seasonsModalSaveBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-save-btn') : null;
 
-    // Hidden TMDB ID field
+    // ========================================
+    // TMDB ID FIELD ELEMENTS
+    // ========================================
     this.inputTMDBId = this.containerElement ? this.containerElement.querySelector('#media-manager-tmdbid') : null;
     this.tmdbIdRow = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-row') : null;
     this.tmdbIdMsg = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-msg') : null;
@@ -136,61 +165,96 @@ class MediaManager {normalizedKey
             if (input) input.focus();
         };
     }
-    this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
-      
-      // NEW: Grid elements for All mode
-      this.step1ScanBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-step1-scan-btn') : null;
-      this.scanMoviesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-scan-movies-btn') : null;
-      this.fixCastProfilesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fix-cast-profiles-btn') : null;
-      this.clearSelectionBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-clear-selection-btn') : null;
-      this.closeGridBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-grid-btn') : null;
-      
-      // NEW: Progress elements
-      this.progressContainer = this.containerElement ? this.containerElement.querySelector('.media-manager-progress-container') : null;
-      this.progressBar = this.containerElement ? this.containerElement.querySelector('.media-manager-progress') : null;
-      this.progressSummary = this.containerElement ? this.containerElement.querySelector('.media-manager-summary') : null;
-      
-      // Add a function to toggle path input and error visibility based on active tab
-      this.updatePathInputs = () => {
-        const moviePathRow = this.inputPath ? this.inputPath.closest('.media-manager-form-row') : null;
-        const tvPathRow = this.inputTVPath ? this.inputTVPath.closest('.media-manager-form-row-tv') : null;
-        // Always show the MOVIE path row
-        if (moviePathRow) moviePathRow.style.display = '';
-        // Only toggle the TV-SHOW path row
-        if (this.tabTV && this.tabTV.classList.contains('active')) {
-          if (tvPathRow) tvPathRow.style.display = '';
-        } else {
-          if (tvPathRow) tvPathRow.style.display = 'none';
+
+    // ========================================
+    // ALL MODE GRID ELEMENTS
+    // ========================================
+    this.step1ScanBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-step1-scan-btn') : null;
+    this.fixCastProfilesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fix-cast-profiles-btn') : null;
+    this.clearSelectionBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-clear-selection-btn') : null;
+    this.closeGridBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-grid-btn') : null;
+
+    // ========================================
+    // PROGRESS INDICATOR ELEMENTS
+    // ========================================
+    this.progressContainer = this.containerElement ? this.containerElement.querySelector('.media-manager-progress-container') : null;
+    this.progressBar = this.containerElement ? this.containerElement.querySelector('.media-manager-progress') : null;
+    this.progressSummary = this.containerElement ? this.containerElement.querySelector('.media-manager-summary') : null;
+
+    // ========================================
+    // MOVIE TEST FORM ELEMENTS (DEBUGGING)
+    // ========================================
+    this.inputMovieTestTitle = this.containerElement.querySelector('#media-manager-movie-test-title');
+    this.inputMovieTestTMDBId = this.containerElement.querySelector('#media-manager-movie-test-tmdbid');
+    this.inputMovieTestPath = this.containerElement.querySelector('#media-manager-movie-test-path');
+    this.inputMovieTestDescription = this.containerElement.querySelector('#media-manager-movie-test-description');
+    this.posterImgMovieTest = this.containerElement.querySelector('.media-manager-poster-img-movie-test');
+    this.castListMovieTest = this.containerElement.querySelector('.media-manager-cast-list-movie-test');
+    this.fetchBtnMovieTest = this.containerElement.querySelector('.media-manager-fetch-btn-movie-test');
+    this.movieForm = this.containerElement.querySelector('.media-manager-movie-form');
+    this.tvForm = this.containerElement.querySelector('.media-manager-movie-form');
+    this.movieTestForm = this.containerElement.querySelector('.media-manager-movie-form');
+
+    // Debug logging for movie test selectors
+    console.log('[DEBUG] MOVIE-TEST selectors:', {
+      inputMovieTestTitle: this.inputMovieTestTitle,
+      inputMovieTestTMDBId: this.inputMovieTestTMDBId,
+      inputMovieTestPath: this.inputMovieTestPath,
+      inputMovieTestDescription: this.inputMovieTestDescription,
+      posterImgMovieTest: this.posterImgMovieTest,
+      castListMovieTest: this.castListMovieTest,
+      fetchBtnMovieTest: this.fetchBtnMovieTest,
+      movieTestForm: this.movieTestForm
+    });
+
+    // ========================================
+    // PATH INPUT VISIBILITY LOGIC
+    // ========================================
+    // Add a function to toggle path input and error visibility based on active tab
+    this.updatePathInputs = () => {
+      const isTV = this.tabTV && this.tabTV.classList.contains('active');
+      const moviePathRow = this.inputPath ? this.inputPath.closest('.media-manager-form-row') : null;
+      const tvPathRow = this.inputTVPath ? this.inputTVPath.closest('.media-manager-form-row-tv') : null;
+      if (isTV) {
+        if (moviePathRow) moviePathRow.style.display = 'none';
+        if (this.pathError) this.pathError.style.display = 'none';
+        if (tvPathRow) tvPathRow.style.display = '';
+        if (this.pathErrorTV) {
+          if (this.inputTVPath && /\.(mp4|mkv|avi|mov)$/i.test(this.inputTVPath.value.trim())) {
+            this.pathErrorTV.textContent = 'Please enter the show folder path (no file extension needed)';
+            this.pathErrorTV.style.display = 'block';
+            console.log('[DEBUG] Showing TV-SHOW path error');
+          } else {
+            this.pathErrorTV.style.display = 'none';
+          }
         }
-      };
-      if (this.tabMovie) this.tabMovie.addEventListener('click', this.updatePathInputs);
-      if (this.tabTV) this.tabTV.addEventListener('click', this.updatePathInputs);
-      if (this.modeSingle) this.modeSingle.addEventListener('click', this.updatePathInputs);
-      this.updatePathInputs();
-      this.attachTVShowListeners();
-      
-      this.inputMovieTestTitle = this.containerElement.querySelector('#media-manager-movie-test-title');
-      this.inputMovieTestTMDBId = this.containerElement.querySelector('#media-manager-movie-test-tmdbid');
-      this.inputMovieTestPath = this.containerElement.querySelector('#media-manager-movie-test-path');
-      this.inputMovieTestDescription = this.containerElement.querySelector('#media-manager-movie-test-description');
-      this.posterImgMovieTest = this.containerElement.querySelector('.media-manager-poster-img-movie-test');
-      this.castListMovieTest = this.containerElement.querySelector('.media-manager-cast-list-movie-test');
-      this.fetchBtnMovieTest = this.containerElement.querySelector('.media-manager-fetch-btn-movie-test');
-      this.movieForm = this.containerElement.querySelector('.media-manager-movie-form');
-      this.tvForm = this.containerElement.querySelector('.media-manager-movie-form');
-      this.movieTestForm = this.containerElement.querySelector('.media-manager-movie-form');
-      console.log('[DEBUG] MOVIE-TEST selectors:', {
-        inputMovieTestTitle: this.inputMovieTestTitle,
-        inputMovieTestTMDBId: this.inputMovieTestTMDBId,
-        inputMovieTestPath: this.inputMovieTestPath,
-        inputMovieTestDescription: this.inputMovieTestDescription,
-        posterImgMovieTest: this.posterImgMovieTest,
-        castListMovieTest: this.castListMovieTest,
-        fetchBtnMovieTest: this.fetchBtnMovieTest,
-        movieTestForm: this.movieTestForm
-      });
-      // In setupElements, add:
-      this.viewJsonBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn-tv') : null;
+      } else {
+        if (moviePathRow) moviePathRow.style.display = '';
+        if (tvPathRow) tvPathRow.style.display = 'none';
+        if (this.pathErrorTV) this.pathErrorTV.style.display = 'none';
+        if (this.pathError) {
+          if (this.inputPath && !/\.(mp4|mkv|avi|mov)$/i.test(this.inputPath.value.trim())) {
+            this.pathError.textContent = 'Please enter the full file path, including the filename and extension (e.g., .mp4)';
+            this.pathError.style.display = 'block';
+            console.log('[DEBUG] Showing MOVIE path error');
+          } else {
+            this.pathError.style.display = 'none';
+          }
+        }
+      }
+    };
+
+    // ========================================
+    // INITIALIZATION AND EVENT SETUP
+    // ========================================
+    // Set up path input visibility event listeners
+    if (this.tabMovie) this.tabMovie.addEventListener('click', this.updatePathInputs);
+    if (this.tabTV) this.tabTV.addEventListener('click', this.updatePathInputs);
+    if (this.modeSingle) this.modeSingle.addEventListener('click', this.updatePathInputs);
+    
+    // Initialize path inputs and attach TV show listeners
+    this.updatePathInputs();
+    this.attachTVShowListeners();
   }
 
   setupEventListeners() {
@@ -243,7 +307,7 @@ class MediaManager {normalizedKey
     // TV Show specific Fetch Info button
     if (this.fetchBtnTV) {
       this.fetchBtnTV.onclick = () => {
-        this.handleFetchInfo();
+        this.handleFetchInfoTV();
       };
     }
       
@@ -311,63 +375,78 @@ class MediaManager {normalizedKey
     
     // Add real-time validation for Movie fields
     if (this.inputTitle) {
-        this.inputTitle.addEventListener('input', () => {
-          if (this.tabMovie && this.tabMovie.classList.contains('active')) {
-            console.log('[DEBUG] Movie Title input event');
-            this.validateField('title');
+      this.inputTitle.addEventListener('input', () => this.validateForm());
+      this.inputTitle.addEventListener('blur', () => this.validateField('title'));
+      // Add Enter key support for Movie title field
+      this.inputTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const isTV = this.tabTV && this.tabTV.classList.contains('active');
+          if (isTV) {
+            this.handleFetchInfoTV();
+          } else {
+            this.handleFetchInfo();
           }
-        });
-        this.inputTitle.addEventListener('blur', () => {
-          if (this.tabMovie && this.tabMovie.classList.contains('active')) {
-            console.log('[DEBUG] Movie Title blur event');
-            this.validateField('title');
         }
       });
     }
     if (this.inputPath) {
-        this.inputPath.addEventListener('input', () => {
-          if (this.tabMovie && this.tabMovie.classList.contains('active')) {
-            console.log('[DEBUG] Movie Path input event');
-            this.validateField('path');
+      this.inputPath.addEventListener('input', () => this.validateForm());
+      this.inputPath.addEventListener('blur', () => this.validateField('path'));
+      // Add Enter key support for Movie path field
+      this.inputPath.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const isTV = this.tabTV && this.tabTV.classList.contains('active');
+          if (isTV) {
+            this.handleFetchInfoTV();
+          } else {
+            this.handleFetchInfo();
           }
-        });
-        this.inputPath.addEventListener('blur', () => {
-          if (this.tabMovie && this.tabMovie.classList.contains('active')) {
-            console.log('[DEBUG] Movie Path blur event');
-            this.validateField('path');
-          }
-        });
+        }
+      });
     }
     
     // Add real-time validation for TV Show fields
     if (this.inputTVTitle) {
-        this.inputTVTitle.addEventListener('input', () => {
+      this.inputTVTitle.addEventListener('input', () => this.validateFormTV());
+      this.inputTVTitle.addEventListener('blur', () => this.validateFieldTV('title'));
+      // Add Enter key support for TV Show title field
+      this.inputTVTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
           if (this.tabTV && this.tabTV.classList.contains('active')) {
-            console.log('[DEBUG] TV Title input event');
-            this.validateFieldTV('title');
+            this.handleFetchInfoTV();
           }
-        });
-        this.inputTVTitle.addEventListener('blur', () => {
-          if (this.tabTV && this.tabTV.classList.contains('active')) {
-            console.log('[DEBUG] TV Title blur event');
-            this.validateFieldTV('title');
         }
       });
     }
     if (this.inputTVPath) {
-        this.inputTVPath.addEventListener('input', () => {
-          if (this.tabTV && this.tabTV.classList.contains('active')) {
-            console.log('[DEBUG] TV Path input event');
-            this.validateFieldTV('path');
-          }
-        });
-        this.inputTVPath.onblur = () => {
-          if (this.tabTV && this.tabTV.classList.contains('active')) {
-            console.log('[DEBUG] TV Path blur event');
-            this.validateFieldTV('path');
-          }
-        };
+      // Remove all previous event listeners by replacing the element
+      const oldInput = this.inputTVPath;
+      const newInput = oldInput.cloneNode(true);
+      oldInput.parentNode.replaceChild(newInput, oldInput);
+      this.inputTVPath = newInput;
+      this.inputTVPath.addEventListener('input', () => {
+        console.log('[DEBUG] validateFieldTV(path) called on input');
+        this.validateFieldTV('path');
+      });
+      this.inputTVPath.addEventListener('blur', () => {
+        console.log('[DEBUG] validateFieldTV(path) called on blur');
+        this.validateFieldTV('path');
+      });
+      this.inputTVPath.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          console.log('[DEBUG] validateFieldTV(path) called on Enter');
+          this.validateFieldTV('path');
+          this.handleFetchInfoTV();
+        }
+      });
     }
+    if (this.tabTV) this.tabTV.addEventListener('click', () => {
+      if (this.inputTVPath) this.validateFieldTV('path');
+    });
     
     // JSON Editor event listeners for Movie
     if (this.jsonEditorCloseBtn) {
@@ -582,21 +661,22 @@ class MediaManager {normalizedKey
     }
 
     // --- Season & Episode Images Modal logic ---
-    var viewImagesBtn = this.containerElement.querySelector('.media-manager-view-season-episode-images-btn-tv');
     var imagesModalOverlay = this.containerElement.querySelector('.media-manager-season-episode-images-modal-overlay');
     var imagesModalCloseBtn = this.containerElement.querySelector('.media-manager-season-episode-images-close-btn');
     var imagesModalContent = this.containerElement.querySelector('.media-manager-season-episode-images-content');
-    if (viewImagesBtn && imagesModalOverlay) {
-      viewImagesBtn.onclick = async function() {
+    if (this.viewImagesBtn && imagesModalOverlay) {
+      const self = this;
+      this.viewImagesBtn.onclick = async function() {
+        if (self.viewImagesBtn.disabled) return;
+        
+        // Show feedback for secondary process
+        console.log('[DEBUG - TV_SECONDARY] Starting Season & Episode Images process');
+        self.showModalToast('Loading Season & Episode Images...', 'info');
+        
         imagesModalOverlay.style.display = 'flex';
         if (imagesModalContent) {
-          imagesModalContent.innerHTML = '<div style="color:#bbb;">Loading images...</div>';
-          // Get current TV show info
-          var titleInput = document.getElementById('media-manager-tv-title');
-          var showTitle = titleInput ? titleInput.value.trim() : '';
-          // Use shared normalization function
-          var normalizedKey = window.normalizeKey ? window.normalizeKey(showTitle) : showTitle;
-          // Fetch normalized JSON files
+          imagesModalContent.innerHTML = '<div style="color:#bbb;">Loading Season & Episode Images...</div>';
+          var normalizedKey = self.getNormalizedKeyTV();
           var seasonImages = {};
           var episodeImages = {};
           try {
@@ -611,54 +691,17 @@ class MediaManager {normalizedKey
           console.log('[DEBUG - viewImagesBtn]- Normalized key:', normalizedKey);
           console.log('[DEBUG - viewImagesBtn]- Season images for key:', seasonImages[normalizedKey]);
           console.log('[DEBUG - viewImagesBtn]- Episode images for key:', episodeImages[normalizedKey]);
-
-          // Fuzzy matching logic
-          function levenshtein(a, b) {
-            const matrix = [];
-            let i;
-            for (i = 0; i <= b.length; i++) matrix[i] = [i];
-            let j;
-            for (j = 0; j <= a.length; j++) matrix[0][j] = j;
-            for (i = 1; i <= b.length; i++) {
-              for (j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                  matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                  matrix[i][j] = Math.min(
-                    matrix[i - 1][j - 1] + 1,
-                    matrix[i][j - 1] + 1,
-                    matrix[i - 1][j] + 1
-                  );
-                }
-              }
-            }
-            return matrix[b.length][a.length];
+          if (!seasonImages[normalizedKey] && !episodeImages[normalizedKey]) {
+            imagesModalContent.innerHTML = '<div style="color:#ff9800;">No season or episode images found for this show.</div>';
+            self.showModalToast('No season or episode images found for this show.', 'warning');
+            return;
           }
-
-          var allKeys = Object.keys(seasonImages);
-          var bestKey = normalizedKey;
-          var bestDist = 9999;
-          for (var k of allKeys) {
-            var dist = levenshtein(normalizedKey, k);
-            if (dist < bestDist) {
-              bestDist = dist;
-              bestKey = k;
-            }
-          }
-          var fuzzyNotice = '';
-          if (!seasonImages[normalizedKey] && seasonImages[bestKey] && bestDist <= 3) {
-            fuzzyNotice = '<div style="color:#ff9800;margin-bottom:8px;">No exact match. Showing closest match: <b>' + bestKey.replace(/\./g, ' ') + '</b></div>';
-            normalizedKey = bestKey;
-          } else if (!seasonImages[normalizedKey]) {
-            // No close match, show dropdown
-            fuzzyNotice = '<div style="color:#ff9800;margin-bottom:8px;">No match found. Select a show: <select id="mm-image-key-select">' +
-              allKeys.map(k => '<option value="' + k + '">' + k.replace(/\./g, ' ') + '</option>').join('') +
-              '</select></div>';
-          }
-
+          
+          // Get the season and episode data for the normalized key
           var showSeasons = seasonImages[normalizedKey] && seasonImages[normalizedKey].seasons ? seasonImages[normalizedKey].seasons : {};
           var showEpisodes = episodeImages[normalizedKey] && episodeImages[normalizedKey].seasons ? episodeImages[normalizedKey].seasons : {};
-          var html = fuzzyNotice + '<div class="media-manager-images-grid">';
+          
+          var html = '<div class="media-manager-images-grid">';
           for (var seasonNum in showSeasons) {
             var imgUrl = showSeasons[seasonNum].poster;
             html += '<div class="media-manager-image-card">';
@@ -684,6 +727,10 @@ class MediaManager {normalizedKey
           }
           html += '</div>';
           imagesModalContent.innerHTML = html;
+
+          // Success feedback for secondary process
+          console.log('[DEBUG - TV_SECONDARY] Season & Episode Images loaded successfully');
+          self.showModalToast('Season & Episode Images loaded successfully!', 'success');
 
           // Auto-populate seasons array for Confirm button
           function populateSeasonsDataFromImages(selectedKey) {
@@ -785,7 +832,14 @@ class MediaManager {normalizedKey
     }
     if (this.inputTVTitle) this.inputTVTitle.addEventListener('input', checkTVShowConfirmEnabled);
     if (this.inputTVDescription) this.inputTVDescription.addEventListener('input', checkTVShowConfirmEnabled);
-    if (this.castListTV) this.castListTV.addEventListener('DOMSubtreeModified', checkTVShowConfirmEnabled);
+    if (this.castListTV) {
+      // Use MutationObserver instead of deprecated DOMSubtreeModified
+      const observer = new MutationObserver(checkTVShowConfirmEnabled);
+      observer.observe(this.castListTV, { 
+        childList: true, 
+        subtree: true 
+      });
+    }
     // After modal populates seasons
     window._mmCheckSeasons = checkTVShowConfirmEnabled;
     // Call after modal populates
@@ -827,7 +881,6 @@ class MediaManager {normalizedKey
       title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
       tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
       absPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
-    
     } else {
       this.showModalAlert('Unknown tab state.', 'error');
       return;
@@ -844,13 +897,13 @@ class MediaManager {normalizedKey
       this.showModalAlert('Please enter a TV show folder path (no file extension).', 'error');
       return;
     }
-      let body;
-      if (tmdbId) {
+    let body;
+    if (tmdbId) {
       body = { type: isMovie ? 'movie' : 'tv', tmdbId };
-      } else {
+    } else {
       const isId = /^\d+$/.test(title);
       body = isId ? { type: isMovie ? 'movie' : 'tv', tmdbId: title } : { type: isMovie ? 'movie' : 'tv', title };
-      }
+    }
     this.showModalAlert('Fetching info from TMDB...', 'info');
     try {
       const res = await fetch('/api/media/fetch-tmdb', {
@@ -859,63 +912,124 @@ class MediaManager {normalizedKey
         body: JSON.stringify(body)
       });
       const data = await res.json();
+      console.log('[DEBUG - handleFetchInfo] TMDB response:', data);
       if (!data.success || !data.data) {
         this.showNoPosterManualTMDB();
         throw new Error('No TMDB data returned.');
       }
-      // Re-query tab state right before updating UI
-      const movieTabActive = this.tabMovie && this.tabMovie.classList.contains('active');
-      const tvTabActive = this.tabTV && this.tabTV.classList.contains('active');
+      
       // Set poster
-      if (movieTabActive) {
-      if (this.posterImg) this.posterImg.src = data.data.poster || '';
-      } else if (tvTabActive) {
+      if (isMovie) {
+        if (this.posterImg) this.posterImg.src = data.data.poster || '';
+      } else if (isTV) {
         if (this.posterImgTV) this.posterImgTV.src = data.data.poster || '';
       }
-      // Set description and cast for the correct tab ONLY
-      if (movieTabActive) {
-        
-        const movieContent = this.containerElement.querySelector('.media-manager-content-movie');
-        const descInput = movieContent ? movieContent.querySelector('#media-manager-description') : null;
-        if (descInput) descInput.value = data.data.description || '';
-        
-        const castList = movieContent ? movieContent.querySelector('.media-manager-cast-list') : null;
-        if (castList) {
-          castList.innerHTML = '';
-          (data.data.cast || []).forEach(actor => {
+      
+      // Set description and cast using direct element references
+      if (isMovie) {
+        // Use Movie elements
+        console.log('[DEBUG - handleFetchInfo] Movie elements:', {
+          descInput: this.descInput,
+          castList: this.castList,
+          description: data.data.description,
+          cast: data.data.cast
+        });
+        if (this.descInput) this.descInput.value = data.data.description || '';
+        if (this.castList) {
+          this.castList.innerHTML = '';
+          // Store the full cast data including profile URLs
+          this.currentCastData = data.data.cast || [];
+          
+          this.currentCastData.forEach(actor => {
             const div = document.createElement('div');
             div.className = 'media-manager-cast-item';
+            
+            // Create cast item with profile image if available
             if (actor.profile) {
-              div.innerHTML = `<img src="${actor.profile}" alt="${actor.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #4a90e2;"><span>${actor.name}${actor.character ? ` (${actor.character})` : ''}</span>`;
+              div.innerHTML = `
+                <img src="${actor.profile}" alt="${actor.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #4a90e2;">
+                <span>${actor.name}${actor.character ? ` (${actor.character})` : ''}</span>
+              `;
             } else {
               div.textContent = actor.name + (actor.character ? ` (${actor.character})` : '');
             }
-            castList.appendChild(div);
+            
+            this.castList.appendChild(div);
           });
         }
-      } else if (tvTabActive) {
-
-        const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
-        const descInput = tvContent ? tvContent.querySelector('#media-manager-tv-description') : null;
-        if (descInput) descInput.value = data.data.description || '';
-        
-        const castList = tvContent ? tvContent.querySelector('.media-manager-cast-list-tv') : null;
-        if (castList) {
-          castList.innerHTML = '';
-          (data.data.cast || []).forEach(actor => {
+      } else if (isTV) {
+        // Use TV Show elements
+        if (this.inputTVDescription) this.inputTVDescription.value = data.data.description || '';
+        if (this.castListTV) {
+          this.castListTV.innerHTML = '';
+          // Store the full cast data including profile URLs
+          this.currentCastData = data.data.cast || [];
+          
+          this.currentCastData.forEach(actor => {
             const div = document.createElement('div');
             div.className = 'media-manager-cast-item-tv';
-          if (actor.profile) {
-              div.innerHTML = `<img src="${actor.profile}" alt="${actor.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #4a90e2;"><span>${actor.name}${actor.character ? ` (${actor.character})` : ''}</span>`;
-          } else {
-            div.textContent = actor.name + (actor.character ? ` (${actor.character})` : '');
-          }
-            castList.appendChild(div);
-        });
-        this.currentCastData = data.data.cast || [];
+            
+            // Create cast item with profile image if available
+            if (actor.profile) {
+              div.innerHTML = `
+                <img src="${actor.profile}" alt="${actor.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #4a90e2;">
+                <span>${actor.name}${actor.character ? ` (${actor.character})` : ''}</span>
+              `;
+            } else {
+              div.textContent = actor.name + (actor.character ? ` (${actor.character})` : '');
+            }
+            
+            this.castListTV.appendChild(div);
+          });
+        }
+        
+        // --- NEW: Immediately fetch season and episode images ---
+        const normalizedKey = this.getNormalizedKeyTV();
+        const tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
+        const showPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
+        const viewImagesBtn = this.containerElement.querySelector('.media-manager-view-season-episode-images-btn-tv');
+        
+        console.log('[DEBUG - TV_IMAGES_FETCH] Starting season/episode images fetch');
+        console.log('[DEBUG - TV_IMAGES_FETCH] NormalizedKey:', normalizedKey);
+        console.log('[DEBUG - TV_IMAGES_FETCH] TMDB ID:', tmdbId);
+        console.log('[DEBUG - TV_IMAGES_FETCH] Show Path:', showPath);
+        
+        if (viewImagesBtn) viewImagesBtn.disabled = true;
+        this.showModalToast('Fetching season and episode images...', 'info');
+        
+        console.log('[DEBUG - TV_IMAGES_FETCH] Making API call to /api/media/fetch-tv-images');
+        fetch('/api/media/fetch-tv-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ normalizedKey, tmdbId, showPath })
+        })
+          .then(res => {
+            console.log('[DEBUG - TV_IMAGES_FETCH] Response status:', res.status);
+            console.log('[DEBUG - TV_IMAGES_FETCH] Response ok:', res.ok);
+            return res.json();
+          })
+          .then(imgData => {
+            console.log('[DEBUG - TV_IMAGES_FETCH] Response data:', imgData);
+            if (imgData.success) {
+              console.log('[DEBUG - TV_IMAGES_FETCH] Success! Season and episode images fetched');
+              this.showModalToast('Season and episode images fetched!', 'success');
+              if (viewImagesBtn) viewImagesBtn.disabled = false;
+            } else {
+              console.log('[DEBUG - TV_IMAGES_FETCH] Failed! No images found or error:', imgData.error || 'Unknown error');
+              this.showModalToast('No season or episode images found for this show.', 'error');
+              if (viewImagesBtn) viewImagesBtn.disabled = true;
+            }
+          })
+          .catch(imgErr => {
+            console.error('[DEBUG - TV_IMAGES_FETCH] Fetch error:', imgErr);
+            console.error('[DEBUG - TV_IMAGES_FETCH] Error message:', imgErr.message);
+            this.showModalToast('Error fetching images: ' + imgErr.message, 'error');
+            if (viewImagesBtn) viewImagesBtn.disabled = true;
+          });
       }
-        this.hideModalAlert();
-      }
+      
+      // Show success message for both movies and TV shows
+      this.showModalAlert('Fetched info from TMDB.', 'success');
     } catch (err) {
       this.showModalAlert('Failed to fetch info: ' + err.message, 'error');
     }
@@ -937,7 +1051,23 @@ class MediaManager {normalizedKey
       description = this.inputTVDescription ? this.inputTVDescription.value.trim() : '';
       year = this.inputTVYear ? this.inputTVYear.value.trim() : '';
     }
-    
+    // --- NORMALIZE KEY LOGIC ---
+    let folderName = absPath ? absPath.split(/[\\/]/).slice(-2, -1)[0] || absPath.split(/[\\/]/).pop() : '';
+    let normalizedKey = (window.normalizeKey || function(name) {
+      return name
+        .replace(/\\/g, '/')
+        .replace(/\s*&\s*/g, '.&.')
+        .replace(/\s+/g, '.')
+        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+    })(folderName || title);
+    if (!normalizedKey) {
+      if (window.showToast) window.showToast('Error saving: Missing normalizedKey', 'error');
+      console.error('[MediaManager] Error saving: Missing normalizedKey');
+      return;
+    }
+    // ... existing code ...
     const poster = this.posterImg ? this.posterImg.src : '';
     let cast = [];
     if (type === 'movie') {
@@ -992,7 +1122,7 @@ class MediaManager {normalizedKey
       const res = await fetch('/api/media/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, absPath, poster, description, cast, title, year })
+        body: JSON.stringify({ type, absPath, poster, description, cast, title, year, normalizedKey })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to save info');
@@ -1065,10 +1195,21 @@ class MediaManager {normalizedKey
       const movieCast = this.containerElement.querySelector('.media-manager-cast-list');
         if (movieDesc) movieDesc.style.display = 'none';
       if (movieCast) movieCast.style.display = 'none';
+      
+      // Initialize the View Images button as disabled when switching to TV tab
+      if (this.viewImagesBtn) {
+        this.viewImagesBtn.disabled = true;
+        this.viewImagesBtn.textContent = 'Get Season & Episode Images';
+        console.log('[DEBUG - switchTab] Initialized viewImagesBtn as disabled for TV tab:', this.viewImagesBtn);
+      }
     } else if (tab === 'movie-test') {
         if (tabMovieTest) tabMovieTest.classList.add('active');
         if (movieTestContent) movieTestContent.style.display = 'block';
     }
+    
+    // Update path inputs after switching tabs
+    this.updatePathInputs();
+    
     console.log('[DEBUG] switchTab called with:', tab);
     console.log('[DEBUG] MOVIE display:', movieContent && movieContent.style.display, '| TV display:', tvContent && tvContent.style.display, '| MOVIE-TEST display:', movieTestContent && movieTestContent.style.display);
   }
@@ -1333,33 +1474,83 @@ class MediaManager {normalizedKey
   }
 
   validateField(fieldName) {
-      // Validation removed: always return true
+    const field = fieldName === 'title' ? this.inputTitle : this.inputPath;
+    const errorElement = fieldName === 'title' ? this.titleError : this.pathError;
+    const value = field ? field.value.trim() : '';
+    
+    if (!value) {
+      if (field) field.classList.add('error');
+      if (errorElement) errorElement.textContent = fieldName === 'title' ? 'Title required' : 'File/Folder Path is required';
+      if (errorElement) errorElement.style.display = 'block';
+      return false;
+    }
+    // For path, require a full file path ending in .mp4, .mkv, .avi, or .mov
+    if (fieldName === 'path') {
+      if (!/\.(mp4|mkv|avi|mov)$/i.test(value)) {
+        if (field) field.classList.add('error');
+        if (errorElement) errorElement.textContent = 'Please enter the full file path, including the filename and extension (e.g., .mp4)';
+        if (errorElement) errorElement.style.display = 'block';
+        return false;
+      }
+    }
+    if (field) field.classList.remove('error');
+    if (errorElement) errorElement.style.display = 'none';
     return true;
   }
 
   validateFieldTV(fieldName) {
-      // Validation removed: always return true
+    const field = fieldName === 'title' ? this.inputTVTitle : this.inputTVPath;
+    const errorElement = fieldName === 'title' ? this.titleErrorTV : this.pathErrorTV;
+    const value = field ? field.value.trim() : '';
+    
+    if (!value) {
+      if (field) field.classList.add('error');
+      if (errorElement) errorElement.textContent = fieldName === 'title' ? 'Show Title is required' : 'Show Path is required';
+      if (errorElement) errorElement.style.display = 'block';
+      return false;
+    }
+    // For TV path, require a folder path (not a file)
+    if (fieldName === 'path') {
+      if (/\.(mp4|mkv|avi|mov)$/i.test(value)) {
+        if (field) field.classList.add('error');
+        if (errorElement) errorElement.textContent = 'Please enter the show folder path (no file extension needed)';
+        if (errorElement) errorElement.style.display = 'block';
+        return false;
+      }
+    }
+    if (field) field.classList.remove('error');
+    if (errorElement) errorElement.style.display = 'none';
     return true;
   }
 
   validateForm() {
-      // Validation removed: always return true and enable confirm button
+    const titleValid = this.validateField('title');
+    const pathValid = this.validateField('path');
+    const isFormValid = titleValid && pathValid;
+    
+    // Enable/disable submit button
     if (this.confirmBtn) {
-        this.confirmBtn.disabled = false;
-        this.confirmBtn.style.opacity = '1';
-        this.confirmBtn.style.cursor = 'pointer';
-      }
-      return true;
+      this.confirmBtn.disabled = !isFormValid;
+      this.confirmBtn.style.opacity = isFormValid ? '1' : '0.5';
+      this.confirmBtn.style.cursor = isFormValid ? 'pointer' : 'not-allowed';
+    }
+    
+    return isFormValid;
   }
 
   validateFormTV() {
-      // Validation removed: always return true and enable confirm button
+    const titleValid = this.validateFieldTV('title');
+    const pathValid = this.validateFieldTV('path');
+    const isFormValid = titleValid && pathValid;
+    
+    // Enable/disable submit button
     if (this.confirmBtnTV) {
-        this.confirmBtnTV.disabled = false;
-        this.confirmBtnTV.style.opacity = '1';
-        this.confirmBtnTV.style.cursor = 'pointer';
-      }
-      return true;
+      this.confirmBtnTV.disabled = !isFormValid;
+      this.confirmBtnTV.style.opacity = isFormValid ? '1' : '0.5';
+      this.confirmBtnTV.style.cursor = isFormValid ? 'pointer' : 'not-allowed';
+    }
+    
+    return isFormValid;
   }
 
   show() {
@@ -1371,6 +1562,12 @@ class MediaManager {normalizedKey
     this.validateForm();
     // Set global instance for batch actions
     window.mediaManager = this;
+    // Initialize the View Images button as disabled
+    if (this.viewImagesBtn) {
+      this.viewImagesBtn.disabled = true;
+      this.viewImagesBtn.textContent = 'Get Season & Episode Images';
+      console.log('[DEBUG - MediaManager] Initialized viewImagesBtn as disabled:', this.viewImagesBtn);
+    }
   }
 
   destroy() {
@@ -1380,18 +1577,21 @@ class MediaManager {normalizedKey
 
   // --- TV Show Logic ---
   handleFetchInfoTV() {
-
-    console.log('[DEBUG] inputTVTMDBId === document.querySelector("#media-manager-tv-tmdbid"):', this.inputTVTMDBId === document.querySelector("#media-manager-tv-tmdbid"));
-
+    console.log('[DEBUG - TV_FETCH] handleFetchInfoTV called');
     let title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
     let tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
-    console.log('[DEBUG - FetchInfoTV] TV Title:', title, '| TV TMDB ID:', tmdbId, '| inputTVTMDBId:', this.inputTVTMDBId);
+    console.log('[DEBUG - TV_FETCH] Title:', title, 'TMDB ID:', tmdbId);
     
     if (!title && !tmdbId) {
-      window.showToast && window.showToast('Please enter a show title or TMDB ID.', 'error');
-      console.error('[Toast][MediaManager] Please enter a show title or TMDB ID.');
+      console.log('[DEBUG - TV_FETCH] No title or TMDB ID provided');
+      this.showModalAlert('Please enter a show title or TMDB ID.', 'error');
       return;
     }
+    
+    // Show loading state
+    this.showModalAlert('Fetching TV Show details from TMDB...', 'info');
+    console.log('[DEBUG - TV_FETCH] Starting one-stop process for:', title || tmdbId);
+    
     const body = tmdbId ? { type: 'tv', tmdbId } : { type: 'tv', title };
     fetch('/api/media/fetch-tmdb', {
       method: 'POST',
@@ -1400,23 +1600,29 @@ class MediaManager {normalizedKey
     })
       .then(res => res.json())
       .then(data => {
-        console.log('[DEBUG - FetchInfoTV] TMDB API response:', data);
         if (!data.success) throw new Error(data.error || 'Failed to fetch info');
         if (data.results) {
           this.showTMDBSelectModal(data.results);
           return;
         }
         if (!data.data) throw new Error('No TMDB data returned');
+        
+        // STEP 1: Load Poster, Description, and Cast (Primary Process)
+        console.log('[DEBUG - TV_FETCH] Loading primary data: Poster, Description, Cast');
+        
+        // Set poster
         if (this.posterImgTV) {
           this.posterImgTV.src = data.data.poster || '';
-          console.log('[DEBUG - FetchInfoTV] Set posterImgTV.src:', this.posterImgTV.src, this.posterImgTV);
+          console.log('[DEBUG - TV_FETCH] Poster loaded:', data.data.poster ? 'Yes' : 'No');
         }
+        
+        // Set description
         if (this.inputTVDescription) {
           this.inputTVDescription.value = data.data.description || '';
-          console.log('[DEBUG - FetchInfoTV] Set inputTVDescription.value:', this.inputTVDescription.value, this.inputTVDescription);
-        } else {
-          console.warn('[DEBUG - FetchInfoTV] inputTVDescription is null!');
+          console.log('[DEBUG - TV_FETCH] Description loaded:', data.data.description ? 'Yes' : 'No');
         }
+        
+        // Set cast with profile images
         if (this.castListTV) {
           this.castListTV.innerHTML = '';
           (data.data.cast || []).forEach(actor => {
@@ -1430,14 +1636,35 @@ class MediaManager {normalizedKey
             this.castListTV.appendChild(div);
           });
           this.currentCastData = data.data.cast || [];
-          console.log('[DEBUG - FetchInfoTV] Set castListTV:', this.castListTV, 'Cast:', data.data.cast);
+          console.log('[DEBUG - TV_FETCH] Cast loaded:', this.currentCastData.length, 'members');
         }
+        
+        // Set additional metadata
         if (this.inputTVYear) this.inputTVYear.value = data.data.year || '';
         if (this.inputTVTMDBId) this.inputTVTMDBId.value = data.data.tmdbId || '';
+        
+        // STEP 2: Enable Secondary Process Button
+        if (this.viewImagesBtn) {
+          this.viewImagesBtn.disabled = false;
+          this.viewImagesBtn.textContent = 'Get Season & Episode Images';
+          console.log('[DEBUG - TV_FETCH] Secondary process button enabled');
+        }
+        
+        // Success message
+        const successMsg = `TV Show details loaded successfully!\n\n✅ Poster: ${data.data.poster ? 'Loaded' : 'Not available'}\n✅ Description: ${data.data.description ? 'Loaded' : 'Not available'}\n✅ Cast: ${this.currentCastData.length} members loaded\n\nClick "Get Season & Episode Images" for the next step.`;
+        this.showModalAlert(successMsg, 'success');
+        
+        console.log('[DEBUG - TV_FETCH] One-stop process completed successfully');
       })
       .catch(err => {
-        window.showToast && window.showToast('Failed to fetch info: ' + err.message, 'error');
-        console.error('[MediaManager] Failed to fetch info: ' + err.message);
+        console.error('[DEBUG - TV_FETCH] Error:', err.message);
+        this.showModalAlert('Error fetching TV show info: ' + err.message, 'error');
+        
+        // Keep secondary button disabled on error
+        if (this.viewImagesBtn) {
+          this.viewImagesBtn.disabled = true;
+          this.viewImagesBtn.textContent = 'Get Season & Episode Images';
+        }
       });
   }
 
@@ -1823,20 +2050,18 @@ Modified: ${new Date(episode.modified).toLocaleString()}
     const year = this.inputTVYear ? this.inputTVYear.value.trim() : '';
     const tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
     const description = this.inputTVDescription ? this.inputTVDescription.value.trim() : '';
-    // Cast
-    const cast = [];
-    if (this.castListTV) {
-      this.castListTV.querySelectorAll('.media-manager-cast-item-tv').forEach(div => {
-        const [name, character] = div.textContent.split(' as ');
-        cast.push({ name: name.trim(), character: character ? character.trim() : '' });
-      });
-    }
+    // Always use the latest TMDB cast data
+    const cast = Array.isArray(this.currentCastData) ? this.currentCastData : [];
     // Poster (URL or path)
     const poster = this.posterImgTV ? this.posterImgTV.src : '';
     // Seasons/episodes - use scanned data if available, otherwise fall back to manual entry
     const seasons = this.scannedSeasonsData || [];
+    console.log('[DEBUG - TV CONFIRM] Initial scannedSeasonsData:', this.scannedSeasonsData);
+    console.log('[DEBUG - TV CONFIRM] Initial seasons array:', seasons);
+    
     if (seasons.length === 0 && this.seasonsList) {
       // Fallback to manual entry
+      console.log('[DEBUG - TV CONFIRM] Using fallback to manual entry');
       this.seasonsList.querySelectorAll('.media-manager-season-block').forEach((seasonDiv, i) => {
         const seasonNumber = i + 1;
         const episodes = [];
@@ -1849,15 +2074,36 @@ Modified: ${new Date(episode.modified).toLocaleString()}
         seasons.push({ seasonNumber, episodes });
       });
     }
-    // Validation
-    if (!title || seasons.length === 0) {
-      window.showToast && window.showToast('Show title and at least one season are required.', 'error');
-      console.error('[Toast][MediaManager] Show title and at least one season are required.');
+    
+    console.log('[DEBUG - TV CONFIRM] Final seasons array:', seasons);
+    console.log('[DEBUG - TV CONFIRM] Seasons with episodes:', seasons.filter(s => Array.isArray(s.episodes) && s.episodes.length > 0));
+    
+    // Validation - only require title for new TV show
+    if (!title) {
+      this.showModalToast('Show title is required.', 'error');
+      console.error('[DEBUG - TV CONFIRM] Show title is required.');
+      return;
+    }
+    
+    // Generate normalizedKey from showPath or title
+    const showPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
+    let folderName = showPath ? showPath.split(/[\\/]/).slice(-2, -1)[0] || showPath.split(/[\\/]/).pop() : '';
+    let normalizedKey = (window.normalizeKey || function(name) {
+      return name
+        .replace(/\\/g, '/')
+        .replace(/\s*&\s*/g, '.&.')
+        .replace(/\s+/g, '.')
+        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+    })(folderName || title);
+    if (!normalizedKey) {
+      if (window.showToast) window.showToast('Error saving: Missing normalizedKey', 'error');
+      console.error('[MediaManager] Error saving: Missing normalizedKey');
       return;
     }
     // Build payload
-    const showPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
-    const payload = { type: 'tv', tmdbId, title, year, description, cast, poster, seasons, showPath };
+    const payload = { type: 'tv', tmdbId, title, year, description, cast, poster, seasons, showPath, normalizedKey };
     // --- Spinner logic ---
     if (this.confirmBtnTV) {
       this.confirmBtnTV.disabled = true;
@@ -1871,13 +2117,48 @@ Modified: ${new Date(episode.modified).toLocaleString()}
       .then(res => res.json())
       .then(data => {
         if (!data.success) throw new Error(data.error || 'Failed to save TV show');
-        window.showToast && window.showToast('TV show saved successfully!', 'success');
-        console.info('[Toast][MediaManager] TV show saved successfully!');
+        this.showModalToast('TV show saved successfully!', 'success');
+        console.info('[DEBUG - TV CONFIRM] TV show saved successfully!');
+        // --- NEW: Fetch season and episode images automatically ---
+        console.log('[DEBUG - TV_CONFIRM_IMAGES] Starting season/episode images fetch from confirm');
+        console.log('[DEBUG - TV_CONFIRM_IMAGES] NormalizedKey:', normalizedKey);
+        console.log('[DEBUG - TV_CONFIRM_IMAGES] TMDB ID:', tmdbId);
+        console.log('[DEBUG - TV_CONFIRM_IMAGES] Show Path:', showPath);
+        
+        this.showModalToast('Fetching season and episode images...', 'info');
+        console.log('[DEBUG - TV_CONFIRM_IMAGES] Making API call to /api/media/fetch-tv-images');
+        fetch('/api/media/fetch-tv-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ normalizedKey, tmdbId, showPath })
+        })
+          .then(res => {
+            console.log('[DEBUG - TV_CONFIRM_IMAGES] Response status:', res.status);
+            console.log('[DEBUG - TV_CONFIRM_IMAGES] Response ok:', res.ok);
+            return res.json();
+          })
+          .then(imgData => {
+            console.log('[DEBUG - TV_CONFIRM_IMAGES] Response data:', imgData);
+            if (imgData.success) {
+              console.log('[DEBUG - TV_CONFIRM_IMAGES] Success! Season and episode images fetched');
+              this.showModalToast('Season and episode images fetched!', 'success');
+            } else {
+              console.log('[DEBUG - TV_CONFIRM_IMAGES] Failed! No images found or error:', imgData.error || 'Unknown error');
+              this.showModalToast('Failed to fetch images: ' + (imgData.error || 'Unknown error'), 'error');
+            }
+            setTimeout(() => this.destroy(), 1200);
+          })
+          .catch(imgErr => {
+            console.error('[DEBUG - TV_CONFIRM_IMAGES] Fetch error:', imgErr);
+            console.error('[DEBUG - TV_CONFIRM_IMAGES] Error message:', imgErr.message);
+            this.showModalToast('Error fetching images: ' + imgErr.message, 'error');
+            setTimeout(() => this.destroy(), 1800);
+          });
         this.destroy();
       })
       .catch(err => {
-        window.showToast && window.showToast('Failed to save TV show: ' + err.message, 'error');
-        console.error('[MediaManager] Failed to save TV show: ' + err.message);
+        this.showModalToast('Failed to save TV show: ' + err.message, 'error');
+        console.error('[DEBUG - TV CONFIRM] Failed to save TV show: ' + err.message);
       })
       .finally(() => {
         if (this.confirmBtnTV) {
@@ -2181,6 +2462,73 @@ Modified: ${new Date(episode.modified).toLocaleString()}
         }
       };
     }
+  }
+
+  // Modal Toast Methods
+  showModalToast(message, type = 'info', duration = 5000) {
+    const toastElement = document.querySelector('.media-manager-modal-toast');
+    if (!toastElement) {
+      console.error('[DEBUG - MODAL TOAST] Toast element not found');
+      return;
+    }
+    
+    const messageElement = toastElement.querySelector('.media-manager-modal-toast-message');
+    const closeBtn = toastElement.querySelector('.media-manager-modal-toast-close');
+    
+    if (!messageElement || !closeBtn) {
+      console.error('[DEBUG - MODAL TOAST] Toast child elements not found');
+      return;
+    }
+    
+    // Set message and type
+    messageElement.textContent = message;
+    toastElement.className = `media-manager-modal-toast ${type}`;
+    
+    // Show toast
+    toastElement.style.display = 'block';
+    
+    // Auto-hide after duration
+    if (duration > 0) {
+      setTimeout(() => {
+        this.hideModalToast();
+      }, duration);
+    }
+    
+    // Close button handler
+    closeBtn.onclick = () => this.hideModalToast();
+    
+    console.log(`[DEBUG - MODAL TOAST][${type.toUpperCase()}] ${message}`);
+  }
+
+  hideModalToast() {
+    const toastElement = document.querySelector('.media-manager-modal-toast');
+    if (!toastElement) {
+      console.error('[DEBUG - MODAL TOAST] Toast element not found for hiding');
+      return;
+    }
+    
+    toastElement.style.animation = 'modalToastSlideOut 0.3s ease-out';
+    setTimeout(() => {
+      toastElement.style.display = 'none';
+      toastElement.style.animation = '';
+    }, 300);
+  }
+
+  getNormalizedKeyTV() {
+    const title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
+    const year = this.inputTVYear ? this.inputTVYear.value.trim() : '';
+    const tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
+    const description = this.inputTVDescription ? this.inputTVDescription.value.trim() : '';
+    const path = this.inputTVPath ? this.inputTVPath.value.trim() : '';
+    return (window.normalizeKey || function(name) {
+      return name
+        .replace(/\\/g, '/')
+        .replace(/\s*&\s*/g, '.&.')
+        .replace(/\s+/g, '.')
+        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+    })(`${title} ${year} ${tmdbId} ${description} ${path}`);
   }
 
 }
@@ -2544,12 +2892,17 @@ MediaManager.prototype.processMovieDelete = async function(movie) {
 // NEW: Grid handler methods
 MediaManager.prototype.handleScanMovies = async function() {
   try {
-    console.log('[MediaManager] Starting movie scan...');
+    console.log('[DEBUG - SCAN_MOVIES] Starting movie scan for SINGLE mode...');
     
-    // Show progress
-    if (this.progressContainer) this.progressContainer.style.display = 'flex';
-    if (this.progressBar) this.progressBar.style.width = '0%';
-    if (this.progressSummary) this.progressSummary.textContent = 'Scanning for new movies...';
+    // Disable the button and show loading state
+    if (this.scanMoviesBtn) {
+      this.scanMoviesBtn.disabled = true;
+      this.scanMoviesBtn.textContent = 'Scanning...';
+    }
+    
+    // Show toast for scanning
+    this.showModalToast('Scanning movie folders for new movies...', 'info');
+    console.log('[DEBUG - SCAN_MOVIES] Running SCAN_media_library_movies.js script...');
     
     const response = await fetch('/api/media/scan-movies', {
       method: 'POST',
@@ -2563,40 +2916,37 @@ MediaManager.prototype.handleScanMovies = async function() {
     }
     
     const newMovies = data.data.newMovies || [];
-    console.log(`[MediaManager] Found ${newMovies.length} new movies`);
+    console.log(`[DEBUG - SCAN_MOVIES] Found ${newMovies.length} new movies`);
     
-    // Update counter
-    if (this.counterValue) {
-      this.counterValue.textContent = newMovies.length;
+    // Re-enable the button
+    if (this.scanMoviesBtn) {
+      this.scanMoviesBtn.disabled = false;
+      this.scanMoviesBtn.textContent = 'SCAN Movie folders for NEW Movies';
     }
     
-    // Populate grid
-    this.populateMovieGrid(newMovies);
-    
-    // Update button states
-    this.updateButtonStates(newMovies.length);
-    
-    // Show completion
-    if (this.progressBar) this.progressBar.style.width = '100%';
-    if (this.progressSummary) this.progressSummary.textContent = `Scan complete: ${newMovies.length} new movies found`;
-    
-    if (window.showToast) {
-      window.showToast(`Found ${newMovies.length} new movies`, 'success');
+    // Show completion message as toast
+    if (newMovies.length > 0) {
+      const movieList = newMovies.slice(0, 5).map(m => `${m.title} (${m.year})`).join('\n');
+      const moreText = newMovies.length > 5 ? `\n... and ${newMovies.length - 5} more` : '';
+      const successMsg = `Scan complete! Found ${newMovies.length} new movies:\n\n${movieList}${moreText}\n\nYou can now add details for any of these movies using the form above.`;
+      this.showModalToast(successMsg, 'success');
+      console.log('[DEBUG - SCAN_MOVIES] Scan completed successfully');
+    } else {
+      this.showModalToast('Scan complete! No new movies found in your library folders.', 'info');
+      console.log('[DEBUG - SCAN_MOVIES] No new movies found');
     }
-    
-    // Hide progress after delay
-    setTimeout(() => {
-      if (this.progressContainer) this.progressContainer.style.display = 'none';
-    }, 3000);
     
   } catch (err) {
-    console.error('[MediaManager] Scan error:', err);
-    if (this.progressSummary) this.progressSummary.textContent = `Error: ${err.message}`;
-    if (window.showToast) window.showToast(`Scan error: ${err.message}`, 'error');
+    console.error('[DEBUG - SCAN_MOVIES] Scan error:', err);
     
-    setTimeout(() => {
-      if (this.progressContainer) this.progressContainer.style.display = 'none';
-    }, 3000);
+    // Re-enable the button
+    if (this.scanMoviesBtn) {
+      this.scanMoviesBtn.disabled = false;
+      this.scanMoviesBtn.textContent = 'SCAN Movie folders for NEW Movies';
+    }
+    
+    // Show error message as toast
+    this.showModalToast(`Scan error: ${err.message}`, 'error');
   }
 };
 

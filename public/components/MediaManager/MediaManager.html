@@ -1,8 +1,8 @@
 <!--
   MEDIAMANAGER.HTML
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 -->
 <div class="media-manager-overlay">
@@ -18,6 +18,14 @@
         <button class="media-manager-mode-btn media-manager-mode-single active">Single</button>
         <span class="media-manager-tab-separator" style="display:none">|</span>
         <button class="media-manager-mode-btn media-manager-mode-all" style="display:none">All</button>
+      </div>
+    </div>
+
+    <!-- Modal Toast Area -->
+    <div class="media-manager-modal-toast" style="display: none;">
+      <div class="media-manager-modal-toast-content">
+        <span class="media-manager-modal-toast-message"></span>
+        <button class="media-manager-modal-toast-close" type="button">&times;</button>
       </div>
     </div>
 
@@ -69,6 +77,13 @@
               <button class="media-manager-fetch-btn" type="button">Fetch Info
                 <span class="media-manager-info-icon"
                   data-tooltip="Fetches info from TMDB for the entered title or ID. Example: Enter 'Batman: The Movie' or '2661' and click Fetch Info."><span
+                    class="media-manager-info-icon-inner"></span></span>
+              </button>
+            </div>
+            <div class="media-manager-form-row">
+              <button class="media-manager-scan-movies-btn" type="button">SCAN Movie folders for NEW Movies
+                <span class="media-manager-info-icon"
+                  data-tooltip="Runs the SCAN_media_library_movies.js script to find new movies in your library folders."><span
                     class="media-manager-info-icon-inner"></span></span>
               </button>
             </div>
@@ -209,6 +224,14 @@
                 <div class="media-manager-field-error-tv" id="tv-title-error" style="display: none;">Title required</div>
               </div>
               <div class="media-manager-form-row">
+                <label class="media-manager-label-tv" for="media-manager-tv-year">Year (Optional)
+                  <span class="media-manager-info-icon"
+                    data-tooltip="Enter the year the TV show started. Example: 2008"><span
+                      class="media-manager-info-icon-inner"></span></span>
+                </label>
+                <input class="media-manager-input-tv" id="media-manager-tv-year" type="text" placeholder="e.g. 2008">
+              </div>
+              <div class="media-manager-form-row">
                 <label class="media-manager-label-tv" for="media-manager-tv-tmdbid">TMDB ID (Optional)
                   <span class="media-manager-info-icon"
                     data-tooltip="Enter the TMDB ID for the TV show. Example: 79501"><span
@@ -251,8 +274,8 @@
                     class="media-manager-info-icon-inner"></span></span>
               </button>
             </div>
-            <button class="media-manager-view-season-episode-images-btn-tv" type="button" style="margin-bottom: 12px;">View Season & Episode Images</button>
-            <span class="view-images-btn-tv-CONFIRM-text">Required for Confirm</span>
+            <button class="media-manager-view-season-episode-images-btn-tv" type="button" style="margin-bottom: 12px;">Get Season & Episode Images</button>
+            <span class="view-images-btn-tv-CONFIRM-text">Step 2: After getting Poster, Description & Cast</span>
 
             <div class="media-manager-details-row" style="display: flex; flex-direction: row; gap: 32px;">
               <div class="media-manager-description-section" style="flex: 2;">

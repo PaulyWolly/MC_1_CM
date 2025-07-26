@@ -1,8 +1,8 @@
 /*
-  MEDIAMANAGER.JS - rebuilt by Paul Welby on 7/20/2025
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  MEDIAMANAGER.JS
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -65,132 +65,41 @@ class MediaManager {normalizedKey
   }
 
   setupElements() {
+    // --- SHARED ELEMENTS ---
     this.containerElement = document.querySelector('.media-manager-overlay');
     this.closeBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-btn') : null;
     this.tabMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-movie') : null;
     this.tabTV = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-tv') : null;
     this.modeSingle = this.containerElement ? this.containerElement.querySelector('.media-manager-mode-single') : null;
+    this.confirmBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn-movie') : null;
+    this.confirmBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn-tv') : null;
+    this.viewJsonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn-movie') : null;
+    this.viewJsonBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn-tv') : null;
+
+    // --- MOVIE TAB ELEMENTS ---
+    // Main content container for Movie tab
     this.contentMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-content-movie') : null;
-    this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
-    this.inputTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-title') : null;
-    this.inputPath = this.containerElement ? this.containerElement.querySelector('#media-manager-path') : null;
-    this.fetchBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fetch-btn') : null;
+    // Movie form fields
+    this.inputTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-title-movie') : null;
+    this.inputPath = this.containerElement ? this.containerElement.querySelector('#media-manager-path-movie') : null;
+    this.descInput = this.containerElement ? this.containerElement.querySelector('#media-manager-description-movie') : null;
+    this.castList = this.containerElement ? this.containerElement.querySelector('.media-manager-cast-list-movie') : null;
     this.posterImg = this.containerElement ? this.containerElement.querySelector('.media-manager-poster-img') : null;
-    this.descInput = this.containerElement ? this.containerElement.querySelector('#media-manager-description') : null;
-    this.castList = this.containerElement ? this.containerElement.querySelector('.media-manager-cast-list') : null;
-    this.confirmBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn') : null;
-    this.viewJsonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn') : null;
-    // TV Show fields
-    this.inputTVTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-title') : null;
-    this.inputTVYear = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-year') : null;
-    this.inputTVTMDBId = this.containerElement.querySelector('#media-manager-tv-tmdbid');
-    this.inputTVDescription = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-description') : null;
-    this.inputTVPath = this.containerElement ? this.containerElement.querySelector('#media-manager-tv-path') : null;
+    this.fetchBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fetch-btn-movie') : null;
+
+    // --- TV SHOW TAB ELEMENTS ---
+    // Main content container for TV Show tab
+    this.contentTV = this.containerElement ? this.containerElement.querySelector('.media-manager-content-tv') : null;
+    // TV Show form fields
+    this.inputTVTitle = this.containerElement ? this.containerElement.querySelector('#media-manager-title-tv') : null;
+    this.inputTVPath = this.containerElement ? this.containerElement.querySelector('#media-manager-path-tv') : null;
+    this.inputTVDescription = this.containerElement ? this.containerElement.querySelector('#media-manager-description-tv') : null;
     this.castListTV = this.containerElement ? this.containerElement.querySelector('.media-manager-cast-list-tv') : null;
     this.posterImgTV = this.containerElement ? this.containerElement.querySelector('.media-manager-poster-img-tv') : null;
-    this.seasonsList = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-list') : null;
-    this.addSeasonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-add-season-btn') : null;
-    this.confirmBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn-tv') : null;
     this.fetchBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-fetch-btn-tv') : null;
-    
-    // Validation elements
-    this.titleError = this.containerElement ? this.containerElement.querySelector('#title-error') : null;
-    this.pathError = this.containerElement ? this.containerElement.querySelector('#path-error') : null;
-    this.titleErrorTV = this.containerElement ? this.containerElement.querySelector('#tv-title-error') : null;
-    this.pathErrorTV = this.containerElement ? this.containerElement.querySelector('#tv-path-error') : null;
-    
-    // JSON Editor elements
-    this.jsonEditorOverlay = this.containerElement ? this.containerElement.querySelector('.json-editor-overlay') : null;
-    this.jsonEditorTextarea = this.containerElement ? this.containerElement.querySelector('.json-editor-textarea') : null;
-    this.jsonEditorCloseBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-close-btn') : null;
-    this.jsonEditorCopyBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-copy-btn') : null;
-    this.jsonEditorSaveBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-save-btn') : null;
-    this.jsonEditorCancelBtn = this.containerElement ? this.containerElement.querySelector('.json-editor-cancel-btn') : null;
-    this.jsonEditorOverlayTV = this.containerElement ? this.containerElement.querySelector('.json-editor-overlay-tv') : null;
-    this.jsonEditorTextareaTV = this.containerElement ? this.containerElement.querySelector('.json-editor-textarea-tv') : null;
-    this.jsonEditorCloseBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-close-btn-tv') : null;
-    this.jsonEditorCopyBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-copy-btn-tv') : null;
-    this.jsonEditorSaveBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-save-btn-tv') : null;
-    this.jsonEditorCancelBtnTV = this.containerElement ? this.containerElement.querySelector('.json-editor-cancel-btn-tv') : null;
 
-    // Modal for seasons/episodes
-    this.manageSeasonsBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-manage-seasons-btn') : null;
-    this.seasonsModalOverlay = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-overlay') : null;
-    this.seasonsModalCloseBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-close-btn') : null;
-    this.seasonsModalCancelBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-cancel-btn') : null;
-    this.seasonsModalSaveBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-seasons-modal-save-btn') : null;
-
-    // Hidden TMDB ID field
-    this.inputTMDBId = this.containerElement ? this.containerElement.querySelector('#media-manager-tmdbid') : null;
-    this.tmdbIdRow = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-row') : null;
-    this.tmdbIdMsg = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-msg') : null;
-
-    // TMDB ID reveal button logic
-    const tmdbIdRevealBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-reveal-btn') : null;
-    const tmdbIdInlineRow = this.containerElement ? this.containerElement.querySelector('.media-manager-tmdbid-inline-row') : null;
-    if (tmdbIdRevealBtn && tmdbIdInlineRow) {
-        tmdbIdRevealBtn.onclick = () => {
-            tmdbIdRevealBtn.classList.add('hidden');
-            tmdbIdInlineRow.classList.remove('hidden');
-            const input = tmdbIdInlineRow.querySelector('#media-manager-tmdbid');
-            if (input) input.focus();
-        };
-    }
-    this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
-      
-      // NEW: Grid elements for All mode
-      this.step1ScanBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-step1-scan-btn') : null;
-      this.scanMoviesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-scan-movies-btn') : null;
-      this.fixCastProfilesBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-fix-cast-profiles-btn') : null;
-      this.clearSelectionBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-clear-selection-btn') : null;
-      this.closeGridBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-close-grid-btn') : null;
-      
-      // NEW: Progress elements
-      this.progressContainer = this.containerElement ? this.containerElement.querySelector('.media-manager-progress-container') : null;
-      this.progressBar = this.containerElement ? this.containerElement.querySelector('.media-manager-progress') : null;
-      this.progressSummary = this.containerElement ? this.containerElement.querySelector('.media-manager-summary') : null;
-      
-      // Add a function to toggle path input and error visibility based on active tab
-      this.updatePathInputs = () => {
-        const moviePathRow = this.inputPath ? this.inputPath.closest('.media-manager-form-row') : null;
-        const tvPathRow = this.inputTVPath ? this.inputTVPath.closest('.media-manager-form-row-tv') : null;
-        // Always show the MOVIE path row
-        if (moviePathRow) moviePathRow.style.display = '';
-        // Only toggle the TV-SHOW path row
-        if (this.tabTV && this.tabTV.classList.contains('active')) {
-          if (tvPathRow) tvPathRow.style.display = '';
-        } else {
-          if (tvPathRow) tvPathRow.style.display = 'none';
-        }
-      };
-      if (this.tabMovie) this.tabMovie.addEventListener('click', this.updatePathInputs);
-      if (this.tabTV) this.tabTV.addEventListener('click', this.updatePathInputs);
-      if (this.modeSingle) this.modeSingle.addEventListener('click', this.updatePathInputs);
-      this.updatePathInputs();
-      this.attachTVShowListeners();
-      
-      this.inputMovieTestTitle = this.containerElement.querySelector('#media-manager-movie-test-title');
-      this.inputMovieTestTMDBId = this.containerElement.querySelector('#media-manager-movie-test-tmdbid');
-      this.inputMovieTestPath = this.containerElement.querySelector('#media-manager-movie-test-path');
-      this.inputMovieTestDescription = this.containerElement.querySelector('#media-manager-movie-test-description');
-      this.posterImgMovieTest = this.containerElement.querySelector('.media-manager-poster-img-movie-test');
-      this.castListMovieTest = this.containerElement.querySelector('.media-manager-cast-list-movie-test');
-      this.fetchBtnMovieTest = this.containerElement.querySelector('.media-manager-fetch-btn-movie-test');
-      this.movieForm = this.containerElement.querySelector('.media-manager-movie-form');
-      this.tvForm = this.containerElement.querySelector('.media-manager-movie-form');
-      this.movieTestForm = this.containerElement.querySelector('.media-manager-movie-form');
-      console.log('[DEBUG] MOVIE-TEST selectors:', {
-        inputMovieTestTitle: this.inputMovieTestTitle,
-        inputMovieTestTMDBId: this.inputMovieTestTMDBId,
-        inputMovieTestPath: this.inputMovieTestPath,
-        inputMovieTestDescription: this.inputMovieTestDescription,
-        posterImgMovieTest: this.posterImgMovieTest,
-        castListMovieTest: this.castListMovieTest,
-        fetchBtnMovieTest: this.fetchBtnMovieTest,
-        movieTestForm: this.movieTestForm
-      });
-      // In setupElements, add:
-      this.viewJsonBtnTV = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn-tv') : null;
+    // --- ADDITIONAL/OPTIONAL ELEMENTS (if needed) ---
+    // Add any other elements here, grouped and commented by logical section
   }
 
   setupEventListeners() {
@@ -785,7 +694,16 @@ class MediaManager {normalizedKey
     }
     if (this.inputTVTitle) this.inputTVTitle.addEventListener('input', checkTVShowConfirmEnabled);
     if (this.inputTVDescription) this.inputTVDescription.addEventListener('input', checkTVShowConfirmEnabled);
-    if (this.castListTV) this.castListTV.addEventListener('DOMSubtreeModified', checkTVShowConfirmEnabled);
+    if (this.castListTV) {
+      // Remove old event listener if present
+      // this.castListTV.removeEventListener('DOMSubtreeModified', checkTVShowConfirmEnabled);
+      // Add MutationObserver
+      const observer = new MutationObserver((mutationsList, observer) => {
+        console.log('[DEBUG] MutationObserver: TV cast list changed');
+        checkTVShowConfirmEnabled();
+      });
+      observer.observe(this.castListTV, { childList: true, subtree: true });
+    }
     // After modal populates seasons
     window._mmCheckSeasons = checkTVShowConfirmEnabled;
     // Call after modal populates
@@ -876,10 +794,10 @@ class MediaManager {normalizedKey
       if (movieTabActive) {
         
         const movieContent = this.containerElement.querySelector('.media-manager-content-movie');
-        const descInput = movieContent ? movieContent.querySelector('#media-manager-description') : null;
+        const descInput = movieContent ? movieContent.querySelector('#media-manager-description-movie') : null;
         if (descInput) descInput.value = data.data.description || '';
         
-        const castList = movieContent ? movieContent.querySelector('.media-manager-cast-list') : null;
+        const castList = movieContent ? movieContent.querySelector('.media-manager-cast-list-movie') : null;
         if (castList) {
           castList.innerHTML = '';
           (data.data.cast || []).forEach(actor => {
@@ -896,7 +814,7 @@ class MediaManager {normalizedKey
       } else if (tvTabActive) {
 
         const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
-        const descInput = tvContent ? tvContent.querySelector('#media-manager-tv-description') : null;
+        const descInput = tvContent ? tvContent.querySelector('#media-manager-description-tv') : null;
         if (descInput) descInput.value = data.data.description || '';
         
         const castList = tvContent ? tvContent.querySelector('.media-manager-cast-list-tv') : null;
@@ -925,12 +843,33 @@ class MediaManager {normalizedKey
   async handleConfirm() {
     // Gather all modal data
     const type = this.tabMovie && this.tabMovie.classList.contains('active') ? 'movie' : 'tv';
-    let title, absPath, description, year;
+    let title, absPath, description, year, normalizedKey;
     
     if (type === 'movie') {
       title = this.inputTitle ? this.inputTitle.value.trim() : '';
       absPath = this.inputPath ? this.inputPath.value.trim() : '';
       description = this.descInput ? this.descInput.value.trim() : '';
+      // Use the folder name for normalization (matches backend logic)
+      let folderName = '';
+      let parts = [];
+      if (absPath) {
+        parts = absPath.split(/[\\/]/).filter(Boolean); // Remove empty segments
+        folderName = parts.length >= 2 ? parts[parts.length - 2] : '';
+      }
+      if (!folderName && title) folderName = title;
+      console.log('[DEBUG] absPath:', absPath);
+      console.log('[DEBUG] parts:', parts);
+      console.log('[DEBUG] folderName:', folderName);
+      normalizedKey = window.normalizeKey ? window.normalizeKey(folderName) : folderName;
+      if (!normalizedKey || normalizedKey.trim() === '') {
+        if (window.showToast) window.showToast('Error: Could not generate normalizedKey. Please check the Path and Title fields.', 'error');
+        console.error('[MediaManager] Error: Could not generate normalizedKey. Path:', absPath, 'Title:', title);
+        if (this.confirmBtn) {
+          this.confirmBtn.disabled = false;
+          this.confirmBtn.innerHTML = 'Confirm';
+        }
+        return;
+      }
     } else {
       title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
       absPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
@@ -975,8 +914,8 @@ class MediaManager {normalizedKey
     }
     // Try to extract year from title if not already set (for movies)
     if (type === 'movie' && !year) {
-    const yearMatch = title.match(/(19|20)\d{2}/);
-    if (yearMatch) year = yearMatch[0];
+      const yearMatch = title.match(/(19|20)\d{2}/);
+      if (yearMatch) year = yearMatch[0];
     }
     // Validate form before proceeding
     if (!this.validateForm()) {
@@ -989,10 +928,14 @@ class MediaManager {normalizedKey
       this.confirmBtn.innerHTML = '<span class="mm-btn-spinner"></span> Saving...';
     }
     try {
+      const payload = type === 'movie'
+        ? { type, normalizedKey, poster, description, cast, title, year }
+        : { type, absPath, poster, description, cast, title, year };
+      console.log('[DEBUG] handleConfirm payload:', payload);
       const res = await fetch('/api/media/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, absPath, poster, description, cast, title, year })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to save info');
@@ -1017,10 +960,6 @@ class MediaManager {normalizedKey
       if (window.showToast) {
         window.showToast('Error saving: ' + err.message, 'error');
         console.error('[MediaManager] Error saving:', err.message);
-      }
-      if (this.confirmBtn) {
-        this.confirmBtn.disabled = false;
-        this.confirmBtn.innerHTML = 'Confirm';
       }
     }
   }
@@ -1055,14 +994,14 @@ class MediaManager {normalizedKey
         if (tvContent) tvContent.style.display = 'block';
 
         // Show TV description and cast, hide movie description/cast
-      const tvDesc = this.containerElement.querySelector('#media-manager-tv-description');
+      const tvDesc = this.containerElement.querySelector('#media-manager-tv-description-tv');
       const tvCast = this.containerElement.querySelector('.media-manager-cast-list-tv');
       if (tvDesc) tvDesc.style.display = 'block';
         if (tvCast) tvCast.style.display = 'block';
 
         // Hide movie description/cast if present
-        const movieDesc = this.containerElement.querySelector('#media-manager-description');
-      const movieCast = this.containerElement.querySelector('.media-manager-cast-list');
+        const movieDesc = this.containerElement.querySelector('#media-manager-description-movie');
+      const movieCast = this.containerElement.querySelector('.media-manager-cast-list-movie');
         if (movieDesc) movieDesc.style.display = 'none';
       if (movieCast) movieCast.style.display = 'none';
     } else if (tab === 'movie-test') {

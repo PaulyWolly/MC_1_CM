@@ -1,8 +1,8 @@
 /*
   ADD_NEW_MOVIES.JS
-  Version: 8
-  AppName: MCC_1_CCM [v8]
-  Updated: 7/20/2025 @8:30AM
+  Version: 9
+  AppName: MC_1_CM [v9]
+  Updated: 7/24/2025 @5:20PM
   Created by Paul Welby
 */
 
@@ -277,7 +277,7 @@ class NewMovieProcessor {
             
             // Step 3: Fetch movie genres
             console.log('\n🎭 [NEW-MOVIES] Step 3: Fetching movie genres...');
-            execSync('node scripts/fetch_movie_genres_from_tmdb.js', { stdio: 'inherit' });
+            execSync('node scripts/FETCH/fetch_movie_genres_from_tmdb.js', { stdio: 'inherit' });
             
             // Step 4: Update poster mapping
             console.log('\n🖼️  [NEW-MOVIES] Step 4: Updating poster mapping...');
