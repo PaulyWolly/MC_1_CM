@@ -1106,6 +1106,16 @@ class MediaLibraryManager {
             showName = mediaItem.path.split(/[\\/]/).pop();
         }
         
+        // If we still don't have a show name, try to extract from the full path
+        if (!showName && mediaItem.path) {
+            // Look for TV-SHOWS directory and get the show name from there
+            const pathParts = mediaItem.path.split(/[\\/]/);
+            const tvShowsIndex = pathParts.findIndex(part => part.toLowerCase().includes('tv-shows'));
+            if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
+                showName = pathParts[tvShowsIndex + 1];
+            }
+        }
+        
         if (!showName) {
             console.warn('[MEDIA-LIBRARY] No show name found for TV show:', mediaItem);
             return '/assets/img/placeholder-poster.jpg';
@@ -3928,11 +3938,11 @@ class MediaLibraryManager {
             // Attach card click handler for playing movies
             card.onclick = (e) => {
                 if (e.target.closest('.favorite-btn') || e.target.closest('.favorite-btn-movie') || e.target.closest('.poster-selector-btn') || e.target.closest('.collection-btn')) return; // Don't trigger for action buttons
-                const movie = this.mediaLibraryRaw.find(item => item.path === path);
-                if (movie) {
-                    console.log('[DEBUG - FAVORITES] Playing movie from favorites:', movie.title);
-                    this.playMedia(movie);
-                }
+                
+                // Create a movie object from the path for playback
+                const movieObj = { path: path };
+                console.log('[DEBUG - FAVORITES] Playing movie from favorites:', path);
+                this.playMedia(movieObj);
             };
             });
         
@@ -4732,15 +4742,23 @@ class MediaLibraryManager {
         if (tvshows.length > 0) {
             html += '<div class="media-library-movie-grid">';
             tvshows.forEach(path => {
-                const cleanTitle = this.cleanMovieTitle(path.split(/[\\/]/).pop() || '');
-                const displayTitle = this.capitalizeTitle(cleanTitle);
+                // For TV shows, extract the show name from the full path to preserve the year
+                const pathParts = path.split(/[\\/]/);
+                const tvShowsIndex = pathParts.findIndex(part => part.toLowerCase().includes('tv-shows'));
+                let showName = path.split(/[\\/]/).pop() || '';
                 
-                // Create a simple TV show object for poster lookup
-                const tvShowObj = { path: path, name: displayTitle };
-                // Force TV show poster lookup by temporarily setting currentTab
+                if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
+                    showName = pathParts[tvShowsIndex + 1]; // Get the actual show name with year
+                }
+                
+                const displayTitle = this.capitalizeTitle(showName);
+                
+                // Create a simple TV show object for poster lookup - use same method as main page
+                const tvShowObj = { path: path, name: showName }; // Use original showName, not cleaned
+                // Force TV show poster lookup by temporarily setting currentTab and using getPosterPath like main page
                 const originalTab = this.currentTab;
                 this.currentTab = 'tvshows';
-                const posterSrc = this.getTVShowPosterPath(tvShowObj);
+                const posterSrc = this.getPosterPath(tvShowObj);
                 this.currentTab = originalTab;
                 
                 // Debug poster lookup for "Glitch"
