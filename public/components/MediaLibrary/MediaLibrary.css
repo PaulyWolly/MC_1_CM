@@ -95,32 +95,6 @@
     border-radius: 8px;
 }
 
-.media-library-tv-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 135px;
-    height: 29vh;
-    min-width: 120px;
-    max-width: 150px;
-    padding: 10px 6px 12px 6px;
-    transition: box-shadow 0.2s;
-    cursor: pointer;
-    font-size: 0.97em;
-}
-
-.media-library-tv-card img {
-    width: 100%;
-    max-width: 120px;
-    height: 170px;
-    object-fit: cover;
-    border-radius: 8px;
-}
-
 .media-library-card-info p {
     margin: 0 0 0 0;
     position: relative;
@@ -1041,38 +1015,48 @@
     text-overflow: ellipsis;
 }
 
-/* Show A-Z sidebar by default */
+/* A-Z sidebar base styles - visibility controlled by JavaScript */
 .media-library-az-sidebar {
-    display: block !important;
+    /* No default display - let JavaScript control visibility */
 }
 
 /* Hide A-Z sidebar on Watch Later, Collections, and Favorites tabs */
-.media-library-modal-content.watchlater .media-library-az-sidebar,
-.media-library-modal-content.collections .media-library-az-sidebar,
-.media-library-modal-content.favorites .media-library-az-sidebar {
+.media-library-modal-content.watchlater .media-library-az-sidebar-movies,
+.media-library-modal-content.watchlater .media-library-az-sidebar-tvshows,
+.media-library-modal-content.collections .media-library-az-sidebar-movies,
+.media-library-modal-content.collections .media-library-az-sidebar-tvshows,
+.media-library-modal-content.favorites .media-library-az-sidebar-movies,
+.media-library-modal-content.favorites .media-library-az-sidebar-tvshows {
     display: none !important;
 }
 
 /* Hide A-Z sidebar on Movie Details, TV Show Season, and TV Show Episodes pages */
-.media-library-modal-content.moviedetails .media-library-az-sidebar,
-.media-library-modal-content.tvshowseason .media-library-az-sidebar,
-.media-library-modal-content.tvshowepisodes .media-library-az-sidebar {
+.media-library-modal-content.moviedetails .media-library-az-sidebar-movies,
+.media-library-modal-content.moviedetails .media-library-az-sidebar-tvshows,
+.media-library-modal-content.tvshowseason .media-library-az-sidebar-movies,
+.media-library-modal-content.tvshowseason .media-library-az-sidebar-tvshows,
+.media-library-modal-content.tvshowepisodes .media-library-az-sidebar-movies,
+.media-library-modal-content.tvshowepisodes .media-library-az-sidebar-tvshows {
   display: none !important;
 }
 
 /* Optionally, ensure A-Z sidebar is visible on main Movies and TV Shows grid pages */
-.media-library-modal-content.movies .media-library-az-sidebar,
-.media-library-modal-content.tvshows .media-library-az-sidebar {
-  display: block !important;
+.media-library-modal-content.movies .media-library-az-sidebar-movies {
+  display: flex !important;
+}
+.media-library-modal-content.tvshows .media-library-az-sidebar-tvshows {
+  display: flex !important;
 }
 
 /* Hide A-Z sidebar in Season view */
-.media-library-show-info ~ .media-library-az-sidebar {
+.media-library-show-info ~ .media-library-az-sidebar-movies,
+.media-library-show-info ~ .media-library-az-sidebar-tvshows {
   display: none !important;
 }
 
 /* Hide A-Z sidebar in Season view */
-.media-library-show-info~.media-library-az-sidebar {
+.media-library-show-info~.media-library-az-sidebar-movies,
+.media-library-show-info~.media-library-az-sidebar-tvshows {
     display: none !important;
 }
 
@@ -1092,12 +1076,14 @@
     bottom: 0;
     width: 32px;
     z-index: 10;
-    background: transparent;
+    background: #f5f5f5;
     display: flex;
     flex-direction: column;
     align-items: center;
     pointer-events: auto;
     justify-content: center;
+    border-radius: 8px;
+    box-shadow: 1px 0 6px rgba(0, 0, 0, 0.04);
 }
 @media (max-width: 900px) {
     .media-library-az-sidebar {
@@ -1151,23 +1137,7 @@
     overflow: hidden;
 }
 
-.media-library-az-sidebar {
-    width: 24px !important;
-    min-width: 24px;
-    height: 58.0vh;
-    font-size: .86em !important;
-    border-radius: 8px;
-    background: #f5f5f5;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 6px 0;
-    border-radius: 8px !important;
-    overflow-y: unset !important;
-    position: fixed;
-    right: 10px;
-    font-size: .9em;
-}
+/* Remove duplicate A-Z sidebar rule that conflicts with the main one */
 
 .media-library-movie-grid-scroll {
     flex: 1;
@@ -1240,22 +1210,48 @@
     align-items: center;
     gap: 10px;
     padding: 6px 10px 0 10px;
+    z-index: 9998 !important;
+    pointer-events: auto !important;
+    position: relative !important;
 }
 
 /* Action movie buttons (icons) */
 .change-poster-btn {
     border: 2px solid #3a7bd5;
     padding: 0 0 4px 0 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 .favorite-btn {
     border: 2px solid #3a7bd5;
     padding: 0 0 2px 0 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+.favorites-movies-section {
+    width: 50%;
+    height: 100%;
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    margin-right: 10px;
 }
 
 .collection-btn {
     border: 2px solid #3a7bd5;
     padding: 0 0 2px 0 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
 }
 
 .poster-selector-btn {
@@ -1265,6 +1261,9 @@
     font-size: 1.4em !important;
     cursor: pointer !important;
     line-height: .5 !important;
+    z-index: 9999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
     /* height: 28px; */
     /* width: 28px; */
 }
@@ -1286,12 +1285,15 @@
 .collection-btn {
     background: none;
     border: none;
-    cursor: pointer;
+    cursor: pointer !important;
     font-size: 1.2em;
     line-height: 1;
     padding: 0;
     margin: 0;
     transition: color 0.2s;
+    z-index: 99999 !important; /* Increased z-index */
+    position: relative !important;
+    pointer-events: auto !important;
 }
 
 .change-poster-btn:focus,
@@ -2085,6 +2087,7 @@
   display: block;
   object-fit: cover;
   margin: 0 auto;
+  cursor: pointer;
   border-radius: 8px;
   background: #f4f4f4;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
@@ -2271,6 +2274,63 @@
   color: #0d47a1 !important;
 }
 
+/* Separate A-Z letter styles for Movies */
+.media-library-az-letter-movie {
+    font-size: .75em !important;
+    color: #1976d2 !important;
+    font-weight: bold;
+    margin: 2px 0 !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    padding: 2px 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+    border-radius: 4px !important;
+    background: none !important;
+    transition: background 0.2s;
+    
+    z-index: 1000001 !important; /* Increased to be above sidebar container */
+    position: relative !important;
+}
+
+.media-library-az-letter-movie:hover {
+  background: #e3eafc !important;
+  color: #0d47a1 !important;
+}
+
+.media-library-az-letter-movie.az-active-movie {
+  background: #007bff !important;
+  color: white !important;
+}
+
+/* Separate A-Z letter styles for TV Shows */
+.media-library-az-letter-tvshow {
+    font-size: .75em !important;
+    color: #1976d2 !important;
+    font-weight: bold;
+    margin: 2px 0 !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    padding: 2px 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+    border-radius: 4px !important;
+    background: none !important;
+    transition: background 0.2s;
+    z-index: 1000001 !important; /* Increased to be above sidebar container */
+    position: relative !important;
+}
+
+.media-library-az-letter-tvshow:hover {
+  background: #e3eafc !important;
+  color: #0d47a1 !important;
+}
+
+.media-library-az-letter-tvshow.az-active-tvshow {
+  background: #007bff !important;
+  color: white !important;
+}
+
 /* Toast notifications should always appear above modals */
 #mediaLibraryToast, .toast, .toast-container {
   /* z-index: 30000 !important; */
@@ -2387,11 +2447,11 @@
   padding: 8px 0;
   border-right: 1px solid #ddd;
   overflow-y: auto;
-  position: absolute;
-  top: 100px;
-  right: 19px;
-  z-index: 1000;
-  display: none;
+  position: fixed;
+  top: 240px;
+  right: 20px;
+  z-index: 1000000 !important; /* Increased to be above favorite buttons */
+  
 }
 
 /* A-Z Sidebar for TV Shows */
@@ -2407,11 +2467,10 @@
   padding: 8px 0;
   border-right: 1px solid #ddd;
   overflow-y: auto;
-  position: absolute;
-  top: 100px;
-  right: 19px;
-  z-index: 1000;
-  display: none;
+  position: fixed;
+  top: 240px;
+  right: 20px;
+  z-index: 1000000 !important; /* Increased to be above favorite buttons */
 }
 
 .hidden {
@@ -2452,4 +2511,205 @@
 }
 .media-library-toast.error {
     background: #e53935;
+}
+
+/* FAVORITES COLUMN LAYOUT AND SCROLLING */
+.favorites-movies-section,
+.favorites-tvshows-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent any overflow */
+  position: relative; /* For sticky positioning */
+  max-width: 50%; /* Ensure each section takes exactly 50% width */
+}
+
+.favorites-section-title-movies {
+  flex: 0 0 auto;
+  margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 100; /* Higher z-index to stay on top */
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+  /* Ensure title never scrolls */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.favorites-section-title-tvshows {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    margin-top: 27px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0px;
+    z-index: 1000;
+  }
+
+.favorites-movies-section .media-library-movie-grid,
+.favorites-tvshows-section .media-library-movie-grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden; /* NO horizontal scrolling */
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  margin-top: 0; /* Remove any top margin that might interfere with sticky */
+  /* Ensure only content scrolls, not titles */
+  max-height: calc(100vh - 200px); /* Leave room for header and titles */
+}
+
+/* Ensure no horizontal scrollbars anywhere in favorites */
+.favorites-container {
+  overflow-x: hidden;
+  width: 100%;
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+.favorites-container .media-library-movie-grid {
+    overflow-x: hidden;
+    max-width: 100%;
+    position: relative;
+    right: 20px;
+}
+
+/* HEART ICON FIXES - Improved z-index and positioning */
+.favorite-btn {
+    padding: 0 0 2px 0 !important;
+    z-index: 99999 !important; /* Much higher z-index */
+    position: relative !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    background: rgba(255, 255, 255, 0.9) !important; /* Semi-transparent background */
+    border-radius: 4px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Heart overlay for improved clickability */
+.heart-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    z-index: 999999 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    border-radius: 4px !important;
+}
+
+/* Transparent overlay for heart icon clicks */
+.media-card-actions-movies {
+    position: relative;
+    z-index: 99999 !important;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    width: 84%;
+    text-align: center;
+    margin-left: 14px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    backdrop-filter: blur(2px);
+}
+.media-card-actions-tvshows {
+    position: relative;
+    z-index: 99999 !important;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    width: 70%;
+    text-align: center;
+    margin: 0 auto 0 auto;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    backdrop-filter: blur(2px);
+}
+
+.media-card-actions-favorites {
+    position: relative;
+    z-index: 99999 !important;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    width: 84%;
+    text-align: center;
+    margin-left: 6px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    backdrop-filter: blur(2px);
+}
+
+/* Ensure heart icons are always clickable */
+.media-library-card .favorite-btn,
+.media-library-movie-card .favorite-btn,
+.media-library-movie-card-movies .favorite-btn,
+.media-library-movie-card-tvshows .favorite-btn {
+    position: relative !important;
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 4px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.2em !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Hover effects for heart icons */
+.media-library-card .favorite-btn:hover,
+.media-library-movie-card .favorite-btn:hover,
+.media-library-movie-card-movies .favorite-btn:hover,
+.media-library-movie-card-tvshows .favorite-btn:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Ensure heart icons are above all other elements */
+.media-library-card,
+.media-library-movie-card,
+.media-library-movie-card-movies,
+.media-library-movie-card-tvshows {
+    position: relative;
+    overflow: visible !important; /* Allow heart icons to be visible outside card bounds */
+}
+
+/* Additional z-index boost for TV show cards specifically */
+.media-library-card.poster .media-card-actions {
+    z-index: 999999 !important;
+    position: relative !important;
 }
