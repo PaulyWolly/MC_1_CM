@@ -104,8 +104,6 @@ class MediaLibraryManager {
     }
 
     async loadMediaLibrary() {
-        this.isLoading = true;
-        this.renderSpinner();
         try {
             let endpoint = '/api/media-library';
             if (this.currentTab === 'movies') {
@@ -117,8 +115,6 @@ class MediaLibraryManager {
             } else if (this.currentTab === 'favorites') {
                 // FAVORITES IS INDEPENDENT - no data loading needed
                 console.log('[DEBUG - FAVORITES] Favorites tab - no data loading needed');
-                this.isLoading = false;
-                this.updateModalContent();
                 return;
             }
             console.log('🎬 [MEDIA-LIBRARY] Loading media library from:', endpoint);
@@ -173,12 +169,7 @@ class MediaLibraryManager {
             this.mediaLibraryRaw = raw;
             console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to:', this.mediaLibraryRaw);
             console.log('🎬 [MEDIA-LIBRARY] mediaLibraryRaw length after setting:', this.mediaLibraryRaw ? this.mediaLibraryRaw.length : 'undefined');
-            this.isLoading = false;
-            this.removeSpinner();
-            this.updateModalContent();
         } catch (error) {
-            this.isLoading = false;
-            this.removeSpinner();
             this.showError('Failed to load media library.');
             console.error(error);
         }
@@ -356,8 +347,26 @@ class MediaLibraryManager {
 
     async openMediaBrowser() {
         this.isModalOpen = true;
-        await this.loadMediaLibrary();
+        
+        // Show spinner immediately when opening the media browser
+        this.isLoading = true;
         this.renderModal();
+        this.renderSpinner();
+        
+        try {
+            // Load the media library
+            await this.loadMediaLibrary();
+            
+            // Update the modal content after loading is complete
+            await this.updateModalContent();
+        } catch (error) {
+            console.error('[DEBUG - MediaLibrary] Error during loading:', error);
+            this.showError('Failed to load media library.');
+        } finally {
+            // Always remove spinner and set loading to false
+            this.isLoading = false;
+            this.removeSpinner();
+        }
     }
 
     closeMediaBrowser() {
@@ -1137,6 +1146,7 @@ class MediaLibraryManager {
         });
         
         if (!mediaItem) {
+            console.warn('[MEDIA-LIBRARY] No mediaItem provided to getTVShowPosterPath');
             return '/assets/img/placeholder-poster.jpg';
         }
         
@@ -1171,7 +1181,7 @@ class MediaLibraryManager {
         }
         
         const dotKey = normalizeKey(showName);
-        console.log('[MEDIA-LIBRARY] Looking for TV poster with key:', dotKey, 'for show:', showName);
+        console.log('[MEDIA-LIBRARY] Looking for TV poster with key:', dotKey, 'for show:', showName, 'mediaItem:', mediaItem);
         
         // Try exact match first
         if (posterMap[dotKey]) {
@@ -1198,7 +1208,7 @@ class MediaLibraryManager {
         
         // Log a warning if no poster found
         console.warn('[MEDIA-LIBRARY] No TV poster found for:', mediaItem, 'Tried dot notation key:', dotKey);
-        console.warn('[MEDIA-LIBRARY] Available TV poster keys:', Object.keys(posterMap));
+        console.warn('[MEDIA-LIBRARY] Available TV poster keys (first 10):', Object.keys(posterMap).slice(0, 10));
         return '/assets/img/placeholder-poster.jpg';
     }
 

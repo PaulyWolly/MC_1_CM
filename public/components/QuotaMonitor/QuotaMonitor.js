@@ -346,6 +346,7 @@ export default class QuotaMonitor {
         // Update restored
         const restored = document.getElementById('quota-dashboard-restored');
         if (restored) {
+            console.log('[DEBUG - QUOTA] Updating restored dashboard HTML');
             restored.innerHTML = `
                 <div class="quota-header">
                     <span class="quota-drag-handle" title="Drag to move">⠿</span>
@@ -366,8 +367,26 @@ export default class QuotaMonitor {
                         <button class="quota-toggle-cache-mode-btn${cacheOnlyMode ? ' cache-on' : ''}">${cacheOnlyMode ? 'Disable' : 'Enable'} Cache-Only Mode</button>
                         <button class="quota-test-warnings-btn">Test Warnings</button>
                     </div>
+                    <div class="quota-script-runner">
+                        <div class="quota-script-header">
+                            <span>🔧 Quota Scripts (Click to toggle)</span>
+                            <button class="quota-script-toggle-btn" title="Toggle Script Panel">▼</button>
+                        </div>
+                        <div class="quota-script-panel hidden">
+                            <div class="quota-script-buttons">
+                                <button class="quota-script-btn" data-script="fix_quota_monitor">🔧 Fix Quota Monitor</button>
+                                <button class="quota-script-btn" data-script="check_real_youtube_quota">🌐 Check Real API</button>
+                                <button class="quota-script-btn" data-script="force_quota_sync">🔄 Force Sync</button>
+                                <button class="quota-script-btn" data-script="auto_quota_sync">⏰ Auto Sync (5min)</button>
+                            </div>
+                            <div class="quota-script-status">
+                                <div class="quota-script-output"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
+            console.log('[DEBUG - QUOTA] Dashboard HTML updated, calling attachDashboardEvents');
             // Toggle visibility
             restored.classList.toggle('hidden', isMinimized);
         }
@@ -391,8 +410,11 @@ export default class QuotaMonitor {
      * Attach event listeners for both dashboard elements
      */
     attachDashboardEvents() {
+        console.log('[DEBUG - QUOTA] attachDashboardEvents called');
         const restored = document.getElementById('quota-dashboard-restored');
         const minimized = document.getElementById('quota-dashboard-minimized');
+        console.log('[DEBUG - QUOTA] Dashboard elements found:', { restored: !!restored, minimized: !!minimized });
+        
         if (restored) {
             // Minimize button
             const minBtn = restored.querySelector('.quota-minimize-btn');
@@ -427,6 +449,11 @@ export default class QuotaMonitor {
             // Test warnings
             const testBtn = restored.querySelector('.quota-test-warnings-btn');
             if (testBtn) testBtn.onclick = () => this.testWarnings();
+            
+            // Script runner functionality
+            console.log('[DEBUG - QUOTA] Calling attachScriptRunnerEvents');
+            this.attachScriptRunnerEvents(restored);
+            
             // Drag handle
             const dragHandle = restored.querySelector('.quota-drag-handle');
             if (dragHandle) this.makeDraggable(restored);
@@ -436,6 +463,113 @@ export default class QuotaMonitor {
                 localStorage.setItem('quota_dashboard_minimized', 'false');
                 this.updateQuotaDashboard();
             };
+        }
+    }
+
+    /**
+     * Attach script runner event handlers
+     */
+    attachScriptRunnerEvents(container) {
+        // Script panel toggle
+        const toggleBtn = container.querySelector('.quota-script-toggle-btn');
+        const scriptPanel = container.querySelector('.quota-script-panel');
+        
+        console.log('[DEBUG - QUOTA] Script runner elements found:', { 
+            toggleBtn: !!toggleBtn, 
+            scriptPanel: !!scriptPanel,
+            scriptPanelClasses: scriptPanel ? scriptPanel.className : 'N/A'
+        });
+        
+        if (toggleBtn && scriptPanel) {
+            console.log('[DEBUG - QUOTA] Setting up toggle button event listener');
+            toggleBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[DEBUG - QUOTA] Toggle button clicked');
+                const wasHidden = scriptPanel.classList.contains('hidden');
+                scriptPanel.classList.toggle('hidden');
+                const isNowHidden = scriptPanel.classList.contains('hidden');
+                toggleBtn.textContent = isNowHidden ? '▼' : '▲';
+                console.log('[DEBUG - QUOTA] Panel visibility toggled:', { 
+                    wasHidden, 
+                    isNowHidden, 
+                    newButtonText: toggleBtn.textContent,
+                    scriptPanelDisplay: scriptPanel.style.display,
+                    scriptPanelClasses: scriptPanel.className
+                });
+            };
+            
+            // Also add a click handler to the header for easier clicking
+            const scriptHeader = container.querySelector('.quota-script-header');
+            if (scriptHeader) {
+                scriptHeader.onclick = (e) => {
+                    if (e.target !== toggleBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[DEBUG - QUOTA] Script header clicked');
+                        const wasHidden = scriptPanel.classList.contains('hidden');
+                        scriptPanel.classList.toggle('hidden');
+                        const isNowHidden = scriptPanel.classList.contains('hidden');
+                        toggleBtn.textContent = isNowHidden ? '▼' : '▲';
+                        console.log('[DEBUG - QUOTA] Panel visibility toggled via header:', { 
+                            wasHidden, 
+                            isNowHidden, 
+                            newButtonText: toggleBtn.textContent 
+                        });
+                    }
+                };
+            }
+        } else {
+            console.warn('[DEBUG - QUOTA] Script runner elements not found:', { 
+                toggleBtn: !!toggleBtn, 
+                scriptPanel: !!scriptPanel 
+            });
+        }
+        
+        // Script buttons
+        const scriptBtns = container.querySelectorAll('.quota-script-btn');
+        console.log('[DEBUG - QUOTA] Found script buttons:', scriptBtns.length);
+        scriptBtns.forEach(btn => {
+            btn.onclick = () => this.runQuotaScript(btn.dataset.script);
+        });
+    }
+
+    /**
+     * Run quota monitoring scripts
+     */
+    async runQuotaScript(scriptName) {
+        const outputDiv = document.querySelector('.quota-script-output');
+        if (outputDiv) {
+            outputDiv.innerHTML = `<div class="script-running">🔄 Running ${scriptName}...</div>`;
+        }
+        
+        try {
+            const response = await fetch('/api/quota/run-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script: scriptName })
+            });
+            
+            const result = await response.json();
+            
+            if (outputDiv) {
+                if (result.success) {
+                    outputDiv.innerHTML = `<div class="script-success">✅ ${result.message}</div>`;
+                    if (result.output) {
+                        outputDiv.innerHTML += `<pre class="script-output">${result.output}</pre>`;
+                    }
+                } else {
+                    outputDiv.innerHTML = `<div class="script-error">❌ ${result.error}</div>`;
+                }
+            }
+            
+            // Update quota display after script runs
+            await this.fetchQuotaFromServerAndUpdate();
+            
+        } catch (error) {
+            if (outputDiv) {
+                outputDiv.innerHTML = `<div class="script-error">❌ Error running script: ${error.message}</div>`;
+            }
         }
     }
 

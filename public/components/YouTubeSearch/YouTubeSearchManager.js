@@ -129,7 +129,7 @@ export default class YouTubeSearchManager {
                             quotaExceeded: errorData.quotaExceeded || false,
                             quotaConservation: errorData.quotaConservation || false,
                             quota: errorData.quota || null,
-                            cacheKey: `yt_${params.type}_${params.query.toLowerCase().replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
+                            cacheKey: `yt_${params.type}_${params.query.replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
                         };
                     }
                     
@@ -143,7 +143,7 @@ export default class YouTubeSearchManager {
                         quotaExceeded: data.quotaExceeded || false,
                         quotaConservation: data.quotaConservation || false,
                         quota: data.quota || null,
-                        cacheKey: `yt_${params.type}_${params.query.toLowerCase().replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
+                        cacheKey: `yt_${params.type}_${params.query.replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
                     };
                 } catch (error) {
                     console.error('🔍 [API-SERVICE] Network or parsing error:', error);
@@ -154,7 +154,7 @@ export default class YouTubeSearchManager {
                         quotaExceeded: false,
                         quotaConservation: false,
                         quota: null,
-                        cacheKey: `yt_${params.type}_${params.query.toLowerCase().replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
+                        cacheKey: `yt_${params.type}_${params.query.replace(/\s+/g, '_')}_p${params.page}_${params.pageToken || 'none'}`
                     };
                 }
             }
@@ -339,7 +339,7 @@ export default class YouTubeSearchManager {
             const cacheKeys = [];
             let page = 1;
             while (page <= 10) {
-                const cacheKey = `yt_${searchType}_${query.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`;
+                const cacheKey = `yt_${searchType}_${query.replace(/\s+/g, '_')}_p${page}_none`;
                 if (localStorage.getItem(cacheKey)) {
                     cacheKeys.push(cacheKey);
                     page++;
@@ -814,7 +814,7 @@ export default class YouTubeSearchManager {
         // Use the correct cache key format: yt_query_type_page (e.g., yt_fender_search_1, yt_fender_channel_1)
         // Build cache key for this search (use server format for consistency)
         const normalizedSubject = this.cleanQueryForDisplay(subject);
-        const cacheKey = `yt_${type}_${normalizedSubject.toLowerCase().replace(/\s+/g, '_')}_p${actualPage}_none`;
+        const cacheKey = `yt_${type}_${normalizedSubject.replace(/\s+/g, '_')}_p${actualPage}_none`;
 
         // STEP 1: CHECK CACHE FIRST (for ALL requests - new searches AND pagination)
         // Skip cache when explicitly requested via skipCache option
@@ -936,7 +936,7 @@ export default class YouTubeSearchManager {
                     apiResult.error?.includes('quota') || apiResult.error?.includes('exceeded')) {
                     
                     // Check if we have cached results for this query
-                    const cacheKey = `yt_search_${subject.toLowerCase().replace(/\s+/g, '_')}_p1_none`;
+                    const cacheKey = `yt_search_${subject.replace(/\s+/g, '_')}_p1_none`;
                     const cachedResults = this.cacheService.get(cacheKey);
                     
                     if (cachedResults && cachedResults.videos && cachedResults.videos.length > 0) {
@@ -1116,6 +1116,15 @@ export default class YouTubeSearchManager {
     /**
      * Helper methods for the comprehensive YouTube search functionality
      */
+    
+    /**
+     * Capitalize the first letter of each word in a string
+     */
+    capitalizeWords(str) {
+        if (!str) return '';
+        return str.replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+    
     getAllQueriesForDropdown() {
         // Get database queries from the savedQueries Map (loaded from MongoDB)
         const dbQueries = Array.from(this.savedQueries.values()).map(savedQuery => ({
@@ -1127,11 +1136,17 @@ export default class YouTubeSearchManager {
             hasLocalCache: false
         }));
         
+        console.log('📊 [DROPDOWN] Database queries loaded:', dbQueries.length);
+        
         // Get local queries from localStorage cache
         const localQueries = this.getLocalStorageQueries();
         
-        // Merge and dedupe queries
+        console.log('📊 [DROPDOWN] Local queries loaded:', localQueries.length);
+        
+        // Merge and dedupe queries - prioritize database entries
         const mergedQueries = this.mergeAndDedupeQueries(localQueries, dbQueries);
+        
+        console.log('📊 [DROPDOWN] Total merged queries:', mergedQueries.length);
         
         // If no queries exist, add some sample queries for demonstration
         if (mergedQueries.length === 0) {
@@ -1250,6 +1265,14 @@ export default class YouTubeSearchManager {
                 return null;
             }
             
+            // Helper function to capitalize first letter of each word (for legacy cache keys)
+            const capitalizeWords = (str) => {
+                return str.split(' ').map(word => {
+                    if (word.length === 0) return word;
+                    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                }).join(' ');
+            };
+            
             // NEW FORMAT: yt_search_santanavevo_p1_none or yt_channel_santanavevo_p1_none
             // UPDATED: Handle multi-word queries like yt_search_jada_facer_p1_none
             if (cacheKey.startsWith('yt_search_') || cacheKey.startsWith('yt_channel_') || cacheKey.startsWith('yt_movies_') || cacheKey.startsWith('yt_tv_')) {
@@ -1261,6 +1284,7 @@ export default class YouTubeSearchManager {
                     const queryParts = parts.slice(2, parts.length - 2);
                     const query = queryParts.join(' '); // Rejoin with spaces for display
                     
+                    // For new format, preserve the original capitalization (no need to capitalize)
                     return { query: query, type: type };
                 }
             }
@@ -1274,6 +1298,7 @@ export default class YouTubeSearchManager {
                     // Remove 'yt_' prefix from the first part to get the query
                     const query = parts[0].substring(3); // Remove 'yt_'
                     
+                    // For legacy format, preserve the original capitalization
                     return { query: query, type: 'search' }; // Legacy format defaults to 'search' type
                 }
             }
@@ -1285,6 +1310,8 @@ export default class YouTubeSearchManager {
                 if (parts.length === 2) {
                     // Remove 'yt_' prefix from the first part to get the query
                     const query = parts[0].substring(3); // Remove 'yt_'
+                    
+                    // For legacy format, preserve the original capitalization
                     return { query: query, type: 'channel' }; // Legacy channel format
                 }
             }
@@ -1349,8 +1376,11 @@ export default class YouTubeSearchManager {
     cleanQueryForDisplay(query) {
         if (!query) return '';
         
-        // Remove common prefixes that take up space
-        const cleanQuery = query
+        // Store the original query for case preservation
+        const originalQuery = query;
+        
+        // Remove common prefixes that take up space (case-insensitive)
+        const cleanQuery = originalQuery
             .replace(/^youtube\s+search\s+/i, '')
             .replace(/^youtube\s+channel\s+/i, '') // Remove "youtube channel " prefix
             .replace(/^youtube\s+movies?\s+/i, '')  // Remove "youtube movie(s) " prefix
@@ -1362,7 +1392,22 @@ export default class YouTubeSearchManager {
             .replace(/^tv\s+/i, '')                 // Remove standalone "tv " prefix
             .trim();
             
-        const result = cleanQuery || query; // Return original if cleaning results in empty string
+        const result = cleanQuery || originalQuery; // Return original if cleaning results in empty string
+        
+        // Preserve the original capitalization by applying the same cleaning to the original
+        // but keeping the original case structure
+        if (result !== originalQuery) {
+            // Find where the prefix ends in the original query
+            const lowerOriginal = originalQuery.toLowerCase();
+            const lowerClean = cleanQuery.toLowerCase();
+            
+            // Find the position where the cleaned query starts in the original
+            const startPos = lowerOriginal.indexOf(lowerClean);
+            if (startPos !== -1) {
+                // Extract the part of the original query that corresponds to the cleaned version
+                return originalQuery.substring(startPos);
+            }
+        }
         
         return result;
     }
@@ -1385,7 +1430,8 @@ export default class YouTubeSearchManager {
         let count = 0;
         let page = 1;
         
-        while (page <= 50) { // Check up to 50 pages max
+        // Remove hard limit - check up to 200 pages to find all cached pages
+        while (page <= 200) {
             // Try multiple formats:
             // 1. New format: yt_[cleanQuery]_search_[page]
             // 2. Old format: yt_[fullQuery]_search_[page] 
@@ -1394,15 +1440,15 @@ export default class YouTubeSearchManager {
             const cleanedQuery = this.cleanQueryForDisplay(baseQuery);
             const possibleKeys = [
                 // NEW FORMAT (matches handleYoutubeRequest exactly): yt_search_avocado_tree_p1_none, yt_channel_mr_beast_p1_none
-                `yt_search_${cleanedQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_channel_${cleanedQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_movies_${cleanedQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_tv_${cleanedQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_search_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_channel_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_movies_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_tv_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 // Fallback NEW FORMAT (in case baseQuery is used instead of cleanedQuery)
-                `yt_search_${baseQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_channel_${baseQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_movies_${baseQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
-                `yt_tv_${baseQuery.toLowerCase().replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_search_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_channel_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_movies_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                `yt_tv_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 // Legacy formats (fallback compatibility)
                 `yt_${baseQuery}_search_${page}`,             // Legacy format (fallback)
                 `yt_${cleanedQuery}_search_${page}`,          // Clean format (fallback)
@@ -1423,8 +1469,19 @@ export default class YouTubeSearchManager {
             if (found) {
                 count++;
                 page++;
+            } else {
+                // If we haven't found any pages yet, continue searching
+                // If we've found some pages but hit a gap, continue searching for more
+                if (count === 0) {
+                    page++;
+                    // If we've searched 50 pages without finding anything, give up
+                    if (page > 50) break;
                 } else {
-                break;
+                    // We found some pages, but hit a gap - continue searching for more
+                    page++;
+                    // If we've searched 20 more pages after the last found page, give up
+                    if (page > count + 20) break;
+                }
             }
         }
         
@@ -1440,25 +1497,37 @@ export default class YouTubeSearchManager {
      * Sort queries with current query at top, then by timestamp (most recent first)
      */
     sortQueriesWithCurrentFirst(queries, currentQuery) {
+        console.log('🔍 [SORT] Sorting queries with current first. Current query:', currentQuery);
+        console.log('🔍 [SORT] Number of queries to sort:', queries.length);
+        
         if (!currentQuery) {
+            console.log('🔍 [SORT] No current query provided, using access history order');
             // No current query, use access history order if available, otherwise timestamp
             return this.sortByAccessHistory(queries);
         }
         
         const cleanCurrentQuery = this.cleanQueryForDisplay(currentQuery);
+        console.log('🔍 [SORT] Clean current query:', cleanCurrentQuery);
         
         const sorted = queries.sort((a, b) => {
             const aClean = this.cleanQueryForDisplay(a.query);
             const bClean = this.cleanQueryForDisplay(b.query);
             
             // Current query always goes to top (#1)
-            if (aClean === cleanCurrentQuery) return -1;
-            if (bClean === cleanCurrentQuery) return 1;
+            if (aClean === cleanCurrentQuery) {
+                console.log('🔍 [SORT] Found current query in position A:', a.query);
+                return -1;
+            }
+            if (bClean === cleanCurrentQuery) {
+                console.log('🔍 [SORT] Found current query in position B:', b.query);
+                return 1;
+            }
             
             // For all other queries, use access history order
             return this.compareByAccessHistory(a, b);
         });
         
+        console.log('🔍 [SORT] Sorted queries. First query:', sorted[0]?.query);
         return sorted;
     }
     
@@ -1496,7 +1565,10 @@ export default class YouTubeSearchManager {
      */
     getAccessHistoryIndex(query) {
         const cleanQuery = this.cleanQueryForDisplay(query);
-        const index = this.queryAccessHistory.findIndex(item => item.cleanQuery === cleanQuery);
+        const index = this.queryAccessHistory.findIndex(item => {
+            const itemCleanQuery = this.cleanQueryForDisplay(item.query);
+            return itemCleanQuery === cleanQuery;
+        });
         
         return index;
     }
@@ -1627,14 +1699,14 @@ export default class YouTubeSearchManager {
             });
         });
         
-        // Add DB queries ONLY if no cached version exists
+        // Add ALL DB queries - this ensures all MongoDB entries are shown
         dbQueries.forEach(query => {
             const queryText = query.query || query.displayName || query;
             // Normalize DB query the same way as cache queries
             const normalizedQuery = this.cleanQueryForDisplay(queryText).toLowerCase().trim();
             
             if (!merged.has(normalizedQuery)) {
-                // Only add DB entry if no cached version exists
+                // Add DB entry if no cached version exists
                 merged.set(normalizedQuery, {
                     query: queryText,
                     timestamp: query.timestamp || query.createdAt || Date.now(),
@@ -1643,6 +1715,7 @@ export default class YouTubeSearchManager {
                     priority: 'database', // Lower priority
                     normalizedQuery,
                     hasDBRecord: true, // Ensure green LED always shows for DB queries
+                    type: query.searchType || 'search', // Preserve search type
                     ...query
                 });
             } else {
@@ -1652,34 +1725,14 @@ export default class YouTubeSearchManager {
                     ...existing,
                     hasDBRecord: true, // Ensure green LED always shows for merged queries
                     dbData: query,
-                    priority: 'cache' // Keep cache priority
+                    priority: 'cache', // Keep cache priority
+                    type: query.searchType || existing.type || 'search' // Preserve search type
                 });
             }
         });
         
-        // Convert back to array, with more inclusive filtering, and sort
-        const result = Array.from(merged.values())
-            .filter(query => {
-                // Always keep cache entries
-                if (query.priority === 'cache') {
-                    return true;
-                }
-                
-                // For database entries, be more inclusive
-                if (query.priority === 'database') {
-                    // Always show database queries - let the user decide what to do with them
-                    return true;
-                }
-                
-                return true; // Keep all entries by default
-            })
-            .sort((a, b) => {
-                // Sort by priority first (cache > database), then by timestamp
-                if (a.priority !== b.priority) {
-                    return a.priority === 'cache' ? -1 : 1;
-                }
-                return b.timestamp - a.timestamp;
-            });
+        // Convert back to array - include ALL entries
+        const result = Array.from(merged.values());
         
         console.log('🔀 [MERGE] Merged queries:', {
             total: result.length,
@@ -1691,7 +1744,12 @@ export default class YouTubeSearchManager {
         // Special debug for Santana query
         const santanaQueries = result.filter(q => q.query.toLowerCase().includes('santana'));
         if (santanaQueries.length > 0) {
-            console.log('🎸 [SANTANA] Found Santana queries:', santanaQueries);
+            console.log('🎸 [SANTANA] Found Santana queries:', santanaQueries.map(q => ({
+                query: q.query,
+                priority: q.priority,
+                hasDBRecord: q.hasDBRecord,
+                hasLocalCache: q.hasLocalCache
+            })));
         } else {
             console.log('🎸 [SANTANA] No Santana queries found in merged results');
         }
@@ -1868,7 +1926,7 @@ export default class YouTubeSearchManager {
                             }));
                             
                             // Cache the clicked videos
-                            const cacheKey = `yt_search_${queryObj.query.toLowerCase().replace(/\s+/g, '_')}_p1_none`;
+                            const cacheKey = `yt_search_${queryObj.query.replace(/\s+/g, '_')}_p1_none`;
                             this.cacheService.set(cacheKey, {
                                 videos: cacheVideos,
                                 page: 1,
@@ -2004,6 +2062,9 @@ export default class YouTubeSearchManager {
 
     async renderQueryDropdown(queries, currentQuery) {
         console.log('📝 [DROPDOWN] Rendering query dropdown for:', currentQuery);
+        console.log('📝 [DROPDOWN] Current query type:', typeof currentQuery);
+        console.log('📝 [DROPDOWN] Number of queries to sort:', queries.length);
+        console.log('📝 [DROPDOWN] First few queries:', queries.slice(0, 3).map(q => q.query));
         
         // If no queries found, try to refresh from MongoDB
         if (queries.length === 0) {
@@ -2011,10 +2072,12 @@ export default class YouTubeSearchManager {
             queries = await this.refreshCacheFromMongoDB();
         }
         
-        // Always use access history order: most recent first
-        const sortedQueries = this.queryAccessHistory.length > 0
-            ? this.queryAccessHistory
-            : (queries || []);
+        // Use all queries, not just access history - this ensures all MongoDB entries are shown
+        // Sort with current query first, then by access history order, then by timestamp
+        let sortedQueries = queries || [];
+        
+        // CRITICAL: Use sortQueriesWithCurrentFirst to ensure current query appears at the top
+        sortedQueries = this.sortQueriesWithCurrentFirst(sortedQueries, currentQuery);
         
         // Find the dropdown list container (not the whole dropdown)
         let listContainer = document.querySelector('.restored-paginator-bar .query-history-list');
@@ -2163,8 +2226,10 @@ export default class YouTubeSearchManager {
             // Query name
             const queryName = document.createElement('div');
             queryName.className = 'query-text';
-            queryName.textContent = formattedDisplayName;
-            queryName.title = `Run search for: "${formattedDisplayName}"`;
+            // FINAL CAPITALIZATION INTERRUPT: Ensure proper case for display
+            const finalDisplayName = this.capitalizeWords(formattedDisplayName);
+            queryName.textContent = finalDisplayName;
+            queryName.title = `Run search for: "${finalDisplayName}"`;
             col2.appendChild(queryName);
             
             // Time ago below query name
@@ -2519,7 +2584,7 @@ export default class YouTubeSearchManager {
         const pages = [];
         let pageNum = 1;
         while (pageNum <= 20) { // Don't run forever
-            const cacheKey = `yt_search_${actualQuery.toLowerCase().replace(/\s+/g, '_')}_p${pageNum}_none`;
+            const cacheKey = `yt_search_${actualQuery.replace(/\s+/g, '_')}_p${pageNum}_none`;
             const cached = localStorage.getItem(cacheKey);
             console.log(`🔍 [DEBUG] Checking cache key: ${cacheKey}, found: ${!!cached}`);
             
@@ -2910,6 +2975,10 @@ export default class YouTubeSearchManager {
                     <span class="query-history-icon">📚</span>
                     <span class="query-history-text">YouTube Query History</span>
                 </button>
+                <button class="query-history-refresh-btn" title="Refresh from MongoDB Database">
+                    <span class="query-history-refresh-icon">🔄</span>
+                    <span class="query-history-refresh-text">Refresh</span>
+                </button>
                 <div class="query-history-dropdown">
                     <div class="query-history-header">Query History</div>
                     <div class="query-history-list"></div>
@@ -2934,74 +3003,119 @@ export default class YouTubeSearchManager {
         // Add to document
         document.body.appendChild(restoredBar);
 
-        // Add drag functionality - focus on the drag-me image area
-        const dragImage = restoredBar.querySelector('.drag-me-icon');
-        const dragTab = restoredBar.querySelector('.pagination-drag-tab');
-        
-        // Ultra-simple drag functionality - direct approach
-        if (dragTab) {
-            let isDragging = false;
-            let offsetX = 0;
-            let offsetY = 0;
-            
-            dragTab.addEventListener('mousedown', function(e) {
-                // Skip buttons
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                    return;
+        // Add refresh button functionality
+        const refreshBtn = restoredBar.querySelector('.query-history-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                console.log('🔄 [REFRESH] Refresh button clicked - reloading from MongoDB');
+                
+                // Show loading state
+                refreshBtn.innerHTML = '<span class="query-history-refresh-icon">⏳</span><span class="query-history-refresh-text">Loading...</span>';
+                refreshBtn.disabled = true;
+                
+                try {
+                    // Force refresh from MongoDB
+                    await this.loadSavedQueries();
+                    
+                    // Get all queries including database ones
+                    const allQueries = this.getAllQueriesForDropdown();
+                    
+                    // Re-render dropdown with fresh data
+                    await this.renderQueryDropdown(allQueries, subject);
+                    
+                    console.log('✅ [REFRESH] Successfully refreshed dropdown with', allQueries.length, 'queries from MongoDB');
+                    
+                    if (window.showToast) {
+                        window.showToast(`Refreshed: ${allQueries.length} queries loaded from database`, 'success');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ [REFRESH] Error refreshing from MongoDB:', error);
+                    if (window.showToast) {
+                        window.showToast('Error refreshing from database: ' + error.message, 'error');
+                    }
+                } finally {
+                    // Restore button state
+                    refreshBtn.innerHTML = '<span class="query-history-refresh-icon">🔄</span><span class="query-history-refresh-text">Refresh</span>';
+                    refreshBtn.disabled = false;
                 }
-                
-                console.log('🎯 [DRAG] Mouse down on drag tab');
-                
-                isDragging = true;
-                
-                // Calculate offset
-                const rect = restoredBar.getBoundingClientRect();
-                offsetX = e.clientX - rect.left;
-                offsetY = e.clientY - rect.top;
-                
-                // Add dragging class for CSS styling
-                restoredBar.classList.add('dragging');
-                
-                e.preventDefault();
-            });
-            
-            document.addEventListener('mousemove', function(e) {
-                if (!isDragging) return;
-                
-                console.log('🎯 [DRAG] Moving...');
-                
-                // Calculate new position
-                    const newLeft = e.clientX - offsetX;
-                    const newTop = e.clientY - offsetY;
-                
-                // Apply position
-                restoredBar.style.position = 'fixed';
-                restoredBar.style.left = newLeft + 'px';
-                restoredBar.style.top = newTop + 'px';
-                    restoredBar.style.right = 'auto';
-                    restoredBar.style.bottom = 'auto';
-                
-                e.preventDefault();
-            });
-            
-            document.addEventListener('mouseup', function(e) {
-                if (!isDragging) return;
-                
-                console.log('🎯 [DRAG] Mouse up - ending drag');
-                
-                isDragging = false;
-                
-                // Remove dragging class
-                    restoredBar.classList.remove('dragging');
-                
-                // Save position
-                const rect = restoredBar.getBoundingClientRect();
-                localStorage.setItem('restored_paginator_x', rect.left.toString());
-                localStorage.setItem('restored_paginator_y', rect.top.toString());
-                
-                console.log('🎯 [DRAG] Position saved:', rect.left, rect.top);
             });
         }
+
+        // Add drag functionality to the entire paginator bar
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        // Attach drag functionality to the entire paginator bar
+        restoredBar.addEventListener('mousedown', function(e) {
+            // Skip buttons and interactive elements
+            if (e.target.tagName === 'BUTTON' || 
+                e.target.closest('button') || 
+                e.target.closest('.query-history-dropdown') ||
+                e.target.closest('.query-history-btn') ||
+                e.target.closest('.query-history-refresh-btn')) {
+                return;
+            }
+            
+            console.log('🎯 [DRAG] Mouse down on paginator bar');
+            
+            isDragging = true;
+            
+            // Calculate offset
+            const rect = restoredBar.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            
+            // Add dragging class for CSS styling
+            restoredBar.classList.add('dragging');
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            console.log('🎯 [DRAG] Moving...');
+            
+            // Calculate new position
+            const newLeft = e.clientX - offsetX;
+            const newTop = e.clientY - offsetY;
+            
+            // Apply position - clear all positioning constraints
+            restoredBar.style.position = 'fixed';
+            restoredBar.style.left = newLeft + 'px';
+            restoredBar.style.top = newTop + 'px';
+            restoredBar.style.right = 'auto';
+            restoredBar.style.bottom = 'auto';
+            
+            // Force the styles to take effect
+            restoredBar.style.setProperty('left', newLeft + 'px', 'important');
+            restoredBar.style.setProperty('top', newTop + 'px', 'important');
+            restoredBar.style.setProperty('right', 'auto', 'important');
+            restoredBar.style.setProperty('bottom', 'auto', 'important');
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mouseup', function(e) {
+            if (!isDragging) return;
+            
+            console.log('🎯 [DRAG] Mouse up - ending drag');
+            
+            isDragging = false;
+            
+            // Remove dragging class
+            restoredBar.classList.remove('dragging');
+            
+            // Save position
+            const rect = restoredBar.getBoundingClientRect();
+            localStorage.setItem('restored_paginator_x', rect.left.toString());
+            localStorage.setItem('restored_paginator_y', rect.top.toString());
+            
+            console.log('🎯 [DRAG] Position saved:', rect.left, rect.top);
+        });
 
         // Restore saved position (QuotaMonitor pattern)
         const savedX = localStorage.getItem('restored_paginator_x');
@@ -3017,11 +3131,11 @@ export default class YouTubeSearchManager {
             const constrainedX = Math.min(Math.max(0, x), maxX);
             const constrainedY = Math.min(Math.max(0, y), maxY);
             
-            // Apply custom position
-            restoredBar.style.left = constrainedX + 'px';
-            restoredBar.style.top = constrainedY + 'px';
-            restoredBar.style.right = 'auto';
-            restoredBar.style.bottom = 'auto';
+            // Apply custom position with important priority
+            restoredBar.style.setProperty('left', constrainedX + 'px', 'important');
+            restoredBar.style.setProperty('top', constrainedY + 'px', 'important');
+            restoredBar.style.setProperty('right', 'auto', 'important');
+            restoredBar.style.setProperty('bottom', 'auto', 'important');
             
             console.log('🎯 [DRAG] Restored paginator position:', constrainedX, constrainedY);
         }

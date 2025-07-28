@@ -3513,6 +3513,81 @@ app.post('/api/youtube/quota-set', (req, res) => {
     });
 });
 
+// Quota script runner endpoint
+app.post('/api/quota/run-script', async (req, res) => {
+    const { script } = req.body;
+    
+    if (!script) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Script name is required' 
+        });
+    }
+    
+    const scriptMap = {
+        'fix_quota_monitor': 'scripts/YOUTUBE_QUOTA/fix_quota_monitor.js',
+        'check_real_youtube_quota': 'scripts/YOUTUBE_QUOTA/check_real_youtube_quota.js',
+        'force_quota_sync': 'scripts/YOUTUBE_QUOTA/force_quota_sync.js',
+        'auto_quota_sync': 'scripts/YOUTUBE_QUOTA/auto_quota_sync.js'
+    };
+    
+    const scriptPath = scriptMap[script];
+    if (!scriptPath) {
+        return res.status(400).json({ 
+            success: false, 
+            error: `Unknown script: ${script}` 
+        });
+    }
+    
+    try {
+        const { spawn } = require('child_process');
+        const scriptProcess = spawn('node', [scriptPath], {
+            cwd: process.cwd(),
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        
+        let output = '';
+        let errorOutput = '';
+        
+        scriptProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+        
+        scriptProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+        
+        scriptProcess.on('close', (code) => {
+            if (code === 0) {
+                res.json({
+                    success: true,
+                    message: `Script ${script} completed successfully`,
+                    output: output.trim()
+                });
+            } else {
+                res.json({
+                    success: false,
+                    error: `Script ${script} failed with code ${code}`,
+                    output: errorOutput.trim() || output.trim()
+                });
+            }
+        });
+        
+        scriptProcess.on('error', (error) => {
+            res.status(500).json({
+                success: false,
+                error: `Failed to run script: ${error.message}`
+            });
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: `Server error: ${error.message}`
+        });
+    }
+});
+
 // Admin endpoint to manually reset quota (for testing)
 app.post('/api/youtube/quota-reset', (req, res) => {
     const oldUsed = dailyQuotaUsed;

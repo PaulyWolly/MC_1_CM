@@ -1,12 +1,15 @@
 /*
-  AUDIOMANAGER.JS
+  TEXTTOSPEECHAUDIO.JS
   Version: 9
   AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  Updated: 1/6/2025 @9:00AM
   Created by Paul Welby
+  
+  Text-to-Speech Audio Manager Component
+  Handles text-to-speech functionality for the application
 */
 
-// public/components/AudioManager.js
+// public/components/TextToSpeech/TextToSpeechAudio.js
 
 // Add at the top with other constants
 const AUDIO_CONFIG = {
@@ -22,7 +25,7 @@ const AUDIO_CONFIG = {
     apiUrl: '/api/tts' // Assuming this is the correct endpoint
 };
 
-export default class AudioManager {
+export default class TextToSpeechAudioManager {
     constructor(appConfig) {
         this.appConfig = appConfig;
         this.audioQueue = [];
