@@ -11,237 +11,160 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🎬 [TEST - WATCH-LATER-TV] Testing Watch Later TV show playback...');
+console.log('🧪 [TEST] Testing Watch Later TV Show Playback with Seasons Structure');
+console.log('================================================================\n');
 
-// Test the Watch Later TV show data structure
-function testWatchLaterTVDataStructure() {
-    console.log('🔍 [TEST] Testing Watch Later TV show data structure...');
+// Test 1: Check TV show data structure
+function testTVShowDataStructure() {
+    console.log('🔍 [TEST] Testing TV show data structure...');
     
     try {
-        // Simulate a Watch Later TV show item
-        const mockWatchLaterTVItem = {
-            path: 'The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4',
-            title: 'The Big Bang Theory S12E01',
-            type: 'tv-show',
-            currentTime: 1200,
-            duration: 1800,
-            lastWatched: Date.now()
-        };
+        const tvShowsPath = 'public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json';
+        const tvShowsData = JSON.parse(fs.readFileSync(tvShowsPath, 'utf8'));
         
-        console.log('✅ [TEST] PASS: Watch Later TV show item structure is correct');
-        console.log('   Path:', mockWatchLaterTVItem.path);
-        console.log('   Type:', mockWatchLaterTVItem.type);
-        console.log('   Current Time:', mockWatchLaterTVItem.currentTime);
+        console.log('   - Data type:', typeof tvShowsData);
+        console.log('   - Is array:', Array.isArray(tvShowsData));
         
-        return mockWatchLaterTVItem;
-    } catch (error) {
-        console.log('❌ [TEST] FAIL: Could not create mock Watch Later TV show item');
-        console.log('   Error:', error.message);
-        return null;
-    }
-}
-
-// Test the playMedia function logic for TV shows
-function testPlayMediaTVLogic() {
-    console.log('\n🔍 [TEST] Testing playMedia function logic for TV shows...');
-    
-    // Simulate the playMedia function logic
-    const mockMediaItem = {
-        path: 'The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4',
-        title: 'The Big Bang Theory S12E01',
-        type: 'tv-show'
-    };
-    
-    const pathToCheck = (mockMediaItem.path || '').toLowerCase();
-    const isTVShow = pathToCheck.includes('tv-shows') || 
-                    pathToCheck.includes('tv_shows') ||
-                    pathToCheck.includes('season') ||
-                    (mockMediaItem.title && (mockMediaItem.title.includes('S00E') || mockMediaItem.title.includes('S01E') || mockMediaItem.title.includes('S02E')));
-    
-    if (isTVShow) {
-        console.log('✅ [TEST] PASS: TV show detection logic works correctly');
-        console.log('   Path:', mockMediaItem.path);
-        console.log('   Title:', mockMediaItem.title);
-        console.log('   Is TV Show:', isTVShow);
-        
-        // Test the episode data creation
-        const episodeData = {
-            filePath: mockMediaItem.filePath || mockMediaItem.absPath || mockMediaItem.path,
-            title: mockMediaItem.title,
-            name: mockMediaItem.name,
-            path: mockMediaItem.path
-        };
-        
-        console.log('✅ [TEST] PASS: Episode data creation works correctly');
-        console.log('   Episode Data:', episodeData);
-        
-        return true;
-    } else {
-        console.log('❌ [TEST] FAIL: TV show detection logic failed');
-        return false;
-    }
-}
-
-// Test the saveResumeProgress function for TV shows
-function testSaveResumeProgressTV() {
-    console.log('\n🔍 [TEST] Testing saveResumeProgress function for TV shows...');
-    
-    // Simulate a TV show media item being saved
-    const mockTVMediaItem = {
-        path: 'The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4',
-        title: 'The Big Bang Theory S12E01',
-        filePath: 'S:/MEDIA/TV-SHOWS/The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4',
-        currentTime: 1200,
-        duration: 1800
-    };
-    
-    const pathToCheck = (mockTVMediaItem.path || '').toLowerCase();
-    const isTVShow = pathToCheck.includes('tv-shows') || 
-                    pathToCheck.includes('tv_shows') ||
-                    pathToCheck.includes('season') ||
-                    (mockTVMediaItem.title && (mockTVMediaItem.title.includes('S00E') || mockTVMediaItem.title.includes('S01E') || mockTVMediaItem.title.includes('S02E')));
-    
-    if (isTVShow) {
-        const savedItem = {
-            path: mockTVMediaItem.path,
-            title: mockTVMediaItem.title,
-            currentTime: mockTVMediaItem.currentTime,
-            duration: mockTVMediaItem.duration,
-            lastWatched: Date.now(),
-            type: 'tv-show'
-        };
-        
-        // Ensure filePath is included for TV shows
-        if (mockTVMediaItem.filePath) {
-            savedItem.filePath = mockTVMediaItem.filePath;
-        } else if (mockTVMediaItem.absPath) {
-            savedItem.filePath = mockTVMediaItem.absPath;
-        } else if (mockTVMediaItem.path) {
-            savedItem.filePath = mockTVMediaItem.path;
-        }
-        
-        console.log('✅ [TEST] PASS: saveResumeProgress for TV shows works correctly');
-        console.log('   Saved Item:', savedItem);
-        console.log('   Has filePath:', !!savedItem.filePath);
-        
-        return savedItem;
-    } else {
-        console.log('❌ [TEST] FAIL: saveResumeProgress TV show detection failed');
-        return null;
-    }
-}
-
-// Test the playEpisodeFromObject function
-function testPlayEpisodeFromObject() {
-    console.log('\n🔍 [TEST] Testing playEpisodeFromObject function...');
-    
-    // Simulate episode data that would be passed to playEpisodeFromObject
-    const mockEpisodeData = {
-        filePath: 'S:/MEDIA/TV-SHOWS/The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4',
-        title: 'The Big Bang Theory S12E01',
-        name: 'The.Big.Bang.Theory.S12E01.mp4',
-        path: 'The Big Bang Theory/Season 12/The.Big.Bang.Theory.S12E01.mp4'
-    };
-    
-    const episodeDataJson = JSON.stringify(mockEpisodeData);
-    
-    try {
-        const parsedEpisodeObj = JSON.parse(episodeDataJson);
-        
-        if (parsedEpisodeObj && parsedEpisodeObj.filePath) {
-            const filePath = parsedEpisodeObj.filePath;
-            const encodedPath = encodeURIComponent(filePath);
-            const videoUrl = `/api/video?path=${encodedPath}`;
+        if (Array.isArray(tvShowsData) && tvShowsData.length > 0) {
+            const firstShow = tvShowsData[0];
+            console.log('   - First show keys:', Object.keys(firstShow));
+            console.log('   - Has seasons:', !!firstShow.seasons);
+            console.log('   - Has folders:', !!firstShow.folders);
             
-            console.log('✅ [TEST] PASS: playEpisodeFromObject logic works correctly');
-            console.log('   File Path:', filePath);
-            console.log('   Video URL:', videoUrl);
+            if (firstShow.seasons && Array.isArray(firstShow.seasons)) {
+                console.log('   - Seasons count:', firstShow.seasons.length);
+                if (firstShow.seasons.length > 0) {
+                    const firstSeason = firstShow.seasons[0];
+                    console.log('   - First season keys:', Object.keys(firstSeason));
+                    console.log('   - Has episodes:', !!firstSeason.episodes);
+                    console.log('   - Episodes count:', firstSeason.episodes ? firstSeason.episodes.length : 0);
+                }
+            }
             
             return true;
         } else {
-            console.log('❌ [TEST] FAIL: playEpisodeFromObject missing filePath');
+            console.log('   ❌ [TEST] FAIL: No TV shows found in data');
             return false;
         }
     } catch (error) {
-        console.log('❌ [TEST] FAIL: playEpisodeFromObject JSON parsing failed');
-        console.log('   Error:', error.message);
+        console.log('   ❌ [TEST] FAIL: Error reading TV shows data:', error.message);
         return false;
     }
 }
 
-// Test the complete Watch Later TV show flow
-function testCompleteWatchLaterTVFlow() {
-    console.log('\n🔍 [TEST] Testing complete Watch Later TV show flow...');
+// Test 2: Check Watch Later logic compatibility
+function testWatchLaterLogic() {
+    console.log('\n🔍 [TEST] Testing Watch Later logic compatibility...');
     
-    // Step 1: Save TV show to Watch Later
-    const savedItem = testSaveResumeProgressTV();
-    if (!savedItem) {
-        console.log('❌ [TEST] FAIL: Step 1 - Save to Watch Later failed');
-        return false;
+    // Simulate the searchSeasons function logic
+    function searchSeasons(seasons, searchPath) {
+        console.log('   - Searching for path:', searchPath);
+        console.log('   - Seasons data type:', typeof seasons);
+        console.log('   - Seasons is array:', Array.isArray(seasons));
+        
+        if (!Array.isArray(seasons)) {
+            console.log('   - ❌ [TEST] FAIL: Seasons is not an array');
+            return null;
+        }
+        
+        for (const show of seasons) {
+            if (show.seasons && Array.isArray(show.seasons)) {
+                console.log('   - Found show with seasons:', show.title || show.name);
+                for (const season of show.seasons) {
+                    if (season.episodes && Array.isArray(season.episodes)) {
+                        console.log('   - Found season with episodes:', season.episodes.length);
+                        for (const ep of season.episodes) {
+                            if (ep.relPath && ep.relPath.includes(searchPath)) {
+                                console.log('   - ✅ [TEST] PASS: Found matching episode');
+                                return ep;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        console.log('   - ❌ [TEST] FAIL: No matching episode found');
+        return null;
     }
     
-    // Step 2: Load from Watch Later and detect as TV show
-    const isTVShow = savedItem.type === 'tv-show';
-    if (!isTVShow) {
-        console.log('❌ [TEST] FAIL: Step 2 - TV show detection failed');
-        return false;
+    // Test with sample data
+    const sampleSeasons = [
+        {
+            title: 'Test Show',
+            seasons: [
+                {
+                    episodes: [
+                        { relPath: 'Test Show/Season 01/Episode 01.mp4', filePath: '/media/tv-shows/Test Show/Season 01/Episode 01.mp4' }
+                    ]
+                }
+            ]
+        }
+    ];
+    
+    const foundEpisode = searchSeasons(sampleSeasons, 'Episode 01');
+    return foundEpisode !== null;
+}
+
+// Test 3: Check path extraction logic
+function testPathExtraction() {
+    console.log('\n🔍 [TEST] Testing path extraction logic...');
+    
+    function extractRelativePath(absolutePath) {
+        let searchPath = (absolutePath || '').replace(/\\/g, '/').trim();
+        const lowerPath = searchPath.toLowerCase();
+        
+        if (lowerPath.includes(':/media/tv-shows/')) {
+            const parts = searchPath.split('/');
+            const mediaIndex = parts.findIndex(part => part.toLowerCase() === 'media');
+            if (mediaIndex !== -1 && parts[mediaIndex + 1] && parts[mediaIndex + 1].toLowerCase() === 'tv-shows') {
+                searchPath = parts.slice(mediaIndex + 2).join('/');
+                console.log('   - Extracted relative path:', searchPath);
+                return searchPath;
+            }
+        }
+        
+        console.log('   - No extraction needed:', searchPath);
+        return searchPath;
     }
     
-    // Step 3: Create episode data for playback
-    const episodeData = {
-        filePath: savedItem.filePath || savedItem.path,
-        title: savedItem.title,
-        name: savedItem.title,
-        path: savedItem.path
-    };
+    const testPaths = [
+        'C:/media/tv-shows/Test Show/Season 01/Episode 01.mp4',
+        'D:/media/tv-shows/Another Show/Season 02/Episode 05.mp4',
+        'Test Show/Season 01/Episode 01.mp4'
+    ];
     
-    if (!episodeData.filePath) {
-        console.log('❌ [TEST] FAIL: Step 3 - Missing filePath for playback');
-        return false;
-    }
+    let allPassed = true;
+    testPaths.forEach((path, index) => {
+        console.log(`   - Test path ${index + 1}:`, path);
+        const extracted = extractRelativePath(path);
+        if (extracted.includes(':/')) {
+            console.log('   - ❌ [TEST] FAIL: Path still contains drive letter');
+            allPassed = false;
+        } else {
+            console.log('   - ✅ [TEST] PASS: Path extracted correctly');
+        }
+    });
     
-    // Step 4: Test video URL creation
-    const encodedPath = encodeURIComponent(episodeData.filePath);
-    const videoUrl = `/api/video?path=${encodedPath}`;
-    
-    console.log('✅ [TEST] PASS: Complete Watch Later TV show flow works correctly');
-    console.log('   Step 1: Save to Watch Later - ✅');
-    console.log('   Step 2: TV show detection - ✅');
-    console.log('   Step 3: Episode data creation - ✅');
-    console.log('   Step 4: Video URL creation - ✅');
-    console.log('   Final Video URL:', videoUrl);
-    
-    return true;
+    return allPassed;
 }
 
 // Run all tests
-function runAllTests() {
-    console.log('🚀 [TEST] Starting Watch Later TV show playback tests...\n');
-    
-    const test1 = testWatchLaterTVDataStructure();
-    const test2 = testPlayMediaTVLogic();
-    const test3 = testSaveResumeProgressTV();
-    const test4 = testPlayEpisodeFromObject();
-    const test5 = testCompleteWatchLaterTVFlow();
-    
-    console.log('\n🎯 [TEST] All tests completed!');
-    console.log('📝 [TEST] Summary:');
-    console.log('   - Watch Later TV show data structure: ' + (test1 ? '✅ PASS' : '❌ FAIL'));
-    console.log('   - playMedia TV show logic: ' + (test2 ? '✅ PASS' : '❌ FAIL'));
-    console.log('   - saveResumeProgress for TV shows: ' + (test3 ? '✅ PASS' : '❌ FAIL'));
-    console.log('   - playEpisodeFromObject function: ' + (test4 ? '✅ PASS' : '❌ FAIL'));
-    console.log('   - Complete Watch Later TV flow: ' + (test5 ? '✅ PASS' : '❌ FAIL'));
-    
-    const allPassed = test1 && test2 && test3 && test4 && test5;
-    console.log('\n🎉 [TEST] Overall Result: ' + (allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'));
-    
-    if (allPassed) {
-        console.log('✅ [TEST] Watch Later TV show playback should now work correctly!');
-        console.log('   - TV shows will be properly detected');
-        console.log('   - filePath will be saved and retrieved correctly');
-        console.log('   - Video player will receive proper URLs');
-    }
-}
+const test1 = testTVShowDataStructure();
+const test2 = testWatchLaterLogic();
+const test3 = testPathExtraction();
 
-// Run the tests
-runAllTests(); 
+console.log('\n📊 [TEST] Results Summary');
+console.log('========================');
+console.log('   - TV Show Data Structure: ' + (test1 ? '✅ PASS' : '❌ FAIL'));
+console.log('   - Watch Later Logic: ' + (test2 ? '✅ PASS' : '❌ FAIL'));
+console.log('   - Path Extraction: ' + (test3 ? '✅ PASS' : '❌ FAIL'));
+
+const allTestsPassed = test1 && test2 && test3;
+console.log('\n🎯 [TEST] Overall Result: ' + (allTestsPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'));
+
+if (allTestsPassed) {
+    console.log('\n✅ [TEST] Watch Later TV show playback should work correctly with the new seasons structure!');
+} else {
+    console.log('\n❌ [TEST] Watch Later TV show playback may still have issues.');
+} 

@@ -1,21 +1,28 @@
 /*
-  SMART_FETCH_TMDB_TV-SHOW_SEASON_IMAGES.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  SMART_FETCH_TMDB_TV-SHOW_SEASON_IMAGES_NORMALIZED.JS
+  Version: 10
+  AppName: MC_1_CM [v10]
+  Updated: 1/6/2025 @12:00PM
   Created by Paul Welby
+  
+  DESCRIPTION:
+  Fetches TV show season images from TMDB and outputs normalized JSON with dot notation keys.
+  No separate normalization step required - outputs directly to normalized format.
 */
 
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TV_SHOWS_DIR = 'S:/MEDIA/TV-SHOWS/';
-const DATA_DIR = path.join(__dirname, '../public/components/MediaLibrary/data');
-const OUTPUT_JSON = path.join(DATA_DIR, 'tmdb_tv-show_season_images.json');
+const DATA_DIR = path.join(__dirname, '../../public/components/MediaLibrary/data');
+const OUTPUT_JSON = path.join(DATA_DIR, 'tv-shows/tv-show_season_images_normalized.json');
 const OVERRIDES_PATH = path.join(DATA_DIR, 'season_tmdb_tv-show_overrides.json');
+
+// Import normalization function
+const { normalizeKey } = require('../../shared/NormalizationService');
 
 if (!TMDB_API_KEY) {
     console.error('❌ TMDB_API_KEY not found in .env');
@@ -23,12 +30,10 @@ if (!TMDB_API_KEY) {
 }
 
 function cleanShowName(name) {
-    // Remove year in parentheses, brackets, or after dash
     return name
         .replace(/\(\d{4}\)/, '')
         .replace(/\[.*?\]/g, '')
         .replace(/\d{4}/, '')
-        .replace(/\b(720p|1080p|2160p|4k|bluray|brrip|web-dl|web|hdtv|dvdrip|yify|x264|x265|aac|mp3|dts|eac3|ac3|flac|truehd|atmos|10bit|5\.1|7\.1|yts|yts\.mx|yts\.ag|yts\.am|rarbg|hdrip|bdrip|repack|extended|remastered|uncut|proper|limited|internal|dual|audio|subs|eng|ita|spa|fre|ger|rus|jpn|kor|chi|fr|es|de|ru|jp|kr|cn|mx|am|ag|lt|gaz|bokutox|lama|ptp|h264|h265|hevc|web-dl|webdl|web-rip|webrip|dvdr|dvdscr|dvdscreener|cam|ts|tc|r5|scr|unrated|director.s.cut|remux|criterion|multi|multi.audio|multi.subs|multi.language|multi.lang|fixed|amzn|dd|h.264|playweb)\b/gi, '')
         .replace(/[._-]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -64,21 +69,28 @@ async function main() {
     const showArg = process.argv[2];
     let shows;
     if (showArg) {
-      shows = [showArg];
-      console.log(`SMART MODE: Only fetching season images for: ${showArg}`);
+        shows = [showArg];
+        console.log(`SMART MODE: Only fetching season images for: ${showArg}`);
     } else {
-      shows = fs.readdirSync(TV_SHOWS_DIR, { withFileTypes: true })
-        .filter(entry => entry.isDirectory())
-        .map(entry => entry.name);
+        shows = fs.readdirSync(TV_SHOWS_DIR, { withFileTypes: true })
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name);
     }
     const overrides = loadOverrides();
-    // --- Merge logic: load existing JSON ---
+    
+    // Ensure output directory exists
+    const outputDir = path.dirname(OUTPUT_JSON);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    // --- Merge logic: load existing normalized JSON ---
     let existing = {};
     if (fs.existsSync(OUTPUT_JSON)) {
         try {
             existing = JSON.parse(fs.readFileSync(OUTPUT_JSON, 'utf8'));
         } catch (e) {
-            console.warn('⚠️ Could not parse existing season images JSON, starting fresh.');
+            console.warn('⚠️ Could not parse existing normalized season images JSON, starting fresh.');
             existing = {};
         }
     }
@@ -92,6 +104,8 @@ async function main() {
     
     for (const showName of shows) {
         const cleanedName = cleanShowName(showName);
+        const normalizedKey = normalizeKey(showName);
+        
         let override = overrides[showName] || overrides[cleanedName];
         let tvId, seasonOverride = null;
         if (override && typeof override === 'object') {
@@ -100,20 +114,22 @@ async function main() {
         } else {
             tvId = await searchTMDBShow(cleanedName, override);
         }
-        console.log(`🔍 Searching TMDB for: ${showName} (cleaned: ${cleanedName})${tvId ? ' [override]' : ''}`);
+        console.log(`🔍 Searching TMDB for: ${showName} (cleaned: ${cleanedName}, normalized: ${normalizedKey})${tvId ? ' [override]' : ''}`);
         if (!tvId) {
             console.log(`❌ No TMDB match for: ${showName}`);
             continue;
         }
         console.log(`✅ Found TMDB match for: ${showName} (ID: ${tvId})`);
         showsFound++;
-        result[showName] = { seasons: {} };
+        result[normalizedKey] = { seasons: {} };
         const showPath = path.join(TV_SHOWS_DIR, showName);
         const seasonFolders = fs.readdirSync(showPath, { withFileTypes: true })
             .filter(entry => entry.isDirectory())
             .map(entry => entry.name);
         let showSeasons = 0;
         let showSeasonsWithPosters = 0;
+        let foundAnyPosters = false;
+        
         for (const seasonFolder of seasonFolders) {
             const match = seasonFolder.match(/season[ _-]?(\d+)/i);
             if (!match) continue;
@@ -121,12 +137,14 @@ async function main() {
             if (!seasonNumber) continue;
             // If override specifies a season, skip others
             if (seasonOverride && seasonNumber !== seasonOverride) continue;
+            
             showSeasons++;
             totalSeasons++;
             console.log(`   📺 Fetching Season ${seasonNumber} poster...`);
             const posterUrl = await fetchSeasonPoster(tvId, seasonNumber);
-            result[showName].seasons[seasonNumber] = { poster: posterUrl };
+            result[normalizedKey].seasons[seasonNumber] = { poster: posterUrl };
             if (posterUrl) {
+                foundAnyPosters = true;
                 console.log(`   ✅ Season ${seasonNumber} poster found: ${posterUrl.split('/').pop()}`);
                 showSeasonsWithPosters++;
                 seasonsWithPosters++;
@@ -139,6 +157,12 @@ async function main() {
         } else {
             console.log(`   ⚠️  ${showName}: No season folders found\n`);
         }
+        // Only update the result if we found at least one poster, or if the show is not already present
+        if (!foundAnyPosters && existing[normalizedKey]) {
+            // Do not overwrite existing entry
+            console.log(`⚠️  No new posters found for ${showName}, preserving existing data.`);
+            continue;
+        }
     }
     
     fs.writeFileSync(OUTPUT_JSON, JSON.stringify(result, null, 2));
@@ -150,7 +174,7 @@ async function main() {
     console.log(`   • Total seasons: ${totalSeasons}`);
     console.log(`   • Seasons with posters: ${seasonsWithPosters}`);
     console.log(`   • Success rate: ${totalSeasons > 0 ? ((seasonsWithPosters / totalSeasons) * 100).toFixed(1) : 0}%`);
-    console.log(`📄 Data saved to: ${OUTPUT_JSON}`);
+    console.log(`📄 Normalized data saved to: ${OUTPUT_JSON}`);
     console.log(`📝 Manual overrides: ${OVERRIDES_PATH}`);
 }
 

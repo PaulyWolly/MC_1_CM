@@ -1,23 +1,33 @@
 /*
-  FETCH_MOVIE_GENRES_FROM_TMDB.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  FETCH_MOVIE_GENRES_FROM_TMDB_NORMALIZED.JS
+  Version: 10
+  AppName: MC_1_CM [v10]
+  Updated: 1/6/2025 @12:00PM
   Created by Paul Welby
+  
+  DESCRIPTION:
+  Scans S:/MEDIA/MOVIES, queries TMDb for genres, outputs movie_genres_normalized.json with dot notation keys.
+  No separate normalization step required - outputs directly to normalized format.
 */
 
-// fetch_movie_genres_from_tmdb.js
-// Scans S:/MEDIA/MOVIES, queries TMDb for genres, outputs movie_genres.json (run CONVERT/convert_movie_genres_to_normalized.js after to produce normalized file)
-// Usage: node fetch_movie_genres_from_tmdb.js
-
+// Scans S:/MEDIA/MOVIES, queries TMDb for genres, outputs movie_genres_normalized.json
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
 const MOVIES_ROOT = 'S:/MEDIA/MOVIES';
-const TMDB_API_KEY = '7558c4ca11c4063f2e2bdcb44eac41d0';
-const OUTPUT_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_genres.json');
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const OUTPUT_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/movies/movie_genres_normalized.json');
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
+
+// Import normalization function
+const { normalizeKey } = require('../../shared/NormalizationService');
+
+if (!TMDB_API_KEY) {
+    console.error('❌ TMDB_API_KEY not found in .env');
+    process.exit(1);
+}
 
 // Helper: Recursively scan for movie files
 function scanMovies(dir) {
@@ -80,6 +90,12 @@ async function fetchGenresForMovie(title, year) {
 }
 
 (async () => {
+    // Ensure output directory exists
+    const outputDir = path.dirname(OUTPUT_FILE);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
     console.log('Scanning for movie files...');
     const movieFiles = scanMovies(MOVIES_ROOT);
     console.log(`Found ${movieFiles.length} movie files.`);
@@ -88,27 +104,20 @@ async function fetchGenresForMovie(title, year) {
         const file = movieFiles[i];
         const relPath = path.relative(MOVIES_ROOT, file);
         const { title, year } = parseTitleAndYear(file);
-        console.log(`[${i + 1}/${movieFiles.length}] Querying TMDb for:`, title, year ? `(${year})` : '');
+        const normalizedKey = normalizeKey(title);
+        
+        console.log(`[${i + 1}/${movieFiles.length}] Querying TMDb for: ${title}${year ? ` (${year})` : ''} (normalized: ${normalizedKey})`);
         try {
             const genres = await fetchGenresForMovie(title, year);
-            mapping[relPath] = genres;
+            mapping[normalizedKey] = genres;
             console.log('  → Genres:', genres.join(', ') || '(none)');
         } catch (e) {
             console.warn('  → Error:', e.message);
-            mapping[relPath] = [];
+            mapping[normalizedKey] = [];
         }
         // Optional: Rate limit to avoid hitting TMDb too fast
         await new Promise(r => setTimeout(r, 350));
     }
     fs.writeFileSync(OUTPUT_FILE, JSON.stringify(mapping, null, 2), 'utf-8');
-    console.log('Done! Output written to', OUTPUT_FILE);
-})();
-
-// Optionally, run the normalization script automatically after writing movie_genres.json
-const { execSync } = require('child_process');
-try {
-  execSync('node ../CONVERT/convert_movie_genres_to_normalized.js', { stdio: 'inherit' });
-  console.log('Normalized movie genres file generated.');
-} catch (e) {
-  console.warn('Could not run normalization script automatically:', e.message);
-} 
+    console.log('Done! Normalized output written to', OUTPUT_FILE);
+})(); 

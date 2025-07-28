@@ -12,6 +12,11 @@
  * Creates timestamped backups of all critical files in mirrored directory structure
  * Automatically cleans up old backups to maintain only the most recent ones
  * 
+ * Excludes:
+ * - node_modules directories
+ * - SANDBOX directories  
+ * - backup directories (e.g., scripts/CONVERT/backups/ containing converted MP4 files)
+ * 
  * Usage: node BACKUP_APP.js
  * Or:    npm run backup (if added to package.json scripts)
  */
@@ -110,8 +115,10 @@ function scanDirectory(dir, baseDir) {
         const relativePath = path.relative(baseDir, fullPath);
         
         if (fs.statSync(fullPath).isDirectory()) {
-            // Skip node_modules directories
-            if (entry === 'node_modules' || entry === 'SANDBOX') continue;
+            // Skip node_modules directories and conversion backup directories
+            if (entry === 'node_modules' || 
+                entry === 'SANDBOX' || 
+                entry === 'backups') continue;
             // Recursively scan subdirectories
             files.push(...scanDirectory(fullPath, baseDir));
         } else {

@@ -114,14 +114,16 @@
   display: block;
 }
 
+.media-manager-content-tv.active {
+  display: block;
+}
+
 .media-manager-content-all.active {
   display: flex;
   flex-direction: column;
 }
 
-.media-manager-tab.media-manager-tab-movie-test {
-  display: none;
-}
+
 
 .media-manager-movie-form {
   display: flex;
@@ -132,13 +134,13 @@
   position: relative;
   top: 10px;
 }
-.media-manager-label {
+.media-manager-label-movie {
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
   width: 40%;
 }
-.media-manager-input {
+.media-manager-input-movie {
   background: #2d313a;
   color: #fff;
   border: 1px solid #444a56;
@@ -158,7 +160,7 @@
 }
 
 .media-manager-input.error {
-    border-color: #e74c3c;
+    border: 2px solid #e74c3c !important;
     box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
 }
 
@@ -168,21 +170,13 @@
     margin-left: 2px;
 }
 
-.media-manager-edit-cast-btn, .media-manager-view-json-btn {
+.media-manager-edit-cast-btn, .media-manager-view-json-btn-movie {
   margin-top: 20px;
   cursor: pointer;
 }
 
-.media-manager-field-error {
-    color: #e74c3c;
-    font-size: 0.85em;
-    margin-top: 4px;
-    margin-bottom: 8px;
-    padding: 6px 10px;
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid rgba(231, 76, 60, 0.3);
-    border-radius: 4px;
-    display: none;
+.media-manager-field-error-movie {
+    display: none !important;
 }
 .media-manager-fetch-btn,
 .media-manager-fetch-all-btn {
@@ -223,17 +217,16 @@
   margin-bottom: 18px;
 }
 
-.media-manager-preview-description {
+.media-manager-preview-description-movie {
+
+}
+
+.media-manager-preview-cast-movie {
   flex: 2;
   min-width: 0;
 }
 
-.media-manager-preview-cast {
-  flex: 2;
-  min-width: 0;
-}
-
-.media-manager-preview-poster {
+.media-manager-preview-poster-movie {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -243,10 +236,10 @@
   width: 25%;
   position: absolute;
   right: 60px;
-  top: 80px;
+  top: 90px;
 }
 
-.media-manager-poster-img {
+.media-manager-poster-img-movie {
   width: 160px;
   height: 240px;
   object-fit: cover;
@@ -257,7 +250,7 @@
   margin-bottom: 8px;
 }
 
-.media-manager-edit-poster-btn {
+.media-manager-edit-poster-btn-movie {
   margin-top: 0px;
   padding: 6px 18px;
   background: #4a90e2;
@@ -287,13 +280,47 @@
   background: #357ab8;
 }
 
-.media-manager-preview-description {
-  margin-bottom: 15px;
-  position: relative;
-  top: 14px;
+.media-manager-tv-cast-buttons {
+  display: flex;
+  gap: 12px;
+  position: absolute;
+  bottom: -86px;
+  z-index: 10 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-.media-manager-description-input {
+.media-manager-cast-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* .media-manager-preview-description-movie {
+  margin-bottom: 15px;
+  position: relative;
+  top: 20px;
+  flex: 2;
+  min-width: 0;
+} */
+
+.media-manager-preview-description-movie {
+  margin-bottom: 15px;
+  position: relative;
+  top: 20px;
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-preview-description-tv {
+  margin-bottom: 15px;
+  position: relative;
+  top: 60px;
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-description-input-movie {
   min-height: 80px;
   resize: vertical;
 }
@@ -303,13 +330,20 @@
   resize: vertical;
 }
 
-.media-manager-preview-cast {
-  margin-bottom: 25px;
+.media-manager-force-refresh-btn-tv-container {
   position: relative;
-  top: 14px;
+  top: 40px;
+  left: -10px;
+  width: 50%;
 }
 
-.media-manager-cast-list {
+.media-manager-preview-cast-movie {
+  margin-bottom: 25px;
+  position: relative;
+  top: -45px;
+}
+
+.media-manager-cast-list-movie {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #444a56;
@@ -320,23 +354,7 @@
   min-height: 40px;
 }
 
-.media-manager-view-season-episode-images-btn-tv {
-  position: relative;
-  top: 20px;
-  background: coral;
-  cursor: pointer;
-  transition: background 0.2s;
-}
 
-.media-manager-view-season-episode-images-btn-tv:disabled {
-  background: #7f8c8d;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.media-manager-view-season-episode-images-btn-tv:disabled:hover {
-  background: #7f8c8d;
-}
 
 .media-manager-cast-list::-webkit-scrollbar {
   width: 6px;
@@ -371,7 +389,7 @@
   background: #404550;
 }
 
-.media-manager-edit-cast-btn {
+.media-manager-edit-cast-btn-movie {
   margin-right: 8px;
   padding: 4px 12px;
   background: #4a90e2;
@@ -395,7 +413,7 @@
 
 .media-manager-confirm-btn,
 .media-manager-edit-btn,
-.media-manager-cancel-btn {
+.media-manager-cancel-btn-movie {
   padding: 10px 24px;
   border: none;
   border-radius: 5px;
@@ -404,12 +422,12 @@
   transition: background 0.2s;
 }
 
-.media-manager-edit-btn {
+.media-manager-edit-btn-movie {
   background: #f39c12;
   color: #fff;
 }
 
-.media-manager-cancel-btn {
+.media-manager-cancel-btn-movie {
   background: #95a5a6;
   color: #fff;
 }
@@ -425,6 +443,26 @@
 }
 
 .media-manager-confirm-btn:disabled:hover {
+  background: #7f8c8d;
+}
+
+.media-manager-confirm-btn-tv:disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.media-manager-confirm-btn-tv:disabled:hover {
+  background: #7f8c8d;
+}
+
+.media-manager-confirm-btn-tv.disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.media-manager-confirm-btn-tv.disabled:hover {
   background: #7f8c8d;
 }
 
@@ -501,6 +539,96 @@
   gap: 4px;
 }
 
+.media-manager-input-tv.title {
+  width: 97% !important;
+}
+
+.media-manager-input-tv.year {
+  width: 90% !important;
+}
+
+.media-manager-input-tv.tmdbid {
+  width: 95% !important;
+}
+
+.media-manager-input-tv.path {
+  width: 97% !important;
+}
+
+/* Override for inline flex layout in TV show form */
+.media-manager-form-row[style*="display: flex"] {
+  flex-direction: row !important;
+}
+
+/* ==================== TV-SHOW FORM LAYOUT CLASSES ==================== */
+
+/* TV-SHOW: Year and TMDB ID row layout */
+.media-manager-form-row-year-tmdb {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 16px;
+}
+
+.media-manager-form-row-year-tmdb .media-manager-year-field {
+  flex: 1;
+  width: 45%;
+}
+
+.media-manager-form-row-year-tmdb .media-manager-tmdb-field {
+  flex: 2;
+  width: 45%;
+}
+
+/* TV-SHOW: Details row layout */
+.media-manager-details-row-tv {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+}
+
+.media-manager-description-section-tv {
+  flex: 2;
+}
+
+.media-manager-cast-section-tv {
+  flex: 1;
+  position: relative;
+  top: -70px;
+}
+
+/* TV-SHOW: Button styling */
+.media-manager-btn-tv-force-refresh {
+  margin-left: 12px;
+  margin-bottom: 8px;
+}
+
+
+
+/* TV-SHOW: Display utilities */
+.media-manager-display-block {
+  display: block;
+}
+
+.media-manager-display-none {
+  display: none;
+}
+
+.media-manager-display-flex {
+  display: flex;
+}
+
+/* TV-SHOW: Error field display */
+.media-manager-field-error-hidden {
+  display: none;
+}
+
+/* TV-SHOW: TMDB message styling */
+.media-manager-tmdbid-msg {
+  display: none;
+  color: #ff9800;
+  margin-bottom: 8px;
+}
+
 .MM-form-fields-BKGD    {
   background: #2d313a;
   padding: 20px;
@@ -508,18 +636,18 @@
   border: 1px solid #444a56;
 }
 
-.media-manager-details-row {
+.media-manager-details-row-movie {
   display: flex;
   gap: 32px;
   margin-top: 24px;
 }
 
-.media-manager-description-section {
+.media-manager-description-section-movie {
   flex: 2;
   min-width: 0;
 }
 
-.media-manager-cast-section {
+.media-manager-cast-section-movie {
   flex: 1;
   min-width: 0;
 }
@@ -672,7 +800,7 @@
   background: #7f8c8d;
 }
 
-.media-manager-view-json-btn {
+.media-manager-view-json-btn-movie {
   padding: 4px 12px;
   background: #9b59b6;
   color: #fff;
@@ -693,7 +821,8 @@
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
-  width: 25%;
+  width: 100%;
+  display: block;
 }
 
 .media-manager-input-tv,
@@ -713,9 +842,7 @@
 }
 
 .media-manager-field-error-tv {
-  color: #e74c3c;
-  font-size: 0.85em;
-  margin-top: 4px;
+  display: none !important;
 }
 
 .media-manager-tv-flex-row {
@@ -936,6 +1063,11 @@
   background: #353a45;
   border-radius: 4px;
   border: 1px solid #444a56;
+}
+
+.media-manager-episode-thumbnail {
+  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 .media-manager-episode-item:last-child {
@@ -1300,7 +1432,7 @@
 }
 
 .media-manager-cast-list-tv {
-  max-height: 120px;
+  max-height: 225px;
   overflow-y: auto;
   border: 1px solid #444a56;
   border-radius: 4px;
@@ -2140,7 +2272,10 @@
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
-  width: 25%;
+  width: 100%;
+  font-size: .85em;
+  display: block;
+  position: relative;
 }
 
 /* TV-SHOW: Match MOVIE input styling */
@@ -2160,6 +2295,11 @@
   outline: none;
   border-color: #4a90e2;
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.media-manager-input-tv.error {
+  border: 2px solid #e74c3c !important;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
 }
 
 /* TV-SHOW: Match MOVIE poster image styling */
@@ -2185,8 +2325,7 @@
 /* Global button style for all action buttons */
 .media-manager-btn,
 .media-manager-edit-poster-btn,
-.media-manager-edit-cast-btn,
-.media-manager-view-json-btn {
+.media-manager-edit-cast-btn {
   background: #4a90e2;
   color: #fff;
   border: none;
@@ -2200,15 +2339,13 @@
 
 .media-manager-btn:hover,
 .media-manager-edit-poster-btn:hover,
-.media-manager-edit-cast-btn:hover,
-.media-manager-view-json-btn:hover {
+.media-manager-edit-cast-btn:hover {
   background: #357ab8;
 }
 
 .media-manager-btn:disabled,
 .media-manager-edit-poster-btn:disabled,
-.media-manager-edit-cast-btn:disabled,
-.media-manager-view-json-btn:disabled {
+.media-manager-edit-cast-btn:disabled {
   background: #7f8c8d;
   cursor: not-allowed;
   opacity: 0.6;
@@ -2216,23 +2353,19 @@
 
 /* Special color for Edit/Resubmit and Cancel if needed */
 .media-manager-edit-btn,
-.media-manager-edit-btn-tv,
-.media-manager-edit-btn-movie-test {
+.media-manager-edit-btn-tv {
   background: #f39c12;
 }
 .media-manager-edit-btn:hover,
-.media-manager-edit-btn-tv:hover,
-.media-manager-edit-btn-movie-test:hover {
+.media-manager-edit-btn-tv:hover {
   background: #e67e22;
 }
 .media-manager-cancel-btn,
-.media-manager-cancel-btn-tv,
-.media-manager-cancel-btn-movie-test {
+.media-manager-cancel-btn-tv {
   background: #95a5a6;
 }
 .media-manager-cancel-btn:hover,
-.media-manager-cancel-btn-tv:hover,
-.media-manager-cancel-btn-movie-test:hover {
+.media-manager-cancel-btn-tv:hover {
   background: #7f8c8d;
 }
 
@@ -2259,9 +2392,13 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
+  overflow-y: auto;
   min-height: 40px;
   min-width: 120px;
-  background: none;
+  background: #2d313a;
+  border: 1px solid #444a56;
+  border-radius: 4px;
+  padding: 8px;
   color: #fff;
 }
 
@@ -2269,7 +2406,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 0 0 6px;
   font-size: 1em;
+  background: #2d313a;
   color: #fff;
 }
 
@@ -2292,13 +2431,7 @@
   justify-content: center;
 }
 
-.view-images-btn-tv-CONFIRM-text {
-  font-size: 0.8em;
-  color: #fff;
-  margin-left: 10px;
-  position: relative;
-  top: 18px;
-}
+
 
 .media-manager-season-episode-images-modal {
   background: #23272f;
@@ -2435,7 +2568,13 @@
 }
 
 .media-manager-modal-toast.success {
+  background: #4CAF50;
   border-left-color: #4CAF50;
+}
+
+.media-manager-modal-toast.success .media-manager-modal-toast-message {
+  color: #fff !important;
+  font-weight: 600;
 }
 
 .media-manager-modal-toast.error {
@@ -2464,6 +2603,11 @@
   font-weight: 500;
   color: #333;
   line-height: 1.4;
+}
+
+.media-manager-modal-toast.success .media-manager-modal-toast-message {
+  color: #fff !important;
+  font-weight: 600;
 }
 
 .media-manager-modal-toast-close {
@@ -2500,11 +2644,708 @@
 
 @keyframes modalToastSlideOut {
   from {
+    transform: translateX(0);
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
   }
   to {
+    transform: translateX(100%);
     opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
   }
+}
+
+/* TV Shows Browser Modal Styles */
+.media-manager-tv-shows-browser-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 60000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.media-manager-tv-shows-browser-modal {
+  background: #23272f;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px #000a;
+  width: 800px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  color: #f5f5f5;
+}
+
+.media-manager-tv-shows-browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #444a56;
+}
+
+.media-manager-tv-shows-browser-header h3 {
+  margin: 0;
+  font-size: 1.4em;
+  color: #f5f5f5;
+}
+
+.media-manager-tv-shows-browser-close-btn {
+  background: none;
+  border: none;
+  color: #f5f5f5;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.media-manager-tv-shows-browser-close-btn:hover {
+  background: #444a56;
+}
+
+.media-manager-tv-shows-browser-search {
+  padding: 16px 24px;
+  border-bottom: 1px solid #444a56;
+}
+
+.media-manager-tv-shows-search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #444a56;
+  border-radius: 6px;
+  background: #353a45;
+  color: #f5f5f5;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.media-manager-tv-shows-search-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.media-manager-tv-shows-browser-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  max-height: 400px;
+}
+
+.media-manager-tv-show-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #444a56;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #353a45;
+}
+
+.media-manager-tv-show-item:hover {
+  background: #444a56;
+  border-color: #4a90e2;
+}
+
+.media-manager-tv-show-item.selected {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: #fff;
+}
+
+.media-manager-tv-show-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.media-manager-tv-show-path {
+  color: #aaa;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.media-manager-tv-show-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.media-manager-tv-show-select-btn {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-tv-show-select-btn:hover {
+  background: #357abd;
+}
+
+.media-manager-tv-show-fetch-images-btn {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-tv-show-fetch-images-btn:hover {
+  background: #218838;
+}
+
+.media-manager-tv-shows-browser-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.media-manager-tv-shows-browser-content::-webkit-scrollbar-track {
+  background: #353a45;
+  border-radius: 4px;
+}
+
+.media-manager-tv-shows-browser-content::-webkit-scrollbar-thumb {
+  background: #444a56;
+  border-radius: 4px;
+}
+
+.media-manager-tv-shows-browser-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.media-manager-browse-tv-shows-btn {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 10px;
+}
+
+.media-manager-browse-tv-shows-btn:hover {
+  background: #218838;
+}
+
+/* Images Modal Styles */
+.media-manager-images-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 60000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.media-manager-images-modal {
+  background: #23272f;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 1200px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.media-manager-images-modal-header {
+  background: #353a45;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444a56;
+}
+
+.media-manager-images-modal-header h3 {
+  color: #f5f5f5;
+  margin: 0;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.media-manager-images-modal-close-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.media-manager-images-modal-close-btn:hover {
+  background: #c0392b;
+}
+
+.media-manager-images-modal-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  color: #f5f5f5;
+}
+
+.media-manager-images-section {
+  margin-bottom: 32px;
+}
+
+.media-manager-images-section h4 {
+  color: #4a90e2;
+  margin: 0 0 16px 0;
+  font-size: 1.2em;
+  font-weight: 600;
+  border-bottom: 2px solid #4a90e2;
+  padding-bottom: 8px;
+}
+
+.media-manager-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.media-manager-image-item {
+  background: #353a45;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.media-manager-image-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.media-manager-image-label {
+  color: #f5f5f5;
+  font-size: 0.9em;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.media-manager-image-thumbnail {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #444a56;
+  transition: border-color 0.2s;
+}
+
+.media-manager-image-thumbnail:hover {
+  border-color: #4a90e2;
+}
+
+.media-manager-no-images {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 40px;
+  font-size: 1.1em;
+}
+
+/* Scrollbar styles for the modal content */
+.media-manager-images-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.media-manager-images-modal-content::-webkit-scrollbar-track {
+  background: #2c313a;
+  border-radius: 4px;
+}
+
+.media-manager-images-modal-content::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 4px;
+}
+
+.media-manager-images-modal-content::-webkit-scrollbar-thumb:hover {
+  background: #357abd;
+}
+
+/* ==================== BEGIN: AUDIO CONVERSION STYLES ==================== */
+
+.media-manager-content-audio {
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.media-manager-audio-controls-container {
+  margin-bottom: 20px;
+}
+
+.media-manager-audio-results {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  background: #f9f9f9;
+}
+
+.media-manager-audio-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.media-manager-audio-results-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.media-manager-audio-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.media-manager-audio-files-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.media-manager-audio-file {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 5px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.media-manager-audio-file:hover {
+  background: #f0f0f0;
+}
+
+.media-manager-audio-file.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.media-manager-audio-file input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.media-manager-audio-file-name {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+}
+
+.media-manager-audio-file-size {
+  color: #666;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.media-manager-audio-progress {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  background: #f9f9f9;
+}
+
+.media-manager-audio-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.media-manager-audio-progress-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.media-manager-audio-progress-stats {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  color: #666;
+}
+
+.media-manager-audio-progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.media-manager-audio-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.media-manager-audio-current-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #666;
+}
+
+.media-manager-audio-current-label {
+  font-weight: 500;
+}
+
+.media-manager-audio-current-name {
+  color: #333;
+  font-family: monospace;
+}
+
+/* ==================== END: AUDIO CONVERSION STYLES ==================== */
+.media-manager-preview-cast-tv {
+  flex: 2;
+  min-width: 0px;
+  width: 96%;
+  height: 230px;
+  padding: 10px;
+  overflow-y: auto;
+}
+.media-manager-preview-poster-tv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 24px 0;
+  gap: 12px;
+  width: 25%;
+  position: absolute;
+  right: 60px;
+  top: 90px;
+}
+.media-manager-confirm-btn-movie {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 10px;
+}
+
+/* TV Image Manager Browser Styles */
+.media-manager-tv-browser {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.media-manager-tv-browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #444;
+  margin-bottom: 20px;
+}
+
+.media-manager-tv-browser-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.media-manager-input-tv-browser-search {
+  padding: 8px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #3a3f4a;
+  color: #fff;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.media-manager-btn-tv-browser-search {
+  padding: 8px 16px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.media-manager-btn-tv-browser-search:hover {
+  background: #357abd;
+}
+
+.media-manager-tv-browser-stats {
+  color: #bbb;
+  font-size: 14px;
+}
+
+.media-manager-tv-browser-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.media-manager-tv-shows-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.media-manager-tv-show-item {
+  background: #3a3f4a;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #555;
+}
+
+.media-manager-tv-show-item:hover {
+  background: #4a4f5a;
+  border-color: #4a90e2;
+  transform: translateY(-2px);
+}
+
+.media-manager-tv-show-item-header {
+  margin-bottom: 10px;
+}
+
+.media-manager-tv-show-item-header h4 {
+  margin: 0 0 5px 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.media-manager-tv-show-item-stats {
+  color: #bbb;
+  font-size: 12px;
+}
+
+.media-manager-tv-show-item-thumbnails {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.media-manager-tv-show-thumbnail {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #555;
+}
+
+.media-manager-tv-show-thumbnail-placeholder {
+  width: 60px;
+  height: 40px;
+  background: #555;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+  font-size: 10px;
+  border: 1px solid #666;
+}
+
+.media-manager-tv-show-no-images {
+  color: #888;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.media-manager-tv-show-no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #888;
+  padding: 40px;
+  font-style: italic;
+}
+
+.media-manager-tv-show-details {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.media-manager-tv-show-details-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid #444;
+  margin-bottom: 20px;
+}
+
+.media-manager-btn-tv-show-back {
+  padding: 8px 16px;
+  background: #666;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.media-manager-btn-tv-show-back:hover {
+  background: #777;
+}
+
+.media-manager-tv-show-details-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.media-manager-tv-show-details-content {
+  flex: 1;
+  overflow-y: auto;
 }

@@ -82,8 +82,17 @@ const testFunctions = {
         }
         
         const tvShows = JSON.parse(fs.readFileSync(tvShowsPath, 'utf8'));
-        if (!tvShows.folders || tvShows.folders.length === 0) {
-            throw new Error('TV shows data is empty');
+        // Check if it's an array (current format) or object with folders (old format)
+        if (Array.isArray(tvShows)) {
+            if (tvShows.length === 0) {
+                throw new Error('TV shows data is empty');
+            }
+        } else if (tvShows.folders) {
+            if (tvShows.folders.length === 0) {
+                throw new Error('TV shows data is empty');
+            }
+        } else {
+            throw new Error('TV shows data format is invalid');
         }
         
         console.log('✅ [VALIDATE] TV show filtering validation passed');

@@ -1,21 +1,28 @@
 /*
-  SMART_FETCH_TMDB_TV-SHOW_EPISODE_IMAGES.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  SMART_FETCH_TMDB_TV-SHOW_EPISODE_IMAGES_NORMALIZED.JS
+  Version: 10
+  AppName: MC_1_CM [v10]
+  Updated: 1/6/2025 @12:00PM
   Created by Paul Welby
+  
+  DESCRIPTION:
+  Fetches TV show episode images from TMDB and outputs normalized JSON with dot notation keys.
+  No separate normalization step required - outputs directly to normalized format.
 */
 
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TV_SHOWS_DIR = 'S:/MEDIA/TV-SHOWS/';
-const DATA_DIR = path.join(__dirname, '../public/components/MediaLibrary/data');
-const OUTPUT_JSON = path.join(DATA_DIR, 'tmdb_tv-show_episode_images.json');
+const DATA_DIR = path.join(__dirname, '../../public/components/MediaLibrary/data');
+const OUTPUT_JSON = path.join(DATA_DIR, 'tv-shows/tv-show_episode_images_normalized.json');
 const OVERRIDES_PATH = path.join(DATA_DIR, 'episode_tmdb_tv-show_overrides.json');
+
+// Import normalization function
+const { normalizeKey } = require('../../shared/NormalizationService');
 
 if (!TMDB_API_KEY) {
     console.error('❌ TMDB_API_KEY not found in .env');
@@ -70,13 +77,20 @@ async function main() {
             .map(entry => entry.name);
     }
     const overrides = loadOverrides();
-    // --- Merge logic: load existing JSON ---
+    
+    // Ensure output directory exists
+    const outputDir = path.dirname(OUTPUT_JSON);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    // --- Merge logic: load existing normalized JSON ---
     let existing = {};
     if (fs.existsSync(OUTPUT_JSON)) {
         try {
             existing = JSON.parse(fs.readFileSync(OUTPUT_JSON, 'utf8'));
         } catch (e) {
-            console.warn('⚠️ Could not parse existing episode images JSON, starting fresh.');
+            console.warn('⚠️ Could not parse existing normalized episode images JSON, starting fresh.');
             existing = {};
         }
     }
@@ -90,6 +104,8 @@ async function main() {
     
     for (const showName of shows) {
         const cleanedName = cleanShowName(showName);
+        const normalizedKey = normalizeKey(showName);
+        
         let override = overrides[showName] || overrides[cleanedName];
         let tvId, seasonOverride = null;
         if (override && typeof override === 'object') {
@@ -98,14 +114,14 @@ async function main() {
         } else {
             tvId = await searchTMDBShow(cleanedName, override);
         }
-        console.log(`🔍 Searching TMDB for: ${showName} (cleaned: ${cleanedName})${tvId ? ' [override]' : ''}`);
+        console.log(`🔍 Searching TMDB for: ${showName} (cleaned: ${cleanedName}, normalized: ${normalizedKey})${tvId ? ' [override]' : ''}`);
         if (!tvId) {
             console.log(`❌ No TMDB match for: ${showName}`);
             continue;
         }
         console.log(`✅ Found TMDB match for: ${showName} (ID: ${tvId})`);
         showsFound++;
-        result[showName] = { seasons: {} };
+        result[normalizedKey] = { seasons: {} };
         const showPath = path.join(TV_SHOWS_DIR, showName);
         const seasonFolders = fs.readdirSync(showPath, { withFileTypes: true })
             .filter(entry => entry.isDirectory())
@@ -121,7 +137,7 @@ async function main() {
             if (!seasonNumber) continue;
             // If override specifies a season, skip others
             if (seasonOverride && seasonNumber !== seasonOverride) continue;
-            result[showName].seasons[seasonNumber] = { episodes: {} };
+            result[normalizedKey].seasons[seasonNumber] = { episodes: {} };
             const seasonPath = path.join(showPath, seasonFolder);
             const files = fs.readdirSync(seasonPath).filter(f => /\.(mp4|mkv|avi|mov|m4v)$/i.test(f));
             let seasonEpisodes = 0;
@@ -149,7 +165,7 @@ async function main() {
                 seasonEpisodes++;
                 console.log(`   📺 Fetching S${seasonNumber}E${episodeNumber.toString().padStart(2, '0')} still...`);
                 const stillUrl = await fetchEpisodeStill(tvId, seasonNumber, episodeNumber);
-                result[showName].seasons[seasonNumber].episodes[episodeNumber] = { still: stillUrl };
+                result[normalizedKey].seasons[seasonNumber].episodes[episodeNumber] = { still: stillUrl };
                 if (stillUrl) {
                     foundAnyStills = true;
                     console.log(`   ✅ S${seasonNumber}E${episodeNumber.toString().padStart(2, '0')} still found: ${stillUrl.split('/').pop()}`);
@@ -170,7 +186,7 @@ async function main() {
             console.log(`   ⚠️  ${showName}: No episode files found\n`);
         }
         // Only update the result if we found at least one still, or if the show is not already present
-        if (!foundAnyStills && existing[showName]) {
+        if (!foundAnyStills && existing[normalizedKey]) {
             // Do not overwrite existing entry
             console.log(`⚠️  No new stills found for ${showName}, preserving existing data.`);
             continue;
@@ -186,7 +202,7 @@ async function main() {
     console.log(`   • Total episodes: ${totalEpisodes}`);
     console.log(`   • Episodes with stills: ${episodesWithStills}`);
     console.log(`   • Success rate: ${totalEpisodes > 0 ? ((episodesWithStills / totalEpisodes) * 100).toFixed(1) : 0}%`);
-    console.log(`📄 Data saved to: ${OUTPUT_JSON}`);
+    console.log(`📄 Normalized data saved to: ${OUTPUT_JSON}`);
     console.log(`📝 Manual overrides: ${OVERRIDES_PATH}`);
 }
 

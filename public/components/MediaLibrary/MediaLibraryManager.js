@@ -174,9 +174,11 @@ class MediaLibraryManager {
             console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to:', this.mediaLibraryRaw);
             console.log('🎬 [MEDIA-LIBRARY] mediaLibraryRaw length after setting:', this.mediaLibraryRaw ? this.mediaLibraryRaw.length : 'undefined');
             this.isLoading = false;
+            this.removeSpinner();
             this.updateModalContent();
         } catch (error) {
             this.isLoading = false;
+            this.removeSpinner();
             this.showError('Failed to load media library.');
             console.error(error);
         }
@@ -251,7 +253,11 @@ class MediaLibraryManager {
             let seasonData = {};
             if (seasonResponse.ok) {
                 seasonData = await seasonResponse.json();
-                console.log(`✅ [MEDIA-LIBRARY] Loaded season images for ${Object.keys(seasonData).length} shows`);
+                console.log(`✅ [DEBUG MEDIA-LIBRARY] Loaded season images for ${Object.keys(seasonData).length} shows`);
+                console.log(`🎬 [MEDIA-LIBRARY] Season data keys:`, Object.keys(seasonData));
+                if (seasonData['Terra.Nova.(2011)']) {
+                    console.log(`🎬 [MEDIA-LIBRARY] Terra Nova season data:`, seasonData['Terra.Nova.(2011)']);
+                }
             } else {
                 console.warn('⚠️ [MEDIA-LIBRARY] Could not load season images');
             }
@@ -289,6 +295,10 @@ class MediaLibraryManager {
             }
             
             console.log(`✅ [MEDIA-LIBRARY] Merged season/episode images for ${Object.keys(this.seasonEpisodeImages).length} shows`);
+            console.log(`🎬 [MEDIA-LIBRARY] Final merged keys:`, Object.keys(this.seasonEpisodeImages));
+            if (this.seasonEpisodeImages['Terra.Nova.(2011)']) {
+                console.log(`🎬 [MEDIA-LIBRARY] Final Terra Nova data:`, this.seasonEpisodeImages['Terra.Nova.(2011)']);
+            }
         } catch (error) {
             console.warn('⚠️ [MEDIA-LIBRARY] Error loading season episode images:', error);
             this.seasonEpisodeImages = {};
@@ -1043,29 +1053,68 @@ class MediaLibraryManager {
         }
         
         // For movies, if we already have a normalizedKey, use it directly
-        const dotKey = isTV ? normalizeKey(showName) : (mediaItem.normalizedKey || normalizeKey(showName));
-        console.log('[MEDIA-LIBRARY] Looking for poster with key:', dotKey, 'for show:', showName);
+        let dotKey = isTV ? normalizeKey(showName) : (mediaItem.normalizedKey || normalizeKey(showName));
         
-        // Try exact match first
-        if (posterMap[dotKey]) {
-            let url = posterMap[dotKey];
-            if (this.cacheBusters && this.cacheBusters[dotKey]) {
-                url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[dotKey];
-            }
-            console.log('[MEDIA-LIBRARY] Found poster with exact match:', url);
-            return url;
+        // For TV shows, try multiple key formats to match Media Manager's saved format
+        let possibleKeys = [dotKey];
+        if (isTV) {
+            possibleKeys = [
+                dotKey,  // "Tera.Nova"
+                normalizeKey(showName + ' (2011)'),  // "Tera.Nova.(2011)"
+                normalizeKey(showName + ' (2012)'),  // Try other common years
+                normalizeKey(showName + ' (2013)'),
+                normalizeKey(showName + ' (2014)'),
+                normalizeKey(showName + ' (2015)'),
+                normalizeKey(showName + ' (2016)'),
+                normalizeKey(showName + ' (2017)'),
+                normalizeKey(showName + ' (2018)'),
+                normalizeKey(showName + ' (2019)'),
+                normalizeKey(showName + ' (2020)'),
+                normalizeKey(showName + ' (2021)'),
+                normalizeKey(showName + ' (2022)'),
+                normalizeKey(showName + ' (2023)'),
+                normalizeKey(showName + ' (2024)'),
+                normalizeKey(showName + ' (2025)'),
+                // Handle spelling variations (Tera vs Terra)
+                normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2011)'),
+                normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2011)'),
+                normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2012)'),
+                normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2012)'),
+                normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2013)'),
+                normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2013)'),
+                normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2014)'),
+                normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2014)'),
+                normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2015)'),
+                normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2015)')
+            ];
         }
         
-        // Case-insensitive fallback
-        const lowerDotKey = dotKey.toLowerCase();
-        for (const key of Object.keys(posterMap)) {
-            if (key.toLowerCase() === lowerDotKey) {
+        console.log('[MEDIA-LIBRARY] Looking for poster with keys:', possibleKeys, 'for show:', showName);
+        
+        // Try exact match first
+        for (const key of possibleKeys) {
+            if (posterMap[key]) {
                 let url = posterMap[key];
                 if (this.cacheBusters && this.cacheBusters[key]) {
                     url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[key];
                 }
-                console.log('[MEDIA-LIBRARY] Found poster with case-insensitive match:', url);
+                console.log('[MEDIA-LIBRARY] Found poster with key:', key, 'URL:', url);
                 return url;
+            }
+        }
+        
+        // Case-insensitive fallback for all possible keys
+        for (const possibleKey of possibleKeys) {
+            const lowerPossibleKey = possibleKey.toLowerCase();
+            for (const key of Object.keys(posterMap)) {
+                if (key.toLowerCase() === lowerPossibleKey) {
+                    let url = posterMap[key];
+                    if (this.cacheBusters && this.cacheBusters[key]) {
+                        url += (url.includes('?') ? '&' : '?') + 't=' + this.cacheBusters[key];
+                    }
+                    console.log('[MEDIA-LIBRARY] Found poster with case-insensitive match for key:', possibleKey, 'URL:', url);
+                    return url;
+                }
             }
         }
         
@@ -1777,16 +1826,26 @@ class MediaLibraryManager {
     // Add: A-Z sidebar rendering
     renderAZSidebarMovie() {
         console.log('[DEBUG - A-Z] renderAZSidebarMovie called');
-        const azSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
-        if (!azSidebar) {
+        
+        // Clear both sidebars first to prevent duplicates
+        const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
+        const tvSidebar = document.getElementById('mediaLibraryAZSidebarTVShow');
+        
+        if (tvSidebar) {
+            tvSidebar.innerHTML = '';
+            tvSidebar.style.display = 'none';
+        }
+        
+        if (!movieSidebar) {
             console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarMovie element found');
             return;
         }
-        console.log('[DEBUG - A-Z] Found movie sidebar element:', azSidebar);
-        console.log('[DEBUG - A-Z] Current display style:', azSidebar.style.display);
-        console.log('[DEBUG - A-Z] Current visibility:', azSidebar.style.visibility);
+        console.log('[DEBUG - A-Z] Found movie sidebar element:', movieSidebar);
+        console.log('[DEBUG - A-Z] Current display style:', movieSidebar.style.display);
+        console.log('[DEBUG - A-Z] Current visibility:', movieSidebar.style.visibility);
         
-        azSidebar.innerHTML = '';
+        movieSidebar.innerHTML = '';
+        movieSidebar.style.display = 'flex';
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         console.log('[DEBUG - A-Z] Creating', letters.length, 'letter buttons');
         
@@ -1795,11 +1854,11 @@ class MediaLibraryManager {
             btn.className = 'media-library-az-letter-movie';
             btn.textContent = letter;
             btn.setAttribute('data-letter', letter);
-            azSidebar.appendChild(btn);
+            movieSidebar.appendChild(btn);
         });
         
         // Use event delegation - single listener on the sidebar for movies only
-        azSidebar.onclick = (e) => {
+        movieSidebar.onclick = (e) => {
             const letterElement = e.target.closest('.media-library-az-letter-movie');
             if (letterElement) {
                 const letter = letterElement.getAttribute('data-letter');
@@ -1810,29 +1869,39 @@ class MediaLibraryManager {
         };
         
         console.log('[DEBUG - A-Z] Movie A-Z sidebar rendered with', letters.length, 'letters');
-        console.log('[DEBUG - A-Z] Sidebar children count:', azSidebar.children.length);
-        console.log('[DEBUG - A-Z] Sidebar innerHTML length:', azSidebar.innerHTML.length);
+        console.log('[DEBUG - A-Z] Sidebar children count:', movieSidebar.children.length);
+        console.log('[DEBUG - A-Z] Sidebar innerHTML length:', movieSidebar.innerHTML.length);
     }
 
     renderAZSidebarTVShow() {
         console.log('[DEBUG - A-Z] renderAZSidebarTVShow called');
-        const azSidebar = document.getElementById('mediaLibraryAZSidebarTVShow');
-        if (!azSidebar) {
+        
+        // Clear both sidebars first to prevent duplicates
+        const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
+        const tvSidebar = document.getElementById('mediaLibraryAZSidebarTVShow');
+        
+        if (movieSidebar) {
+            movieSidebar.innerHTML = '';
+            movieSidebar.style.display = 'none';
+        }
+        
+        if (!tvSidebar) {
             console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarTVShow element found');
             return;
         }
         console.log('[DEBUG - A-Z] Found sidebar, rendering TV show letters');
-        azSidebar.innerHTML = '';
+        tvSidebar.innerHTML = '';
+        tvSidebar.style.display = 'flex';
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         letters.forEach(letter => {
             const btn = document.createElement('div');
             btn.className = 'media-library-az-letter-tvshow';
             btn.textContent = letter;
             btn.setAttribute('data-letter', letter);
-            azSidebar.appendChild(btn);
+            tvSidebar.appendChild(btn);
         });
         // Use event delegation - single listener on the sidebar for TV shows only
-        azSidebar.onclick = (e) => {
+        tvSidebar.onclick = (e) => {
             const letterElement = e.target.closest('.media-library-az-letter-tvshow');
             if (letterElement) {
                 const letter = letterElement.getAttribute('data-letter');
@@ -2195,11 +2264,11 @@ class MediaLibraryManager {
                                 console.log('[DEBUG - WATCH-LATER] TV data type:', typeof tvData);
                                 console.log('[DEBUG - WATCH-LATER] TV data length:', Array.isArray(tvData) ? tvData.length : 'not array');
                                 console.log('[DEBUG - WATCH-LATER] TV data keys:', tvData ? Object.keys(tvData) : 'no keys');
-                                console.log('[DEBUG - WATCH-LATER] TV data folders:', tvData?.folders);
-                                console.log('[DEBUG - WATCH-LATER] TV data folders type:', typeof tvData?.folders);
-                                console.log('[DEBUG - WATCH-LATER] TV data folders length:', Array.isArray(tvData?.folders) ? tvData.folders.length : 'not array');
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons:', tvData?.seasons);
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons type:', typeof tvData?.seasons);
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons length:', Array.isArray(tvData?.seasons) ? tvData.seasons.length : 'not array');
                                 let foundEpisode = null;
-                                function searchFolders(folders) {
+                                async function searchSeasons(seasons) {
                                     console.log('[DEBUG - WATCH-LATER] Searching for item.path:', item.path);
                                     
                                     // Extract relative path from absolute path if needed
@@ -2214,12 +2283,50 @@ class MediaLibraryManager {
                                         }
                                     }
                                     
-                                    for (const show of folders) {
-                                        if (show.folders) {
+                                    // Get TV-Shows from the new normalized array structure
+                                    let tvShows = [];
+                                    try {
+                                        const response = await fetch('/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
+                                        if (response.ok) {
+                                            tvShows = await response.json();
+                                            console.log('[DEBUG - WATCH-LATER] Loaded TV shows from normalized file:', tvShows.length);
+                                        }
+                                    } catch (error) {
+                                        console.warn('[DEBUG - WATCH-LATER] Could not load normalized TV shows, using provided seasons');
+                                        tvShows = seasons;
+                                    }
+                                    
+                                    // Handle both array and object structures
+                                    let showsToSearch = [];
+                                    if (Array.isArray(tvShows)) {
+                                        showsToSearch = tvShows;
+                                    } else if (tvShows && typeof tvShows === 'object') {
+                                        showsToSearch = Object.values(tvShows);
+                                    }
+                                    
+                                    for (const show of showsToSearch) {
+                                        if (show.seasons && Array.isArray(show.seasons)) {
+                                            for (const season of show.seasons) {
+                                                if (season.episodes && Array.isArray(season.episodes)) {
+                                                    for (const ep of season.episodes) {
+                                                        const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
+                                                        console.log('[DEBUG - WATCH-LATER] Comparing:', epPath, 'vs', searchPath);
+                                                        if (epPath === searchPath) {
+                                                            foundEpisode = ep;
+                                                            console.log('[DEBUG - WATCH-LATER] Found matching episode:', ep);
+                                                            return;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Fallback to folder-based structure
+                                        if (show.folders && Array.isArray(show.folders)) {
                                             for (const season of show.folders) {
-                                                if (season.files) {
+                                                if (season.files && Array.isArray(season.files)) {
                                                     for (const ep of season.files) {
-                                                        const epPath = (ep.relPath || '').replace(/\\/g, '/').trim();
+                                                        const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
                                                         console.log('[DEBUG - WATCH-LATER] Comparing:', epPath, 'vs', searchPath);
                                                         if (epPath === searchPath) {
                                                             foundEpisode = ep;
@@ -2231,22 +2338,10 @@ class MediaLibraryManager {
                                             }
                                         }
                                     }
-                                    // Debug: Log all episodes in the TV data to see what's available
-                                    console.log('[DEBUG - WATCH-LATER] All episodes in TV data:');
-                                    for (const show of folders) {
-                                        if (show.folders) {
-                                            for (const season of show.folders) {
-                                                if (season.files) {
-                                                    for (const ep of season.files) {
-                                                        console.log('[DEBUG - WATCH-LATER] Episode:', ep.relPath, '|', ep.filePath);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                    
                                     console.log('[DEBUG - WATCH-LATER] No matching episode found');
                                 }
-                                searchFolders(tvData.folders || tvData);
+                                await searchSeasons(tvData.seasons || tvData);
                                 if (foundEpisode && foundEpisode.filePath) {
                                     console.log('[DEBUG - WATCH-LATER] Found episode filePath:', foundEpisode.filePath);
                                     await this.playEpisode(foundEpisode.filePath, item.currentTime || 0);
@@ -2302,9 +2397,9 @@ class MediaLibraryManager {
                                 console.log('[DEBUG - WATCH-LATER] TV data type (img click):', typeof tvData);
                                 console.log('[DEBUG - WATCH-LATER] TV data length (img click):', Array.isArray(tvData) ? tvData.length : 'not array');
                                 console.log('[DEBUG - WATCH-LATER] TV data keys (img click):', tvData ? Object.keys(tvData) : 'no keys');
-                                console.log('[DEBUG - WATCH-LATER] TV data folders (img click):', tvData?.folders);
-                                console.log('[DEBUG - WATCH-LATER] TV data folders type (img click):', typeof tvData?.folders);
-                                console.log('[DEBUG - WATCH-LATER] TV data folders length (img click):', Array.isArray(tvData?.folders) ? tvData.folders.length : 'not array');
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons (img click):', tvData?.seasons);
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons type (img click):', typeof tvData?.seasons);
+                                console.log('[DEBUG - WATCH-LATER] TV data seasons length (img click):', Array.isArray(tvData?.seasons) ? tvData.seasons.length : 'not array');
                                 
                                 // If TV data is empty, try to load it first
                                 if (!tvData || (Array.isArray(tvData) && tvData.length === 0)) {
@@ -2323,7 +2418,7 @@ class MediaLibraryManager {
                                     }
                                 }
                                 let foundEpisode = null;
-                                function searchTVShows(tvData) {
+                                async function searchTVShows(tvData) {
                                     console.log('[DEBUG - WATCH-LATER] Searching for item.path (img click):', item.path);
                                     
                                     // Extract relative path from absolute path if needed
@@ -2338,51 +2433,67 @@ class MediaLibraryManager {
                                         }
                                     }
                                     
-                                    // Get TV-Shows from the raw data
-                                    const tvShows = window.mediaLibraryManager?.getTVShows() || [];
-                                    console.log('[DEBUG - WATCH-LATER] Found', tvShows.length, 'TV-Shows to search through');
-                                    console.log('[DEBUG - WATCH-LATER] TV show names:', tvShows.map(show => show.name));
+                                    // Get TV-Shows from the raw data - use the new array structure
+                                    let tvShows = [];
+                                    try {
+                                        // Try to get from the new normalized array structure
+                                        const response = await fetch('/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
+                                        if (response.ok) {
+                                            tvShows = await response.json();
+                                            console.log('[DEBUG - WATCH-LATER] Loaded TV shows from normalized file:', tvShows.length);
+                                        }
+                                    } catch (error) {
+                                        console.warn('[DEBUG - WATCH-LATER] Could not load normalized TV shows, falling back to getTVShows()');
+                                        tvShows = window.mediaLibraryManager?.getTVShows() || [];
+                                    }
                                     
-                                    for (const tvShow of tvShows) {
-                                        if (tvShow.data) {
-                                            const show = tvShow.data;
-                                            const showName = show.title || show.name || show.path;
+                                    console.log('[DEBUG - WATCH-LATER] Found', tvShows.length, 'TV-Shows to search through');
+                                    
+                                    // Handle both array and object structures
+                                    let showsToSearch = [];
+                                    if (Array.isArray(tvShows)) {
+                                        showsToSearch = tvShows;
+                                    } else if (tvShows && typeof tvShows === 'object') {
+                                        showsToSearch = Object.values(tvShows);
+                                    }
+                                    
+                                    for (const show of showsToSearch) {
+                                        const showName = show.title || show.name || show.path;
+                                        
+                                        // Only search in shows that might match our episode
+                                        const searchShowName = searchPath.split('/')[0]; // Get show name from search path
+                                        if (showName && (showName.toLowerCase().includes(searchShowName.toLowerCase()) || 
+                                            searchShowName.toLowerCase().includes(showName.toLowerCase()))) {
+                                            console.log('[DEBUG - WATCH-LATER] Searching in show:', showName);
                                             
-                                            // Only search in shows that might match our episode
-                                            const searchShowName = searchPath.split('/')[0]; // Get show name from search path
-                                            if (showName.toLowerCase().includes(searchShowName.toLowerCase()) || 
-                                                searchShowName.toLowerCase().includes(showName.toLowerCase())) {
-                                                console.log('[DEBUG - WATCH-LATER] Searching in show:', showName);
-                                                
-                                                // Check if this show has seasons
-                                                if (show.seasons && Array.isArray(show.seasons)) {
-                                                    for (const season of show.seasons) {
-                                                        if (season.episodes && Array.isArray(season.episodes)) {
-                                                            for (const ep of season.episodes) {
-                                                                const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
-                                                                console.log('[DEBUG - WATCH-LATER] Comparing (img click):', epPath, 'vs', searchPath);
-                                                                if (epPath === searchPath) {
-                                                                    foundEpisode = ep;
-                                                                    console.log('[DEBUG - WATCH-LATER] Found matching episode (img click):', ep);
-                                                                    return;
-                                                                }
+                                            // Check if this show has seasons
+                                            if (show.seasons && Array.isArray(show.seasons)) {
+                                                for (const season of show.seasons) {
+                                                    if (season.episodes && Array.isArray(season.episodes)) {
+                                                        for (const ep of season.episodes) {
+                                                            const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
+                                                            console.log('[DEBUG - WATCH-LATER] Comparing (img click):', epPath, 'vs', searchPath);
+                                                            if (epPath === searchPath) {
+                                                                foundEpisode = ep;
+                                                                console.log('[DEBUG - WATCH-LATER] Found matching episode (img click):', ep);
+                                                                return;
                                                             }
                                                         }
                                                     }
                                                 }
-                                                
-                                                // Fallback to folder-based structure
-                                                if (show.folders && Array.isArray(show.folders)) {
-                                                    for (const season of show.folders) {
-                                                        if (season.files && Array.isArray(season.files)) {
-                                                            for (const ep of season.files) {
-                                                                const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
-                                                                console.log('[DEBUG - WATCH-LATER] Comparing (img click):', epPath, 'vs', searchPath);
-                                                                if (epPath === searchPath) {
-                                                                    foundEpisode = ep;
-                                                                    console.log('[DEBUG - WATCH-LATER] Found matching episode (img click):', ep);
-                                                                    return;
-                                                                }
+                                            }
+                                            
+                                            // Fallback to folder-based structure
+                                            if (show.folders && Array.isArray(show.folders)) {
+                                                for (const season of show.folders) {
+                                                    if (season.files && Array.isArray(season.files)) {
+                                                        for (const ep of season.files) {
+                                                            const epPath = (ep.relPath || ep.path || '').replace(/\\/g, '/').trim();
+                                                            console.log('[DEBUG - WATCH-LATER] Comparing (img click):', epPath, 'vs', searchPath);
+                                                            if (epPath === searchPath) {
+                                                                foundEpisode = ep;
+                                                                console.log('[DEBUG - WATCH-LATER] Found matching episode (img click):', ep);
+                                                                return;
                                                             }
                                                         }
                                                     }
@@ -2393,7 +2504,7 @@ class MediaLibraryManager {
                                     
                                     console.log('[DEBUG - WATCH-LATER] No matching episode found (img click)');
                                 }
-                                searchTVShows(tvData);
+                                await searchTVShows(tvData);
                                 if (foundEpisode && foundEpisode.filePath) {
                                     console.log('[DEBUG - WATCH-LATER] Found episode filePath (img click):', foundEpisode.filePath);
                                     await this.playEpisode(foundEpisode.filePath, item.currentTime || 0);
@@ -2862,45 +2973,46 @@ class MediaLibraryManager {
 
     // --- TV SHOW STRUCTURE ---
     getTVShows() {
-        // Returns array of main TV show objects from the flat array structure
+        // Returns array of main TV show objects from the array structure
         const tvShows = [];
         
         if (this.mediaLibraryRaw) {
-            let shows = [];
-            
-            // Handle different possible data structures
+            // Handle array format (current format)
             if (Array.isArray(this.mediaLibraryRaw)) {
-                // Direct flat array of TV show objects
-                shows = this.mediaLibraryRaw;
-            } else if (this.mediaLibraryRaw.folders && Array.isArray(this.mediaLibraryRaw.folders)) {
-                // Nested structure with folders
-                shows = this.mediaLibraryRaw.folders;
-            } else if (this.mediaLibraryRaw.tvShows && Array.isArray(this.mediaLibraryRaw.tvShows)) {
-                // Nested structure with tvShows
-                shows = this.mediaLibraryRaw.tvShows;
+                this.mediaLibraryRaw.forEach(show => {
+                    // Check if this is a TV show by looking for seasons or folders
+                    const hasSeasons = show.seasons && Array.isArray(show.seasons);
+                    const hasFolders = show.folders && Array.isArray(show.folders);
+                    const hasFiles = show.files && Array.isArray(show.files);
+                    
+                    // Consider it a TV show if it has seasons, folders with season-like names, or files with episode patterns
+                    const isTVShow = hasSeasons || hasFolders || hasFiles;
+                    
+                    const name = show.title || show.name || show.path || '';
+                    if (name && isTVShow) {
+                        tvShows.push({
+                            name,
+                            path: show.path || name,
+                            data: show
+                        });
+                    }
+                });
+            } else if (typeof this.mediaLibraryRaw === 'object' && !Array.isArray(this.mediaLibraryRaw)) {
+                // Object format support (future format)
+                Object.keys(this.mediaLibraryRaw).forEach(key => {
+                    const show = this.mediaLibraryRaw[key];
+                    if (show && show.title) {
+                        tvShows.push({
+                            name: show.title,
+                            path: show.path || show.title,
+                            data: show,
+                            normalizedKey: key
+                        });
+                    }
+                });
             }
-            
-            shows.forEach(show => {
-                // Filter for TV-Shows only - check if path contains TV-SHOWS or has seasons/episodes
-                const path = (show.path || show.name || '').toLowerCase();
-                const hasTVShowsPath = path.includes('tv-shows') || path.includes('tv_shows');
-                const hasSeasons = show.seasons && Array.isArray(show.seasons);
-                const hasFolders = show.folders && Array.isArray(show.folders);
-                const isTVShow = hasTVShowsPath || hasSeasons || hasFolders;
-                
-                // Use title, or fallback to path if title is missing
-                const name = show.title || show.name || show.path || show.filename || '';
-                if (name && isTVShow) {
-                    tvShows.push({
-                        name,
-                        path: show.path || name,
-                        data: show
-                    });
-                }
-            });
         }
         
-        console.log('[TV DEBUG] Total TV-Shows detected:', tvShows.length);
         return tvShows;
     }
 
@@ -2935,9 +3047,91 @@ class MediaLibraryManager {
             return [];
         }
 
+        // Get show name for JSON lookup
+        let showName = '';
+        if (show.title) {
+            showName = show.title;
+        } else if (show.name) {
+            showName = show.name;
+        } else if (show.path) {
+            showName = this.extractShowName(show.path);
+        }
+
+        // DEBUG: Log the show name being used
+        console.log('[DEBUG - SEASON] Show name for JSON lookup:', showName);
+        console.log('[DEBUG - SEASON] Show object keys:', Object.keys(show));
+        if (show.data) {
+            console.log('[DEBUG - SEASON] Show.data keys:', Object.keys(show.data));
+            console.log('[DEBUG - SEASON] Show.data.name:', show.data.name);
+        }
+
+        // Check for seasons in JSON data first (from TMDB)
+        console.log('[DEBUG - SEASON] seasonEpisodeImages available:', !!this.seasonEpisodeImages);
+        if (this.seasonEpisodeImages) {
+            console.log('[DEBUG - SEASON] seasonEpisodeImages keys:', Object.keys(this.seasonEpisodeImages));
+        }
+        if (showName && this.seasonEpisodeImages) {
+            // Use shared normalization service
+            const normalizeKey = window.normalizeKey || ((name) => {
+                return name
+                    .replace(/\\/g, '/')
+                    .replace(/\s*&\s*/g, '.&.')
+                    .replace(/\s+/g, '.')
+                    .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
+                    .replace(/\.+/g, '.')
+                    .replace(/^\.|\.$/g, '');
+            });
+
+            // Try multiple key formats to match the saved data
+            const possibleKeys = [
+                normalizeKey(showName),
+                normalizeKey(showName + ' (2011)'),
+                normalizeKey(showName + ' (2012)'),
+                normalizeKey(showName + ' (2013)'),
+                normalizeKey(showName + ' (2014)'),
+                normalizeKey(showName + ' (2015)'),
+                normalizeKey(showName + ' (2016)'),
+                normalizeKey(showName + ' (2017)'),
+                normalizeKey(showName + ' (2018)'),
+                normalizeKey(showName + ' (2019)'),
+                normalizeKey(showName + ' (2020)'),
+                normalizeKey(showName + ' (2021)'),
+                normalizeKey(showName + ' (2022)'),
+                normalizeKey(showName + ' (2023)'),
+                normalizeKey(showName + ' (2024)'),
+                normalizeKey(showName + ' (2025)')
+            ];
+
+            // DEBUG: Log the possible keys being tried
+            console.log('[DEBUG - SEASON] Possible keys for', showName, ':', possibleKeys);
+            console.log('[DEBUG - SEASON] Available keys in seasonEpisodeImages:', Object.keys(this.seasonEpisodeImages));
+
+                                for (const key of possibleKeys) {
+                        if (this.seasonEpisodeImages[key] && this.seasonEpisodeImages[key].seasons) {
+                            console.log('[DEBUG - SEASON] Found seasons in JSON data for key:', key);
+                    const seasons = [];
+                    for (const seasonNum in this.seasonEpisodeImages[key].seasons) {
+                        const seasonData = this.seasonEpisodeImages[key].seasons[seasonNum];
+                        const episodeCount = seasonData.episodes ? Object.keys(seasonData.episodes).length : 0;
+                        seasons.push({
+                            seasonNumber: parseInt(seasonNum, 10),
+                            path: `Season ${seasonNum.padStart(2, '0')}`,
+                            episodes: seasonData.episodes || {},
+                            poster: seasonData.poster || null
+                        });
+                    }
+                    return seasons.sort((a, b) => a.seasonNumber - b.seasonNumber);
+                }
+            }
+            
+            // DEBUG: Log if no match was found
+            console.log('[DEBUG - SEASON] No JSON data found for any of the possible keys');
+        }
+
         // Handle flat array structure where seasons are directly in the show object
-        if (show.seasons && Array.isArray(show.seasons)) {
-            console.log('[SEASON DEBUG] Found seasons array with', show.seasons.length, 'seasons');
+        // BUT only if we don't have JSON data (prioritize JSON data over file system)
+        if (show.seasons && Array.isArray(show.seasons) && show.seasons.length > 0) {
+            console.log('[DEBUG - SEASON] Found seasons array with', show.seasons.length, 'seasons');
             // Deduplicate by seasonNumber
             const seen = new Set();
             const uniqueSeasons = [];
@@ -3229,7 +3423,27 @@ class MediaLibraryManager {
                     .replace(/\.+/g, '.')
                     .replace(/^\\.|\\.$/g, '');
             });
-            const showKey = normalizeKey(showName);
+
+            // Try multiple key formats to match the saved data
+            const possibleKeys = [
+                normalizeKey(showName),
+                normalizeKey(showName + ' (2011)'),
+                normalizeKey(showName + ' (2012)'),
+                normalizeKey(showName + ' (2013)'),
+                normalizeKey(showName + ' (2014)'),
+                normalizeKey(showName + ' (2015)'),
+                normalizeKey(showName + ' (2016)'),
+                normalizeKey(showName + ' (2017)'),
+                normalizeKey(showName + ' (2018)'),
+                normalizeKey(showName + ' (2019)'),
+                normalizeKey(showName + ' (2020)'),
+                normalizeKey(showName + ' (2021)'),
+                normalizeKey(showName + ' (2022)'),
+                normalizeKey(showName + ' (2023)'),
+                normalizeKey(showName + ' (2024)'),
+                normalizeKey(showName + ' (2025)')
+            ];
+
             // Extract season number from seasonPath
             const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
             if (!seasonMatch) {
@@ -3237,17 +3451,19 @@ class MediaLibraryManager {
             }
             const seasonNum = String(parseInt(seasonMatch[1], 10));
             
-            const showData = this.seasonEpisodeImages[showKey];
-            if (!showData || !showData.seasons || !showData.seasons[seasonNum]) {
-                return '/assets/img/placeholder-poster.jpg';
+            // Try each possible key
+            for (const showKey of possibleKeys) {
+                const showData = this.seasonEpisodeImages[showKey];
+                if (showData && showData.seasons && showData.seasons[seasonNum]) {
+                    const seasonData = showData.seasons[seasonNum];
+                    if (seasonData.poster) {
+                        console.log('[SEASON IMAGE] Found poster for', showName, 'season', seasonNum, 'using key:', showKey);
+                        return seasonData.poster;
+                    }
+                }
             }
             
-            const seasonData = showData.seasons[seasonNum];
-            if (!seasonData.poster) {
-                return '/assets/img/placeholder-poster.jpg';
-            }
-            
-            return seasonData.poster;
+            return '/assets/img/placeholder-poster.jpg';
         } catch (error) {
             console.error('[SEASON IMAGE ERROR]', error);
             return '/assets/img/placeholder-poster.jpg';
@@ -3358,19 +3574,57 @@ class MediaLibraryManager {
         });
         const dotKey = normalizeKey(showName);
         const dotPathKey = normalizeKey(showPath);
+        
+        // Try multiple key formats to match Media Manager's saved format
+        const possibleKeys = [
+            dotKey,  // "Tera.Nova"
+            dotPathKey,  // Path-based key
+            normalizeKey(showName + ' (2011)'),  // "Tera.Nova.(2011)"
+            normalizeKey(showName + ' (2012)'),  // Try other common years
+            normalizeKey(showName + ' (2013)'),
+            normalizeKey(showName + ' (2014)'),
+            normalizeKey(showName + ' (2015)'),
+            normalizeKey(showName + ' (2016)'),
+            normalizeKey(showName + ' (2017)'),
+            normalizeKey(showName + ' (2018)'),
+            normalizeKey(showName + ' (2019)'),
+            normalizeKey(showName + ' (2020)'),
+            normalizeKey(showName + ' (2021)'),
+            normalizeKey(showName + ' (2022)'),
+            normalizeKey(showName + ' (2023)'),
+            normalizeKey(showName + ' (2024)'),
+            normalizeKey(showName + ' (2025)'),
+            // Handle spelling variations (Tera vs Terra)
+            normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2011)'),
+            normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2011)'),
+            normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2012)'),
+            normalizeKey(showName.replace(/Tera/g, 'Terra') + ' (2012)'),
+            normalizeKey(showName.replace(/Terra/g, 'Tera') + ' (2013)'),
+            normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2013)'),
+            normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2014)'),
+            normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2014)'),
+            normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2015)'),
+            normalizeKey(showName.replace(/Tera/g, 'Tera') + ' (2015)')
+        ];
+        
         // Description lookup
         let description = '';
-        if (this.tvShowDescriptions[dotKey]) {
-            description = this.tvShowDescriptions[dotKey];
-        } else if (this.tvShowDescriptions[dotPathKey]) {
-            description = this.tvShowDescriptions[dotPathKey];
+        for (const key of possibleKeys) {
+            if (this.tvShowDescriptions[key]) {
+                description = this.tvShowDescriptions[key];
+                console.log('[DEBUG - TV DETAILS] Found description with key:', key);
+                break;
+            }
         }
+        
         // Cast lookup
         let cast = [];
-        if (this.tvShowCast[dotKey] && Array.isArray(this.tvShowCast[dotKey])) {
-            cast = this.tvShowCast[dotKey];
-        } else if (this.tvShowCast[dotPathKey] && Array.isArray(this.tvShowCast[dotPathKey])) {
-            cast = this.tvShowCast[dotPathKey];
+        for (const key of possibleKeys) {
+            if (this.tvShowCast[key] && Array.isArray(this.tvShowCast[key])) {
+                cast = this.tvShowCast[key];
+                console.log('[DEBUG - TV DETAILS] Found cast with key:', key);
+                break;
+            }
         }
         return {
             description,
@@ -4131,12 +4385,31 @@ class MediaLibraryManager {
         });
     }
 
+    cleanTVShowTitle(title) {
+        if (!title || typeof title !== 'string') return '';
+        // For TV shows, extract just the show name for clean UI display
+        // Remove year and quality info for user-friendly display
+        let name = title.trim();
+        
+        // Remove (year) and [quality] info for display
+        name = name.replace(/\((19|20)\d{2}\)/g, ""); // Remove (2021)
+        name = name.replace(/\[\d{3,4}p\]/gi, "");    // Remove [1080p], [720p], etc.
+        
+        // Replace dots, underscores, dashes with spaces
+        name = name.replace(/[._-]+/g, " ");
+        // Remove extra spaces
+        name = name.replace(/\s+/g, " ").trim();
+        // Capitalize each word
+        name = this.capitalizeTitle(name);
+        return name;
+    }
+
     renderTVShowsTab() {
         const sortedShows = this.getFilteredAndSortedItems();
         const addedAnchors = new Set();
         let html = '<div class="media-library-movie-grid">';
         sortedShows.forEach(show => {
-            const cleanTitle = this.cleanMovieTitle(show.name || show.title || show.filename || show.path || '');
+            const cleanTitle = this.cleanTVShowTitle(show.name || show.title || show.filename || show.path || '');
             const displayTitle = this.capitalizeTitle(cleanTitle);
             const firstLetter = cleanTitle.charAt(0).toUpperCase();
             let anchorAttr = '';

@@ -1,22 +1,29 @@
 /*
-  FETCH_TMDB_POSTERS_TV-SHOWS.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  FETCH_TMDB_POSTERS_TV-SHOWS_NORMALIZED.JS
+  Version: 10
+  AppName: MC_1_CM [v10]
+  Updated: 1/6/2025 @12:00PM
   Created by Paul Welby
+  
+  DESCRIPTION:
+  Fetches TV show posters from TMDB and outputs normalized JSON with dot notation keys.
+  No separate normalization step required - outputs directly to normalized format.
 */
 
-require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TV_SHOWS_DIR = 'S:/MEDIA/TV-SHOWS/';
 const DATA_DIR = path.join(__dirname, '../public/components/MediaLibrary/data');
-const OUTPUT_JSON = path.join(DATA_DIR, 'tv_posters.json');
+const OUTPUT_JSON = path.join(DATA_DIR, 'tv-shows/tv-show_posters_normalized.json');
 const OVERRIDES_PATH = path.join(__dirname, '../public/components/MediaLibrary/data/tv_poster_overrides.json');
+
+// Import normalization function
+const { normalizeKey } = require('../../shared/NormalizationService');
 
 if (!TMDB_API_KEY) {
     console.error('❌ TMDB_API_KEY not found in .env');
@@ -96,9 +103,12 @@ async function fetchTVPosterBySearch(name, year) {
 }
 
 async function main() {
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+    // Ensure output directory exists
+    const outputDir = path.dirname(OUTPUT_JSON);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
     }
+    
     console.log('🔍 Scanning for TV show folders...');
     const folders = scanTopLevelFolders(TV_SHOWS_DIR);
     console.log(`Found ${folders.length} TV show folders.`);
@@ -108,25 +118,27 @@ async function main() {
     for (const folder of folders) {
         processed++;
         const folderName = path.basename(folder);
+        const normalizedKey = normalizeKey(folderName);
+        
         // Try to extract year from folder name
         const year = extractYear(folderName);
         const clean = cleanName(folderName);
         let posterUrl = null;
         if (overrides[folder]) {
-            console.log(`🟡 [OVERRIDE] Using TMDb ID ${overrides[folder]} for ${folderName}`);
+            console.log(`🟡 [OVERRIDE] Using TMDb ID ${overrides[folder]} for ${folderName} (normalized: ${normalizedKey})`);
             posterUrl = await fetchTVPosterById(overrides[folder]);
         } else {
             posterUrl = await fetchTVPosterBySearch(clean, year);
         }
         if (posterUrl) {
-            posters[folder] = posterUrl;
+            posters[normalizedKey] = posterUrl;
             console.log(`✅ [POSTER] ${folderName} => ${posterUrl}`);
         } else {
             console.log(`❌ [POSTER] No poster found for ${folderName}`);
         }
     }
     fs.writeFileSync(OUTPUT_JSON, JSON.stringify(posters, null, 2));
-    console.log(`\n🎉 Done! Posters saved to ${OUTPUT_JSON}`);
+    console.log(`\n🎉 Done! Normalized posters saved to ${OUTPUT_JSON}`);
     console.log(`📝 [TMDB-POSTERS] Manual overrides: ${OVERRIDES_PATH}`);
 }
 
