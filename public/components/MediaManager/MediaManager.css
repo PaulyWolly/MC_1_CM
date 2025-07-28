@@ -96,8 +96,8 @@
   padding: 7px 22px;
   font-size: 1em;
   position: relative;
-  left: 670px;
-  bottom: 12px;
+  left: 420px;
+  bottom: 0px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -3003,7 +3003,6 @@
 .media-manager-content-audio {
   padding: 20px;
   max-height: 600px;
-  overflow-y: auto;
 }
 
 .media-manager-audio-controls-container {
@@ -3348,4 +3347,152 @@
 .media-manager-tv-show-details-content {
   flex: 1;
   overflow-y: auto;
+}
+
+/* ==================== AUDIO MANAGER TAB STYLES ==================== */
+.media-manager-content-audio {
+  display: none;
+}
+
+.media-manager-content-audio.active {
+  display: block;
+}
+
+.media-manager-audio-controls-container {
+  background-color: #444a56;
+  padding: 20px;
+  margin-top: -44px;
+  position: relative;
+  left: -20px;
+  width: 76.5vw;
+  box-sizing: border-box;
+  height: 80vh;
+}
+
+.media-manager-audio-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #4a90e2;
+}
+
+.media-manager-audio-header h3 {
+  color: #4a90e2;
+  font-size: 24px;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.media-manager-audio-header p {
+  color: #b0b0b0;
+  font-size: 16px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.media-manager-audio-launch-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.media-manager-audio-launch-btn {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 20px 40px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+  position: relative;
+}
+
+.media-manager-audio-launch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+  background: linear-gradient(135deg, #357abd 0%, #2d5aa0 100%);
+}
+
+.media-manager-audio-launch-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(74, 144, 226, 0.3);
+}
+
+.media-manager-audio-launch-icon {
+  font-size: 24px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.media-manager-audio-info {
+  background: rgb(52 41 41 / 70%);
+  border-radius: 8px;
+  padding: 25px;
+  border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.media-manager-audio-info h4 {
+  color: #4a90e2;
+  font-size: 18px;
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+  padding-bottom: 8px;
+}
+
+.media-manager-audio-info ul {
+  margin: 0 0 20px 0;
+  padding-left: 20px;
+}
+
+.media-manager-audio-info li {
+  color: #e0e0e0;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.media-manager-audio-info li strong {
+  color: #4a90e2;
+  font-weight: 600;
+}
+
+.media-manager-audio-info ul:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive design for audio tab */
+@media (max-width: 768px) {
+  .media-manager-audio-launch-btn {
+    padding: 15px 30px;
+    font-size: 16px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .media-manager-audio-launch-icon {
+    font-size: 20px;
+  }
+  
+  .media-manager-audio-info {
+    padding: 20px;
+  }
+  
+  .media-manager-audio-header h3 {
+    font-size: 20px;
+  }
+  
+  .media-manager-audio-header p {
+    font-size: 14px;
+  }
 }

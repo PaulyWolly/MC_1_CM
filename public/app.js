@@ -14,7 +14,7 @@ import playlistManager from './components/PlaylistManager.js';
 import toastManager from './components/ToastManager.js';
 import youtubeSearchManager from './components/YouTubeSearch/YouTubeSearchManager.js';
 import quotaManager from './components/QuotaMonitor/QuotaMonitor.js';
-import audioManager from './components/AudioManager.js';
+import TextToSpeechAudioManager from './components/TextToSpeech/TextToSpeechAudio.js';
 import myJokesManager from './components/MyJokesManager/MyJokesManager.js';
 import recipeManager from './components/RecipeManager/RecipeManager.js';
 import VideoPlayer from './components/VideoPlayer/VideoPlayer.js';
@@ -225,11 +225,11 @@ const videoPlayerInstance = new VideoPlayer();
 window.videoPlayer = videoPlayerInstance;
 console.log('VideoPlayer initialized:', window.videoPlayer);
 
-// Initialize AudioManager globally
-console.log('Initializing AudioManager...');
-const audioManagerInstance = new audioManager(window.appConfig);
-window.audioManager = audioManagerInstance;
-console.log('AudioManager initialized:', window.audioManager);
+    // Initialize TextToSpeech AudioManager globally
+    console.log('Initializing TextToSpeech AudioManager...');
+    const audioManagerInstance = new TextToSpeechAudioManager(window.appConfig);
+    window.audioManager = audioManagerInstance;
+    console.log('TextToSpeech AudioManager initialized:', window.audioManager);
 
 // Initialize MyJokesManager globally
 console.log('Initializing MyJokesManager...');

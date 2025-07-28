@@ -134,7 +134,7 @@
             progress.quota-progress-bar {
                 -webkit-appearance: none;
                 appearance: none;
-                width: 70%;
+                width: 78%;
                 height: 8px;
                 border: none;
                 border-radius: 4px;
@@ -193,5 +193,122 @@
 
             .hidden {
                 display: none !important;
+            }
+
+            /* Script Runner Styles */
+            .quota-script-runner {
+                margin-top: 8px;
+                border-top: 1px solid rgba(255,255,255,0.2);
+                padding-top: 8px;
+            }
+
+            .quota-script-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 11px;
+                font-weight: bold;
+                color: #ffeb3b;
+                cursor: pointer;
+                padding: 4px 6px;
+                border-radius: 4px;
+                transition: background-color 0.2s ease;
+            }
+            
+            .quota-script-header:hover {
+                background-color: rgba(255, 235, 59, 0.1);
+            }
+
+            .quota-script-toggle-btn {
+                background: none;
+                border: none;
+                margin-right: 60px;
+                color: #c0ad07;
+                font-size: 10px;
+                cursor: pointer;
+                padding: 0;
+                transition: transform 0.1s ease;
+            }
+
+            .quota-script-toggle-btn:hover {
+                transform: scale(1.1);
+            }
+
+            .quota-script-panel {
+                margin-top: 6px;
+                position: relative;
+                right: 15px;
+                display: block;
+                transition: opacity 0.3s ease, max-height 0.3s ease;
+                opacity: 1;
+                max-height: 200px;
+                overflow: hidden;
+            }
+            
+            .quota-script-panel.hidden {
+                opacity: 0;
+                max-height: 0;
+                display: none !important;
+            }
+
+            .quota-script-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                margin-bottom: 6px;
+            }
+
+            .quota-script-btn {
+                background: #2196f3;
+                border: none;
+                color: white;
+                font-size: 10px;
+                padding: 4px 8px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: opacity 0.2s ease;
+                text-align: left;
+            }
+
+            .quota-script-btn:hover {
+                opacity: 0.85;
+            }
+
+            .quota-script-status {
+                background: rgba(0,0,0,0.3);
+                border-radius: 4px;
+                padding: 4px;
+                max-height: 80px;
+                overflow-y: auto;
+                font-size: 9px;
+                font-family: 'Courier New', monospace;
+            }
+
+            .quota-script-output {
+                color: #fff;
+            }
+
+            .script-running {
+                color: #1d1c15;
+                font-weight: bold;
+                font-size: 1.4em;
+            }
+
+            .script-success {
+                color: #4caf50;
+                font-weight: bold;
+            }
+
+            .script-error {
+                color: #f44336;
+                font-weight: bold;
+            }
+
+            .script-output {
+                color: #ccc;
+                margin-top: 4px;
+                white-space: pre-wrap;
+                font-size: 8px;
+                line-height: 1.2;
             }
         

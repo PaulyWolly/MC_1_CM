@@ -47,6 +47,9 @@ __REF_REPO-BEFORE-RESTORE__
 *.tmp
 *.temp
 
+# Scripts directory (excluded from git)
+/scripts/
+
 # System files
 .DS_Store
 Thumbs.db

@@ -13,6 +13,7 @@
     <div class="media-manager-tabs">
       <button class="media-manager-tab media-manager-tab-movie active">Movie</button>
       <button class="media-manager-tab media-manager-tab-tv">TV Show</button>
+      <button class="media-manager-tab media-manager-tab-audio">Audio Manager</button>
       
       <div class="media-manager-mode-toggle">
         <button class="media-manager-mode-btn media-manager-mode-single active">Single</button>
@@ -199,6 +200,44 @@
 
     </div>
       <!-- ==================== END: MOVIE SECTION ==================== -->
+
+      <!-- ==================== BEGIN: AUDIO MANAGER SECTION ==================== -->
+      <div class="media-manager-content media-manager-content-audio media-manager-display-none">
+        <div class="media-manager-audio-controls-container">
+          <div class="media-manager-audio-header">
+            <h3>Audio & Video Converter</h3>
+            <p>Convert audio codecs and video containers for Video.js compatibility</p>
+          </div>
+          
+          <div class="media-manager-audio-launch-section">
+            <button class="media-manager-audio-launch-btn" type="button">
+              <span class="media-manager-audio-launch-icon">🎵</span>
+              Launch Audio Converter
+              <span class="media-manager-info-icon"
+                data-tooltip="Opens the Audio Manager component for converting audio and video files"><span
+                  class="media-manager-info-icon-inner"></span></span>
+            </button>
+          </div>
+          
+          <div class="media-manager-audio-info">
+            <h4>Supported Conversions:</h4>
+            <ul>
+              <li><strong>Audio Codecs:</strong> AAC3, EAC3, AC3 → AAC, MP3, Opus</li>
+              <li><strong>Video Containers:</strong> MKV, AVI, MOV → MP4</li>
+              <li><strong>Quality Presets:</strong> High, Medium, Low (Faster)</li>
+            </ul>
+            
+            <h4>Features:</h4>
+            <ul>
+              <li>Batch file conversion with progress tracking</li>
+              <li>Real-time conversion status and logging</li>
+              <li>Quality presets for different use cases</li>
+              <li>FFmpeg-powered conversion engine</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <!-- ==================== END: AUDIO MANAGER SECTION ==================== -->
 
       <!-- ==================== BEGIN: TV-SHOW SECTION ==================== -->
   <div class="media-manager-content media-manager-content-tv media-manager-display-none">

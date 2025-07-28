@@ -76,8 +76,11 @@ class MediaManager {
     // ========================================
     this.tabMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-movie') : null;
     this.tabTV = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-tv') : null;
+    this.tabAudio = this.containerElement ? this.containerElement.querySelector('.media-manager-tab-audio') : null;
     this.modeSingle = this.containerElement ? this.containerElement.querySelector('.media-manager-mode-single') : null;
     this.contentMovie = this.containerElement ? this.containerElement.querySelector('.media-manager-content-movie') : null;
+    this.contentTV = this.containerElement ? this.containerElement.querySelector('.media-manager-content-tv') : null;
+    this.contentAudio = this.containerElement ? this.containerElement.querySelector('.media-manager-content-audio') : null;
     this.contentAll = this.containerElement ? this.containerElement.querySelector('.media-manager-content-all') : null;
 
     // ========================================
@@ -92,6 +95,11 @@ class MediaManager {
     this.castList = this.containerElement ? this.containerElement.querySelector('.media-manager-preview-cast-movie') : null;
     this.confirmBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-confirm-btn-movie') : null;
     this.viewJsonBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-view-json-btn') : null;
+
+    // ========================================
+    // AUDIO MANAGER ELEMENTS
+    // ========================================
+    this.audioLaunchBtn = this.containerElement ? this.containerElement.querySelector('.media-manager-audio-launch-btn') : null;
 
     // ========================================
     // TV SHOW FORM ELEMENTS
@@ -275,6 +283,12 @@ class MediaManager {
         this.switchTab('tv');
       };
     }
+    if (this.tabAudio) {
+      this.tabAudio.onclick = () => {
+        console.log('[DEBUG] AUDIO tab clicked');
+        this.switchTab('audio');
+      };
+    }
     if (this.viewJsonBtnTV) {
       this.viewJsonBtnTV.onclick = () => {
         console.log('[MM DEBUG] TV-SHOW View/Edit JSON button clicked');
@@ -335,8 +349,18 @@ class MediaManager {
         this.clearSelectionBtn.onclick = () => this.handleClearSelection();
       }
       
-      if (this.closeGridBtn) {
-        this.closeGridBtn.onclick = () => this.handleClose();
+          if (this.closeGridBtn) {
+      this.closeGridBtn.onclick = () => this.handleClose();
+    }
+    
+    // ========================================
+    // AUDIO MANAGER EVENT LISTENERS
+    // ========================================
+    if (this.audioLaunchBtn) {
+      this.audioLaunchBtn.onclick = () => {
+        console.log('[DEBUG] Audio Manager launch button clicked');
+        this.launchAudioManager();
+      };
     }
     if (this.confirmBtn) {
       this.confirmBtn.onclick = () => {
@@ -1167,20 +1191,24 @@ class MediaManager {
     // TABS
     const tabMovie = this.containerElement.querySelector('.media-manager-tab-movie');
     const tabTV = this.containerElement.querySelector('.media-manager-tab-tv');
+    const tabAudio = this.containerElement.querySelector('.media-manager-tab-audio');
     const tabMovieTest = this.containerElement.querySelector('.media-manager-tab-movie-test');
     // CONTENT
     const movieContent = this.containerElement.querySelector('.media-manager-content-movie');
-      const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
+    const tvContent = this.containerElement.querySelector('.media-manager-content-tv');
+    const audioContent = this.containerElement.querySelector('.media-manager-content-audio');
     const movieTestContent = this.containerElement.querySelector('.media-manager-content-movie-test');
 
     // ----------- TAB HIGHLIGHT LOGIC -------------
     // Remove 'active' from all tabs
     if (tabMovie) tabMovie.classList.remove('active');
     if (tabTV) tabTV.classList.remove('active');
+    if (tabAudio) tabAudio.classList.remove('active');
     if (tabMovieTest) tabMovieTest.classList.remove('active');
     // Hide all content
     if (movieContent) movieContent.style.display = 'none';
-      if (tvContent) tvContent.style.display = 'none';
+    if (tvContent) tvContent.style.display = 'none';
+    if (audioContent) audioContent.style.display = 'none';
     if (movieTestContent) movieTestContent.style.display = 'none';
 
     // ----------- SHOW ONLY THE SELECTED TAB AND CONTENT -------------
@@ -1223,6 +1251,10 @@ class MediaManager {
         this.viewImagesBtn.textContent = 'Get Season & Episode Images';
         console.log('[DEBUG - switchTab] Initialized viewImagesBtn as disabled for TV tab:', this.viewImagesBtn);
       }
+    } else if (tab === 'audio') {
+        if (tabAudio) tabAudio.classList.add('active');
+        if (audioContent) audioContent.style.display = 'block';
+        console.log('[DEBUG - switchTab] Audio tab activated');
     } else if (tab === 'movie-test') {
         if (tabMovieTest) tabMovieTest.classList.add('active');
         if (movieTestContent) movieTestContent.style.display = 'block';
@@ -2582,6 +2614,27 @@ Modified: ${new Date(episode.modified).toLocaleString()}
     return title;
   }
 
+  // ========================================
+  // AUDIO MANAGER METHODS
+  // ========================================
+  async launchAudioManager() {
+    try {
+      console.log('[DEBUG - MediaManager] Launching AudioManager component...');
+      
+      // Import and initialize the AudioManager component
+      const AudioManager = await import('../AudioManager/AudioManager.js');
+      const audioManager = new AudioManager.default();
+      
+      // Show the AudioManager
+      await audioManager.open();
+      
+      console.log('[DEBUG - MediaManager] AudioManager launched successfully');
+      
+    } catch (error) {
+      console.error('[DEBUG - MediaManager] Failed to launch AudioManager:', error);
+      this.showModalToast('Failed to launch Audio Manager: ' + error.message, 'error');
+    }
+  }
 }
 
 // ===================================================
