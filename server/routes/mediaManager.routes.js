@@ -25,7 +25,7 @@ const TMDB_TV_URL = 'https://api.themoviedb.org/3/tv';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
-const TV_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows.json');
+const TV_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
 const MOVIE_CAST_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_cast_normalized.json');
 const MOVIE_DESC_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_descriptions_normalized.json');
 const MOVIE_POSTERS_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
@@ -278,44 +278,53 @@ router.post('/save', async (req, res) => {
       if (!title) {
         return res.status(400).json({ success: false, error: 'Missing required TV show field: title' });
       }
-      // Load existing TV shows
+      // Load existing TV shows from the normalized location that MediaLibrary expects
       let tvData = [];
-      if (fs.existsSync(TV_JSON)) {
-        try { tvData = JSON.parse(fs.readFileSync(TV_JSON, 'utf8')); } catch (e) { tvData = []; }
+      const TV_NORMALIZED_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
+      if (fs.existsSync(TV_NORMALIZED_JSON)) {
+        try { tvData = JSON.parse(fs.readFileSync(TV_NORMALIZED_JSON, 'utf8')); } catch (e) { tvData = []; }
       }
-      // If tvData is an object with folders, convert to flat array
-      if (!Array.isArray(tvData) && tvData && Array.isArray(tvData.folders)) {
-        tvData = tvData.folders.map(showFolder => {
-          const showTitle = showFolder.path.split(/[/\\]/)[0] || showFolder.path;
-          const showSeasons = (showFolder.folders || []).map(seasonFolder => {
-            let seasonNumber = 1;
-            const match = seasonFolder.path.match(/Season\s*(-?\d+)/i);
-            if (match) seasonNumber = Math.abs(parseInt(match[1], 10));
-            if (!seasonNumber && seasonFolder.files && seasonFolder.files[0]) {
-              const epMatch = seasonFolder.files[0].name.match(/S(\d{1,2})E\d{1,2}/i);
-              if (epMatch) seasonNumber = parseInt(epMatch[1], 10);
-            }
-            const episodes = (seasonFolder.files || []).map(file => ({
-              filename: file.name,
-              filePath: file.absPath || file.relPath || '',
-            }));
-            return { seasonNumber, episodes };
-          });
-          return { title: showTitle, seasons: showSeasons };
-        });
+      
+      // Ensure tvData is an array
+      if (!Array.isArray(tvData)) {
+        tvData = [];
       }
+      // tvData should already be an array of show objects in normalized format
       // Find existing show by tmdbId or title
       let idx = -1;
       if (tmdbId) idx = tvData.findIndex(show => show.tmdbId === tmdbId);
       if (idx === -1) idx = tvData.findIndex(show => show.title && show.title.toLowerCase() === title.toLowerCase());
-      const showObj = { tmdbId, title, year, description, cast, poster, seasons, showPath };
+      // Create standardized show object that works with ALL TV show structures
+      const showObj = { 
+        tmdbId, 
+        title, 
+        year, 
+        description, 
+        cast, 
+        poster, 
+        seasons, 
+        showPath,
+        path: showPath,
+        // Add standardized folders structure for MediaLibrary compatibility
+        folders: seasons.map(season => ({
+          path: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
+          relPath: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
+          files: season.episodes.map(episode => ({
+            name: episode.filename || episode.name,
+            filename: episode.filename || episode.name,
+            absPath: episode.filePath || episode.absPath,
+            relPath: episode.relPath || episode.filePath,
+            filePath: episode.filePath || episode.absPath
+          }))
+        }))
+      };
       if (idx !== -1) {
         tvData[idx] = showObj;
       } else {
         tvData.push(showObj);
       }
-      fs.writeFileSync(TV_JSON, JSON.stringify(tvData, null, 2));
-      // --- NEW: Save to normalized cast and description files ---
+      fs.writeFileSync(TV_NORMALIZED_JSON, JSON.stringify(tvData, null, 2));
+      // --- ALWAYS SAVE TO NORMALIZED FILES ---
       const normalizeKey = (name) => {
         return name
           .replace(/\\/g, '/')
@@ -325,19 +334,37 @@ router.post('/save', async (req, res) => {
           .replace(/\.+/g, '.')
           .replace(/^\.|\.$/g, '');
       };
-      const dotKey = normalizeKey(title);
-      // Save cast
+      
+      // For TV shows, include the year in the normalized key to match MediaLibrary expectations
+      const titleWithYear = year ? `${title} (${year})` : title;
+      const dotKey = normalizeKey(titleWithYear);
+      
+      // Save cast to normalized file
       const castPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json');
       let castData = {};
       if (fs.existsSync(castPath)) castData = JSON.parse(fs.readFileSync(castPath, 'utf8'));
       castData[dotKey] = cast || [];
       fs.writeFileSync(castPath, JSON.stringify(castData, null, 2));
-      // Save description
+      console.log('[MEDIA SAVE] TV cast saved to normalized file:', dotKey);
+      
+      // Save description to normalized file
       const descPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_descriptions_normalized.json');
       let descData = {};
       if (fs.existsSync(descPath)) descData = JSON.parse(fs.readFileSync(descPath, 'utf8'));
       descData[dotKey] = description || '';
       fs.writeFileSync(descPath, JSON.stringify(descData, null, 2));
+      console.log('[MEDIA SAVE] TV description saved to normalized file:', dotKey);
+      
+      // Save poster to normalized file
+      if (poster && poster.startsWith('http')) {
+        const posterPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json');
+        let posterData = {};
+        if (fs.existsSync(posterPath)) posterData = JSON.parse(fs.readFileSync(posterPath, 'utf8'));
+        posterData[dotKey] = poster;
+        fs.writeFileSync(posterPath, JSON.stringify(posterData, null, 2));
+        console.log('[MEDIA SAVE] TV poster saved to normalized file:', dotKey);
+      }
+      
       return res.json({ success: true, saved: showObj });
     }
     // --- MOVIE SAVE LOGIC (normalized) ---
@@ -467,10 +494,29 @@ router.post('/scan-tv-structure', (req, res) => {
         .filter(dirent => dirent.isFile())
         .filter(dirent => /\.(mp4|mkv|avi|mov)$/i.test(dirent.name));
       files.forEach(file => {
+        const filePath = path.join(seasonPath, file.name);
+        const relPath = path.relative(showPath, filePath).replace(/\\/g, '/');
+        
+        // Extract episode number from filename
+        const epMatch = file.name.match(/E(\d{1,2})/i);
+        const episodeNumber = epMatch ? parseInt(epMatch[1], 10) : undefined;
+        
         episodes.push({
           filename: file.name,
-          filePath: path.join(seasonPath, file.name)
+          name: file.name,
+          filePath: filePath,
+          absPath: filePath,
+          relPath: relPath,
+          episodeNumber: episodeNumber
         });
+      });
+      
+      // Sort episodes by episode number
+      episodes.sort((a, b) => {
+        if (!a.episodeNumber && !b.episodeNumber) return 0;
+        if (!a.episodeNumber) return 1;
+        if (!b.episodeNumber) return -1;
+        return a.episodeNumber - b.episodeNumber;
       });
       seasons.push({ seasonNumber, seasonName: seasonFolder.name, episodes });
     });
@@ -581,12 +627,76 @@ router.post('/scan-movies', (req, res) => {
     console.log(`[MOVIE SCAN] Found ${newMovies.length} TRULY NEW movies that need processing`);
     console.log(`[MOVIE SCAN] New movies:`, newMovies.map(m => m.title));
     
+    // NEW: Update existing movies with new files (like colorized versions)
+    console.log(`[MOVIE SCAN] Checking existing movies for new files...`);
+    const updatedMovies = [];
+    
+    // Load the main movies JSON file to update existing entries
+    const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
+    let moviesData = { folders: [] };
+    
+    try {
+      if (fs.existsSync(MOVIES_JSON)) {
+        moviesData = JSON.parse(fs.readFileSync(MOVIES_JSON, 'utf8'));
+        console.log(`[MOVIE SCAN] Loaded ${moviesData.folders.length} existing movies from JSON`);
+      }
+    } catch (err) {
+      console.warn('[MOVIE SCAN] Could not read media-library-movies_normalized.json:', err.message);
+    }
+    
+    // Check each existing movie for new files
+    for (const movie of moviesData.folders) {
+      const movieFolderPath = path.join(moviesDir, movie.path);
+      
+      if (fs.existsSync(movieFolderPath)) {
+        // Get all video files in the movie folder
+        const videoFiles = fs.readdirSync(movieFolderPath, { withFileTypes: true })
+          .filter(dirent => dirent.isFile())
+          .filter(dirent => /\.(mp4|mkv|avi|mov)$/i.test(dirent.name))
+          .map(dirent => ({
+            name: dirent.name,
+            absPath: path.join(movieFolderPath, dirent.name),
+            relPath: path.relative(moviesDir, path.join(movieFolderPath, dirent.name)).replace(/\\/g, '/')
+          }));
+        
+        // Check if there are new files not in the current JSON
+        const currentFileNames = movie.files.map(f => f.name);
+        const newFiles = videoFiles.filter(file => !currentFileNames.includes(file.name));
+        
+        if (newFiles.length > 0) {
+          console.log(`[MOVIE SCAN] Found ${newFiles.length} new files in "${movie.path}":`, newFiles.map(f => f.name));
+          
+          // Add new files to the movie entry
+          movie.files.push(...newFiles);
+          
+          updatedMovies.push({
+            title: movie.path,
+            newFiles: newFiles.map(f => f.name),
+            totalFiles: movie.files.length
+          });
+        }
+      }
+    }
+    
+    // Save updated movies data back to JSON
+    if (updatedMovies.length > 0) {
+      try {
+        fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
+        console.log(`[MOVIE SCAN] Updated ${updatedMovies.length} existing movies with new files`);
+        console.log(`[MOVIE SCAN] Updated movies:`, updatedMovies.map(m => `${m.title} (+${m.newFiles.length} files)`));
+      } catch (err) {
+        console.error('[MOVIE SCAN] Failed to save updated movies JSON:', err.message);
+      }
+    }
+    
     return res.json({
       success: true,
       data: {
         newMovies,
+        updatedMovies,
         totalScanned: movieFolders.length,
         totalNew: newMovies.length,
+        totalUpdated: updatedMovies.length,
         totalExisting: Object.keys(existingPosters).length,
         breakdown: {
           posters: Object.keys(existingPosters).length,
@@ -601,6 +711,132 @@ router.post('/scan-movies', (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ========================================
+// BEGIN: AUDIO CONVERSION ENDPOINTS
+// ========================================
+
+// Scan for AC3 audio files
+router.post('/scan-audio', async (req, res) => {
+  try {
+    const { scanPath } = req.body;
+    
+    if (!scanPath) {
+      return res.status(400).json({ success: false, error: 'Scan path is required' });
+    }
+
+    console.log(`[AUDIO SCAN] Scanning directory: ${scanPath}`);
+
+    if (!fs.existsSync(scanPath)) {
+      return res.status(400).json({ success: false, error: 'Directory does not exist' });
+    }
+
+    const files = [];
+    
+    // Recursively scan for video files with AC3 audio
+    function scanDirectory(dirPath) {
+      try {
+        const items = fs.readdirSync(dirPath);
+        
+        for (const item of items) {
+          const fullPath = path.join(dirPath, item);
+          const stat = fs.statSync(fullPath);
+          
+          if (stat.isDirectory()) {
+            scanDirectory(fullPath);
+          } else if (stat.isFile() && /\.(mp4|mkv|avi|mov)$/i.test(item)) {
+            // Check if file has AC3 audio using ffprobe
+            try {
+              const ffprobeOutput = execSync(`ffprobe -v quiet -print_format json -show_streams "${fullPath}"`, { encoding: 'utf8' });
+              const streams = JSON.parse(ffprobeOutput).streams;
+              
+              const hasAC3 = streams.some(stream => 
+                stream.codec_type === 'audio' && 
+                stream.codec_name && 
+                stream.codec_name.toLowerCase() === 'ac3'
+              );
+              
+              if (hasAC3) {
+                files.push({
+                  name: item,
+                  path: fullPath,
+                  size: stat.size
+                });
+              }
+            } catch (ffprobeError) {
+              console.warn(`[AUDIO SCAN] Could not analyze ${item}:`, ffprobeError.message);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn(`[AUDIO SCAN] Error scanning directory ${dirPath}:`, err.message);
+      }
+    }
+
+    scanDirectory(scanPath);
+
+    console.log(`[AUDIO SCAN] Found ${files.length} files with AC3 audio`);
+    
+    return res.json({
+      success: true,
+      files: files
+    });
+
+  } catch (error) {
+    console.error('[AUDIO SCAN] Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Convert AC3 to AAC
+router.post('/convert-audio', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'File path is required' });
+    }
+
+    console.log(`[AUDIO CONVERT] Converting: ${filePath}`);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(400).json({ success: false, error: 'File does not exist' });
+    }
+
+    const dir = path.dirname(filePath);
+    const ext = path.extname(filePath);
+    const baseName = path.basename(filePath, ext);
+    const outputPath = path.join(dir, `${baseName}_converted${ext}`);
+
+    // Use ffmpeg to convert AC3 to AAC
+    const ffmpegCommand = `ffmpeg -i "${filePath}" -c:v copy -c:a aac -b:a 192k "${outputPath}"`;
+    
+    console.log(`[AUDIO CONVERT] Running: ${ffmpegCommand}`);
+    
+    exec(ffmpegCommand, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`[AUDIO CONVERT] Error converting ${filePath}:`, error);
+        return res.status(500).json({ success: false, error: error.message });
+      }
+      
+      console.log(`[AUDIO CONVERT] Successfully converted: ${filePath} -> ${outputPath}`);
+      
+      return res.json({
+        success: true,
+        originalPath: filePath,
+        convertedPath: outputPath
+      });
+    });
+
+  } catch (error) {
+    console.error('[AUDIO CONVERT] Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ========================================
+// END: AUDIO CONVERSION ENDPOINTS
+// ========================================
 
 // --- NEW: Save poster to movie_posters.json ---
 router.post('/save-poster', (req, res) => {
@@ -795,14 +1031,28 @@ router.post('/fix-cast-profiles', async (req, res) => {
 // POST /api/media/fetch-tv-images
 router.post('/fetch-tv-images', async (req, res) => {
   try {
-    const { normalizedKey, tmdbId, showPath } = req.body;
+    const { normalizedKey, tmdbId, showPath, showName } = req.body;
     if (!normalizedKey) {
       return res.status(400).json({ success: false, error: 'Missing normalizedKey' });
     }
     console.log('[FETCH-TV-IMAGES] NormalizedKey:', normalizedKey);
-    // Build commands
-    const seasonCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_season_images.js "${normalizedKey}"`;
-    const episodeCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_episode_images.js "${normalizedKey}"`;
+    
+    // Use the showName directly from the frontend (more reliable than extracting from path)
+    let originalShowName = showName || '';
+    if (!originalShowName && showPath) {
+      // Fallback: try to extract from showPath if showName is not provided
+      originalShowName = path.basename(showPath);
+    }
+    if (!originalShowName) {
+      // Final fallback: try to reverse the normalized key
+      originalShowName = normalizedKey.replace(/\./g, ' ').replace(/\(/g, '(').replace(/\)/g, ')');
+    }
+    
+    console.log('[FETCH-TV-IMAGES] Original show name:', originalShowName);
+    
+    // Build commands - using normalized scripts that output directly to normalized format
+    const seasonCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_season_images_normalized.js "${originalShowName}"`;
+    const episodeCmd = `node scripts/SMART/SMART_fetch_tmdb_tv-show_episode_images_normalized.js "${originalShowName}"`;
     console.log('[FETCH-TV-IMAGES] Running:', seasonCmd);
     exec(seasonCmd, { cwd: path.join(__dirname, '../..') }, (err1, stdout1, stderr1) => {
       if (err1) {
@@ -818,39 +1068,81 @@ router.post('/fetch-tv-images', async (req, res) => {
         }
         console.log('[FETCH-TV-IMAGES] Episode script output:', stdout2);
         
-        // Run normalization script to convert to normalized format
-        const normalizeCmd = `node scripts/NORMALIZE/normalize_tv_show_season_and_episode_image_keys.js`;
-        console.log('[FETCH-TV-IMAGES] Running normalization:', normalizeCmd);
-        exec(normalizeCmd, { cwd: path.join(__dirname, '../..') }, (err3, stdout3, stderr3) => {
-          if (err3) {
-            console.error('[FETCH-TV-IMAGES] Normalization script error:', stderr3);
-            return res.status(500).json({ success: false, error: 'Normalization script failed', stderr: stderr3 });
-          }
-          console.log('[FETCH-TV-IMAGES] Normalization script output:', stdout3);
-          
-          // Check if the key exists in the normalized files
-          const seasonFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
-          const episodeFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
-          let seasonData = {};
-          let episodeData = {};
-          try {
-            seasonData = JSON.parse(fs.readFileSync(seasonFile, 'utf8'));
-          } catch (e) { seasonData = {}; }
-          try {
-            episodeData = JSON.parse(fs.readFileSync(episodeFile, 'utf8'));
-          } catch (e) { episodeData = {}; }
-          const hasSeason = !!seasonData[normalizedKey];
-          const hasEpisode = !!episodeData[normalizedKey];
-          if (!hasSeason && !hasEpisode) {
-            return res.status(200).json({ success: false, error: `No images found for key: ${normalizedKey}` });
-          }
-          return res.status(200).json({ success: true, season: hasSeason, episode: hasEpisode });
+        // Check if the key exists in the normalized files (scripts already output normalized data)
+        const seasonFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
+        const episodeFile = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
+        let seasonData = {};
+        let episodeData = {};
+        try {
+          seasonData = JSON.parse(fs.readFileSync(seasonFile, 'utf8'));
+        } catch (e) { seasonData = {}; }
+        try {
+          episodeData = JSON.parse(fs.readFileSync(episodeFile, 'utf8'));
+        } catch (e) { episodeData = {}; }
+        
+        const hasSeason = !!seasonData[normalizedKey];
+        const hasEpisode = !!episodeData[normalizedKey];
+        
+        if (!hasSeason && !hasEpisode) {
+          return res.status(200).json({ success: false, error: `No images found for key: ${normalizedKey}` });
+        }
+        
+        // Return the actual image data for display
+        const seasonImages = hasSeason ? seasonData[normalizedKey] : null;
+        const episodeImages = hasEpisode ? episodeData[normalizedKey] : null;
+        
+        return res.status(200).json({ 
+          success: true, 
+          season: hasSeason, 
+          episode: hasEpisode,
+          seasonImages: seasonImages,
+          episodeImages: episodeImages
         });
       });
     });
   } catch (err) {
     console.error('[FETCH-TV-IMAGES] Fatal error:', err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/media/get-tv-shows-list
+router.get('/get-tv-shows-list', async (req, res) => {
+  try {
+    console.log('[GET-TV-SHOWS-LIST] Getting TV shows list...');
+    
+    const tvShowsPath = 'S:/MEDIA/TV-SHOWS';
+    const tvShows = [];
+    
+    // Read the TV shows directory
+    const items = fs.readdirSync(tvShowsPath, { withFileTypes: true });
+    
+    items.forEach(item => {
+      if (item.isDirectory()) {
+        const showPath = path.join(tvShowsPath, item.name);
+        tvShows.push({
+          name: item.name,
+          path: showPath
+        });
+      }
+    });
+    
+    // Sort alphabetically
+    tvShows.sort((a, b) => a.name.localeCompare(b.name));
+    
+    console.log(`[GET-TV-SHOWS-LIST] Found ${tvShows.length} TV shows`);
+    
+    return res.json({
+      success: true,
+      tvShows: tvShows
+    });
+    
+  } catch (err) {
+    console.error('[GET-TV-SHOWS-LIST] Error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 

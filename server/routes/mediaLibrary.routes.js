@@ -12,8 +12,8 @@ const path = require('path');
 
 const router = express.Router();
 const MEDIA_LIBRARY_PATH = path.join(__dirname, '../data/media-library.json');
-const TV_SHOWS_LIBRARY_PATH = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows.json');
-const MOVIES_LIBRARY_PATH = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies.json');
+const TV_SHOWS_LIBRARY_PATH = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
+const MOVIES_LIBRARY_PATH = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
 
 // --- Serve video files for playback ---
 const MEDIA_ROOTS = [
@@ -54,7 +54,7 @@ router.get('/media-library', (req, res) => {
 
 router.get('/media-library-tv-shows', (req, res) => {
     const flat = req.query.flat === '1';
-    const tvShowsData = require('../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows.json');
+    const tvShowsData = require('../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
     if (flat) {
         // Return a flat array of shows (legacy/compatibility)
         if (tvShowsData && tvShowsData.library && Array.isArray(tvShowsData.library.folders)) {

@@ -11,10 +11,10 @@ const fs = require('fs');
 const path = require('path');
 const { normalizeKey } = require('../../shared/NormalizationService');
 
-const SEASON_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/tmdb_tv-show_season_images.json');
-const EPISODE_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/tmdb_tv-show_episode_images.json');
-const SEASON_OUT = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
-const EPISODE_OUT = path.join(__dirname, '../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
+const SEASON_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tmdb_tv-show_season_images.json');
+const EPISODE_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tmdb_tv-show_episode_images.json');
+const SEASON_OUT = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
+const EPISODE_OUT = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
 
 function normalizeKeys(obj) {
   const out = {};
