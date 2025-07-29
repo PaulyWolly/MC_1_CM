@@ -16,7 +16,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     z-index: 100000;
@@ -46,6 +46,7 @@
     flex-direction: column;
     transform: scale(0.9);
     transition: transform 0.3s ease;
+    position: relative;
 }
 
 .audio-manager-container.show .audio-manager-content {
@@ -57,7 +58,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px 30px;
-    background: rgba(255, 255, 255, 0.1);
+    background: darkcyan;;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -91,15 +92,18 @@
 /* Tab Navigation */
 .audio-manager-tabs {
     display: flex;
-    background: rgba(255, 255, 255, 0.1);
+    justify-content: center;
+    gap: 5px;
+    padding: 15px 30px;
+    background: rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .tab-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
     color: rgba(255, 255, 255, 0.7);
-    padding: 15px 25px;
+    padding: 10px 20px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -107,8 +111,8 @@
     font-size: 14px;
     font-weight: 500;
     transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
-    min-width: 120px;
+    border-radius: 6px;
+    min-width: 100px;
     justify-content: center;
 }
 
@@ -119,8 +123,8 @@
 
 .tab-btn.active {
     color: #ffffff;
-    border-bottom-color: #4CAF50;
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .tab-icon {
@@ -136,6 +140,7 @@
     flex: 1;
     overflow: hidden;
     position: relative;
+    min-height: 400px;
 }
 
 .tab-panel {
@@ -148,11 +153,13 @@
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
     overflow-y: auto;
+    display: none;
 }
 
 .tab-panel.active {
     opacity: 1;
     visibility: visible;
+    display: block;
 }
 
 .tab-panel-content {

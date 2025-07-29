@@ -123,12 +123,13 @@ export default class AudioManager {
         console.log('[DEBUG - AUDIOMANAGER] Creating AudioManager UI...');
         const audioManagerHTML = `
             <div id="audio-manager-container" class="audio-manager-container" style="display: none;">
-                <div class="audio-manager-header">
-                    <h2>Audio & Video Converter</h2>
-                    <button id="audio-manager-close" class="audio-manager-close-btn">×</button>
-                </div>
-                
                 <div class="audio-manager-content">
+                    <!-- Header with title and close button -->
+                    <div class="audio-manager-header">
+                        <h2>Audio & Video Converter</h2>
+                        <button id="audio-manager-close" class="audio-manager-close-btn">×</button>
+                    </div>
+                    
                     <!-- Tab Navigation -->
                     <div class="audio-manager-tabs">
                         <button class="tab-btn active" data-tab="settings">
@@ -237,6 +238,33 @@ export default class AudioManager {
         const container = document.getElementById('audio-manager-container');
         if (container) {
             console.log('[DEBUG - AUDIOMANAGER] ✅ AudioManager container successfully created');
+            
+            // Verify tab elements
+            const settingsTab = document.getElementById('settings-tab');
+            const filesTab = document.getElementById('files-tab');
+            const progressTab = document.getElementById('progress-tab');
+            const logTab = document.getElementById('log-tab');
+            
+            console.log('[DEBUG - AUDIOMANAGER] Tab panels found:', {
+                settings: !!settingsTab,
+                files: !!filesTab,
+                progress: !!progressTab,
+                log: !!logTab
+            });
+            
+            // Verify settings tab content
+            if (settingsTab) {
+                const settingsContent = settingsTab.querySelector('.tab-panel-content');
+                const settingsGrid = settingsTab.querySelector('.settings-grid');
+                const conversionControls = settingsTab.querySelector('.conversion-controls');
+                
+                console.log('[DEBUG - AUDIOMANAGER] Settings tab content:', {
+                    content: !!settingsContent,
+                    grid: !!settingsGrid,
+                    controls: !!conversionControls,
+                    isActive: settingsTab.classList.contains('active')
+                });
+            }
         } else {
             console.error('[DEBUG - AUDIOMANAGER] ❌ AudioManager container not found after creation');
         }
@@ -248,17 +276,19 @@ export default class AudioManager {
             this.hide();
         });
         
-        // Click outside to close
+        // Click outside - do nothing (modal stays open)
         document.getElementById('audio-manager-container').addEventListener('click', (e) => {
             if (e.target.id === 'audio-manager-container') {
-                this.hide();
+                // Do nothing - modal stays open
+                console.log('[DEBUG - AUDIOMANAGER] Clicked outside modal - keeping modal open');
             }
         });
         
-        // Escape key to close
+        // Escape key - do nothing (modal stays open)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isOpen()) {
-                this.hide();
+                // Do nothing - modal stays open
+                console.log('[DEBUG - AUDIOMANAGER] Escape key pressed - keeping modal open');
             }
         });
         
@@ -301,15 +331,38 @@ export default class AudioManager {
     }
     
     switchTab(targetTab) {
+        console.log('[DEBUG - AUDIOMANAGER] Switching to tab:', targetTab);
+        
         // Remove active class from all tabs and panels
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            console.log('[DEBUG - AUDIOMANAGER] Removed active from tab button:', btn.getAttribute('data-tab'));
+        });
+        
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+            console.log('[DEBUG - AUDIOMANAGER] Removed active from panel:', panel.id);
+        });
         
         // Add active class to target tab and panel
-        document.querySelector(`[data-tab="${targetTab}"]`).classList.add('active');
-        document.getElementById(`${targetTab}-tab`).classList.add('active');
+        const targetTabBtn = document.querySelector(`[data-tab="${targetTab}"]`);
+        const targetPanel = document.getElementById(`${targetTab}-tab`);
         
-        console.log('[DEBUG - AUDIOMANAGER] Switched to tab:', targetTab);
+        if (targetTabBtn) {
+            targetTabBtn.classList.add('active');
+            console.log('[DEBUG - AUDIOMANAGER] Added active to tab button:', targetTab);
+        } else {
+            console.error('[DEBUG - AUDIOMANAGER] Target tab button not found:', targetTab);
+        }
+        
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+            console.log('[DEBUG - AUDIOMANAGER] Added active to panel:', targetPanel.id);
+        } else {
+            console.error('[DEBUG - AUDIOMANAGER] Target panel not found:', `${targetTab}-tab`);
+        }
+        
+        console.log('[DEBUG - AUDIOMANAGER] Tab switch completed for:', targetTab);
     }
 
     handleFileSelection(files) {
@@ -561,6 +614,23 @@ export default class AudioManager {
             setTimeout(() => {
                 container.classList.add('show');
                 console.log('[DEBUG - AUDIOMANAGER] Modal should now be visible');
+                
+                // Ensure Settings tab is active and visible
+                const settingsTab = document.getElementById('settings-tab');
+                if (settingsTab) {
+                    settingsTab.classList.add('active');
+                    console.log('[DEBUG - AUDIOMANAGER] Settings tab activated on show');
+                    
+                    // Verify tab content is visible
+                    const settingsContent = settingsTab.querySelector('.tab-panel-content');
+                    if (settingsContent) {
+                        console.log('[DEBUG - AUDIOMANAGER] Settings content found:', {
+                            textContent: settingsContent.textContent.substring(0, 100) + '...',
+                            isVisible: settingsContent.offsetHeight > 0,
+                            display: window.getComputedStyle(settingsContent).display
+                        });
+                    }
+                }
             }, 10);
         } else {
             console.error('[DEBUG - AUDIOMANAGER] Audio manager container not found');
