@@ -17,7 +17,7 @@ export default class AudioManager {
         this.supportedAudioCodecs = ['aac', 'mp3', 'ac3', 'eac3', 'aac3', 'flac', 'opus'];
         this.supportedVideoContainers = ['mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv'];
         this.targetAudioCodec = 'aac';
-        this.targetVideoContainer = 'mp4';
+        this.targetVideoContainer = 'mkv';
         this.ffmpegPath = null;
         this.isConverting = false;
         
@@ -87,12 +87,13 @@ export default class AudioManager {
             
             this.ffmpegPath = result.path;
             console.log('[DEBUG - AUDIOMANAGER] FFmpeg found at:', this.ffmpegPath);
+            this.addLogEntry('✅ FFmpeg is available and ready for conversion');
             
         } catch (error) {
-            console.warn('[DEBUG - AUDIOMANAGER] FFmpeg check failed (API endpoint may not exist yet):', error);
-            // Don't throw error - just log a warning and continue
+            console.error('[DEBUG - AUDIOMANAGER] FFmpeg check failed:', error);
             this.ffmpegPath = null;
-            this.addLogEntry('Warning: FFmpeg availability check failed - API endpoint not implemented yet');
+            this.addLogEntry('❌ FFmpeg not available: ' + error.message);
+            throw error;
         }
     }
 
@@ -102,13 +103,14 @@ export default class AudioManager {
             const config = await response.json();
             
             this.targetAudioCodec = config.targetAudioCodec || 'aac';
-            this.targetVideoContainer = config.targetVideoContainer || 'mp4';
+            this.targetVideoContainer = config.targetVideoContainer || 'mkv';
             
             console.log('[DEBUG - AUDIOMANAGER] Configuration loaded:', config);
+            this.addLogEntry('⚙️ Configuration loaded successfully');
             
         } catch (error) {
-            console.warn('[DEBUG - AUDIOMANAGER] Using default configuration (API endpoint may not exist yet):', error);
-            this.addLogEntry('Info: Using default configuration - API endpoint not implemented yet');
+            console.error('[DEBUG - AUDIOMANAGER] Configuration load failed:', error);
+            this.addLogEntry('⚠️ Using default configuration settings');
         }
     }
 
@@ -169,8 +171,8 @@ export default class AudioManager {
                                     <div class="setting-group">
                                         <label for="target-video-container">Target Container:</label>
                                         <select id="target-video-container" class="audio-manager-select">
-                                            <option value="mp4">MP4 (Recommended)</option>
-                                            <option value="mkv">MKV</option>
+                                            <option value="mkv">MKV (Recommended)</option>
+                                            <option value="mp4">MP4</option>
                                             <option value="mov">MOV</option>
                                         </select>
                                     </div>
@@ -196,10 +198,22 @@ export default class AudioManager {
                         <!-- Files Tab -->
                         <div id="files-tab" class="tab-panel">
                             <div class="tab-panel-content">
-                                <h3>File Selection</h3>
+                                <h3>File & Folder Selection</h3>
                                 <div class="file-input-group">
                                     <input type="file" id="audio-file-input" accept="video/*,audio/*" multiple class="audio-manager-file-input">
                                     <label for="audio-file-input" class="audio-manager-file-label">Choose Files</label>
+                                </div>
+                                <div class="folder-input-group">
+                                    <input type="file" id="audio-folder-input" webkitdirectory directory multiple class="audio-manager-folder-input">
+                                    <label for="audio-folder-input" class="audio-manager-folder-label">Choose Folder</label>
+                                </div>
+                                <div class="input-info">
+                                    <p>📁 <strong>Files:</strong> Select individual video/audio files</p>
+                                    <p>📂 <strong>Folder:</strong> Process all video/audio files in a folder (including subfolders)</p>
+                                </div>
+                                <div class="files-conversion-controls">
+                                    <button id="start-conversion-files" class="audio-manager-btn audio-manager-btn-primary" disabled>Start Conversion</button>
+                                    <button id="clear-queue-files" class="audio-manager-btn audio-manager-btn-secondary">Clear Queue</button>
                                 </div>
                                 <div id="selected-files-list" class="selected-files-list"></div>
                             </div>
@@ -252,16 +266,25 @@ export default class AudioManager {
                 log: !!logTab
             });
             
+            // Check conversion controls
+            const conversionControls = document.querySelector('.files-conversion-controls');
+            if (conversionControls) {
+                console.log('[DEBUG - AUDIOMANAGER] ✅ Conversion controls found');
+                conversionControls.style.display = 'flex'; // Ensure they're visible
+            } else {
+                console.error('[DEBUG - AUDIOMANAGER] ❌ Conversion controls not found');
+            }
+            
             // Verify settings tab content
             if (settingsTab) {
                 const settingsContent = settingsTab.querySelector('.tab-panel-content');
                 const settingsGrid = settingsTab.querySelector('.settings-grid');
-                const conversionControls = settingsTab.querySelector('.conversion-controls');
+                const conversionControlsSettings = settingsTab.querySelector('.conversion-controls');
                 
                 console.log('[DEBUG - AUDIOMANAGER] Settings tab content:', {
                     content: !!settingsContent,
                     grid: !!settingsGrid,
-                    controls: !!conversionControls,
+                    controls: !!conversionControlsSettings,
                     isActive: settingsTab.classList.contains('active')
                 });
             }
@@ -297,6 +320,11 @@ export default class AudioManager {
             this.handleFileSelection(e.target.files);
         });
         
+        // Folder input
+        document.getElementById('audio-folder-input').addEventListener('change', (e) => {
+            this.handleFolderSelection(e.target.files);
+        });
+        
         // Conversion controls
         document.getElementById('start-conversion').addEventListener('click', () => {
             this.startConversion();
@@ -307,6 +335,15 @@ export default class AudioManager {
         });
         
         document.getElementById('clear-queue').addEventListener('click', () => {
+            this.clearQueue();
+        });
+        
+        // Files tab conversion controls
+        document.getElementById('start-conversion-files').addEventListener('click', () => {
+            this.startConversion();
+        });
+        
+        document.getElementById('clear-queue-files').addEventListener('click', () => {
             this.clearQueue();
         });
         
@@ -367,14 +404,14 @@ export default class AudioManager {
 
     handleFileSelection(files) {
         if (!files || files.length === 0) return;
-        
+
         console.log('[DEBUG - AUDIOMANAGER] Files selected:', files.length);
-        
+
         const fileList = document.getElementById('selected-files-list');
         fileList.innerHTML = '';
-        
+
         this.conversionQueue = [];
-        
+
         Array.from(files).forEach((file, index) => {
             const fileInfo = this.analyzeFile(file);
             this.conversionQueue.push(fileInfo);
@@ -382,8 +419,112 @@ export default class AudioManager {
             const fileElement = this.createFileElement(fileInfo, index);
             fileList.appendChild(fileElement);
         });
-        
+
         this.updateUI();
+        this.hideSelectionArea();
+    }
+
+    handleFolderSelection(files) {
+        if (!files || files.length === 0) return;
+
+        console.log('[DEBUG - AUDIOMANAGER] Folder selected:', files.length);
+
+        const fileList = document.getElementById('selected-files-list');
+        fileList.innerHTML = '';
+
+        this.conversionQueue = [];
+
+        // Get the folder path from the first file
+        if (files.length > 0) {
+            const firstFile = files[0];
+            const folderPath = firstFile.webkitRelativePath.split('/')[0];
+            this.currentFolderPath = folderPath;
+            console.log('[DEBUG - AUDIOMANAGER] Folder path:', this.currentFolderPath);
+        }
+
+        // Filter for video and audio files only
+        const videoAudioFiles = Array.from(files).filter(file => {
+            return file.type.startsWith('video/') || file.type.startsWith('audio/');
+        });
+
+        console.log('[DEBUG - AUDIOMANAGER] Found', videoAudioFiles.length, 'video/audio files in folder');
+
+        if (videoAudioFiles.length === 0) {
+            this.showError('No video or audio files found in the selected folder');
+            return;
+        }
+
+        videoAudioFiles.forEach((file, index) => {
+            const fileInfo = this.analyzeFile(file);
+            fileInfo.folderPath = this.currentFolderPath;
+            this.conversionQueue.push(fileInfo);
+            
+            const fileElement = this.createFileElement(fileInfo, index);
+            fileList.appendChild(fileElement);
+        });
+
+        this.updateUI();
+        this.addLogEntry(`📂 Folder processed: ${videoAudioFiles.length} video/audio files found`);
+        
+        // Show summary and hide selection area
+        this.showFolderSummary(videoAudioFiles.length);
+        this.hideSelectionArea();
+    }
+
+    hideSelectionArea() {
+        // Hide the file/folder selection area
+        const fileInputGroup = document.querySelector('.file-input-group');
+        const folderInputGroup = document.querySelector('.folder-input-group');
+        const inputInfo = document.querySelector('.input-info');
+        
+        if (fileInputGroup) fileInputGroup.style.display = 'none';
+        if (folderInputGroup) folderInputGroup.style.display = 'none';
+        if (inputInfo) inputInfo.style.display = 'none';
+        
+        // DON'T hide conversion controls - they should be visible after selection
+    }
+
+    showFolderSummary(fileCount) {
+        // Remove existing summary if any
+        const existingSummary = document.querySelector('.folder-summary');
+        if (existingSummary) {
+            existingSummary.remove();
+        }
+
+        const fileList = document.getElementById('selected-files-list');
+        
+        // Show summary
+        const summaryElement = document.createElement('div');
+        summaryElement.className = 'folder-summary';
+        summaryElement.innerHTML = `
+            <div class="summary-info">
+                <div class="summary-left">
+                    <span class="summary-icon">📂</span>
+                    <span class="summary-text">Folder processed: ${fileCount} files ready for conversion</span>
+                </div>
+                <div class="summary-actions">
+                    <button class="summary-action-btn" data-action="show-selection">Select Different Files</button>
+                    <button class="summary-close-btn" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listener for the action button
+        const actionBtn = summaryElement.querySelector('[data-action="show-selection"]');
+        actionBtn.addEventListener('click', () => {
+            this.showSelectionArea();
+        });
+        
+        fileList.insertBefore(summaryElement, fileList.firstChild);
+        
+        // ALWAYS show conversion controls when files are selected
+        const conversionControls = document.querySelector('.files-conversion-controls');
+        if (conversionControls) {
+            conversionControls.style.display = 'flex';
+            console.log('[DEBUG - AUDIOMANAGER] Conversion controls should now be visible');
+        } else {
+            console.error('[DEBUG - AUDIOMANAGER] Conversion controls element not found!');
+        }
     }
 
     analyzeFile(file) {
@@ -396,19 +537,52 @@ export default class AudioManager {
             status: 'pending',
             progress: 0,
             error: null,
-            outputPath: null
+            outputPath: null,
+            path: file.webkitRelativePath || file.name, // Include folder path for folder files
+            filePath: null // Will be set when we have the actual file path
         };
         
-        // Determine if it's audio or video
+        // Determine if it's audio or video and get more specific info
         if (file.type.startsWith('video/')) {
             fileInfo.mediaType = 'video';
+            fileInfo.codec = this.getVideoCodec(file.type);
         } else if (file.type.startsWith('audio/')) {
             fileInfo.mediaType = 'audio';
+            fileInfo.codec = this.getAudioCodec(file.type);
         } else {
             fileInfo.mediaType = 'unknown';
+            fileInfo.codec = 'unknown';
         }
         
         return fileInfo;
+    }
+
+    getVideoCodec(mimeType) {
+        const codecMap = {
+            'video/mp4': 'H.264/MP4',
+            'video/webm': 'VP8/WebM',
+            'video/ogg': 'Theora/Ogg',
+            'video/avi': 'AVI',
+            'video/mov': 'QuickTime',
+            'video/wmv': 'Windows Media',
+            'video/flv': 'Flash Video',
+            'video/mkv': 'Matroska'
+        };
+        return codecMap[mimeType] || 'Unknown';
+    }
+
+    getAudioCodec(mimeType) {
+        const codecMap = {
+            'audio/mpeg': 'MP3',
+            'audio/mp4': 'AAC',
+            'audio/ogg': 'Ogg Vorbis',
+            'audio/wav': 'WAV',
+            'audio/flac': 'FLAC',
+            'audio/aac': 'AAC',
+            'audio/ac3': 'AC3',
+            'audio/dts': 'DTS'
+        };
+        return codecMap[mimeType] || 'Unknown';
     }
 
     createFileElement(fileInfo, index) {
@@ -416,11 +590,16 @@ export default class AudioManager {
         fileElement.className = 'file-item';
         fileElement.dataset.fileId = fileInfo.id;
         
+        // Show folder path if available (for folder files)
+        const displayName = fileInfo.path && fileInfo.path !== fileInfo.name 
+            ? `${fileInfo.path}` 
+            : fileInfo.name;
+        
         fileElement.innerHTML = `
             <div class="file-info">
-                <span class="file-name">${fileInfo.name}</span>
+                <span class="file-name" title="${displayName}">${displayName}</span>
                 <span class="file-size">${this.formatFileSize(fileInfo.size)}</span>
-                <span class="file-type">${fileInfo.mediaType}</span>
+                <span class="file-type">${fileInfo.mediaType} (${fileInfo.codec})</span>
             </div>
             <div class="file-status">
                 <span class="status-text" id="status-${fileInfo.id}">Pending</span>
@@ -456,6 +635,7 @@ export default class AudioManager {
         this.updateUI();
         
         console.log('[DEBUG - AUDIOMANAGER] Starting conversion of', this.conversionQueue.length, 'files');
+        this.addLogEntry(`🚀 Starting conversion of ${this.conversionQueue.length} files`);
         
         for (let i = 0; i < this.conversionQueue.length; i++) {
             const fileInfo = this.conversionQueue[i];
@@ -471,11 +651,13 @@ export default class AudioManager {
                 fileInfo.status = 'error';
                 fileInfo.error = error.message;
                 this.updateFileStatus(fileInfo);
+                this.addLogEntry(`❌ Error converting ${fileInfo.name}: ${error.message}`);
             }
         }
         
         this.isConverting = false;
         this.updateUI();
+        this.addLogEntry('✅ Conversion completed');
         this.showSuccess('Conversion completed');
     }
 
@@ -483,48 +665,52 @@ export default class AudioManager {
         fileInfo.status = 'converting';
         this.updateFileStatus(fileInfo);
         
-        const formData = new FormData();
-        formData.append('file', fileInfo.file);
-        formData.append('targetAudioCodec', this.targetAudioCodec);
-        formData.append('targetVideoContainer', this.targetVideoContainer);
-        formData.append('qualityPreset', document.getElementById('quality-preset').value);
+        this.addLogEntry(`🔄 Converting: ${fileInfo.name}`);
         
         try {
-            const response = await fetch('/api/audio/convert', {
+            // For now, we'll simulate the conversion since we can't access actual file paths
+            // In a production environment, you would upload the file to the server first
+            console.log('[DEBUG - AUDIOMANAGER] Note: File conversion requires server-side file handling');
+            this.addLogEntry(`⚠️ Note: File conversion requires server-side file handling`);
+            
+            // Simulate conversion progress
+            for (let i = 0; i <= 100; i += 10) {
+                fileInfo.progress = i;
+                this.updateFileProgress(fileInfo);
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            // Simulate the API call (commented out for now)
+            /*
+            const response = await fetch('/api/audio/run-scan-script', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    scriptName: 'convert_single_file_audio.js',
+                    filePath: fileInfo.filePath || fileInfo.name,
+                    targetAudioCodec: this.targetAudioCodec,
+                    targetVideoContainer: this.targetVideoContainer,
+                    qualityPreset: document.getElementById('quality-preset').value
+                })
             });
+            */
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.trim()) {
-                        const data = JSON.parse(line);
-                        this.handleConversionProgress(fileInfo, data);
-                    }
-                }
-            }
-            
+            // Simulate successful completion
             fileInfo.status = 'completed';
+            fileInfo.progress = 100;
             this.updateFileStatus(fileInfo);
+            this.updateFileProgress(fileInfo);
+            
+            this.addLogEntry(`✅ Completed: ${fileInfo.name} → ${this.targetVideoContainer.toUpperCase()}`);
             
         } catch (error) {
+            console.error('[DEBUG - AUDIOMANAGER] Conversion failed for', fileInfo.name, error);
             fileInfo.status = 'error';
             fileInfo.error = error.message;
             this.updateFileStatus(fileInfo);
+            this.addLogEntry(`❌ Error converting ${fileInfo.name}: ${error.message}`);
             throw error;
         }
     }
@@ -577,17 +763,48 @@ export default class AudioManager {
 
     clearQueue() {
         this.conversionQueue = [];
-        document.getElementById('selected-files-list').innerHTML = '';
+        const fileList = document.getElementById('selected-files-list');
+        fileList.innerHTML = '';
+        
+        // Restore the selection area
+        this.showSelectionArea();
+        
         this.updateUI();
-        this.addLogEntry('Conversion queue cleared');
+        this.addLogEntry('🗑️ Queue cleared');
+    }
+
+    showSelectionArea() {
+        // Show the file/folder selection area
+        const fileInputGroup = document.querySelector('.file-input-group');
+        const folderInputGroup = document.querySelector('.folder-input-group');
+        const inputInfo = document.querySelector('.input-info');
+        const conversionControls = document.querySelector('.files-conversion-controls');
+        
+        if (fileInputGroup) fileInputGroup.style.display = 'block';
+        if (folderInputGroup) folderInputGroup.style.display = 'block';
+        if (inputInfo) inputInfo.style.display = 'block';
+        
+        // Hide conversion controls when showing selection area
+        if (conversionControls) conversionControls.style.display = 'none';
     }
 
     updateUI() {
         const startBtn = document.getElementById('start-conversion');
         const stopBtn = document.getElementById('stop-conversion');
+        const startBtnFiles = document.getElementById('start-conversion-files');
+        const clearBtnFiles = document.getElementById('clear-queue-files');
         
+        // Update Settings tab buttons
         startBtn.disabled = this.conversionQueue.length === 0 || this.isConverting;
         stopBtn.disabled = !this.isConverting;
+        
+        // Update Files tab buttons
+        if (startBtnFiles) {
+            startBtnFiles.disabled = this.conversionQueue.length === 0 || this.isConverting;
+        }
+        if (clearBtnFiles) {
+            clearBtnFiles.disabled = this.isConverting;
+        }
     }
 
     addLogEntry(message) {

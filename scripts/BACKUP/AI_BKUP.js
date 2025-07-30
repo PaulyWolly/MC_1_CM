@@ -1,18 +1,26 @@
 /*
   AI_BKUP.JS
-  Version: 9
+  Version: 1
   AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  Updated: 7/30/2025 @7:45AM
   Created by Paul Welby
+  Modified by AI Assistant
 */
 
 /**
  * AI_BKUP.js - AI-Assisted Backup Script for MultiChat_Chatty
  * 
  * Creates timestamped backups of all critical files in mirrored directory structure
- * Includes AI-specific files and configurations
+ * Automatically cleans up old backups to maintain only the most recent ones
+ * Saves to /backups/AI_BKUP directory
+ * 
+ * Excludes:
+ * - node_modules directories
+ * - SANDBOX directories  
+ * - backup directories (e.g., scripts/CONVERT/backups/ containing converted MP4 files)
  * 
  * Usage: node AI_BKUP.js
+ * Or:    npm run ai-backup (if added to package.json scripts)
  */
 
 const fs = require('fs');
@@ -99,17 +107,20 @@ function cleanupOldBackups(directory, prefix, maxKeep = MAX_BACKUPS_PER_FILE) {
     }
 }
 
-// Function to scan directory recursively, EXCLUDING node_modules
+// Function to scan directory recursively
 function scanDirectory(dir, baseDir) {
     const files = [];
     const entries = fs.readdirSync(dir);
     
     for (const entry of entries) {
-        if (entry === 'node_modules' || entry === 'SANDBOX') continue;
         const fullPath = path.join(dir, entry);
         const relativePath = path.relative(baseDir, fullPath);
         
         if (fs.statSync(fullPath).isDirectory()) {
+            // Skip node_modules directories and conversion backup directories
+            if (entry === 'node_modules' || 
+                entry === 'SANDBOX' || 
+                entry === 'backups') continue;
             // Recursively scan subdirectories
             files.push(...scanDirectory(fullPath, baseDir));
         } else {
@@ -162,7 +173,7 @@ function generateBackupTree(backupPath) {
 
 // Function to create backup
 async function createBackup() {
-    console.log('📦 Starting backup process...');
+    console.log('📦 Starting AI backup process...');
     console.log('📦 Retention policy: Keeping 3 most recent backups');
 
     // Get local time in 24-hour format
@@ -172,13 +183,15 @@ async function createBackup() {
         hour: '2-digit', 
         minute: '2-digit'
     }).replace(':', '');
-    
-    const localDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Use local date instead of UTC date
+    const localDate = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
     const timestamp = `${localDate}T${localTime}`;
 
-    const backupDir = path.join(__dirname, '..', 'backups', 'AI_BKUP');
+    const baseDir = process.cwd();
+    const backupDir = path.join(baseDir, 'backups', 'AI_BKUP');
     const backupPath = path.join(backupDir, `backup_${timestamp}`);
-    const baseDir = path.join(__dirname, '..');
 
     // Create backup root directory
     fs.mkdirSync(backupDir, { recursive: true });
@@ -272,4 +285,8 @@ async function createBackup() {
 }
 
 // Run the backup
-createBackup(); 
+if (require.main === module) {
+    createBackup();
+}
+
+module.exports = { createBackup, getTimestamp }; 

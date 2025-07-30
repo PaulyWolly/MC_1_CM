@@ -66,11 +66,13 @@
 
 .media-manager-movie-controls-container {
   background-color: #444a56;
-  padding: 12px;
+  padding: 20px;
   margin-top: -24px;
   width: 100%;
   box-sizing: border-box;
   height: 74vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .media-manager-tv-controls-container {
@@ -96,9 +98,9 @@
   padding: 7px 22px;
   font-size: 1em;
   position: relative;
-  left: 420px;
-  bottom: 0px;
-  cursor: pointer;
+  left: 614px;
+  bottom: 16px;
+  cursor: default;
   transition: background 0.2s;
 }
 .media-manager-mode-btn.active {
@@ -132,14 +134,17 @@
   margin-bottom: 18px;
   width: 60%;
   position: relative;
-  top: 10px;
+  top: 0;
 }
 .media-manager-label-movie {
   font-weight: 500;
   margin-bottom: 2px;
   color: #b0b8c1;
-  width: 40%;
+  width: 100%;
+  position: relative;
+  top: 0;
 }
+
 .media-manager-input-movie {
   background: #2d313a;
   color: #fff;
@@ -171,8 +176,18 @@
 }
 
 .media-manager-edit-cast-btn, .media-manager-view-json-btn-movie {
-  margin-top: 20px;
+  /* margin-top: 20px; */
   cursor: pointer;
+}
+
+.media-manager-view-json-btn-movie {
+  height: 40px !important;
+  margin-top: 12px;
+}
+
+.media-manager-view-json-btn-movie:hover {
+  /* Hover effect handled by shared styles */
+  background-color: #8e44ad !important;
 }
 
 .media-manager-field-error-movie {
@@ -213,27 +228,38 @@
 }
 
 .media-manager-preview {
-  display: block;
-  margin-bottom: 18px;
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  margin-top: 24px;
+  align-items: flex-start;
 }
 
 .media-manager-preview-description-movie {
-
+  margin-bottom: 15px;
+  position: relative;
+  top: 0;
+  flex: 2;
+  min-width: 0;
 }
 
 .media-manager-preview-cast-movie {
-  flex: 2;
-  min-width: 0;
+  margin-bottom: 25px;
+  position: relative;
+  top: 0;
+  bottom: auto;
+  max-height: 222px;
+  overflow-y: auto;
 }
 
 .media-manager-preview-poster-movie {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin: 24px 0;
+  justify-content: flex-start;
   gap: 12px;
-  width: 25%;
+  width: 200px;
+  flex-shrink: 0;
   position: absolute;
   right: 60px;
   top: 90px;
@@ -283,8 +309,9 @@
 .media-manager-tv-cast-buttons {
   display: flex;
   gap: 12px;
-  position: absolute;
-  bottom: -86px;
+  position: relative;
+  left: auto;
+  top: auto;
   z-index: 10 !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -293,118 +320,15 @@
 .media-manager-cast-buttons {
   display: flex;
   gap: 12px;
-  margin-top: 12px;
-}
-
-/* .media-manager-preview-description-movie {
-  margin-bottom: 15px;
-  position: relative;
-  top: 20px;
-  flex: 2;
-  min-width: 0;
-} */
-
-.media-manager-preview-description-movie {
-  margin-bottom: 15px;
-  position: relative;
-  top: 20px;
-  flex: 2;
-  min-width: 0;
-}
-
-.media-manager-preview-description-tv {
-  margin-bottom: 15px;
-  position: relative;
-  top: 60px;
-  flex: 2;
-  min-width: 0;
-}
-
-.media-manager-description-input-movie {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.media-manager-description-input-tv {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.media-manager-force-refresh-btn-tv-container {
-  position: relative;
-  top: 40px;
-  left: -10px;
-  width: 50%;
-}
-
-.media-manager-preview-cast-movie {
-  margin-bottom: 25px;
-  position: relative;
-  top: -45px;
-}
-
-.media-manager-cast-list-movie {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #444a56;
-  border-radius: 4px;
-  padding: 8px;
-  background: #2d313a;
-  margin-bottom: 8px;
-  min-height: 40px;
-}
-
-
-
-.media-manager-cast-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.media-manager-cast-list::-webkit-scrollbar-track {
-  background: #2d313a;
-  border-radius: 3px;
-}
-
-.media-manager-cast-list::-webkit-scrollbar-thumb {
-  background: #4a90e2;
-  border-radius: 3px;
-}
-
-.media-manager-cast-list::-webkit-scrollbar-thumb:hover {
-  background: #357ab8;
-}
-
-.media-manager-cast-item {
-  padding: 4px 8px;
-  margin-bottom: 4px;
-  background: #353a45;
-  border-radius: 3px;
-  font-size: 0.9em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.media-manager-cast-item:hover {
-  background: #404550;
-}
-
-.media-manager-edit-cast-btn-movie {
-  margin-right: 8px;
-  padding: 4px 12px;
-  background: #4a90e2;
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.8em;
-  transition: background 0.2s;
+  position: absolute;
+  bottom: 25px;
 }
 
 .media-manager-actions {
   display: flex;
   gap: 12px;
   margin-top: 26px;
+  justify-content: flex-start;
 }
 
 .media-manager-tmdbId-input {
@@ -510,7 +434,7 @@
   right: 20px;
   background: none;
   border: none;
-  color: #fff;
+  color: #f70505;
   font-size: 36px;
   cursor: pointer;
   width: 32px;
@@ -587,13 +511,37 @@
 }
 
 .media-manager-description-section-tv {
-  flex: 2;
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  flex: 1;
 }
 
 .media-manager-cast-section-tv {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
   flex: 1;
-  position: relative;
-  top: -70px;
+}
+
+
+/* Submit Buttons - TV-SHOW */
+.media-manager-submit-buttons-tv {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #444a56;
+}
+
+/* Poster Container - TV-SHOW */
+.media-manager-poster-container-tv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 /* TV-SHOW: Button styling */
@@ -638,8 +586,10 @@
 
 .media-manager-details-row-movie {
   display: flex;
+  flex-direction: row;
   gap: 32px;
-  margin-top: 24px;
+  margin-top: 0;
+  flex: 1;
 }
 
 .media-manager-description-section-movie {
@@ -800,17 +750,6 @@
   background: #7f8c8d;
 }
 
-.media-manager-view-json-btn-movie {
-  padding: 4px 12px;
-  background: #9b59b6;
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.8em;
-  transition: background 0.2s;
-  margin-left: 8px;
-}
 
 .media-manager-view-json-btn:hover {
   background: #8e44ad;
@@ -822,7 +761,9 @@
   margin-bottom: 2px;
   color: #b0b8c1;
   width: 100%;
+  font-size: .85em;
   display: block;
+  position: relative;
 }
 
 .media-manager-input-tv,
@@ -2005,7 +1946,7 @@
   padding: 8px 16px;
   font-size: 0.9em;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 9px;
   transition: background 0.2s;
   font-weight: 500;
 }
@@ -2325,8 +2266,9 @@
 /* Global button style for all action buttons */
 .media-manager-btn,
 .media-manager-edit-poster-btn,
-.media-manager-edit-cast-btn {
-  background: #4a90e2;
+.media-manager-edit-cast-btn,
+.media-manager-view-json-btn {
+  background: #4a90e2 !important;
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -2335,6 +2277,11 @@
   cursor: pointer;
   transition: background 0.2s;
   font-weight: 500;
+}
+
+.media-manager-cast-list {
+  background: #2d313a;
+  height: 20vh;
 }
 
 .media-manager-btn:hover,
@@ -2832,15 +2779,23 @@
 }
 
 .media-manager-browse-tv-shows-btn {
-  background: #28a745;
+  background: #048020 !important;
   color: #fff;
   border: none;
   border-radius: 6px;
   padding: 10px 20px;
-  font-size: 14px;
+  position: absolute;
+  top: 350px;
+  left: 300px;
+  width: 434px;
   cursor: pointer;
   transition: background 0.2s;
   margin-left: 10px;
+}
+
+.media-manager-manage-seasons-btn {
+  /* margin-left: 12px; */
+  width: 100%;
 }
 
 .media-manager-browse-tv-shows-btn:hover {
@@ -3495,4 +3450,1017 @@
   .media-manager-audio-header p {
     font-size: 14px;
   }
+}
+
+.media-manager-preview-description-tv {
+  margin-bottom: 15px;
+  position: relative;
+  top: 0;
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-description-input-movie {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.media-manager-description-input-tv {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.media-manager-force-refresh-btn-tv-container {
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.media-manager-cast-list-movie {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #444a56;
+  border-radius: 4px;
+  padding: 8px;
+  background: #2d313a;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+
+.media-manager-cast-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.media-manager-cast-list::-webkit-scrollbar-track {
+  background: #2d313a;
+  border-radius: 3px;
+}
+
+.media-manager-cast-list::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 3px;
+}
+
+.media-manager-cast-list::-webkit-scrollbar-thumb:hover {
+  background: #357ab8;
+}
+
+.media-manager-cast-item {
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  background: #353a45;
+  border-radius: 3px;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-manager-cast-item:hover {
+  background: #404550;
+}
+
+.media-manager-edit-cast-btn-movie {
+  margin-right: 8px;
+  margin-top: 12px;
+  height: 40px;
+}
+
+/* ==================== MOVIE-SPECIFIC STYLES ==================== */
+
+.media-manager-movie-controls-container {
+  background-color: #444a56;
+  padding: 20px;
+  margin-top: -24px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 74vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.media-manager-movie-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  width: 60%;
+  position: relative;
+  top: 0;
+}
+
+.media-manager-label-movie {
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: #b0b8c1;
+  width: 100%;
+  position: relative;
+  top: 0;
+}
+
+.media-manager-input-movie {
+  background: #2d313a;
+  color: #fff;
+  border: 1px solid #444a56;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 1em;
+  text-align: justify;
+  margin-bottom: 6px;
+  width: 96%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.media-manager-input-movie:focus {
+  outline: none;
+  border-color: #137bf2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.media-manager-input-movie.error {
+  border: 2px solid #e74c3c !important;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
+.media-manager-field-error-movie {
+  display: none !important;
+}
+
+.media-manager-fetch-btn-movie {
+  margin-top: 8px;
+  align-self: flex-start;
+}
+
+.media-manager-fetch-btn-movie:hover {
+  background: #357ab8;
+}
+
+.media-manager-preview-movie {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  margin-top: 24px;
+  align-items: flex-start;
+}
+
+.media-manager-preview-poster-movie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 200px;
+  flex-shrink: 0;
+  position: absolute;
+  right: 60px;
+  top: 90px;
+}
+
+.media-manager-poster-img-movie {
+  width: 160px;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  border: 2px solid #222;
+  background: #222;
+  margin-bottom: 8px;
+}
+
+.media-manager-edit-poster-btn-movie {
+  margin-top: 0px;
+  padding: 6px 18px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background 0.2s;
+}
+
+.media-manager-edit-poster-btn-movie:hover {
+  background: #357ab8;
+}
+
+.media-manager-details-row-movie {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+  margin-top: 0;
+  flex: 1;
+}
+
+.media-manager-description-section-movie {
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-cast-section-movie {
+  flex: 1;
+  min-width: 0;
+}
+
+.media-manager-preview-description-movie {
+  margin-bottom: 15px;
+  position: relative;
+  top: 0;
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-description-input-movie {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.media-manager-preview-cast-movie {
+  margin-bottom: 25px;
+  position: relative;
+  top: 0;
+  bottom: auto;
+  max-height: 222px;
+  overflow-y: auto;
+}
+
+.media-manager-cast-list-movie {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #444a56;
+  border-radius: 4px;
+  padding: 8px;
+  background: #2d313a;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+
+.media-manager-cast-list-movie::-webkit-scrollbar {
+  width: 6px;
+}
+
+.media-manager-cast-list-movie::-webkit-scrollbar-track {
+  background: #2d313a;
+  border-radius: 3px;
+}
+
+.media-manager-cast-list-movie::-webkit-scrollbar-thumb {
+  background: #4a90e2;
+  border-radius: 3px;
+}
+
+.media-manager-cast-list-movie::-webkit-scrollbar-thumb:hover {
+  background: #357ab8;
+}
+
+.media-manager-cast-buttons-movie {
+  display: flex;
+  gap: 12px;
+  position: absolute;
+  bottom: 60px;
+}
+
+.media-manager-edit-cast-btn-movie {
+  margin-right: 8px;
+  margin-top: 12px;
+  height: 40px;
+}
+
+.media-manager-view-json-btn-movie:hover {
+  background: #8e44ad;
+}
+
+.media-manager-actions-movie {
+  display: flex;
+  gap: 12px;
+  margin-top: 26px;
+  justify-content: flex-start;
+}
+
+.media-manager-confirm-btn-movie {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 10px;
+}
+
+.media-manager-confirm-btn-movie:hover {
+  background: #27ae60;
+}
+
+.media-manager-edit-btn-movie {
+  background: #f39c12;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-edit-btn-movie:hover {
+  background: #e67e22;
+}
+
+.media-manager-cancel-btn-movie {
+  background: #95a5a6;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-cancel-btn-movie:hover {
+  background: #7f8c8d;
+}
+
+/* ==================== TV-SHOW-SPECIFIC STYLES ==================== */
+
+.media-manager-tv-controls-container {
+  background-color: #444a56;
+  padding: 10px 20px 20px 20px;
+  margin-top: -24px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 74vh;
+}
+
+.media-manager-tv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  width: 60%;
+  position: relative;
+  top: 10px;
+}
+
+.media-manager-label-tv {
+  font-weight: 500;
+  margin-bottom: 2px;
+  color: #b0b8c1;
+  width: 100%;
+  font-size: .85em;
+  display: block;
+  position: relative;
+}
+
+.media-manager-input-tv {
+  background: #2d313a;
+  color: #fff;
+  border: 1px solid #444a56;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 1em;
+  text-align: justify;
+  margin-bottom: 6px;
+  width: 96%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.media-manager-input-tv:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.media-manager-input-tv.error {
+  border: 2px solid #e74c3c !important;
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
+.media-manager-field-error-tv {
+  display: none !important;
+}
+
+.media-manager-fetch-btn-tv {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-top: 8px;
+  align-self: flex-start;
+  transition: background 0.2s;
+}
+
+.media-manager-fetch-btn-tv:hover {
+  background: #357ab8;
+}
+
+.media-manager-preview-tv {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.media-manager-preview-poster-tv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 24px 0;
+  gap: 12px;
+  width: 25%;
+  position: absolute;
+  right: 60px;
+  top: 90px;
+}
+
+.media-manager-poster-img-tv {
+  width: 160px;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  border: 2px solid #222;
+  background: #222;
+  margin-bottom: 8px;
+}
+
+.media-manager-edit-poster-btn-tv {
+  margin-top: 0px;
+  padding: 6px 18px;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: background 0.2s;
+}
+
+.media-manager-edit-poster-btn-tv:hover {
+  background: #357ab8;
+}
+
+.media-manager-force-refresh-btn-tv-container {
+  position: relative;
+  top: 40px;
+  left: -10px;
+  width: 50%;
+}
+
+.media-manager-preview-description-tv {
+  margin-bottom: 15px;
+  position: relative;
+  top: 60px;
+  flex: 2;
+  min-width: 0;
+}
+
+.media-manager-description-input-tv {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.media-manager-details-row-tv {
+  display: flex;
+  flex-direction: row;
+  gap: 32px;
+}
+
+.media-manager-description-section-tv {
+  flex: 2;
+}
+
+.media-manager-cast-section-tv {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  flex: 1;
+  width: 26.5vw;
+  position: relative;
+  top: 0px;
+}
+
+/* Poster Section - TV-SHOW */
+.media-manager-poster-section-tv {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  width: 26.5vw;
+}
+
+.media-manager-preview-cast-tv {
+  flex: 2;
+  min-width: 0px;
+  width: 96%;
+  height: 230px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.media-manager-cast-list-tv {
+  max-height: 225px;
+  overflow-y: auto;
+  border: 1px solid #444a56;
+  border-radius: 4px;
+  padding: 8px;
+  background: #1e2124 !important;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+
+.media-manager-tv-cast-buttons {
+  display: flex;
+  gap: 12px;
+  position: relative;
+  left: 60px;
+  top: 60px;
+  z-index: 10 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.media-manager-edit-cast-btn-tv {
+  margin-right: 8px;
+  margin-top: 0px;
+  height: 40px;
+}
+
+.media-manager-view-json-btn-tv {
+  background: #4a90e2 !important;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-view-json-btn-tv:hover {
+  background: #8e44ad;
+}
+
+.media-manager-actions-tv {
+  display: flex;
+  gap: 12px;
+  margin-top: 26px;
+  justify-content: flex-start;
+}
+
+.media-manager-confirm-btn-tv {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-confirm-btn-tv:hover {
+  background: #27ae60;
+}
+
+.media-manager-edit-btn-tv {
+  background: #f39c12;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 10px;
+}
+
+.media-manager-edit-btn-tv:hover {
+  background: #e67e22;
+}
+
+.media-manager-cancel-btn-tv {
+  background: #95a5a6;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.media-manager-cancel-btn-tv:hover {
+  background: #7f8c8d;
+}
+
+/* ==================== SHARED BUTTON STYLES (Appearance Only) ==================== */
+
+/* Primary Action Buttons (Blue) - Edit, View, Manage, etc. */
+.media-manager-edit-poster-btn-movie,
+.media-manager-edit-poster-btn-tv,
+.media-manager-manage-seasons-btn,
+.media-manager-view-season-episode-images-btn-tv,
+.media-manager-edit-btn-movie,
+.media-manager-edit-btn-tv,
+.media-manager-edit-main-poster-btn,
+.media-manager-add-season-poster-btn,
+.media-manager-add-episode-poster-btn,
+.media-manager-tv-posters-modal-save-btn,
+.media-manager-seasons-modal-save-btn,
+.media-manager-fetch-all-images-btn {
+  background: #4a90e2 !important;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-edit-poster-btn-movie:hover,
+.media-manager-edit-poster-btn-tv:hover,
+.media-manager-manage-seasons-btn:hover,
+.media-manager-view-season-episode-images-btn-tv:hover,
+.media-manager-edit-btn-movie:hover,
+.media-manager-edit-btn-tv:hover,
+.media-manager-edit-main-poster-btn:hover,
+.media-manager-add-season-poster-btn:hover,
+.media-manager-add-episode-poster-btn:hover,
+.media-manager-tv-posters-modal-save-btn:hover,
+.media-manager-seasons-modal-save-btn:hover,
+.media-manager-fetch-all-images-btn:hover {
+  background: #357ab8 !important;
+}
+
+/* Secondary Action Buttons (Green) - Fetch, Browse, etc. */
+.media-manager-fetch-btn-movie,
+.media-manager-fetch-btn-tv,
+.media-manager-browse-tv-shows-btn {
+  background: #28a745 !important;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-fetch-btn-movie:hover,
+.media-manager-fetch-btn-tv:hover,
+.media-manager-browse-tv-shows-btn:hover {
+  background: #218838 !important;
+}
+
+/* Tertiary Action Buttons (Gray) - Confirm, Cancel, etc. */
+.media-manager-confirm-btn-movie,
+.media-manager-confirm-btn-tv,
+.media-manager-cancel-btn-movie,
+.media-manager-cancel-btn-tv {
+  background: #6c757d !important;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-confirm-btn-movie:hover,
+.media-manager-confirm-btn-tv:hover,
+.media-manager-cancel-btn-movie:hover,
+.media-manager-cancel-btn-tv:hover {
+  background: #5a6268 !important;
+}
+
+/* ==================== CAST BUTTON STYLES ==================== */
+
+/* Cast Buttons - Edit Cast and View/Edit JSON for both MOVIE and TV-SHOW */
+.media-manager-edit-cast-btn-movie,
+.media-manager-view-json-btn-movie,
+.media-manager-edit-cast-btn-tv,
+.media-manager-view-json-btn-tv {
+  background: #4a90e2 !important;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 24px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-weight: 500;
+}
+
+.media-manager-edit-cast-btn-movie:hover,
+.media-manager-view-json-btn-movie:hover,
+.media-manager-edit-cast-btn-tv:hover,
+.media-manager-view-json-btn-tv:hover {
+  background: #357ab8 !important;
+}
+
+/* ==================== TEMPLATE-BASED LAYOUT ==================== */
+
+/* Main Template Container */
+.media-manager-template-container {
+  display: flex;
+  gap: 20px;
+  padding: 16px;
+  background-color: #444a56;
+  margin-top: -24px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 81.5vh;
+}
+
+/* LEFT COLUMN (60%) - Main Details & Description */
+.media-manager-left-column {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* RIGHT COLUMN (40%) - Poster Preview & Cast */
+.media-manager-right-column {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Section Titles */
+.media-manager-section-title {
+  color: #b0b8c1;
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #5a6268;
+}
+
+/* Main Details Section */
+.media-manager-main-details-section {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  /* height: 34.1vh; */
+}
+
+/* Description Section */
+.media-manager-description-section {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  flex: 1;
+}
+
+/* Poster Section */
+.media-manager-poster-section {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  max-width: 26.5vw;
+  height: 36vh;
+}
+
+/* Cast Section */
+.media-manager-cast-section {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  max-height: 24.5vh;
+  width: 26.5vw;
+  flex: 1;
+}
+
+/* Form Rows */
+.media-manager-form-row {
+  margin-bottom: 12px;
+}
+
+.media-manager-form-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Labels */
+.media-manager-label-movie,
+.media-manager-label-tv {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #b0b8c1;
+  font-size: 0.9em;
+}
+
+/* Inputs */
+.media-manager-input-movie,
+.media-manager-input-tv {
+  width: 100%;
+  background: #1e2124;
+  color: #fff;
+  border: 1px solid #444a56;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 0.9em;
+  box-sizing: border-box;
+}
+
+.media-manager-input-movie:focus,
+.media-manager-input-tv:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* Description Inputs */
+.media-manager-description-input-movie,
+.media-manager-description-input-tv {
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Action Buttons Container */
+.media-manager-action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* TV Action Buttons */
+.media-manager-tv-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* Submit Buttons */
+.media-manager-submit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #444a56;
+}
+
+/* Poster Container */
+.media-manager-poster-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-manager-poster-img-movie,
+.media-manager-poster-img-tv {
+  max-width: 180px;
+  max-height: 270px;
+  border-radius: 8px;
+  border: 2px solid #444a56;
+  background: #1e2124;
+}
+
+/* Cast Lists */
+.media-manager-cast-list-movie,
+.media-manager-cast-list-tv {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 2px solid #444a56;
+  border-radius: 4px;
+  padding: 6px;
+  background: #1e2124;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+
+/* Cast Buttons - MOVIE */
+.media-manager-cast-buttons-movie {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Cast Buttons - TV-SHOW */
+.media-manager-cast-buttons-tv {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  position: relative;
+  bottom: -168px;
+}
+
+/* Year/TMDB Row for TV Shows */
+.media-manager-form-row-year-tmdb {
+  display: flex;
+  gap: 12px;
+}
+
+.media-manager-year-field,
+.media-manager-tmdb-field {
+  flex: 1;
+}
+
+/* Error Messages */
+.media-manager-field-error-movie,
+.media-manager-field-error-tv {
+  color: #e74c3c;
+  font-size: 0.8em;
+  margin-top: 4px;
+}
+
+/* Required Field Indicator */
+.media-manager-required {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* Info Icon */
+.media-manager-info-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: #4a90e2;
+  border-radius: 50%;
+  margin-left: 8px;
+  position: relative;
+  cursor: help;
+}
+
+.media-manager-info-icon-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* TMDB Message */
+.media-manager-tmdbid-msg {
+  font-size: 0.9em;
+  margin-bottom: 8px;
+}
+
+/* Description Section - MOVIE */
+.media-manager-description-section-movie {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  flex: 1;
+}
+
+/* Poster Section - MOVIE */
+.media-manager-poster-section-movie {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  width: 26.5vw;
+}
+
+/* Cast Section - MOVIE */
+.media-manager-cast-section-movie {
+  background: #2d313a;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #444a56;
+  flex: 1;
+  width: 26.5vw;
+}
+
+/* Submit Buttons - MOVIE */
+.media-manager-submit-buttons-movie {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #444a56;
+}
+
+/* Poster Container - MOVIE */
+.media-manager-poster-container-movie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }

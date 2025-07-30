@@ -46,24 +46,101 @@ function extractYear(str) {
 // TMDB API functions
 async function searchTVShowOptions(showName) {
     if (!TMDB_API_KEY) throw new Error('TMDB_API_KEY not set');
+    
+    // Check for manual overrides first
+    const overridesPath = path.join(__dirname, '../../public/components/MediaLibrary/data/episode_tmdb_tv-show_overrides.json');
+    if (fs.existsSync(overridesPath)) {
+        try {
+            const overrides = JSON.parse(fs.readFileSync(overridesPath, 'utf8'));
+            const normalizedKey = showName.replace(/\s+/g, '.').replace(/[^a-zA-Z0-9.]/g, '');
+            
+            if (overrides[normalizedKey]) {
+                console.log(`[TMDB SEARCH] Found override for "${showName}": TMDB ID ${overrides[normalizedKey].tmdbId}`);
+                const override = overrides[normalizedKey];
+                
+                // Get the show details from TMDB using the override ID
+                const showUrl = `${TMDB_BASE_URL}/tv/${override.tmdbId}?api_key=${TMDB_API_KEY}`;
+                const showResponse = await fetch(showUrl);
+                const showData = await showResponse.json();
+                
+                if (showData.id) {
+                    const imagesUrl = `${TMDB_BASE_URL}/tv/${showData.id}/images?api_key=${TMDB_API_KEY}`;
+                    const imagesResponse = await fetch(imagesUrl);
+                    const imagesData = await imagesResponse.json();
+                    
+                    const options = [{
+                        id: showData.id,
+                        name: showData.name,
+                        year: showData.first_air_date ? showData.first_air_date.split('-')[0] : 'Unknown',
+                        poster_path: showData.poster_path,
+                        poster_url: showData.poster_path ? `https://image.tmdb.org/t/p/w500${showData.poster_path}` : '',
+                        vote_average: showData.vote_average,
+                        overview: showData.overview,
+                        type: 'main'
+                    }];
+                    
+                    // Add alternative posters if available
+                    if (imagesData.posters && imagesData.posters.length > 1) {
+                        const altPosters = imagesData.posters.filter(p => p.file_path !== showData.poster_path).slice(0, 3);
+                        for (const altPoster of altPosters) {
+                            options.push({
+                                id: showData.id,
+                                name: showData.name,
+                                year: showData.first_air_date ? showData.first_air_date.split('-')[0] : 'Unknown',
+                                poster_path: altPoster.file_path,
+                                poster_url: `https://image.tmdb.org/t/p/w500${altPoster.file_path}`,
+                                vote_average: showData.vote_average,
+                                overview: showData.overview,
+                                type: 'alternative'
+                            });
+                        }
+                    }
+                    
+                    return options;
+                }
+            }
+        } catch (error) {
+            console.warn(`[TMDB SEARCH] Error reading overrides: ${error.message}`);
+        }
+    }
+    
     const cleanName = cleanTVShowName(showName);
     const year = extractYear(showName);
     let searchUrl = `${TMDB_BASE_URL}/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(cleanName)}`;
     if (year) searchUrl += `&first_air_date_year=${year}`;
+    
+    console.log(`[TMDB SEARCH] Searching for TV show: "${cleanName}"${year ? ` (year: ${year})` : ''}`);
+    
     const response = await fetch(searchUrl);
     const data = await response.json();
     if (data.results && data.results.length > 0) {
-        const shows = data.results.slice(0, 5);
+        const shows = data.results.slice(0, 10); // Get more results for better matching
         const options = [];
-        for (const show of shows) {
+        
+        // If we have a year, prioritize shows that match that year
+        const prioritizedShows = year ? 
+            shows.sort((a, b) => {
+                const aYear = a.first_air_date ? a.first_air_date.split('-')[0] : '';
+                const bYear = b.first_air_date ? b.first_air_date.split('-')[0] : '';
+                const aMatch = aYear === year;
+                const bMatch = bYear === year;
+                if (aMatch && !bMatch) return -1;
+                if (!aMatch && bMatch) return 1;
+                return 0;
+            }) : shows;
+        
+        for (const show of prioritizedShows.slice(0, 5)) {
             if (show.poster_path) {
+                const showYear = show.first_air_date ? show.first_air_date.split('-')[0] : 'Unknown';
+                console.log(`[TMDB SEARCH] Found show: "${show.name}" (${showYear}) - ID: ${show.id}`);
+                
                 const imagesUrl = `${TMDB_BASE_URL}/tv/${show.id}/images?api_key=${TMDB_API_KEY}`;
                 const imagesResponse = await fetch(imagesUrl);
                 const imagesData = await imagesResponse.json();
                 options.push({
                     id: show.id,
                     name: show.name,
-                    year: show.first_air_date ? show.first_air_date.split('-')[0] : 'Unknown',
+                    year: showYear,
                     poster_path: show.poster_path,
                     poster_url: `https://image.tmdb.org/t/p/w500${show.poster_path}`,
                     vote_average: show.vote_average,
@@ -76,7 +153,7 @@ async function searchTVShowOptions(showName) {
                         options.push({
                             id: show.id,
                             name: show.name,
-                            year: show.first_air_date ? show.first_air_date.split('-')[0] : 'Unknown',
+                            year: showYear,
                             poster_path: altPoster.file_path,
                             poster_url: `https://image.tmdb.org/t/p/w500${altPoster.file_path}`,
                             vote_average: show.vote_average,
