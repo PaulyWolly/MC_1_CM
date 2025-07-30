@@ -498,7 +498,7 @@ class VideoPlayer {
             }
             this.vjsPlayer = window.videojs(this.video, {
                 controls: true,
-                autoplay: false,
+                autoplay: true,
                 preload: 'auto',
                 fluid: true,
                 aspectRatio: '16:9',
@@ -815,9 +815,28 @@ class VideoPlayer {
                 });
             });
             
-            this.vjsPlayer.play().catch(error => {
-                console.warn('🎬 [VIDEO-PLAYER] Auto-play failed:', error);
-                this.showMessage('Click play to start video (auto-play blocked by browser)');
+            // Force hide the big play button and start playing immediately
+            this.vjsPlayer.ready(() => {
+                // Hide the big play button
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'none';
+                }
+                
+                // Start playing as soon as the video can start
+                const playWhenReady = () => {
+                    this.vjsPlayer.play().catch(error => {
+                        console.warn('🎬 [VIDEO-PLAYER] Auto-play failed:', error);
+                        this.showMessage('Click play to start video (auto-play blocked by browser)');
+                    });
+                    this.vjsPlayer.off('canplay', playWhenReady);
+                };
+                
+                // Try to play immediately, or wait for canplay event
+                this.vjsPlayer.play().catch(() => {
+                    // If immediate play fails, wait for canplay event
+                    this.vjsPlayer.on('canplay', playWhenReady);
+                });
             });
             
             this.container.style.display = 'flex';
@@ -1245,13 +1264,40 @@ class VideoPlayer {
     async fetchMediaLibrary() {
         if (this.mediaLibrary) return this.mediaLibrary;
         try {
-            const response = await fetch('/api/media-library');
-            const result = await response.json();
-            if (result.success) {
-                this.mediaLibrary = result.library;
+            // Use the new data structure from MediaLibraryManager
+            if (window.mediaLibraryManager) {
+                // Combine movies and TV shows data for backward compatibility
+                const moviesData = window.mediaLibraryManager.moviesData || [];
+                const tvShowsData = window.mediaLibraryManager.tvShowsData || [];
+                
+                // Create a combined structure that matches the old format
+                this.mediaLibrary = {
+                    folders: [
+                        {
+                            name: 'MOVIES',
+                            path: 'MOVIES',
+                            folders: moviesData
+                        },
+                        {
+                            name: 'TV-SHOWS',
+                            path: 'TV-SHOWS',
+                            folders: tvShowsData
+                        }
+                    ]
+                };
+                
+                console.log('[VideoPlayer] Using MediaLibraryManager data structure');
                 return this.mediaLibrary;
             } else {
-                throw new Error(result.error || 'Failed to fetch media library');
+                // Fallback to old API if MediaLibraryManager is not available
+                const response = await fetch('/api/media-library');
+                const result = await response.json();
+                if (result.success) {
+                    this.mediaLibrary = result.library;
+                    return this.mediaLibrary;
+                } else {
+                    throw new Error(result.error || 'Failed to fetch media library');
+                }
             }
         } catch (err) {
             console.error('[VideoPlayer] Failed to fetch media library:', err);
@@ -1714,10 +1760,68 @@ class VideoPlayer {
             // Update episode info header
             this.updateEpisodeInfoHeader();
             
+            // Improved auto-play handling with better error recovery
+            this.vjsPlayer.ready(() => {
+                console.log('[DEBUG - VIDEO-PLAYER] Video.js player ready, attempting auto-play');
+                
+                // Show the big play button initially
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'block';
+                    console.log('[DEBUG - VIDEO-PLAYER] Big play button shown');
+                }
+                
+                // Try to start playing
+                this.vjsPlayer.play().then(() => {
+                    console.log('[DEBUG - VIDEO-PLAYER] Auto-play successful');
+                    // Hide the big play button only after successful auto-play
+                    if (bigPlayButton) {
+                        bigPlayButton.style.display = 'none';
+                        console.log('[DEBUG - VIDEO-PLAYER] Big play button hidden after successful auto-play');
+                    }
+                }).catch(error => {
+                    console.warn('🎬 [VIDEO-PLAYER] Auto-play failed:', error);
+                    // Keep the big play button visible when auto-play fails
+                    if (bigPlayButton) {
+                        bigPlayButton.style.display = 'block';
+                        console.log('[DEBUG - VIDEO-PLAYER] Big play button kept visible due to auto-play failure');
+                    }
+                    // Show a more helpful message
+                    this.showMessage('Click the play button to start video (auto-play blocked by browser)');
+                });
+            });
+            
+            // Add error handling for video loading
+            this.vjsPlayer.on('error', (error) => {
+                console.error('[DEBUG - VIDEO-PLAYER] Video loading error:', error);
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'block';
+                }
+                this.showMessage('Error loading video. Please check if the file exists.');
+            });
+            
+            // Hide big play button when video starts playing
+            this.vjsPlayer.on('play', () => {
+                console.log('[DEBUG - VIDEO-PLAYER] Play event fired, hiding big play button');
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'none';
+                    console.log('[DEBUG - VIDEO-PLAYER] Big play button hidden');
+                }
+            });
+            
             // Add pause event handler for Watch Later (same as in loadVideo)
             this.vjsPlayer.off('pause'); // Remove any previous handler to avoid duplicates
             this.vjsPlayer.on('pause', () => {
                 console.log('🎬 [VIDEO-PLAYER] Pause event triggered (playUrl)');
+                
+                // Show big play button when paused
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'block';
+                    console.log('[DEBUG - VIDEO-PLAYER] Big play button shown on pause');
+                }
                 
                 // Auto-save progress for TV shows and movies
                 if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
@@ -1742,7 +1846,14 @@ class VideoPlayer {
                 console.log('[DEBUG - VIDEO-PLAYER] Video starting from beginning, waiting for canplay event');
                 const playWhenReady = () => {
                     console.log('[DEBUG - VIDEO-PLAYER] canplay event fired, starting playback');
-                    this.vjsPlayer.play();
+                    this.vjsPlayer.play().catch(error => {
+                        console.warn('[DEBUG - VIDEO-PLAYER] Play failed on canplay event:', error);
+                        // Show big play button if play fails
+                        const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                        if (bigPlayButton) {
+                            bigPlayButton.style.display = 'block';
+                        }
+                    });
                     this.vjsPlayer.off('canplay', playWhenReady);
                 };
                 this.vjsPlayer.on('canplay', playWhenReady);
@@ -1750,7 +1861,14 @@ class VideoPlayer {
                 // If already ready, play immediately
                 if (this.vjsPlayer.readyState() > 0) {
                     console.log('[DEBUG - VIDEO-PLAYER] Video already ready, playing immediately');
-                    this.vjsPlayer.play();
+                    this.vjsPlayer.play().catch(error => {
+                        console.warn('[DEBUG - VIDEO-PLAYER] Immediate play failed:', error);
+                        // Show big play button if play fails
+                        const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                        if (bigPlayButton) {
+                            bigPlayButton.style.display = 'block';
+                        }
+                    });
                 } else {
                     console.log('[DEBUG - VIDEO-PLAYER] Video not ready yet, waiting for canplay event. ReadyState:', this.vjsPlayer.readyState());
                 }
@@ -1759,6 +1877,14 @@ class VideoPlayer {
             this.fetchMediaLibrary().then(() => this.setupUpNextAndSkipIntro());
         } catch (error) {
             console.error('🎬 [VIDEO-PLAYER] Error playing URL:', error);
+            // Show big play button on error
+            if (this.vjsPlayer) {
+                const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                if (bigPlayButton) {
+                    bigPlayButton.style.display = 'block';
+                }
+            }
+            this.showMessage('Error loading video. Please try again.');
         }
     }
 

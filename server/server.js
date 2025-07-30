@@ -11,12 +11,14 @@ const fetch = require('node-fetch');
 // Required dependencies
 const express          = require('express');
 const cors             = require('cors');
+const multer           = require('multer');
 // get dotenv set up to read .env
 const dotenv           = require('dotenv');
 const path = require('path');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const fs = require('fs');
+const { spawn } = require('child_process');
 
 
 const { MongoClient }  = require('mongodb');
@@ -95,6 +97,14 @@ console.log(JSON.stringify({
 
 // Initialize Express
 const app = express();
+
+// Configure multer for file uploads
+const upload = multer({ 
+    dest: 'uploads/',
+    limits: {
+        fileSize: 10 * 1024 * 1024 * 1024 // 10GB limit for video files
+    }
+});
 
 // Set the port
 const config = require('../config/config');
@@ -3995,6 +4005,337 @@ app.post('/api/admin/backfill-youtube-timestamps', async (req, res) => {
         res.json({ success: true, matched: result.matchedCount || result.n, modified: result.modifiedCount || result.nModified });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// =========================
+// WATCH LATER DATA API ENDPOINTS
+// =========================
+
+const WATCH_LATER_DATA_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/watch_later/watch_later_backup.json');
+
+// Ensure the data file exists
+if (!fs.existsSync(WATCH_LATER_DATA_FILE)) {
+    fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        itemCount: 0,
+        items: []
+    }, null, 2));
+}
+
+// API endpoint to save Watch Later data
+app.post('/api/watch-later-data', (req, res) => {
+    try {
+        const backupData = req.body;
+        
+        // Validate the data
+        if (!backupData || !Array.isArray(backupData.items)) {
+            return res.status(400).json({ error: 'Invalid data format' });
+        }
+        
+        // Save to file
+        fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify(backupData, null, 2));
+        
+        console.log('[WATCH-LATER-API] Backup saved:', backupData.items.length, 'items');
+        res.json({ success: true, itemCount: backupData.items.length });
+        
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Save error:', error);
+        res.status(500).json({ error: 'Failed to save backup' });
+    }
+});
+
+// API endpoint to get Watch Later data
+app.get('/api/watch-later-data', (req, res) => {
+    try {
+        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
+            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
+            res.json(data);
+        } else {
+            res.json({ timestamp: new Date().toISOString(), itemCount: 0, items: [] });
+        }
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Read error:', error);
+        res.status(500).json({ error: 'Failed to read backup' });
+    }
+});
+
+// API endpoint to get backup info
+app.get('/api/watch-later-data/info', (req, res) => {
+    try {
+        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
+            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
+            const stats = fs.statSync(WATCH_LATER_DATA_FILE);
+            res.json({
+                timestamp: data.timestamp,
+                itemCount: data.itemCount,
+                fileSize: stats.size,
+                lastModified: stats.mtime
+            });
+        } else {
+            res.json({ timestamp: null, itemCount: 0, fileSize: 0, lastModified: null });
+        }
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Info error:', error);
+        res.status(500).json({ error: 'Failed to get backup info' });
+    }
+});
+
+// =========================
+// SERVER STARTUP
+// =========================
+
+// Audio & Video Converter API Routes
+app.post('/api/audio/convert', upload.single('file'), async (req, res) => {
+    try {
+        const { targetAudioCodec, targetVideoContainer, qualityPreset } = req.body;
+        const inputFile = req.file;
+        
+        if (!inputFile) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        
+        // Set up SSE for real-time progress
+        res.writeHead(200, {
+            'Content-Type': 'text/plain',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        });
+        
+        const inputPath = inputFile.path;
+        const outputDir = path.join(__dirname, 'converted');
+        const outputFilename = path.parse(inputFile.originalname).name + '_converted.' + targetVideoContainer;
+        const outputPath = path.join(outputDir, outputFilename);
+        
+        // Ensure output directory exists
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+        
+        // Build FFmpeg command based on settings
+        let ffmpegArgs = [
+            '-i', inputPath,
+            '-c:v', 'copy', // Copy video stream without re-encoding
+            '-c:a', targetAudioCodec === 'aac' ? 'aac' : 
+                   targetAudioCodec === 'mp3' ? 'mp3' : 
+                   targetAudioCodec === 'opus' ? 'libopus' : 'aac',
+            '-b:a', qualityPreset === 'high' ? '192k' : 
+                   qualityPreset === 'medium' ? '128k' : '96k',
+            '-y', // Overwrite output file
+            outputPath
+        ];
+        
+        // Send initial progress
+        res.write(`data: ${JSON.stringify({ progress: 0, log: 'Starting FFmpeg conversion...' })}\n\n`);
+        
+        // Execute FFmpeg
+        const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+        
+        let progress = 0;
+        let duration = 0;
+        
+        ffmpegProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            
+            // Extract duration if not already set
+            if (!duration) {
+                const durationMatch = output.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+                if (durationMatch) {
+                    duration = parseInt(durationMatch[1]) * 3600 + 
+                              parseInt(durationMatch[2]) * 60 + 
+                              parseInt(durationMatch[3]) + 
+                              parseInt(durationMatch[4]) / 100;
+                }
+            }
+            
+            // Extract current time and calculate progress
+            const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})/);
+            if (timeMatch && duration > 0) {
+                const currentTime = parseInt(timeMatch[1]) * 3600 + 
+                                   parseInt(timeMatch[2]) * 60 + 
+                                   parseInt(timeMatch[3]) + 
+                                   parseInt(timeMatch[4]) / 100;
+                progress = Math.min(100, Math.round((currentTime / duration) * 100));
+                
+                res.write(`data: ${JSON.stringify({ progress, log: `Converting... ${progress}%` })}\n\n`);
+            }
+            
+            // Send log messages
+            if (output.includes('frame=') || output.includes('size=')) {
+                res.write(`data: ${JSON.stringify({ log: output.trim() })}\n\n`);
+            }
+        });
+        
+        ffmpegProcess.on('close', (code) => {
+            if (code === 0) {
+                // Move converted file to file server
+                const fileServerPath = path.join('S:/MEDIA', outputFilename);
+                
+                try {
+                    // Copy file to file server
+                    fs.copyFileSync(outputPath, fileServerPath);
+                    
+                    // Clean up temporary files
+                    fs.unlinkSync(inputPath); // Remove uploaded file
+                    fs.unlinkSync(outputPath); // Remove converted file from server/converted/
+                    
+                    res.write(`data: ${JSON.stringify({ 
+                        progress: 100, 
+                        log: `Conversion completed successfully. File moved to: ${fileServerPath}`,
+                        outputPath: fileServerPath 
+                    })}\n\n`);
+                } catch (moveError) {
+                    console.error('[DEBUG - AUDIOMANAGER] Error moving file to file server:', moveError);
+                    res.write(`data: ${JSON.stringify({ 
+                        progress: 100, 
+                        log: `Conversion completed but failed to move to file server: ${moveError.message}`,
+                        outputPath: outputPath,
+                        warning: true 
+                    })}\n\n`);
+                }
+            } else {
+                res.write(`data: ${JSON.stringify({ progress: 0, log: `FFmpeg process exited with code ${code}`, error: true })}\n\n`);
+            }
+            res.end();
+        });
+        
+        ffmpegProcess.on('error', (error) => {
+            res.write(`data: ${JSON.stringify({ progress: 0, log: `FFmpeg error: ${error.message}`, error: true })}\n\n`);
+            res.end();
+        });
+        
+    } catch (error) {
+        console.error('[DEBUG - AUDIOMANAGER] Conversion error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/audio/check-ffmpeg', async (req, res) => {
+    try {
+        const ffmpegProcess = spawn('ffmpeg', ['-version']);
+        
+        ffmpegProcess.on('close', (code) => {
+            if (code === 0) {
+                res.json({ available: true, path: 'ffmpeg' });
+            } else {
+                res.json({ available: false, error: 'FFmpeg not found or not accessible' });
+            }
+        });
+        
+        ffmpegProcess.on('error', (error) => {
+            res.json({ available: false, error: error.message });
+        });
+        
+    } catch (error) {
+        res.json({ available: false, error: error.message });
+    }
+});
+
+app.get('/api/audio/config', (req, res) => {
+    res.json({
+        targetAudioCodec: 'aac',
+        targetVideoContainer: 'mkv',
+        qualityPreset: 'high'
+    });
+});
+
+// Run existing scan scripts endpoint
+app.post('/api/audio/run-scan-script', async (req, res) => {
+    try {
+        const { scriptName, filePath, folderPath, targetAudioCodec, targetVideoContainer, qualityPreset } = req.body;
+        
+        if (!scriptName) {
+            return res.status(400).json({ error: 'Script name is required' });
+        }
+        
+        // For single file conversion
+        if (scriptName === 'convert_single_file_audio.js') {
+            if (!filePath) {
+                return res.status(400).json({ error: 'File path is required for single file conversion' });
+            }
+        }
+        // For folder conversion
+        else if (scriptName === 'convert_folder_audio_to_aac.js') {
+            if (!folderPath) {
+                return res.status(400).json({ error: 'Folder path is required for folder conversion' });
+            }
+        }
+        
+        // Set up SSE for real-time progress
+        res.writeHead(200, {
+            'Content-Type': 'text/plain',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        });
+        
+        // Construct the script path
+        const scriptPath = path.join(__dirname, '../scripts', scriptName);
+        
+        if (!fs.existsSync(scriptPath)) {
+            res.write(`data: ${JSON.stringify({ progress: 0, log: `Script not found: ${scriptName}`, error: true })}\n\n`);
+            res.end();
+            return;
+        }
+        
+        let scriptArgs = [];
+        
+        // Set up script arguments based on script type
+        if (scriptName === 'convert_single_file_audio.js') {
+            scriptArgs = [scriptPath, filePath, targetAudioCodec, targetVideoContainer, qualityPreset];
+            res.write(`data: ${JSON.stringify({ progress: 0, log: `Starting ${scriptName} on file: ${filePath}` })}\n\n`);
+        } else if (scriptName === 'convert_folder_audio_to_aac.js') {
+            scriptArgs = [scriptPath, folderPath];
+            res.write(`data: ${JSON.stringify({ progress: 0, log: `Starting ${scriptName} on folder: ${folderPath}` })}\n\n`);
+        }
+        
+        // Run the script
+        const scriptProcess = spawn('node', scriptArgs, {
+            cwd: path.join(__dirname, '../scripts')
+        });
+        
+        let progress = 0;
+        
+        scriptProcess.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log('[DEBUG - AUDIOMANAGER] Script output:', output);
+            
+            // Parse script output for progress updates
+            if (output.includes('[CONVERT]') || output.includes('[SCAN]')) {
+                progress = Math.min(progress + 10, 90);
+                res.write(`data: ${JSON.stringify({ progress, log: output.trim() })}\n\n`);
+            } else if (output.includes('✅') || output.includes('SUCCESS')) {
+                progress = 100;
+                res.write(`data: ${JSON.stringify({ progress, log: output.trim() })}\n\n`);
+            } else {
+                res.write(`data: ${JSON.stringify({ log: output.trim() })}\n\n`);
+            }
+        });
+        
+        scriptProcess.stderr.on('data', (data) => {
+            const error = data.toString();
+            console.error('[DEBUG - AUDIOMANAGER] Script error:', error);
+            res.write(`data: ${JSON.stringify({ log: `Error: ${error.trim()}`, error: true })}\n\n`);
+        });
+        
+        scriptProcess.on('close', (code) => {
+            if (code === 0) {
+                res.write(`data: ${JSON.stringify({ progress: 100, log: `Script completed successfully` })}\n\n`);
+            } else {
+                res.write(`data: ${JSON.stringify({ progress: 0, log: `Script exited with code ${code}`, error: true })}\n\n`);
+            }
+            res.end();
+        });
+        
+        scriptProcess.on('error', (error) => {
+            res.write(`data: ${JSON.stringify({ progress: 0, log: `Script error: ${error.message}`, error: true })}\n\n`);
+            res.end();
+        });
+        
+    } catch (error) {
+        console.error('[DEBUG - AUDIOMANAGER] Script execution error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

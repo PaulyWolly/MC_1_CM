@@ -49,18 +49,50 @@ function isVideoFile(filename) {
     return exts.includes(path.extname(filename).toLowerCase());
 }
 
+function isBackupFolder(folderName) {
+    // Skip backup folders and system folders
+    const backupPatterns = [
+        /backup/i,
+        /bkup/i,
+        /_backup/i,
+        /_bkup/i,
+        /\.backup/i,
+        /\.bkup/i,
+        /temp/i,
+        /tmp/i,
+        /cache/i,
+        /\.old/i,
+        /_old/i,
+        /archive/i,
+        /\.archive/i,
+        /_archive/i
+    ];
+    
+    return backupPatterns.some(pattern => pattern.test(folderName));
+}
+
 function scanDirectory(dir) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const folders = [];
-    const files = [];
-    for (const entry of entries) {
-        if (entry.isDirectory()) {
-            folders.push(entry.name);
-        } else if (entry.isFile() && isVideoFile(entry.name)) {
-            files.push(entry.name);
+    try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const folders = [];
+        const files = [];
+        for (const entry of entries) {
+            if (entry.isDirectory()) {
+                // Skip backup folders
+                if (!isBackupFolder(entry.name)) {
+                    folders.push(entry.name);
+                } else {
+                    console.log(`🚫 [SCAN] Skipping backup folder: ${entry.name}`);
+                }
+            } else if (entry.isFile() && isVideoFile(entry.name)) {
+                files.push(entry.name);
+            }
         }
+        return { folders, files };
+    } catch (error) {
+        console.warn(`⚠️ [SCAN] Warning: Could not read directory ${dir}: ${error.message}`);
+        return { folders: [], files: [] };
     }
-    return { folders, files };
 }
 
 function extractYearFromTitle(title) {
@@ -169,15 +201,49 @@ function flattenFolders(tree) {
 }
 
 async function main() {
-    console.log(`Scanning MOVIES library at: ${MEDIA_ROOT}`);
-    const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT);
-    const flatFolders = flattenFolders(mediaTree);
-    const output = {
-        path: '',
-        folders: flatFolders
-    };
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2));
-    console.log(`MOVIES scan complete. Output written to: ${OUTPUT_FILE}`);
+    console.log(`🔍 [SCAN] Scanning MOVIES library at: ${MEDIA_ROOT}`);
+    
+    // Check if media root exists
+    if (!fs.existsSync(MEDIA_ROOT)) {
+        console.error(`❌ [SCAN] Error: Media root directory does not exist: ${MEDIA_ROOT}`);
+        process.exit(1);
+    }
+    
+    try {
+        const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT);
+        const flatFolders = flattenFolders(mediaTree);
+        const output = {
+            path: '',
+            folders: flatFolders
+        };
+        
+        // Create backup of existing file
+        if (fs.existsSync(OUTPUT_FILE)) {
+            // Create bkup directory if it doesn't exist
+            const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
+            if (!fs.existsSync(bkupDir)) {
+                fs.mkdirSync(bkupDir, { recursive: true });
+                console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
+            }
+            
+            // Move backup to bkup folder with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const backupFile = path.join(bkupDir, `media-library-movies_normalized_backup_${timestamp}.json`);
+            fs.copyFileSync(OUTPUT_FILE, backupFile);
+            console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+        }
+        
+        // Write the data
+        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2));
+        
+        console.log(`✅ [SCAN] MOVIES scan complete. Output written to: ${OUTPUT_FILE}`);
+        console.log(`📊 [SCAN] Found ${flatFolders.length} valid movies`);
+        
+    } catch (error) {
+        console.error(`❌ [SCAN] Fatal error during scan: ${error.message}`);
+        console.error(error.stack);
+        process.exit(1);
+    }
 }
 
 if (require.main === module) {

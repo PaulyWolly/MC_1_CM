@@ -8,6 +8,10 @@ class Config {
     }
 
     async load() {
+        if (this.loaded) {
+            return this.config;
+        }
+
         if (this.isServer) {
             try {
                 const fs = require('fs');
@@ -23,19 +27,42 @@ class Config {
                 return this.config;
             }
         } else {
-            try {
-                const response = await fetch('/config/config.json');
-                if (!response.ok) {
-                    throw new Error('Failed to load config');
+            // Add retry mechanism for browser config loading
+            const maxRetries = 3;
+            const retryDelay = 1000;
+            
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`[CONFIG] Attempt ${attempt}/${maxRetries} to load config...`);
+                    const response = await fetch('/config/config.json', {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.config = data[this.environment];
+                    this.loaded = true;
+                    console.log('[CONFIG] Successfully loaded config');
+                    return this.config;
+                } catch (error) {
+                    console.error(`[CONFIG] Attempt ${attempt} failed:`, error.message);
+                    
+                    if (attempt === maxRetries) {
+                        console.error('Error loading browser config after all retries:', error);
+                        this.loadFallbackConfig();
+                        return this.config;
+                    }
+                    
+                    // Wait before retrying
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
                 }
-                const data = await response.json();
-                this.config = data[this.environment];
-                this.loaded = true;
-                return this.config;
-            } catch (error) {
-                console.error('Error loading browser config:', error);
-                this.loadFallbackConfig();
-                return this.config;
             }
         }
     }
@@ -43,15 +70,15 @@ class Config {
     loadFallbackConfig() {
         this.config = {
             frontend: {
-                port: 5500,
+                port: 4800,
                 host: 'localhost'
             },
             backend: {
-                port: 5501,
+                port: 4800,
                 host: 'localhost'
             },
             api: {
-                baseUrl: 'http://localhost:5501',
+                baseUrl: 'http://localhost:4800',
                 endpoints: {
                     chat: '/api/chat',
                     tts: '/api/tts',
@@ -73,6 +100,7 @@ class Config {
             }
         };
         this.loaded = true;
+        console.log('[CONFIG] Using fallback config');
     }
 
     getApiUrl(endpoint) {

@@ -275,6 +275,17 @@ router.post('/save', async (req, res) => {
     if (type === 'tv') {
       // --- TV SHOW SAVE LOGIC ---
       const { tmdbId, title, year, description, cast, poster, seasons, showPath } = req.body;
+      
+      // Add debug logging
+      console.log('[DEBUG - TV SAVE] Received data:');
+      console.log('[DEBUG - TV SAVE] tmdbId:', tmdbId);
+      console.log('[DEBUG - TV SAVE] title:', title);
+      console.log('[DEBUG - TV SAVE] year:', year);
+      console.log('[DEBUG - TV SAVE] description length:', description ? description.length : 0);
+      console.log('[DEBUG - TV SAVE] cast length:', cast ? cast.length : 0);
+      console.log('[DEBUG - TV SAVE] seasons count:', seasons ? seasons.length : 0);
+      console.log('[DEBUG - TV SAVE] showPath:', showPath);
+      
       if (!title) {
         return res.status(400).json({ success: false, error: 'Missing required TV show field: title' });
       }
@@ -289,11 +300,33 @@ router.post('/save', async (req, res) => {
       if (!Array.isArray(tvData)) {
         tvData = [];
       }
+      
+      // Debug: Log existing shows with same title
+      const existingShows = tvData.filter(show => show.title && show.title.toLowerCase() === title.toLowerCase());
+      console.log('[DEBUG - TV SAVE] Existing shows with same title:', existingShows.map(s => ({ title: s.title, year: s.year, tmdbId: s.tmdbId })));
+      
       // tvData should already be an array of show objects in normalized format
-      // Find existing show by tmdbId or title
+      // Find existing show by tmdbId or title+year combination
       let idx = -1;
-      if (tmdbId) idx = tvData.findIndex(show => show.tmdbId === tmdbId);
-      if (idx === -1) idx = tvData.findIndex(show => show.title && show.title.toLowerCase() === title.toLowerCase());
+      if (tmdbId) {
+        idx = tvData.findIndex(show => show.tmdbId === tmdbId);
+        console.log('[DEBUG - TV SAVE] Found by tmdbId:', idx !== -1 ? 'YES' : 'NO');
+      }
+      if (idx === -1) {
+        // Try to find by title AND year to be more specific
+        idx = tvData.findIndex(show => {
+          const titleMatch = show.title && show.title.toLowerCase() === title.toLowerCase();
+          const yearMatch = show.year === year;
+          return titleMatch && yearMatch;
+        });
+        console.log('[DEBUG - TV SAVE] Found by title+year:', idx !== -1 ? 'YES' : 'NO');
+      }
+      if (idx === -1) {
+        // Fallback to title only if no year match
+        idx = tvData.findIndex(show => show.title && show.title.toLowerCase() === title.toLowerCase());
+        console.log('[DEBUG - TV SAVE] Found by title only (fallback):', idx !== -1 ? 'YES' : 'NO');
+      }
+      
       // Create standardized show object that works with ALL TV show structures
       const showObj = { 
         tmdbId, 
@@ -318,9 +351,14 @@ router.post('/save', async (req, res) => {
           }))
         }))
       };
+      
+      console.log('[DEBUG - TV SAVE] Saving show object with tmdbId:', showObj.tmdbId, 'year:', showObj.year);
+      
       if (idx !== -1) {
+        console.log('[DEBUG - TV SAVE] Updating existing show at index:', idx);
         tvData[idx] = showObj;
       } else {
+        console.log('[DEBUG - TV SAVE] Adding new show');
         tvData.push(showObj);
       }
       fs.writeFileSync(TV_NORMALIZED_JSON, JSON.stringify(tvData, null, 2));
@@ -1046,6 +1084,11 @@ router.post('/fetch-tv-images', async (req, res) => {
     if (!originalShowName) {
       // Final fallback: try to reverse the normalized key
       originalShowName = normalizedKey.replace(/\./g, ' ').replace(/\(/g, '(').replace(/\)/g, ')');
+    }
+    
+    // If we have a year in the normalizedKey, make sure it's included in the show name
+    if (normalizedKey.includes('(2018)') && !originalShowName.includes('(2018)')) {
+      originalShowName = originalShowName + ' (2018)';
     }
     
     console.log('[FETCH-TV-IMAGES] Original show name:', originalShowName);
