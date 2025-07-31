@@ -8,13 +8,13 @@
 
 
 /**
- * Watch Later Dual Storage System
- * Automatically syncs Watch Later data between localStorage and JSON file
+ * Watch Later MongoDB Storage System
+ * Automatically syncs Watch Later data between localStorage and MongoDB
  */
 
 class WatchLaterSync {
     constructor() {
-        this.dataFile = '/api/watch-later-data';
+        this.apiBase = '/api/watch-later';
         this.backupInterval = 30000; // 30 seconds
         this.lastBackup = 0;
         this.isBackingUp = false;
@@ -25,15 +25,15 @@ class WatchLaterSync {
         // Listen for localStorage changes
         this.setupStorageListener();
         
-        // Automatically restore from backup file on initialization
-        this.autoRestoreFromBackup();
+        // Automatically restore from MongoDB on initialization
+        this.autoRestoreFromMongoDB();
         
-        console.log('[WATCH-LATER-SYNC] Dual storage system initialized');
+        console.log('[WATCH-LATER-SYNC] MongoDB storage system initialized');
     }
     
     startAutoBackup() {
         setInterval(() => {
-            this.backupToFile();
+            this.backupToMongoDB();
         }, this.backupInterval);
     }
     
@@ -43,13 +43,13 @@ class WatchLaterSync {
         localStorage.setItem = (key, value) => {
             originalSetItem.call(localStorage, key, value);
             if (key === 'mediaLibraryResumeList') {
-                console.log('[WATCH-LATER-SYNC] localStorage changed, triggering backup');
-                this.backupToFile();
+                console.log('[WATCH-LATER-SYNC] localStorage changed, triggering MongoDB backup');
+                this.backupToMongoDB();
             }
         };
     }
     
-    async backupToFile() {
+    async backupToMongoDB() {
         if (this.isBackingUp) return;
         
         try {
@@ -58,72 +58,69 @@ class WatchLaterSync {
             if (!data) return;
             
             const watchLaterData = JSON.parse(data);
-            const backupData = {
-                timestamp: new Date().toISOString(),
-                itemCount: watchLaterData.length,
-                items: watchLaterData
-            };
             
-            const response = await fetch(this.dataFile, {
+            // Use bulk import endpoint for efficiency
+            const response = await fetch(`${this.apiBase}/bulk-import`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(backupData)
+                body: JSON.stringify({ items: watchLaterData })
             });
             
             if (response.ok) {
                 this.lastBackup = Date.now();
-                console.log('[WATCH-LATER-SYNC] Backup successful:', watchLaterData.length, 'items');
+                const result = await response.json();
+                console.log('[WATCH-LATER-SYNC] MongoDB backup successful:', result.totalItems, 'items');
             } else {
-                console.error('[WATCH-LATER-SYNC] Backup failed:', response.status);
+                console.error('[WATCH-LATER-SYNC] MongoDB backup failed:', response.status);
             }
         } catch (error) {
-            console.error('[WATCH-LATER-SYNC] Backup error:', error);
+            console.error('[WATCH-LATER-SYNC] MongoDB backup error:', error);
         } finally {
             this.isBackingUp = false;
         }
     }
     
-    async restoreFromFile() {
+    async restoreFromMongoDB() {
         try {
-            const response = await fetch(this.dataFile);
+            const response = await fetch(this.apiBase);
             if (response.ok) {
                 const backupData = await response.json();
                 if (backupData.items && Array.isArray(backupData.items)) {
                     localStorage.setItem('mediaLibraryResumeList', JSON.stringify(backupData.items));
-                    console.log('[WATCH-LATER-SYNC] Restored from file:', backupData.items.length, 'items');
+                    console.log('[WATCH-LATER-SYNC] Restored from MongoDB:', backupData.items.length, 'items');
                     return backupData.items;
                 }
             }
         } catch (error) {
-            console.error('[WATCH-LATER-SYNC] Restore error:', error);
+            console.error('[WATCH-LATER-SYNC] MongoDB restore error:', error);
         }
         return null;
     }
     
-    async getBackupInfo() {
+    async getMongoDBInfo() {
         try {
-            const response = await fetch(this.dataFile + '/info');
+            const response = await fetch(`${this.apiBase}/info`);
             if (response.ok) {
                 return await response.json();
             }
         } catch (error) {
-            console.error('[WATCH-LATER-SYNC] Get backup info error:', error);
+            console.error('[WATCH-LATER-SYNC] Get MongoDB info error:', error);
         }
         return null;
     }
     
     // Manual backup trigger
     async manualBackup() {
-        console.log('[WATCH-LATER-SYNC] Manual backup triggered');
-        await this.backupToFile();
+        console.log('[WATCH-LATER-SYNC] Manual MongoDB backup triggered');
+        await this.backupToMongoDB();
     }
     
     // Manual restore trigger
     async manualRestore() {
-        console.log('[WATCH-LATER-SYNC] Manual restore triggered');
-        const restored = await this.restoreFromFile();
+        console.log('[WATCH-LATER-SYNC] Manual MongoDB restore triggered');
+        const restored = await this.restoreFromMongoDB();
         if (restored) {
             // Trigger UI refresh
             if (window.mediaLibraryManager) {
@@ -133,12 +130,12 @@ class WatchLaterSync {
         return restored;
     }
 
-    async autoRestoreFromBackup() {
+    async autoRestoreFromMongoDB() {
         try {
-            console.log('[WATCH-LATER-SYNC] Attempting auto-restore from backup...');
-            const restored = await this.restoreFromFile();
+            console.log('[WATCH-LATER-SYNC] Attempting auto-restore from MongoDB...');
+            const restored = await this.restoreFromMongoDB();
             if (restored) {
-                console.log('[WATCH-LATER-SYNC] Auto-restore successful:', restored.length, 'items');
+                console.log('[WATCH-LATER-SYNC] MongoDB auto-restore successful:', restored.length, 'items');
                 // Trigger UI refresh if MediaLibraryManager is available
                 if (window.mediaLibraryManager && window.mediaLibraryManager.updateModalContent) {
                     setTimeout(() => {
@@ -146,10 +143,10 @@ class WatchLaterSync {
                     }, 1000);
                 }
             } else {
-                console.log('[WATCH-LATER-SYNC] No backup data found or restore failed');
+                console.log('[WATCH-LATER-SYNC] No MongoDB data found or restore failed');
             }
         } catch (error) {
-            console.error('[WATCH-LATER-SYNC] Auto-restore error:', error);
+            console.error('[WATCH-LATER-SYNC] MongoDB auto-restore error:', error);
         }
     }
 }
