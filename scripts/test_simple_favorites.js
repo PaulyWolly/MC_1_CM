@@ -1,3 +1,11 @@
+/*
+  TEST_SIMPLE_FAVORITES.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Simple test script for the new localStorage-based favorites system
 // Run this in the browser console
 

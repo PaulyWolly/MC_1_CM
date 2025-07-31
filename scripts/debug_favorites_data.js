@@ -1,3 +1,11 @@
+/*
+  DEBUG_FAVORITES_DATA.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Debug script to check favorites data structure
 // Run this in the browser console
 

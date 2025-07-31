@@ -1,3 +1,11 @@
+/*
+  TEST_FAVORITES_PERSISTENCE.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Test script to verify favorites persistence in localStorage
 // Run this in the browser console to test the favorites system
 

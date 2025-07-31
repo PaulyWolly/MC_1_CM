@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
 */
 
@@ -18,6 +18,7 @@ class VideoPlayer {
         this.isFullscreen = false;
         this.isVisible = false;
         this.isCleaningUp = false;
+        this.returnLocation = null; // Store where to return when closing
         
         // Voice command patterns
         this.voiceCommands = [
@@ -1243,6 +1244,16 @@ class VideoPlayer {
             this.isCleaningUp = false;
         }, 100);
         
+        // Restore return location if set
+        console.log('[VIDEO-PLAYER] Hide method - returnLocation:', this.returnLocation);
+        console.log('[VIDEO-PLAYER] Hide method - mediaLibraryManager available:', !!window.mediaLibraryManager);
+        if (this.returnLocation && window.mediaLibraryManager) {
+            console.log('[VIDEO-PLAYER] Restoring return location:', this.returnLocation);
+            this.restoreReturnLocation();
+        } else {
+            console.log('[VIDEO-PLAYER] Not restoring - missing returnLocation or mediaLibraryManager');
+        }
+        
         console.log('🎬 [VIDEO-PLAYER] Video player hidden');
     }
 
@@ -1259,6 +1270,83 @@ class VideoPlayer {
         } else {
             this.show();
         }
+    }
+    
+    // Set the return location when opening from a specific source
+    setReturnLocation(location) {
+        console.log('[VIDEO-PLAYER] Setting return location to:', location);
+        this.returnLocation = location;
+        console.log('[VIDEO-PLAYER] Return location set to:', this.returnLocation);
+        console.log('[VIDEO-PLAYER] Return location type:', this.returnLocation ? this.returnLocation.type : 'null');
+    }
+    
+    // Restore the return location when closing the video player
+    restoreReturnLocation() {
+        if (!this.returnLocation || !window.mediaLibraryManager) {
+            console.log('[VIDEO-PLAYER] No return location or mediaLibraryManager not available');
+            return;
+        }
+        
+        console.log('[VIDEO-PLAYER] Restoring to location:', this.returnLocation);
+        
+        switch (this.returnLocation.type) {
+            case 'media-library':
+                console.log('[VIDEO-PLAYER] Restoring to media-library with tab:', this.returnLocation.tab);
+                // Return to Media Library with specific tab
+                if (this.returnLocation.tab) {
+                    window.mediaLibraryManager.switchTab(this.returnLocation.tab);
+                }
+                window.mediaLibraryManager.renderModal();
+                break;
+                
+            case 'watch-later':
+                console.log('[VIDEO-PLAYER] Restoring to watch-later');
+                console.log('[VIDEO-PLAYER] Before switchTab - currentTab:', window.mediaLibraryManager.currentTab);
+                // Return to Watch Later tab
+                window.mediaLibraryManager.switchTab('watchlater');
+                console.log('[VIDEO-PLAYER] After switchTab - currentTab:', window.mediaLibraryManager.currentTab);
+                window.mediaLibraryManager.renderModal();
+                console.log('[VIDEO-PLAYER] After renderModal - currentTab:', window.mediaLibraryManager.currentTab);
+                break;
+                
+            case 'tv-show-episodes':
+                console.log('[VIDEO-PLAYER] Restoring to tv-show-episodes:', this.returnLocation.showPath, this.returnLocation.seasonPath);
+                // Return to specific TV show episodes view
+                if (this.returnLocation.showPath && this.returnLocation.seasonPath) {
+                    console.log('[VIDEO-PLAYER] Setting currentTVShow to:', this.returnLocation.showPath);
+                    console.log('[VIDEO-PLAYER] Setting currentTVSeason to:', this.returnLocation.seasonPath);
+                    window.mediaLibraryManager.currentTVShow = this.returnLocation.showPath;
+                    window.mediaLibraryManager.currentTVSeason = this.returnLocation.seasonPath;
+                    console.log('[VIDEO-PLAYER] Calling switchTab(tvshows)');
+                    window.mediaLibraryManager.switchTab('tvshows');
+                    console.log('[VIDEO-PLAYER] Calling renderModal()');
+                    window.mediaLibraryManager.renderModal();
+                    // Re-render episodes view
+                    setTimeout(() => {
+                        console.log('[VIDEO-PLAYER] Calling renderEpisodesView()');
+                        window.mediaLibraryManager.renderEpisodesView();
+                    }, 100);
+                } else {
+                    console.log('[VIDEO-PLAYER] Missing showPath or seasonPath:', this.returnLocation);
+                }
+                break;
+                
+            case 'movies':
+                console.log('[VIDEO-PLAYER] Restoring to movies');
+                // Return to Movies tab
+                window.mediaLibraryManager.switchTab('movies');
+                window.mediaLibraryManager.renderModal();
+                break;
+                
+            default:
+                console.log('[VIDEO-PLAYER] Restoring to default media-library');
+                // Default: return to Media Library
+                window.mediaLibraryManager.renderModal();
+                break;
+        }
+        
+        // Clear the return location after restoring
+        this.returnLocation = null;
     }
 
     async fetchMediaLibrary() {
@@ -1794,6 +1882,13 @@ class VideoPlayer {
             // Add error handling for video loading
             this.vjsPlayer.on('error', (error) => {
                 console.error('[DEBUG - VIDEO-PLAYER] Video loading error:', error);
+                console.error('[DEBUG - VIDEO-PLAYER] Error details:', {
+                    code: error.target?.error?.code,
+                    message: error.target?.error?.message,
+                    src: this.vjsPlayer.currentSrc(),
+                    readyState: this.vjsPlayer.readyState(),
+                    networkState: this.vjsPlayer.networkState()
+                });
                 const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
                 if (bigPlayButton) {
                     bigPlayButton.style.display = 'block';

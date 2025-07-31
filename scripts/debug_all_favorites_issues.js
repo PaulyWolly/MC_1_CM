@@ -1,3 +1,11 @@
+/*
+  DEBUG_ALL_FAVORITES_ISSUES.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Comprehensive debug script for all favorites issues
 // Run this in the browser console
 

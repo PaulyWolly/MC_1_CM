@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
 */
 
@@ -2355,17 +2355,22 @@
 .media-library-episodes-grid {
     display: flex;
     flex-direction: row;
-    /* gap: 18px; */
     overflow-x: auto;
+    border: 1px solid #333;
+    padding: 10px;
     width: 1270px;
+    background-color: #917d7d !important;
+    border-radius: 14px;
     min-width: 1270px;
-    max-width: 1270px;
-    margin: 0 auto;
+    gap: 16px;
     box-sizing: border-box;
     align-items: center;
     justify-content: flex-start;
     scroll-behavior: smooth;
     background: none;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 60px;
 }
 .center-episodes {
   justify-content: center !important;
@@ -2753,4 +2758,35 @@
     font-weight: bold;
     text-align: center;
     margin-top: 4px;
+}
+
+/* Media Library Error Display */
+.media-library-error-display {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff4444;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10001;
+    max-width: 80%;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: none;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
 }

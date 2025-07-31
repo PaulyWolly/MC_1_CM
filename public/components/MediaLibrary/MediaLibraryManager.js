@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 7/24/2025 @5:20PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
 */
 
@@ -17,6 +17,7 @@ class MediaLibraryManager {
         this.moviePosters = {};
         this.tvPosters = {};
         this.currentTab = 'movies';
+        this.currentTabFlag = 'movies'; // Track current tab for return location
         this.lastActiveTab = 'movies'; // Track last active tab
         this.isLoading = false;
         this.videoPlayer = null;
@@ -417,6 +418,11 @@ class MediaLibraryManager {
     }
 
     async openMediaBrowser() {
+        console.log('[OPEN-MEDIA-BROWSER-DEBUG] Opening media browser');
+        console.log('[OPEN-MEDIA-BROWSER-DEBUG] Current tab:', this.currentTab);
+        console.log('[OPEN-MEDIA-BROWSER-DEBUG] Current TV show:', this.currentTVShow);
+        console.log('[OPEN-MEDIA-BROWSER-DEBUG] Current TV season:', this.currentTVSeason);
+        
         this.isModalOpen = true;
         
         // Show spinner immediately when opening the media browser
@@ -432,6 +438,10 @@ class MediaLibraryManager {
             } else if (this.currentTab === 'tvshows') {
                 this.mediaLibraryRaw = this.tvShowsData;
                 console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to tvShowsData:', this.tvShowsData ? this.tvShowsData.length : 'undefined', 'TV shows');
+            } else if (this.currentTab === 'watchlater') {
+                // For watchlater tab, we don't need to set mediaLibraryRaw since it uses its own data
+                this.mediaLibraryRaw = null;
+                console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to null for watchlater tab');
             }
             
             // Update the modal content after setting the correct data
@@ -509,10 +519,19 @@ class MediaLibraryManager {
             existingModal.remove();
         }
         // --- Ensure correct tab is highlighted based on navigation state ---
+        // Preserve currentTabFlag for return location tracking
+        const preservedTabFlag = this.currentTabFlag;
+        
         if (this.currentTab === 'tvshows' && this.currentTVShow) {
             this.currentTab = 'tvshows';
         } else if (this.currentTab === 'collections' && this.currentCollectionView) {
             this.currentTab = 'collections';
+        }
+        
+        // Restore currentTabFlag if it was changed
+        if (preservedTabFlag && preservedTabFlag !== this.currentTab) {
+            this.currentTabFlag = preservedTabFlag;
+            console.log('[RENDER-MODAL-DEBUG] Restored currentTabFlag to:', this.currentTabFlag);
         }
         const getSearchPlaceholder = () => {
             switch (this.currentTab) {
@@ -524,16 +543,7 @@ class MediaLibraryManager {
                 default: return 'Search Movies...';
             }
         };
-        const getShuffleButtonText = () => {
-            switch (this.currentTab) {
-                case 'tvshows': return 'Shuffle Shows';
-                case 'favorites': return 'Shuffle Favorites';
-                case 'collections': return 'Shuffle Collection';
-                case 'watchlater': return 'Shuffle Watch Later';
-                case 'suggestions': return 'Shuffle Suggestions';
-                default: return 'Shuffle';
-            }
-        };
+
         // Create only the modal, no overlay
         const modal = document.createElement('div');
         modal.id = 'mediaLibraryModal';
@@ -557,8 +567,6 @@ class MediaLibraryManager {
                   <option value="asc">A-Z</option>
                   <option value="desc">Z-A</option>
                 </select>
-                <button class="media-library-shuffle-btn" onclick="mediaLibraryManager.shuffleMovies()">${getShuffleButtonText()}</button>
-                <span class="media-library-total-count" id="mediaLibraryTotalCount"></span>
                 <button class="media-library-refresh-btn" onclick="mediaLibraryManager.refreshCurrentContent()" title="Refresh Content">🔄</button>
               </div>
               <div class="media-library-content-wrapper">
@@ -647,7 +655,18 @@ class MediaLibraryManager {
         // --- Add genre dropdown logic ---
         const genreDropdown = document.getElementById('mediaLibraryGenre');
         genreDropdown.innerHTML = '';
-        this.getCommonGenres().forEach(g => {
+        
+        // Populate genre dropdown based on current tab
+        let genres = [];
+        if (this.currentTab === 'tvshows') {
+            // For TV shows, get TV show genres
+            genres = this.getTVShowGenres();
+        } else {
+            // For movies and other tabs, get movie genres
+            genres = this.getCommonGenres();
+        }
+        
+        genres.forEach(g => {
             const opt = document.createElement('option');
             opt.value = g;
             opt.textContent = g;
@@ -766,22 +785,35 @@ class MediaLibraryManager {
     }
 
     switchTab(tab) {
+        console.log('[SWITCH-TAB-DEBUG] Switching to tab:', tab);
+        console.log('[SWITCH-TAB-DEBUG] Previous currentTab was:', this.currentTab);
+        console.log('[SWITCH-TAB-DEBUG] Previous currentTabFlag was:', this.currentTabFlag);
         this.lastActiveTab = this.currentTab;
         this.currentTab = tab;
+        console.log('[SWITCH-TAB-DEBUG] New currentTab is:', this.currentTab);
+        
+        // Set the current tab flag for return location tracking
+        this.currentTabFlag = tab;
+        console.log('[SWITCH-TAB-DEBUG] Set currentTabFlag to:', this.currentTabFlag);
         
         // Update mediaLibraryRaw to match current tab's data for backward compatibility
         if (this.currentTab === 'movies') {
             this.mediaLibraryRaw = this.moviesData;
         } else if (this.currentTab === 'tvshows') {
             this.mediaLibraryRaw = this.tvShowsData;
+        } else if (this.currentTab === 'watchlater') {
+            // For watchlater tab, we don't need to set mediaLibraryRaw since it uses its own data
+            this.mediaLibraryRaw = null;
         }
         
+        console.log('[SWITCH-TAB-DEBUG] mediaLibraryRaw set to:', this.mediaLibraryRaw);
+        console.log('[SWITCH-TAB-DEBUG] Calling openMediaBrowser()');
         this.openMediaBrowser();
     }
 
     updateTabSpecificUI() {
         const searchInput = document.getElementById('mediaLibrarySearch');
-        const shuffleBtn = document.querySelector('.media-library-shuffle-btn');
+        const genreDropdown = document.getElementById('mediaLibraryGenre');
         
         if (searchInput) {
             const getSearchPlaceholder = () => {
@@ -797,18 +829,27 @@ class MediaLibraryManager {
             searchInput.placeholder = getSearchPlaceholder();
         }
         
-        if (shuffleBtn) {
-            const getShuffleButtonText = () => {
-                switch (this.currentTab) {
-                    case 'tvshows': return 'Shuffle Shows';
-                    case 'favorites': return 'Shuffle Favorites';
-                    case 'collections': return 'Shuffle Collection';
-                    case 'watchlater': return 'Shuffle Watch Later';
-                    case 'suggestions': return 'Shuffle Suggestions';
-                    default: return 'Shuffle';
-                }
-            };
-            shuffleBtn.textContent = getShuffleButtonText();
+        // Update genre dropdown based on current tab
+        if (genreDropdown) {
+            genreDropdown.innerHTML = '';
+            
+            // Populate genre dropdown based on current tab
+            let genres = [];
+            if (this.currentTab === 'tvshows') {
+                // For TV shows, get TV show genres
+                genres = this.getTVShowGenres();
+            } else {
+                // For movies and other tabs, get movie genres
+                genres = this.getCommonGenres();
+            }
+            
+            genres.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                genreDropdown.appendChild(opt);
+            });
+            genreDropdown.value = this.selectedGenre || 'All Genres';
         }
     }
 
@@ -819,6 +860,9 @@ class MediaLibraryManager {
         grid.innerHTML = await this.renderTabContent();
         
         console.log('[DEBUG - UPDATE MODAL] Current tab:', this.currentTab);
+        
+        // Update tab-specific UI elements (search placeholder, genre dropdown, etc.)
+        this.updateTabSpecificUI();
         
         // Show/hide appropriate A-Z sidebars based on current tab
         const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
@@ -916,14 +960,19 @@ class MediaLibraryManager {
                     return this.renderTVShowsTab();
                 }
             case 'favorites':
+                console.log('[DEBUG - RenderTabContent] Rendering favorites tab');
                 return this.renderFavoritesContent();
             case 'collections':
+                console.log('[DEBUG - RenderTabContent] Rendering collections tab');
                 return this.renderCollectionsTab();
             case 'suggestions':
+                console.log('[DEBUG - RenderTabContent] Rendering suggestions tab');
                 return this.renderSuggestionsContent();
             case 'watchlater':
+                console.log('[DEBUG - RenderTabContent] Rendering watchlater tab');
                 return this.renderWatchLaterContent();
             default:
+                console.log('[DEBUG - RenderTabContent] Falling back to movies tab (default case)');
                 return this.renderMoviesContent();
         }
     }
@@ -1317,6 +1366,7 @@ class MediaLibraryManager {
         // If it's a TV show episode, use the TV show playback logic
         if (isTVShow) {
             console.log('[MEDIA-LIBRARY] TV show episode detected, using TV show playback logic');
+            console.log('[MEDIA-LIBRARY] Current tab flag before calling playEpisodeFromObject:', this.currentTabFlag);
             
             // For Watch Later TV shows, if we already have filePath, use it directly
             if (mediaItem.filePath) {
@@ -1377,9 +1427,7 @@ class MediaLibraryManager {
         await this.waitForVideoPlayerReady(); // Ensure player is ready before playback
         if (!this.videoPlayer) {
             console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available');
-            if (window.addMessageToChat) {
-                window.addMessageToChat('assistant', '❌ Video player not available. Please try again.');
-            }
+            this.showMediaLibraryError('Video player not available. Please try again.');
             return;
         }
         
@@ -1494,6 +1542,36 @@ class MediaLibraryManager {
         }
         const videoUrl = `/api/video?path=${pathParam}`;
         console.log('[MEDIA-LIBRARY] Final video URL:', videoUrl);
+        
+        // Set return location based on current context
+        if (window.videoPlayer) {
+            // Determine where we're coming from
+            let returnLocation = { type: 'media-library' };
+            
+            console.log('[RETURN-LOCATION-DEBUG] Current tab flag:', this.currentTabFlag);
+            console.log('[RETURN-LOCATION-DEBUG] Current TV show:', this.currentTVShow);
+            console.log('[RETURN-LOCATION-DEBUG] Current TV season:', this.currentTVSeason);
+            
+            // Check if we're in Watch Later context
+            if (this.currentTabFlag === 'watchlater') {
+                returnLocation = { type: 'watch-later' };
+                console.log('[RETURN-LOCATION-DEBUG] Setting return location to watch-later');
+            }
+            // Check if we're in Movies context
+            else if (this.currentTabFlag === 'movies') {
+                returnLocation = { type: 'movies' };
+                console.log('[RETURN-LOCATION-DEBUG] Setting return location to movies');
+            }
+            // Check if we're in TV-Shows context
+            else if (this.currentTabFlag === 'tvshows') {
+                returnLocation = { type: 'media-library', tab: 'TV-Shows' };
+                console.log('[RETURN-LOCATION-DEBUG] Setting return location to tvshows');
+            }
+            
+            console.log('[RETURN-LOCATION-DEBUG] Final return location:', returnLocation);
+            window.videoPlayer.setReturnLocation(returnLocation);
+        }
+        
         this.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, fullMediaItem);
         this.currentVideo = fullMediaItem;
         this.findNextVideo(fullMediaItem);
@@ -1881,6 +1959,17 @@ class MediaLibraryManager {
         } else if (this.currentTab === 'tvshows') {
             const totalTVShows = this.getTotalTVShowCount();
             countText = `TV-Shows: ${totalTVShows}`;
+        } else if (this.currentTab === 'favorites') {
+            const favorites = this.getFavoritesList();
+            const totalFavorites = favorites.movies.length + favorites.tvshows.length;
+            countText = `Favorites: ${totalFavorites}`;
+        } else if (this.currentTab === 'collections') {
+            const collections = this.getCollections();
+            const totalCollections = Object.keys(collections).length;
+            countText = `Collections: ${totalCollections}`;
+        } else if (this.currentTab === 'suggestions') {
+            const suggestions = this.getSuggestions();
+            countText = `Suggestions: ${suggestions.length}`;
         } else {
             countText = `${items.length} Items`;
         }
@@ -1914,13 +2003,7 @@ class MediaLibraryManager {
         this.updateCount();
     }
 
-    shuffleMovies() {
-        this.shuffle = true;
-        // Use updateModalContent to handle all tabs including TV-Shows
-        this.updateModalContent();
-        this.updateCount();
-        this.shuffle = false;
-    }
+
 
     // Add: A-Z sidebar rendering
     renderAZSidebarMovie() {
@@ -1939,15 +2022,26 @@ class MediaLibraryManager {
             console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarMovie element found');
             return;
         }
-        console.log('[DEBUG - A-Z] Found movie sidebar element:', movieSidebar);
-        console.log('[DEBUG - A-Z] Current display style:', movieSidebar.style.display);
-        console.log('[DEBUG - A-Z] Current visibility:', movieSidebar.style.visibility);
         
+        // Get the current filtered and sorted items to determine which letters are available
+        const filteredItems = this.getFilteredAndSortedItems();
+        const availableLetters = new Set();
+        
+        // Collect all first letters from the filtered items
+        filteredItems.forEach(item => {
+            const cleanTitle = this.cleanMovieTitle(item.title || item.name || item.filename || item.path || '');
+            const firstLetter = cleanTitle.charAt(0).toUpperCase();
+            if (firstLetter && /[A-Z]/.test(firstLetter)) {
+                availableLetters.add(firstLetter);
+            }
+        });
+        
+        console.log('[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items');
         movieSidebar.innerHTML = '';
         movieSidebar.style.display = 'flex';
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-        console.log('[DEBUG - A-Z] Creating', letters.length, 'letter buttons');
         
+        // Only render letters that have movies in the current filtered results
+        const letters = Array.from(availableLetters).sort();
         letters.forEach(letter => {
             const btn = document.createElement('div');
             btn.className = 'media-library-az-letter-movie';
@@ -1967,9 +2061,7 @@ class MediaLibraryManager {
             }
         };
         
-        console.log('[DEBUG - A-Z] Movie A-Z sidebar rendered with', letters.length, 'letters');
-        console.log('[DEBUG - A-Z] Sidebar children count:', movieSidebar.children.length);
-        console.log('[DEBUG - A-Z] Sidebar innerHTML length:', movieSidebar.innerHTML.length);
+        console.log('[DEBUG - A-Z] Movie A-Z sidebar rendered with', letters.length, 'letters:', letters.join(', '));
     }
 
     renderAZSidebarTVShow() {
@@ -1988,10 +2080,26 @@ class MediaLibraryManager {
             console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarTVShow element found');
             return;
         }
-        console.log('[DEBUG - A-Z] Found sidebar, rendering TV show letters');
+        
+        // Get the current filtered and sorted items to determine which letters are available
+        const filteredItems = this.getFilteredAndSortedItems();
+        const availableLetters = new Set();
+        
+        // Collect all first letters from the filtered items
+        filteredItems.forEach(item => {
+            const cleanTitle = this.cleanTVShowTitle(item.name || item.title || item.filename || item.path || '');
+            const firstLetter = cleanTitle.charAt(0).toUpperCase();
+            if (firstLetter && /[A-Z]/.test(firstLetter)) {
+                availableLetters.add(firstLetter);
+            }
+        });
+        
+        console.log('[DEBUG - A-Z] Found sidebar, rendering TV show letters for filtered items');
         tvSidebar.innerHTML = '';
         tvSidebar.style.display = 'flex';
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        
+        // Only render letters that have shows in the current filtered results
+        const letters = Array.from(availableLetters).sort();
         letters.forEach(letter => {
             const btn = document.createElement('div');
             btn.className = 'media-library-az-letter-tvshow';
@@ -1999,6 +2107,7 @@ class MediaLibraryManager {
             btn.setAttribute('data-letter', letter);
             tvSidebar.appendChild(btn);
         });
+        
         // Use event delegation - single listener on the sidebar for TV shows only
         tvSidebar.onclick = (e) => {
             const letterElement = e.target.closest('.media-library-az-letter-tvshow');
@@ -2009,7 +2118,7 @@ class MediaLibraryManager {
                 }
             }
         };
-        console.log('[DEBUG - A-Z] TV show A-Z sidebar rendered with', letters.length, 'letters');
+        console.log('[DEBUG - A-Z] TV show A-Z sidebar rendered with', letters.length, 'letters:', letters.join(', '));
     }
 
     scrollToLetterMovie(letter) {
@@ -2108,8 +2217,17 @@ class MediaLibraryManager {
     getFilteredAndSortedItems() {
         const items = this.getItemsForCurrentTab();
         console.log('[MOVIE DEBUG] Items before filtering:', items.length, items.slice(0, 3));
+        
+        // Apply search filter
         let filtered = this.filterItems(items, this.searchQuery);
-        console.log('[MOVIE DEBUG] Items after filtering:', filtered.length, filtered.slice(0, 3));
+        console.log('[MOVIE DEBUG] Items after search filtering:', filtered.length, filtered.slice(0, 3));
+        
+        // Apply genre filter if not "All Genres"
+        if (this.selectedGenre && this.selectedGenre !== 'All Genres') {
+            filtered = this.filterByGenre(filtered, this.selectedGenre);
+            console.log('[MOVIE DEBUG] Items after genre filtering:', filtered.length, filtered.slice(0, 3));
+        }
+        
         // For movies, sort by clean display title; for TV-Shows, keep as is
         if (this.currentTab === 'movies') {
             return filtered.slice().sort((a, b) => {
@@ -2424,6 +2542,30 @@ class MediaLibraryManager {
         );
     }
 
+    filterByGenre(items, selectedGenre) {
+        if (!selectedGenre || selectedGenre === 'All Genres') return items;
+        
+        const genre = selectedGenre.toLowerCase();
+        return items.filter(item => {
+            let itemGenres = [];
+            
+            if (this.currentTab === 'movies') {
+                // For movies, get genres using the existing method
+                itemGenres = this.getMovieGenres(item);
+            } else if (this.currentTab === 'tvshows') {
+                // For TV shows, get genres using the TV show method
+                itemGenres = this.getTVGenres(item);
+            }
+            
+            // Check if the selected genre is in the item's genres
+            return itemGenres.some(itemGenre => 
+                itemGenre.toLowerCase() === genre ||
+                itemGenre.toLowerCase().includes(genre) ||
+                genre.includes(itemGenre.toLowerCase())
+            );
+        });
+    }
+
     formatDateTime(timestamp) {
         if (!timestamp) return '';
         const date = new Date(timestamp);
@@ -2727,6 +2869,16 @@ class MediaLibraryManager {
             'Sci-Fi', 'Science Fiction', 'Thriller', 'War', 'Western'
         ];
     }
+
+    getTVShowGenres() {
+        // TV show specific genres
+        return [
+            'All Genres',
+            'Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary', 'Drama',
+            'Family', 'Fantasy', 'Horror', 'Mystery', 'Reality', 'Romance', 'Sci-Fi', 
+            'Science Fiction', 'Thriller', 'War'
+        ];
+    }
     getMovieGenres(movie) {
         // Try to get genres from normalized genre file using normalizedKey
         if (movie.normalizedKey && this.movieGenres && this.movieGenres[movie.normalizedKey]) {
@@ -2746,7 +2898,16 @@ class MediaLibraryManager {
     selectedGenre = 'All Genres';
     handleGenreChange(event) {
         this.selectedGenre = event.target.value;
-        this.renderMediaGrid();
+        
+        // Use appropriate rendering method based on current tab
+        if (this.currentTab === 'tvshows') {
+            // For TV shows, use updateModalContent to properly re-render
+            this.updateModalContent();
+        } else {
+            // For movies and other tabs, use renderMediaGrid
+            this.renderMediaGrid();
+        }
+        
         this.updateCount();
     }
 
@@ -3863,7 +4024,7 @@ class MediaLibraryManager {
                             if (!episode.filePath) {
                                 episode.filePath = episode.absPath || episode.path || episode.relPath || '';
                             }
-                            const episodeData = JSON.stringify(episode);
+                            const episodeData = JSON.stringify(episode).replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
                             const epNum = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : (() => {
                                             const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
                                             return match ? `E${match[1].padStart(2, '0')}` : '';
@@ -3871,7 +4032,7 @@ class MediaLibraryManager {
                             const epTitle = this.extractEpisodeTitle((episode.name || episode.filename || episode.path || '').split(/[\\/]/).pop());
                             
                             // All episodes are real video files - show as clickable
-                            return `<div class=\"media-library-card episode\" data-episode='${episodeData}' onclick=\"mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)\">`
+                            return `<div class=\"media-library-card episode\" data-episode=\"${episodeData}\" onclick=\"mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)\">`
                                 + `<div class=\"media-library-card-poster\">`
                                 + `<img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">`
                                 + `<div class=\"media-library-play-overlay\">▶</div>`
@@ -3894,6 +4055,7 @@ class MediaLibraryManager {
     backToTVShows() {
         this.currentTVShow = null;
         this.currentTVSeason = null;
+        this.currentTab = 'movies'; // Track current tab for return location
         this.renderModal(); // Re-render modal to update tab highlight
         // Update count after navigating back to main TV-Shows page
         setTimeout(() => this.updateCount(), 0);
@@ -3974,9 +4136,7 @@ class MediaLibraryManager {
         
         if (!this.videoPlayer) {
             console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode');
-            if (window.addMessageToChat) {
-                window.addMessageToChat('assistant', '❌ Video player not available. Please try again.');
-            }
+            this.showMediaLibraryError('Video player not available. Please try again.');
             return;
         }
         
@@ -4010,12 +4170,26 @@ class MediaLibraryManager {
         
         console.log('[DEBUG - PLAY-EPISODE] Final video URL:', videoUrl, 'startTime:', startTime);
         
-        // Set up a callback to restore the MediaLibrary modal when the Video Player is closed
+        // Set up return location based on current context
         if (window.videoPlayer) {
-            window.videoPlayer.onClose = () => {
-                // Restore the MediaLibrary modal in the same state (showing episodes for the current show/season)
-                this.renderModal();
-            };
+            console.log('[PLAY-EPISODE-DEBUG] Setting return location for TV show episode from Watch Later');
+            console.log('[PLAY-EPISODE-DEBUG] Current tab flag:', this.currentTabFlag);
+            
+            // Determine the correct return location based on current context
+            let returnLocation;
+            if (this.currentTabFlag === 'watchlater') {
+                returnLocation = { type: 'watch-later' };
+                console.log('[PLAY-EPISODE-DEBUG] Setting return location to watch-later');
+            } else if (this.currentTabFlag === 'tvshows') {
+                returnLocation = { type: 'tv-show-episodes', showPath: this.currentTVShow, seasonPath: this.currentTVSeason };
+                console.log('[PLAY-EPISODE-DEBUG] Setting return location to tv-show-episodes');
+            } else {
+                returnLocation = { type: 'media-library', tab: 'TV-Shows' };
+                console.log('[PLAY-EPISODE-DEBUG] Setting return location to media-library TV-Shows');
+            }
+            
+            console.log('[PLAY-EPISODE-DEBUG] Return location object:', returnLocation);
+            window.videoPlayer.setReturnLocation(returnLocation);
             
             // Ensure video player is ready before calling playUrl
             console.log('[DEBUG - PLAY-EPISODE] Calling playUrl with startTime:', startTime);
@@ -4041,9 +4215,7 @@ class MediaLibraryManager {
             
             if (!this.videoPlayer) {
                 console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode');
-                if (window.addMessageToChat) {
-                    window.addMessageToChat('assistant', '❌ Video player not available. Please try again.');
-                }
+                this.showMediaLibraryError('Video player not available. Please try again.');
                 return;
             }
             
@@ -4067,9 +4239,7 @@ class MediaLibraryManager {
             } else {
                 console.error('[PLAY EPISODE FROM OBJECT DEBUG] No filePath or absPath found in episode object');
                 console.error('[PLAY EPISODE FROM OBJECT DEBUG] Available properties:', Object.keys(episodeObj));
-                if (window.addMessageToChat) {
-                    window.addMessageToChat('assistant', '❌ No video file path found for this episode. Please check if the video file exists.');
-                }
+                this.showMediaLibraryError('No video file path found for this episode. Please check if the video file exists.');
                 return;
             }
             
@@ -4081,6 +4251,30 @@ class MediaLibraryManager {
             
             // Set up a callback to restore the MediaLibrary modal when the Video Player is closed
             if (window.videoPlayer) {
+                // Set return location for Watch Later TV show episodes
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location for Watch Later TV show episode');
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current tab flag:', this.currentTabFlag);
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current TV show:', this.currentTVShow);
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current TV season:', this.currentTVSeason);
+                
+                // Determine the correct return location based on current context
+                let returnLocation;
+                if (this.currentTabFlag === 'watchlater') {
+                    returnLocation = { type: 'watch-later' };
+                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to watch-later');
+                } else if (this.currentTabFlag === 'tvshows') {
+                    returnLocation = { type: 'tv-show-episodes', showPath: this.currentTVShow, seasonPath: this.currentTVSeason };
+                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to tv-show-episodes');
+                } else {
+                    returnLocation = { type: 'media-library', tab: 'TV-Shows' };
+                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to media-library TV-Shows');
+                }
+                
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Return location object:', returnLocation);
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] About to call setReturnLocation...');
+                window.videoPlayer.setReturnLocation(returnLocation);
+                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] setReturnLocation called successfully');
+                
                 window.videoPlayer.onClose = () => {
                     // Restore the MediaLibrary modal in the same state (showing episodes for the current show/season)
                     this.renderModal();
@@ -4111,10 +4305,13 @@ class MediaLibraryManager {
             
             if (!episodeData) {
                 console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No episode data found in data-episode attribute');
+                this.showMediaLibraryError('No episode data found. Please try again.');
                 return;
             }
             
-            const episodeObj = JSON.parse(episodeData);
+            // Unescape the JSON data before parsing
+            const unescapedData = episodeData.replace(/&quot;/g, '"').replace(/\\'/g, "'");
+            const episodeObj = JSON.parse(unescapedData);
             console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] parsed episodeObj:', episodeObj);
             
             // Add detailed debugging for episode object
@@ -4139,10 +4336,39 @@ class MediaLibraryManager {
             
             if (!this.videoPlayer) {
                 console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode from data attribute');
-                if (window.addMessageToChat) {
-                    window.addMessageToChat('assistant', '❌ Video player not available. Please try again.');
-                }
+                this.showMediaLibraryError('Video player not available. Please try again.');
                 return;
+            }
+            
+            // Show video player immediately for better UX
+            if (window.videoPlayer) {
+                console.log('[PLAY-EPISODE-DEBUG] Setting return location for TV show episode');
+                console.log('[PLAY-EPISODE-DEBUG] Current tab flag:', this.currentTabFlag);
+                console.log('[PLAY-EPISODE-DEBUG] currentTVShow:', this.currentTVShow);
+                console.log('[PLAY-EPISODE-DEBUG] currentTVSeason:', this.currentTVSeason);
+                
+                // Set return location based on current tab flag
+                let returnLocation;
+                if (this.currentTabFlag === 'watchlater') {
+                    returnLocation = { type: 'watch-later' };
+                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to watch-later');
+                } else if (this.currentTabFlag === 'tvshows') {
+                    returnLocation = {
+                        type: 'tv-show-episodes',
+                        showPath: this.currentTVShow,
+                        seasonPath: this.currentTVSeason
+                    };
+                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to tv-show-episodes');
+                } else {
+                    returnLocation = { type: 'media-library', tab: 'TV-Shows' };
+                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to media-library TV-Shows');
+                }
+                
+                console.log('[PLAY-EPISODE-DEBUG] Return location object:', returnLocation);
+                window.videoPlayer.setReturnLocation(returnLocation);
+                window.videoPlayer.show();
+            } else {
+                console.error('[PLAY-EPISODE-DEBUG] Video player not available!');
             }
             
             // Use the absolute filePath from the episode object
@@ -4156,6 +4382,8 @@ class MediaLibraryManager {
                 console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Using filePath:', filePath);
                 console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Encoded path:', encodedPath);
                 console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Final video URL:', videoUrl);
+                
+                // Note: Removed URL test to improve responsiveness - video player will handle errors
             } else {
                 console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No filePath found in episode object');
                 console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Available properties:', Object.keys(episodeObj));
@@ -4173,9 +4401,7 @@ class MediaLibraryManager {
                     console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Using path as fallback:', episodeObj.path);
                 } else {
                     console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No valid video path found in episode object');
-                    if (window.addMessageToChat) {
-                        window.addMessageToChat('assistant', '❌ No video file found for this episode. Please check if the video file exists.');
-                    }
+                    this.showMediaLibraryError('No video file found for this episode. Please check if the video file exists.');
                     return;
                 }
             }
@@ -4195,9 +4421,7 @@ class MediaLibraryManager {
             }
         } catch (error) {
             console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Error parsing episode data:', error);
-            if (window.addMessageToChat) {
-                window.addMessageToChat('assistant', '❌ Error loading episode. Please try again.');
-            }
+            this.showMediaLibraryError('Error loading episode. Please try again.');
         }
     }
 
@@ -4391,6 +4615,7 @@ class MediaLibraryManager {
                 console.log('[DEBUG - FAVORITES] Opening TV show from favorites:', path);
                 // Switch to TV shows tab first, then open the specific show
                 this.currentTab = 'tvshows';
+                this.currentTabFlag = 'tvshows'; // Update the flag as well
                 this.openTVShow(path);
                 };
             });
@@ -4792,6 +5017,38 @@ class MediaLibraryManager {
         toast.style.display = 'flex';
         document.body.appendChild(toast);
         setTimeout(() => { toast.style.display = 'none'; }, 1800);
+    }
+
+    showMediaLibraryError(message) {
+        console.log('[MEDIA-LIBRARY] Error:', message);
+        
+        // Get or create the error display area in the Media Library footer
+        let errorDisplay = document.getElementById('mediaLibraryErrorDisplay');
+        if (!errorDisplay) {
+            errorDisplay = document.createElement('div');
+            errorDisplay.id = 'mediaLibraryErrorDisplay';
+            errorDisplay.className = 'media-library-error-display';
+            
+            // Append to the Media Library modal instead of body
+            const mediaLibraryModal = document.querySelector('.media-library-modal');
+            if (mediaLibraryModal) {
+                mediaLibraryModal.appendChild(errorDisplay);
+            } else {
+                // Fallback to body if modal not found
+                document.body.appendChild(errorDisplay);
+            }
+        }
+        
+        // Only show if it's a different message or if no message is currently showing
+        if (errorDisplay.textContent !== message || errorDisplay.style.display === 'none') {
+            errorDisplay.textContent = message;
+            errorDisplay.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorDisplay.style.display = 'none';
+            }, 5000);
+        }
     }
 
     attachResumeEvents(mediaItem) {

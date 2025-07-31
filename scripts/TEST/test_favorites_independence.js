@@ -1,3 +1,11 @@
+/*
+  TEST_FAVORITES_INDEPENDENCE.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 console.log('[DEBUG - FAVORITES INDEPENDENCE TEST] Starting favorites independence test...');
 
 // Test 1: Check if MediaLibraryManager is available
