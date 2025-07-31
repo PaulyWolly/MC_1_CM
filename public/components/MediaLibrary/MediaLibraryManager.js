@@ -2350,29 +2350,154 @@ class MediaLibraryManager {
             movies: movies.length 
         });
         // Helper for TV show label and screenshot
-        function getTvShowLabel(item) {
+        const getTvShowLabel = (item) => {
             let path = decodeURIComponent(item.path || '');
             // Try to extract show name and SxxExx
-            let show = '', code = '';
-            // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
-            let match = path.match(/TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i);
-            if (match) {
-                show = match[1].replace(/_/g, ' ').trim();
-                code = `S${match[2]}E${match[3]}`;
+            let show = '', code = '', year = '';
+            
+            console.log('[DEBUG - WATCH-LATER] getTvShowLabel called with path:', path);
+            console.log('[DEBUG - WATCH-LATER] tvShowsData available:', this.tvShowsData ? 'YES' : 'NO');
+            console.log('[DEBUG - WATCH-LATER] tvShowsData length:', this.tvShowsData ? this.tvShowsData.length : 'N/A');
+            
+            // First, try to find the show data from the JSON to get the year
+            if (this.tvShowsData && Array.isArray(this.tvShowsData)) {
+                console.log('[DEBUG - WATCH-LATER] Searching through', this.tvShowsData.length, 'TV shows for path:', path);
+                
+                for (const tvShow of this.tvShowsData) {
+                    // Check if this episode belongs to this show by matching the path
+                    if (tvShow.folders) {
+                        for (const season of tvShow.folders) {
+                            if (season.files) {
+                                for (const episode of season.files) {
+                                    const epPath = (episode.relPath || episode.path || '').replace(/\\/g, '/').trim();
+                                    const searchPath = path.replace(/\\/g, '/').trim();
+                                    
+                                    if (epPath === searchPath) {
+                                        console.log('[DEBUG - WATCH-LATER] Found matching episode!');
+                                        console.log('[DEBUG - WATCH-LATER] Show path:', tvShow.path);
+                                        console.log('[DEBUG - WATCH-LATER] Show normalizedKey:', tvShow.normalizedKey);
+                                        
+                                        // Found the show! Extract year from the normalizedKey
+                                        if (tvShow.normalizedKey) {
+                                            const yearMatch = tvShow.normalizedKey.match(/\((\d{4})\)/);
+                                            if (yearMatch) {
+                                                year = yearMatch[1];
+                                                console.log('[DEBUG - WATCH-LATER] Extracted year from normalizedKey:', year);
+                                            } else {
+                                                console.log('[DEBUG - WATCH-LATER] No year found in normalizedKey');
+                                            }
+                                            
+                                            // Extract show name from normalizedKey (remove the year part)
+                                            show = tvShow.normalizedKey.replace(/\.\(\d{4}\)$/, '').replace(/\./g, ' ').trim();
+                                            console.log('[DEBUG - WATCH-LATER] Extracted show name from normalizedKey:', show);
+                                        } else {
+                                            // Fallback to path parsing if no normalizedKey
+                                            const yearMatch = tvShow.path.match(/\((\d{4})\)/);
+                                            if (yearMatch) {
+                                                year = yearMatch[1];
+                                                console.log('[DEBUG - WATCH-LATER] Extracted year from path (fallback):', year);
+                                            }
+                                            show = tvShow.path.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+                                            console.log('[DEBUG - WATCH-LATER] Extracted show name from path (fallback):', show);
+                                        }
+                                        break;
+                                    }
+                                }
+                                if (year) break;
+                            }
+                        }
+                        if (year) break;
+                    }
+                }
+                
+                if (!year) {
+                    console.log('[DEBUG - WATCH-LATER] No matching show found in JSON data, falling back to path parsing');
+                }
             } else {
-                // Fallback: try to extract from filename
-                let file = path.split(/[\\/]/).pop();
-                let epMatch = file.match(/[Ss](\d{2})[Ee](\d{2})/i);
+                console.log('[DEBUG - WATCH-LATER] tvShowsData not available, falling back to path parsing');
+            }
+            
+            // If we didn't find the show in JSON data, fall back to path parsing
+            if (!show) {
+                console.log('[DEBUG - WATCH-LATER] Falling back to path parsing for:', path);
+                
+                // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
+                let match = path.match(/TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i);
+                if (match) {
+                    const folderName = match[1].replace(/_/g, ' ').trim();
+                    console.log('[DEBUG - WATCH-LATER] Extracted folder name:', folderName);
+                    
+                    // Extract year from folder name
+                    const yearMatch = folderName.match(/\((\d{4})\)/);
+                    if (yearMatch) {
+                        year = yearMatch[1];
+                        show = folderName.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+                        console.log('[DEBUG - WATCH-LATER] Found year in folder name:', year);
+                        console.log('[DEBUG - WATCH-LATER] Extracted show name:', show);
+                    } else {
+                        show = folderName;
+                        console.log('[DEBUG - WATCH-LATER] No year in folder name, using:', show);
+                    }
+                    code = `S${match[2]}E${match[3]}`;
+                    console.log('[DEBUG - WATCH-LATER] Extracted episode code:', code);
+                } else {
+                    console.log('[DEBUG - WATCH-LATER] No TV-SHOWS pattern match, trying filename parsing');
+                    
+                    // Fallback: try to extract from filename
+                    let file = path.split(/[\\/]/).pop();
+                    let epMatch = file.match(/[Ss](\d{2})[Ee](\d{2})/i);
+                    if (epMatch) {
+                        code = `S${epMatch[1]}E${epMatch[2]}`;
+                        console.log('[DEBUG - WATCH-LATER] Extracted episode code from filename:', code);
+                    }
+                    
+                    // Try to get show from parent folder
+                    let parts = path.split(/[\\/]/);
+                    if (parts.length > 2) {
+                        const folderName = parts[parts.length - 3].replace(/_/g, ' ').trim();
+                        console.log('[DEBUG - WATCH-LATER] Extracted folder name from path parts:', folderName);
+                        
+                        const yearMatch = folderName.match(/\((\d{4})\)/);
+                        if (yearMatch) {
+                            year = yearMatch[1];
+                            show = folderName.replace(/\s*\(\d{4}\)\s*$/, '').trim();
+                            console.log('[DEBUG - WATCH-LATER] Found year in folder name:', year);
+                            console.log('[DEBUG - WATCH-LATER] Extracted show name:', show);
+                        } else {
+                            show = folderName;
+                            console.log('[DEBUG - WATCH-LATER] No year in folder name, using:', show);
+                        }
+                    }
+                }
+            }
+            
+            // If we have show name but no episode code, try to extract from filename
+            if (show && !code) {
+                const filename = path.split(/[\\/]/).pop() || '';
+                console.log('[DEBUG - WATCH-LATER] Extracting episode code from filename:', filename);
+                const epMatch = filename.match(/[Ss](\\d{2})[Ee](\\d{2})/i);
                 if (epMatch) {
                     code = `S${epMatch[1]}E${epMatch[2]}`;
+                    console.log('[DEBUG - WATCH-LATER] Extracted episode code:', code);
                 }
-                // Try to get show from parent folder
-                let parts = path.split(/[\\/]/);
-                if (parts.length > 2) show = parts[parts.length - 3].replace(/_/g, ' ').trim();
             }
-            if (show && code) return `${show}: ${code}`;
-            return item.title || item.name || 'Episode';
-        }
+            
+            // Build the label with year if available
+            if (show && code) {
+                const finalLabel = year ? `${show} (${year}): ${code}` : `${show}: ${code}`;
+                console.log('[DEBUG - WATCH-LATER] Final label:', finalLabel);
+                return finalLabel;
+            } else if (show) {
+                // If we have show name but no episode code, just show the show with year
+                const finalLabel = year ? `${show} (${year})` : show;
+                console.log('[DEBUG - WATCH-LATER] Final label (no episode code):', finalLabel);
+                return finalLabel;
+            }
+            
+            const fallbackLabel = item.title || item.name || 'Episode';
+            console.log('[DEBUG - WATCH-LATER] Using fallback label:', fallbackLabel);
+            return fallbackLabel;
+        };
         function getTvShowScreenshot(item, self) {
             // Try to robustly extract show/season/episode for screenshot
             let path = decodeURIComponent(item.path || '');
@@ -2436,17 +2561,31 @@ class MediaLibraryManager {
                 <hr class="watch-later-section-divider">
                 <div class="watch-later-scroll">
                     <div class="watch-later-grid">
-                        ${tvshows.map(item => `
-                            <div class="media-library-movie-card-tvshows watch-later-card" data-path="${item.path}">
-                                <img class="watch-later-img-tv watch-later-img watch-later-img-clickable" src="${getTvShowScreenshot(item, this)}" alt="${getTvShowLabel(item)}" onerror="this.onerror=null;this.src='/assets/img/placeholder-poster.jpg';">
-                                ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${this.formatDateTime(item.lastWatched)}<br><span class=\"watch-later-resume-info\">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
-                                <div class="media-info"><h3 class="watch-later-title">${getTvShowLabel(item)}</h3></div>
-                                <div class="watch-later-btn-row">
-                                    <button class="watch-later-resume-btn">Watch</button>
-                                    <button class="watch-later-delete-btn">🗑️</button>
-                                </div>
-                            </div>
-                        `).join('')}
+                                        ${tvshows.map(item => {
+                    // Use the EXACT SAME method as main TV-SHOWS tab - get episode object directly
+                    const episodeObj = this.getEpisodeObjectFromPath(item.path);
+                    if (!episodeObj) {
+                        console.error('[DEBUG - WATCH-LATER] No episode object found for path:', item.path, '- SKIPPING THIS ITEM');
+                        return ''; // Skip this item entirely - no fallback
+                    }
+                    
+                    // Create the EXACT SAME HTML structure as main TV-SHOWS tab
+                    const episodeData = JSON.stringify(episodeObj).replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+                    return `<div class="media-library-card episode watch-later-card" data-episode="${episodeData}" data-resume-time="${item.currentTime || 0}" onclick="mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)">
+                        <div class="media-library-card-poster">
+                            <img src="${getTvShowScreenshot(item, this)}" alt="${getTvShowLabel(item)}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
+                            <div class="media-library-play-overlay">▶</div>
+                        </div>
+                        <div class="media-library-card-info">
+                            <h3 class="tv-show-season-episode-name">${getTvShowLabel(item)}</h3>
+                            ${item.lastWatched ? `<div class="watch-later-timestamp">Last watched: ${this.formatDateTime(item.lastWatched)}<br><span class="watch-later-resume-info">Resume from ${this.formatTime(item.currentTime)}</span></div>` : ''}
+                        </div>
+                        <div class="watch-later-btn-row">
+                            <button class="watch-later-resume-btn">Watch</button>
+                            <button class="watch-later-delete-btn">🗑️</button>
+                        </div>
+                    </div>`;
+                }).join('')}
                         ${tvshows.length === 0 ? '<div class="watch-later-empty">(No items)</div>' : ''}
                     </div>
                 </div>
@@ -2457,37 +2596,11 @@ class MediaLibraryManager {
         const mediaGrid = document.getElementById('mediaGrid');
         if (mediaGrid) {
             mediaGrid.innerHTML = html;
-            // Attach resume and delete handlers for both columns
+            // Attach handlers for movies and delete buttons
             setTimeout(() => {
-                console.log('[DEBUG - WATCH-LATER] Setting up event handlers...');
-                const resumeButtons = document.querySelectorAll('.watch-later-resume-btn');
-                console.log('[DEBUG - WATCH-LATER] Found', resumeButtons.length, 'resume buttons');
+                console.log('[DEBUG - WATCH-LATER] Setting up handlers...');
                 
-                resumeButtons.forEach((btn, index) => {
-                    console.log('[DEBUG - WATCH-LATER] Setting up button', index, 'with path:', btn.closest('.watch-later-card')?.getAttribute('data-path'));
-                    btn.onclick = async (e) => {
-                        e.stopPropagation();
-                        console.log('[DEBUG - WATCH-LATER] Resume button clicked!');
-                        // Use .watch-later-card to match both movie and tvshow cards
-                        const card = btn.closest('.watch-later-card');
-                        const path = card ? card.getAttribute('data-path') : null;
-                        console.log('[DEBUG - WATCH-LATER] Resume clicked, resolved path:', path);
-                        const item = resumeList.find(i => (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (path || '').replace(/\\/g, '/').toLowerCase().trim());
-                        if (item) {
-                            if (tvshows.includes(item)) {
-                                // TV episode: directly use the saved path with playEpisode
-                                console.log('[DEBUG - WATCH-LATER] Playing TV episode with path:', item.path);
-                                await this.playEpisode(item.path, item.currentTime || 0);
-                            } else {
-                                // Movie: playMedia
-                                console.log('[DEBUG - WATCH-LATER] Calling playMedia with:', item.path, item.currentTime);
-                                this.playMedia(item, item.currentTime);
-                            }
-                        } else {
-                            console.warn('[DEBUG - WATCH-LATER] No matching item found for path:', path);
-                    }
-                };
-                });
+                // Delete handlers for both movies and TV shows
                 document.querySelectorAll('.watch-later-delete-btn').forEach(btn => {
                     btn.onclick = (e) => {
                         e.stopPropagation();
@@ -2497,34 +2610,38 @@ class MediaLibraryManager {
                         this.removeResumeProgress(path);
                         this.renderWatchLaterContent();
                         this.showToast('Removed from Watch Later');
-                };
+                    };
                 });
-                const clickableImages = document.querySelectorAll('.watch-later-img-clickable');
-                console.log('[DEBUG - WATCH-LATER] Found', clickableImages.length, 'clickable images');
                 
-                clickableImages.forEach((img, index) => {
-                    console.log('[DEBUG - WATCH-LATER] Setting up image', index, 'with path:', img.closest('.watch-later-card')?.getAttribute('data-path'));
-                                            img.onclick = async (e) => {
-                            e.stopPropagation();
-                            console.log('[DEBUG - WATCH-LATER] Image clicked!');
-                            const card = img.closest('.watch-later-card');
-                            const path = card ? card.getAttribute('data-path') : null;
-                            console.log('[DEBUG - WATCH-LATER] Image click, resolved path:', path);
-                            const item = resumeList.find(i => (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (path || '').replace(/\\/g, '/').toLowerCase().trim());
-                            console.log('[DEBUG - WATCH-LATER] Found item:', item);
-                            console.log('[DEBUG - WATCH-LATER] TV-Shows array:', tvshows);
-                            console.log('[DEBUG - WATCH-LATER] Item in tvshows:', item ? tvshows.includes(item) : 'no item');
-                            if (item) {
-                            if (tvshows.includes(item)) {
-                                // TV episode: directly use the saved path with playEpisode
-                                console.log('[DEBUG - WATCH-LATER] Playing TV episode with path (img click):', item.path);
-                                await this.playEpisode(item.path, item.currentTime || 0);
-                            } else {
-                                this.playMedia(item, item.currentTime);
-                            }
+                // Resume handlers for movies only (TV shows use onclick)
+                document.querySelectorAll('.media-library-movie-card-movies .watch-later-resume-btn').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const card = btn.closest('.watch-later-card');
+                        const path = card ? card.getAttribute('data-path') : null;
+                        const item = resumeList.find(i => (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (path || '').replace(/\\/g, '/').toLowerCase().trim());
+                        if (item) {
+                            console.log('[DEBUG - WATCH-LATER] Playing movie with:', item.path, item.currentTime);
+                            this.playMedia(item, item.currentTime);
                         }
                     };
                 });
+                
+                // Image click handlers for movies only (TV shows use onclick)
+                document.querySelectorAll('.media-library-movie-card-movies .watch-later-img-clickable').forEach(img => {
+                    img.onclick = async (e) => {
+                        e.stopPropagation();
+                        const card = img.closest('.watch-later-card');
+                        const path = card ? card.getAttribute('data-path') : null;
+                        const item = resumeList.find(i => (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (path || '').replace(/\\/g, '/').toLowerCase().trim());
+                        if (item) {
+                            console.log('[DEBUG - WATCH-LATER] Playing movie (img click) with:', item.path, item.currentTime);
+                            this.playMedia(item, item.currentTime);
+                        }
+                    };
+                                });
+                
+
             }, 0);
         }
         return html;
@@ -4066,143 +4183,316 @@ class MediaLibraryManager {
         this.renderModal(); // Re-render modal to update tab highlight
     }
 
-    async playEpisode(episodePath, startTime = 0) {
-        console.log('[DEBUG - PLAY-EPISODE] episodePath:', episodePath);
-        console.log('[DEBUG - PLAY-EPISODE] episodePath type:', typeof episodePath);
-        console.log('[DEBUG - PLAY-EPISODE] episodePath length:', episodePath ? episodePath.length : 'undefined');
+        // SINGLE SOURCE OF TRUTH for ALL TV show episode playing
+    async playTVShowEpisode(episodePath, startTime = 0, sourceContext = 'unknown') {
+        console.log('[DEBUG - SINGLE-SOURCE-TV] playTVShowEpisode called');
+        console.log('[DEBUG - SINGLE-SOURCE-TV] episodePath:', episodePath);
+        console.log('[DEBUG - SINGLE-SOURCE-TV] startTime:', startTime);
+        console.log('[DEBUG - SINGLE-SOURCE-TV] sourceContext:', sourceContext);
         
-        // Try to find the episode object in the TV shows data by path
-        let episodeObj = null;
-        if (this.tvShowsData && episodePath) {
-            // Search through all TV shows and their seasons/episodes
-            for (const show of this.tvShowsData) {
-                if (show.seasons && Array.isArray(show.seasons)) {
-                    for (const season of show.seasons) {
-                        if (season.episodes && Array.isArray(season.episodes)) {
-                                                        episodeObj = season.episodes.find(episode => {
-                                // Try exact matches first
-                                if (episode.path === episodePath || 
-                                    episode.absPath === episodePath || 
-                                    episode.filePath === episodePath ||
-                                    (episode.relPath && episode.relPath === episodePath)) {
-                                    return true;
-                                }
-                                
-                                // Try normalized path comparisons
-                                const normalizePath = (p) => p ? p.replace(/\\/g, '/').toLowerCase().trim() : '';
-                                const normalizedEpisodePath = normalizePath(episodePath);
-                                const normalizedEpisodePath2 = normalizePath(episode.path);
-                                const normalizedEpisodeAbsPath = normalizePath(episode.absPath);
-                                const normalizedEpisodeFilePath = normalizePath(episode.filePath);
-                                const normalizedEpisodeRelPath = normalizePath(episode.relPath);
-                                
-                                return normalizedEpisodePath === normalizedEpisodePath2 ||
-                                       normalizedEpisodePath === normalizedEpisodeAbsPath ||
-                                       normalizedEpisodePath === normalizedEpisodeFilePath ||
-                                       normalizedEpisodePath === normalizedEpisodeRelPath;
-                            });
-                            if (episodeObj) {
-                                console.log('[DEBUG - PLAY-EPISODE] Found episode in show:', show.name, 'season:', season.name);
-                                    break;
-                                }
-                        }
-                    }
-                    if (episodeObj) break;
-                }
-            }
-        }
+        // STEP 1: Find the episode object using centralized function
+        const episodeObj = this.findEpisodeObjectByPath(episodePath);
         
-        console.log('[DEBUG - PLAY-EPISODE] Found episodeObj:', episodeObj);
+        console.log('[DEBUG - SINGLE-SOURCE-TV] Episode object found:', episodeObj ? 'YES' : 'NO');
         
+        // STEP 2: Process episode object (add year, clean title, etc.)
         if (episodeObj) {
-            console.log('[DEBUG - PLAY-EPISODE] Episode object details:');
-            console.log('[DEBUG - PLAY-EPISODE] - name:', episodeObj.name);
-            console.log('[DEBUG - PLAY-EPISODE] - filename:', episodeObj.filename);
-            console.log('[DEBUG - PLAY-EPISODE] - absPath:', episodeObj.absPath);
-            console.log('[DEBUG - PLAY-EPISODE] - relPath:', episodeObj.relPath);
-            console.log('[DEBUG - PLAY-EPISODE] - filePath:', episodeObj.filePath);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Processing episode object');
+            console.log('[DEBUG - SINGLE-SOURCE-TV] - name:', episodeObj.name);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] - filename:', episodeObj.filename);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] - absPath:', episodeObj.absPath);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] - relPath:', episodeObj.relPath);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] - filePath:', episodeObj.filePath);
+            
+            // Add year information to the episode object
+            const year = this.getDateForTvShow(episodeObj);
+            if (year) {
+                console.log('[DEBUG - SINGLE-SOURCE-TV] Adding year to episode object:', year);
+                
+                // Add year to episode object
+                episodeObj.year = year;
+                episodeObj.data = episodeObj.data || {};
+                episodeObj.data.year = year;
+                
+                // Add year to title for VideoPlayer to display
+                if (episodeObj.title && !episodeObj.title.includes(`(${year})`)) {
+                    episodeObj.title = episodeObj.title.replace(/^([^(]+)/, `$1 (${year})`);
+                    console.log('[DEBUG - SINGLE-SOURCE-TV] Updated title with year:', episodeObj.title);
+                }
+                
+                console.log('[DEBUG - SINGLE-SOURCE-TV] Added year to episode object and title');
+            } else {
+                console.log('[DEBUG - SINGLE-SOURCE-TV] No year found for episode');
+            }
+            
+            // Set global current media item
             window.mediaLibraryManager.currentMediaItem = episodeObj;
             window.mediaLibraryManager.currentFile = episodeObj;
         } else {
+            console.log('[DEBUG - SINGLE-SOURCE-TV] No episode object found, using basic path object');
             window.mediaLibraryManager.currentMediaItem = { path: episodePath };
             window.mediaLibraryManager.currentFile = { path: episodePath };
         }
         
-        // Remove both modal and overlay
+        // STEP 3: Close modal and prepare video player
         this.closeMediaBrowser();
-        
-        // Wait for video player to be ready before proceeding
         await this.waitForVideoPlayerReady();
         
         if (!this.videoPlayer) {
-            console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode');
+            console.error('[DEBUG - SINGLE-SOURCE-TV] VideoPlayer not available');
             this.showMediaLibraryError('Video player not available. Please try again.');
             return;
         }
         
-        // For TV-Shows, we need to use the /api/video route with the absolute filePath
+        // STEP 4: Build video URL
         let videoUrl;
-        
         if (episodeObj && episodeObj.filePath) {
-            // Use the absolute filePath from the TV-Shows data
             const filePath = episodeObj.filePath;
             const encodedPath = encodeURIComponent(filePath);
             videoUrl = `/api/video?path=${encodedPath}`;
-            console.log('[DEBUG - PLAY-EPISODE] Using filePath from episodeObj:', filePath);
-            console.log('[DEBUG - PLAY-EPISODE] Encoded path:', encodedPath);
-            console.log('[DEBUG - PLAY-EPISODE] Full video URL:', videoUrl);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Using filePath from episodeObj:', filePath);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Full video URL:', videoUrl);
         } else {
-            // Fallback: try to construct path from episodePath
-        let normalizedPath = (episodePath || '').replace(/\\/g, '/');
-        // Remove any leading '/media/'
-        if (normalizedPath.startsWith('/media/')) {
-            normalizedPath = normalizedPath.replace(/^\/media\//, '');
-        }
-        // Always encode only once
-        try {
-            normalizedPath = decodeURIComponent(normalizedPath);
-        } catch (e) {}
-        const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/');
+            // Fallback: construct path from episodePath
+            let normalizedPath = (episodePath || '').replace(/\\/g, '/');
+            if (normalizedPath.startsWith('/media/')) {
+                normalizedPath = normalizedPath.replace(/^\/media\//, '');
+            }
+            try {
+                normalizedPath = decodeURIComponent(normalizedPath);
+            } catch (e) {}
+            const encodedPath = normalizedPath.split('/').map(encodeURIComponent).join('/');
             videoUrl = `/media/${encodedPath}`;
-            console.log('[DEBUG - PLAY-EPISODE] Using fallback path construction:', normalizedPath);
-            console.log('[DEBUG - PLAY-EPISODE] Fallback encoded path:', encodedPath);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Using fallback path construction:', normalizedPath);
         }
         
-        console.log('[DEBUG - PLAY-EPISODE] Final video URL:', videoUrl, 'startTime:', startTime);
+        console.log('[DEBUG - SINGLE-SOURCE-TV] Final video URL:', videoUrl);
         
-        // Set up return location based on current context
+        // STEP 5: Set return location based on source context
         if (window.videoPlayer) {
-            console.log('[PLAY-EPISODE-DEBUG] Setting return location for TV show episode from Watch Later');
-            console.log('[PLAY-EPISODE-DEBUG] Current tab flag:', this.currentTabFlag);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Setting return location for source:', sourceContext);
             
-            // Determine the correct return location based on current context
             let returnLocation;
-            if (this.currentTabFlag === 'watchlater') {
+            if (sourceContext === 'watchlater') {
                 returnLocation = { type: 'watch-later' };
-                console.log('[PLAY-EPISODE-DEBUG] Setting return location to watch-later');
-            } else if (this.currentTabFlag === 'tvshows') {
+            } else if (sourceContext === 'tvshows') {
                 returnLocation = { type: 'tv-show-episodes', showPath: this.currentTVShow, seasonPath: this.currentTVSeason };
-                console.log('[PLAY-EPISODE-DEBUG] Setting return location to tv-show-episodes');
             } else {
                 returnLocation = { type: 'media-library', tab: 'TV-Shows' };
-                console.log('[PLAY-EPISODE-DEBUG] Setting return location to media-library TV-Shows');
             }
             
-            console.log('[PLAY-EPISODE-DEBUG] Return location object:', returnLocation);
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Return location:', returnLocation);
             window.videoPlayer.setReturnLocation(returnLocation);
             
-            // Ensure video player is ready before calling playUrl
-            console.log('[DEBUG - PLAY-EPISODE] Calling playUrl with startTime:', startTime);
-            window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime);
+            // STEP 6: Play the video with the episode object
+            console.log('[DEBUG - SINGLE-SOURCE-TV] Calling playUrl with episode object');
+            window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, episodeObj);
         }
     }
 
+    // NEW METHOD: Get episode object from path using the SAME logic as main TV-SHOWS tab
+    getEpisodeObjectFromPath(episodePath) {
+        console.log('[DEBUG - REAL-METHOD] getEpisodeObjectFromPath called with:', episodePath);
+        
+        if (!episodePath) {
+            console.log('[DEBUG - REAL-METHOD] No episodePath provided');
+            return null;
+        }
+        
+        // Parse the path to extract show, season, and episode info
+        const pathParts = episodePath.split('/');
+        if (pathParts.length < 3) {
+            console.log('[DEBUG - REAL-METHOD] Invalid path format:', episodePath);
+            return null;
+        }
+        
+        const showPath = pathParts[0]; // e.g., "Bored to Death (2009)"
+        const seasonPath = pathParts[0] + '/' + pathParts[1]; // e.g., "Bored to Death (2009)/Season 01"
+        const episodeFilename = pathParts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
+        
+        console.log('[DEBUG - REAL-METHOD] Parsed path:', { showPath, seasonPath, episodeFilename });
+        
+        // Use the SAME method as main TV-SHOWS tab
+        const show = this.findShowByPath(showPath);
+        if (!show) {
+            console.log('[DEBUG - REAL-METHOD] Show not found:', showPath);
+            return null;
+        }
+        
+        console.log('[DEBUG - REAL-METHOD] Found show:', show.name);
+        
+        // Get episodes from the SAME method as main TV-SHOWS tab
+        let episodes = this.getEpisodesForSeason(show, seasonPath) || [];
+        console.log('[DEBUG - REAL-METHOD] Found episodes:', episodes.length);
+        
+        // Find the specific episode by filename
+        const episodeObj = episodes.find(episode => {
+            const episodeName = episode.name || episode.filename || '';
+            return episodeName.toLowerCase().includes(episodeFilename.toLowerCase()) || 
+                   episodeFilename.toLowerCase().includes(episodeName.toLowerCase());
+        });
+        
+        if (episodeObj) {
+            console.log('[DEBUG - REAL-METHOD] Found episode object:', episodeObj.name);
+            return episodeObj;
+        } else {
+            console.log('[DEBUG - REAL-METHOD] Episode not found in episodes list');
+            return null;
+        }
+    }
+
+    // CENTRALIZED FUNCTION: Find episode object by path from tvShowsData
+    findEpisodeObjectByPath(episodePath) {
+        console.log('[DEBUG - CENTRALIZED] findEpisodeObjectByPath called with:', episodePath);
+        
+        if (!this.tvShowsData || !episodePath) {
+            console.log('[DEBUG - CENTRALIZED] No tvShowsData or episodePath available');
+            return null;
+        }
+        
+        console.log('[DEBUG - CENTRALIZED] tvShowsData length:', this.tvShowsData.length);
+        console.log('[DEBUG - CENTRALIZED] First few shows:', this.tvShowsData.slice(0, 3).map(s => s.name));
+        
+        // Search through all TV shows and their seasons/episodes
+        for (const show of this.tvShowsData) {
+            if (show.seasons && Array.isArray(show.seasons)) {
+                for (const season of show.seasons) {
+                    if (season.episodes && Array.isArray(season.episodes)) {
+                        const episodeObj = season.episodes.find(episode => {
+                            const normalizePath = (p) => p ? p.replace(/\\/g, '/').toLowerCase().trim() : '';
+                            const normalizedEpisodePath = normalizePath(episodePath);
+                            const normalizedEpisodePath2 = normalizePath(episode.path);
+                            const normalizedEpisodeAbsPath = normalizePath(episode.absPath);
+                            const normalizedEpisodeFilePath = normalizePath(episode.filePath);
+                            const normalizedEpisodeRelPath = normalizePath(episode.relPath);
+                            
+                            // Debug logging for first few episodes to see path formats
+                            if (show.name === 'Bored to Death' && season.name === 'Season 01' && episode.name && episode.name.includes('S01E03')) {
+                                console.log('[DEBUG - PATH-MATCHING] Looking for:', normalizedEpisodePath);
+                                console.log('[DEBUG - PATH-MATCHING] Episode paths available:');
+                                console.log('[DEBUG - PATH-MATCHING]   episode.path:', episode.path);
+                                console.log('[DEBUG - PATH-MATCHING]   episode.absPath:', episode.absPath);
+                                console.log('[DEBUG - PATH-MATCHING]   episode.filePath:', episode.filePath);
+                                console.log('[DEBUG - PATH-MATCHING]   episode.relPath:', episode.relPath);
+                                console.log('[DEBUG - PATH-MATCHING] Full episode object:', episode);
+                            }
+                            
+                            // Try exact path matches first
+                            if (normalizedEpisodePath === normalizedEpisodePath2 ||
+                                normalizedEpisodePath === normalizedEpisodeAbsPath ||
+                                normalizedEpisodePath === normalizedEpisodeFilePath ||
+                                normalizedEpisodePath === normalizedEpisodeRelPath) {
+                                return true;
+                            }
+                            
+                            // If exact path doesn't match, try matching just the filename
+                            const getFilename = (path) => {
+                                if (!path) return '';
+                                const parts = path.split('/');
+                                return parts[parts.length - 1].toLowerCase().trim();
+                            };
+                            
+                            const episodeFilename = getFilename(normalizedEpisodePath);
+                            const storedFilename = getFilename(normalizedEpisodePath2) || 
+                                                  getFilename(normalizedEpisodeAbsPath) || 
+                                                  getFilename(normalizedEpisodeFilePath) || 
+                                                  getFilename(normalizedEpisodeRelPath);
+                            
+                            if (episodeFilename && storedFilename && episodeFilename === storedFilename) {
+                                console.log('[DEBUG - PATH-MATCHING] Matched by filename:', episodeFilename);
+                                return true;
+                            }
+                            
+                            // If filename doesn't match, try matching by show name and episode info
+                            const extractShowAndEpisode = (path) => {
+                                if (!path) return null;
+                                const parts = path.split('/');
+                                if (parts.length < 3) return null;
+                                
+                                const showPart = parts[0]; // e.g., "Bored to Death (2009)"
+                                const seasonPart = parts[1]; // e.g., "Season 01"
+                                const episodePart = parts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
+                                
+                                // Extract show name without year
+                                const showMatch = showPart.match(/^(.+?)\s*\(\d{4}\)$/);
+                                const showName = showMatch ? showMatch[1].trim() : showPart;
+                                
+                                // Extract season and episode numbers
+                                const episodeMatch = episodePart.match(/S(\d{1,2})E(\d{1,2})/i);
+                                const seasonNum = episodeMatch ? episodeMatch[1] : null;
+                                const episodeNum = episodeMatch ? episodeMatch[2] : null;
+                                
+                                return { showName, seasonNum, episodeNum };
+                            };
+                            
+                            const episodeInfo = extractShowAndEpisode(normalizedEpisodePath);
+                            const storedInfo = extractShowAndEpisode(normalizedEpisodePath2) || 
+                                              extractShowAndEpisode(normalizedEpisodeAbsPath) || 
+                                              extractShowAndEpisode(normalizedEpisodeFilePath) || 
+                                              extractShowAndEpisode(normalizedEpisodeRelPath);
+                            
+                            if (episodeInfo && storedInfo && 
+                                episodeInfo.showName === storedInfo.showName &&
+                                episodeInfo.seasonNum === storedInfo.seasonNum &&
+                                episodeInfo.episodeNum === storedInfo.episodeNum) {
+                                console.log('[DEBUG - PATH-MATCHING] Matched by show/season/episode:', episodeInfo);
+                                return true;
+                            }
+                            
+                            return false;
+                        });
+                        
+                        if (episodeObj) {
+                            console.log('[DEBUG - CENTRALIZED] Found episode in show:', show.name, 'season:', season.name);
+                            return episodeObj;
+                        }
+                    }
+                }
+            }
+        }
+        
+        console.log('[DEBUG - CENTRALIZED] No episode object found for path:', episodePath);
+        return null;
+    }
+
+    // Legacy method - now calls the working method
+    async playEpisode(episodePath, startTime = 0) {
+        console.log('[DEBUG - LEGACY] playEpisode called, redirecting to working method');
+        // Find the episode object and use the working method
+        const episodeObj = this.findEpisodeObjectByPath(episodePath);
+        if (episodeObj) {
+            // Create a fake element with the episode data
+            const fakeElement = document.createElement('div');
+            fakeElement.setAttribute('data-episode', JSON.stringify(episodeObj));
+            await this.playEpisodeFromDataAttribute(fakeElement, startTime);
+        } else {
+            console.error('[DEBUG - LEGACY] No episode object found for path:', episodePath);
+            this.showMediaLibraryError('Episode not found. Please try again.');
+        }
+    }
+
+    // ORIGINAL WORKING IMPLEMENTATION - Restored for Watch Later
     async playEpisodeFromObject(episodeDataJson, startTime = 0) {
-        console.log('[PLAY EPISODE FROM OBJECT DEBUG] episodeDataJson:', episodeDataJson);
+        console.log('[DEBUG - WORKING] playEpisodeFromObject called');
         
         try {
             const episodeObj = JSON.parse(episodeDataJson);
-            console.log('[PLAY EPISODE FROM OBJECT DEBUG] parsed episodeObj:', episodeObj);
+            console.log('[DEBUG - WORKING] parsed episodeObj:', episodeObj);
+            
+            // Add year information to the episode object for video player using dedicated method
+            const year = this.getDateForTvShow(episodeObj);
+            if (year) {
+                console.log('[DEBUG - WORKING] Adding year to episode object:', year);
+                
+                // Add year to episode object (but NOT to title/name - let VideoPlayer handle that)
+                episodeObj.year = year;
+                episodeObj.data = episodeObj.data || {};
+                episodeObj.data.year = year;
+                
+                console.log('[DEBUG - WORKING] Added year to episode object (not title/name)');
+            } else {
+                console.log('[DEBUG - WORKING] No year found for episode');
+            }
             
             window.mediaLibraryManager.currentMediaItem = episodeObj;
             window.mediaLibraryManager.currentFile = episodeObj;
@@ -4214,7 +4504,7 @@ class MediaLibraryManager {
             await this.waitForVideoPlayerReady();
             
             if (!this.videoPlayer) {
-                console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode');
+                console.error('[DEBUG - WORKING] VideoPlayer not available for TV show episode');
                 this.showMediaLibraryError('Video player not available. Please try again.');
                 return;
             }
@@ -4227,84 +4517,88 @@ class MediaLibraryManager {
                 const filePath = episodeObj.filePath;
                 const encodedPath = encodeURIComponent(filePath);
                 videoUrl = `/api/video?path=${encodedPath}`;
-                console.log('[PLAY EPISODE FROM OBJECT DEBUG] Using filePath:', filePath);
-                console.log('[PLAY EPISODE FROM OBJECT DEBUG] Encoded path:', encodedPath);
+                console.log('[DEBUG - WORKING] Using filePath:', filePath);
+                console.log('[DEBUG - WORKING] Encoded path:', encodedPath);
             } else if (episodeObj && episodeObj.absPath) {
                 // Fallback to absPath if filePath is not available
                 const filePath = episodeObj.absPath;
                 const encodedPath = encodeURIComponent(filePath);
                 videoUrl = `/api/video?path=${encodedPath}`;
-                console.log('[PLAY EPISODE FROM OBJECT DEBUG] Using absPath as fallback:', filePath);
-                console.log('[PLAY EPISODE FROM OBJECT DEBUG] Encoded path:', encodedPath);
+                console.log('[DEBUG - WORKING] Using absPath as fallback:', filePath);
             } else {
-                console.error('[PLAY EPISODE FROM OBJECT DEBUG] No filePath or absPath found in episode object');
-                console.error('[PLAY EPISODE FROM OBJECT DEBUG] Available properties:', Object.keys(episodeObj));
+                console.error('[DEBUG - WORKING] No filePath or absPath found in episode object');
+                console.error('[DEBUG - WORKING] Available properties:', Object.keys(episodeObj));
                 this.showMediaLibraryError('No video file path found for this episode. Please check if the video file exists.');
                 return;
             }
             
-            console.log('[PLAY EPISODE FROM OBJECT DEBUG] Final video URL:', videoUrl, 'startTime:', startTime);
-            console.log('[PLAY EPISODE FROM OBJECT DEBUG] Video URL breakdown:');
-            console.log('  - Original filePath:', episodeObj.filePath);
-            console.log('  - Encoded path:', encodeURIComponent(episodeObj.filePath || ''));
-            console.log('  - Full URL:', videoUrl);
+            console.log('[DEBUG - WORKING] Final video URL:', videoUrl, 'startTime:', startTime);
             
-            // Set up a callback to restore the MediaLibrary modal when the Video Player is closed
+            // Set up return location based on current context
             if (window.videoPlayer) {
-                // Set return location for Watch Later TV show episodes
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location for Watch Later TV show episode');
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current tab flag:', this.currentTabFlag);
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current TV show:', this.currentTVShow);
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Current TV season:', this.currentTVSeason);
+                console.log('[DEBUG - WORKING] Setting return location for TV show episode from Watch Later');
+                console.log('[DEBUG - WORKING] Current tab flag:', this.currentTabFlag);
                 
                 // Determine the correct return location based on current context
                 let returnLocation;
                 if (this.currentTabFlag === 'watchlater') {
                     returnLocation = { type: 'watch-later' };
-                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to watch-later');
+                    console.log('[DEBUG - WORKING] Setting return location to watch-later');
                 } else if (this.currentTabFlag === 'tvshows') {
                     returnLocation = { type: 'tv-show-episodes', showPath: this.currentTVShow, seasonPath: this.currentTVSeason };
-                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to tv-show-episodes');
+                    console.log('[DEBUG - WORKING] Setting return location to tv-show-episodes');
                 } else {
                     returnLocation = { type: 'media-library', tab: 'TV-Shows' };
-                    console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Setting return location to media-library TV-Shows');
+                    console.log('[DEBUG - WORKING] Setting return location to media-library TV-Shows');
                 }
                 
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] Return location object:', returnLocation);
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] About to call setReturnLocation...');
+                console.log('[DEBUG - WORKING] Return location object:', returnLocation);
                 window.videoPlayer.setReturnLocation(returnLocation);
-                console.log('[PLAY-EPISODE-FROM-OBJECT-DEBUG] setReturnLocation called successfully');
-                
-                window.videoPlayer.onClose = () => {
-                    // Restore the MediaLibrary modal in the same state (showing episodes for the current show/season)
-                    this.renderModal();
-                };
                 
                 // Ensure video player is ready before calling playUrl
-                console.log('[PLAY EPISODE FROM OBJECT DEBUG] Calling playUrl with startTime:', startTime);
-                window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime);
+                console.log('[DEBUG - WORKING] Calling playUrl with startTime:', startTime);
+                console.log('[DEBUG - WORKING] Passing episodeObj to playUrl:', episodeObj);
+                window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, episodeObj);
             }
         } catch (error) {
-            console.error('[PLAY EPISODE FROM OBJECT DEBUG] Error parsing episode data:', error);
+            console.error('[DEBUG - WORKING] Error parsing episode data:', error);
+            this.showMediaLibraryError('Error playing episode. Please try again.');
         }
     }
 
     // Wrapper method for inline onclick handlers to handle async playEpisodeFromDataAttribute
     playEpisodeFromDataAttributeAsync(element, startTime = 0) {
+        // Check if there's a resume time stored in the element (for Watch Later)
+        const resumeTime = element.getAttribute('data-resume-time');
+        if (resumeTime) {
+            console.log('[DEBUG - RESUME] Found resume time in element:', resumeTime);
+            startTime = parseFloat(resumeTime) || 0;
+            // Clear the resume time after using it
+            element.removeAttribute('data-resume-time');
+        }
+        
+        // Set the current tab flag based on the element class
+        if (element.classList.contains('watch-later-card')) {
+            this.currentTabFlag = 'watchlater';
+            console.log('[DEBUG - RESUME] Set currentTabFlag to watchlater');
+        } else {
+            this.currentTabFlag = 'tvshows';
+            console.log('[DEBUG - RESUME] Set currentTabFlag to tvshows');
+        }
+        
         this.playEpisodeFromDataAttribute(element, startTime).catch(error => {
             console.error('[PLAY EPISODE FROM DATA ATTRIBUTE ASYNC] Error:', error);
         });
     }
 
+    // ORIGINAL WORKING IMPLEMENTATION - Restored for main TV-SHOWS tab
     async playEpisodeFromDataAttribute(element, startTime = 0) {
-        console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] element:', element);
+        console.log('[DEBUG - WORKING] playEpisodeFromDataAttribute called with startTime:', startTime);
         
         try {
             const episodeData = element.getAttribute('data-episode');
-            console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] episodeData:', episodeData);
-            
             if (!episodeData) {
-                console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No episode data found in data-episode attribute');
+                console.error('[DEBUG - WORKING] No episode data found in data-episode attribute');
                 this.showMediaLibraryError('No episode data found. Please try again.');
                 return;
             }
@@ -4312,18 +4606,21 @@ class MediaLibraryManager {
             // Unescape the JSON data before parsing
             const unescapedData = episodeData.replace(/&quot;/g, '"').replace(/\\'/g, "'");
             const episodeObj = JSON.parse(unescapedData);
-            console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] parsed episodeObj:', episodeObj);
             
-            // Add detailed debugging for episode object
-            console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Episode details:');
-            console.log('  - name:', episodeObj.name);
-            console.log('  - filename:', episodeObj.filename);
-            console.log('  - path:', episodeObj.path);
-            console.log('  - relPath:', episodeObj.relPath);
-            console.log('  - filePath:', episodeObj.filePath);
-            console.log('  - absPath:', episodeObj.absPath);
-            console.log('  - still:', episodeObj.still);
-            console.log('  - episodeNumber:', episodeObj.episodeNumber);
+            // Add year information to the episode object for video player using dedicated method
+            const year = this.getDateForTvShow(episodeObj);
+            if (year) {
+                console.log('[DEBUG - WORKING] Adding year to episode object:', year);
+                
+                // Add year to episode object (but NOT to title/name - let VideoPlayer handle that)
+                episodeObj.year = year;
+                episodeObj.data = episodeObj.data || {};
+                episodeObj.data.year = year;
+                
+                console.log('[DEBUG - WORKING] Added year to episode object (not title/name)');
+            } else {
+                console.log('[DEBUG - WORKING] No year found for episode');
+            }
             
             window.mediaLibraryManager.currentMediaItem = episodeObj;
             window.mediaLibraryManager.currentFile = episodeObj;
@@ -4335,40 +4632,40 @@ class MediaLibraryManager {
             await this.waitForVideoPlayerReady();
             
             if (!this.videoPlayer) {
-                console.error('🎬 [MEDIA-LIBRARY] VideoPlayer not available for TV show episode from data attribute');
+                console.error('[DEBUG - WORKING] VideoPlayer not available for TV show episode from data attribute');
                 this.showMediaLibraryError('Video player not available. Please try again.');
                 return;
             }
             
             // Show video player immediately for better UX
             if (window.videoPlayer) {
-                console.log('[PLAY-EPISODE-DEBUG] Setting return location for TV show episode');
-                console.log('[PLAY-EPISODE-DEBUG] Current tab flag:', this.currentTabFlag);
-                console.log('[PLAY-EPISODE-DEBUG] currentTVShow:', this.currentTVShow);
-                console.log('[PLAY-EPISODE-DEBUG] currentTVSeason:', this.currentTVSeason);
+                console.log('[DEBUG - WORKING] Setting return location for TV show episode');
+                console.log('[DEBUG - WORKING] Current tab flag:', this.currentTabFlag);
+                console.log('[DEBUG - WORKING] currentTVShow:', this.currentTVShow);
+                console.log('[DEBUG - WORKING] currentTVSeason:', this.currentTVSeason);
                 
                 // Set return location based on current tab flag
                 let returnLocation;
                 if (this.currentTabFlag === 'watchlater') {
                     returnLocation = { type: 'watch-later' };
-                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to watch-later');
-                } else if (this.currentTabFlag === 'tvshows') {
+                    console.log('[DEBUG - WORKING] Setting return location to watch-later');
+                } else if (this.currentTabFlag === 'tvshows' || this.currentTab === 'tvshows') {
                     returnLocation = {
                         type: 'tv-show-episodes',
                         showPath: this.currentTVShow,
                         seasonPath: this.currentTVSeason
                     };
-                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to tv-show-episodes');
+                    console.log('[DEBUG - WORKING] Setting return location to tv-show-episodes');
                 } else {
                     returnLocation = { type: 'media-library', tab: 'TV-Shows' };
-                    console.log('[PLAY-EPISODE-DEBUG] Setting return location to media-library TV-Shows');
+                    console.log('[DEBUG - WORKING] Setting return location to media-library TV-Shows');
                 }
                 
-                console.log('[PLAY-EPISODE-DEBUG] Return location object:', returnLocation);
+                console.log('[DEBUG - WORKING] Return location object:', returnLocation);
                 window.videoPlayer.setReturnLocation(returnLocation);
                 window.videoPlayer.show();
             } else {
-                console.error('[PLAY-EPISODE-DEBUG] Video player not available!');
+                console.error('[DEBUG - WORKING] Video player not available!');
             }
             
             // Use the absolute filePath from the episode object
@@ -4379,34 +4676,32 @@ class MediaLibraryManager {
                 const filePath = episodeObj.filePath;
                 const encodedPath = encodeURIComponent(filePath);
                 videoUrl = `/api/video?path=${encodedPath}`;
-                console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Using filePath:', filePath);
-                console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Encoded path:', encodedPath);
-                console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Final video URL:', videoUrl);
+                console.log('[DEBUG - WORKING] Using filePath:', filePath);
+                console.log('[DEBUG - WORKING] Encoded path:', encodedPath);
+                console.log('[DEBUG - WORKING] Final video URL:', videoUrl);
                 
                 // Note: Removed URL test to improve responsiveness - video player will handle errors
             } else {
-                console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No filePath found in episode object');
-                console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Available properties:', Object.keys(episodeObj));
-                
-
+                console.error('[DEBUG - WORKING] No filePath found in episode object');
+                console.error('[DEBUG - WORKING] Available properties:', Object.keys(episodeObj));
                 
                 // Try alternative paths
                 if (episodeObj.absPath) {
                     const encodedPath = encodeURIComponent(episodeObj.absPath);
                     videoUrl = `/api/video?path=${encodedPath}`;
-                    console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Using absPath as fallback:', episodeObj.absPath);
+                    console.log('[DEBUG - WORKING] Using absPath as fallback:', episodeObj.absPath);
                 } else if (episodeObj.path) {
                     const encodedPath = encodeURIComponent(episodeObj.path);
                     videoUrl = `/api/video?path=${encodedPath}`;
-                    console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Using path as fallback:', episodeObj.path);
+                    console.log('[DEBUG - WORKING] Using path as fallback:', episodeObj.path);
                 } else {
-                    console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] No valid video path found in episode object');
+                    console.error('[DEBUG - WORKING] No valid video path found in episode object');
                     this.showMediaLibraryError('No video file found for this episode. Please check if the video file exists.');
                     return;
                 }
             }
             
-            console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Final video URL:', videoUrl, 'startTime:', startTime);
+            console.log('[DEBUG - WORKING] Final video URL:', videoUrl, 'startTime:', startTime);
             
             // Set up a callback to restore the MediaLibrary modal when the Video Player is closed
             if (window.videoPlayer) {
@@ -4416,11 +4711,12 @@ class MediaLibraryManager {
                 };
                 
                 // Ensure video player is ready before calling playUrl
-                console.log('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Calling playUrl with startTime:', startTime);
-                window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime);
+                console.log('[DEBUG - WORKING] Calling playUrl with startTime:', startTime);
+                console.log('[DEBUG - WORKING] Passing episodeObj to playUrl:', episodeObj);
+                window.videoPlayer.playUrl(videoUrl, 'video/mp4', startTime, episodeObj);
             }
         } catch (error) {
-            console.error('[PLAY EPISODE FROM DATA ATTRIBUTE DEBUG] Error parsing episode data:', error);
+            console.error('[DEBUG - WORKING] Error parsing episode data:', error);
             this.showMediaLibraryError('Error loading episode. Please try again.');
         }
     }
@@ -4834,6 +5130,44 @@ class MediaLibraryManager {
         if (modal) modal.remove();
     }
 
+    // --- TV SHOW DATE EXTRACTION ---
+    getDateForTvShow(episodeObj) {
+        console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] Getting date for episode:', episodeObj.path || episodeObj.relPath || episodeObj.filePath);
+        
+        // Use the same logic as the video player's extractEpisodeInfo method
+        const filePath = episodeObj.filePath || episodeObj.absPath || episodeObj.path || episodeObj.relPath || '';
+        console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] Using file path:', filePath);
+        
+        if (!filePath) {
+            console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] No file path available');
+            return null;
+        }
+        
+        const path = filePath.replace(/\\/g, '/'); // Normalize path separators
+        
+        // Extract show name from TV-SHOWS directory structure (same as video player)
+        const tvShowsMatch = path.match(/TV[-_]SHOWS?[\/\\]([^\/\\]+)/i);
+        let showYear = null;
+        
+        if (tvShowsMatch) {
+            const folderName = tvShowsMatch[1];
+            console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] Raw folder name:', folderName);
+            
+            // Extract year from folder name if present (same as video player)
+            const yearMatch = folderName.match(/\((\d{4})\)/);
+            if (yearMatch) {
+                showYear = yearMatch[1];
+                console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] Found year in folder name:', showYear);
+            } else {
+                console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] No year found in folder name');
+            }
+        } else {
+            console.log('[DEBUG - GET-DATE-FOR-TV-SHOW] No TV-SHOWS directory found in path');
+        }
+        
+        return showYear;
+    }
+    
     // --- WATCH LATER / RESUME LOGIC ---
     saveResumeProgress(mediaItem, currentTime, duration, isManualSave = false) {
         console.log('[MEDIA-LIBRARY] saveResumeProgress called:', {mediaItem, currentTime, duration, isManualSave});

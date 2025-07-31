@@ -91,12 +91,18 @@ function walkShows(dir, relPath = '', animation = null, totalFolders = 0, curren
         
         // If we're at the root level, process each folder as a potential TV show
         if (relPath === '') {
+            console.log(`🔍 [SCAN] Found ${folders.length} folders at root level:`);
+            folders.forEach(folder => console.log(`  - ${folder}`));
+            
             const shows = [];
             for (const folder of folders) {
                 try {
                     const showResult = walkShows(dir, folder, animation, totalFolders, currentFolder);
                     if (showResult && showResult.normalizedKey) {
                         shows.push(showResult);
+                        console.log(`✅ [SCAN] Successfully processed show: ${folder}`);
+                    } else {
+                        console.log(`❌ [SCAN] Failed to process show: ${folder}`);
                     }
                 } catch (error) {
                     console.warn(`⚠️ [SCAN] Warning: Could not process show ${folder}: ${error.message}`);
