@@ -788,12 +788,12 @@ class VideoPlayer {
                 this.showMessage(`Error loading video: ${file.name}. The file may be corrupted or in an unsupported format.`);
             });
             
-            this.vjsPlayer.on('loadeddata', () => {
+            this.vjsPlayer.on('loadeddata', async () => {
                 console.log('🎬 [VIDEO-PLAYER] Video loaded successfully:', file.name);
                 this.showMessage(`Loaded: ${file.name}`);
                 
                 // Update episode info header
-                this.updateEpisodeInfoHeader();
+                await this.updateEpisodeInfoHeader();
                 
                 // Add pause event handler for Watch Later
                 this.vjsPlayer.off('pause'); // Remove any previous handler to avoid duplicates
@@ -877,13 +877,28 @@ class VideoPlayer {
     extractEpisodeInfo(filePath) {
         if (!filePath) return null;
         
+        console.log('[DEBUG - VIDEO-PLAYER] extractEpisodeInfo called with:', filePath);
+        
         const path = filePath.replace(/\\/g, '/'); // Normalize path separators
         
         // Extract show name from TV-SHOWS directory structure
         const tvShowsMatch = path.match(/TV[-_]SHOWS?[\/\\]([^\/\\]+)/i);
         let showName = 'Unknown Show';
+        let showYear = null;
+        
         if (tvShowsMatch) {
-            showName = tvShowsMatch[1]
+            const folderName = tvShowsMatch[1];
+            console.log('[DEBUG - VIDEO-PLAYER] Raw folder name:', folderName);
+            
+            // Extract year from folder name if present
+            const yearMatch = folderName.match(/\((\d{4})\)/);
+            if (yearMatch) {
+                showYear = yearMatch[1];
+                console.log('[DEBUG - VIDEO-PLAYER] Found year in folder name:', showYear);
+            }
+            
+            // Clean the show name but preserve the year for later use
+            showName = folderName
                 .replace(/\(\d{4}\)/, '') // Remove year in parentheses
                 .replace(/\[.*?\]/g, '') // Remove brackets
                 .replace(/\d{4}/, '') // Remove standalone years
@@ -891,6 +906,9 @@ class VideoPlayer {
                 .replace(/\s+/g, ' ') // Collapse multiple spaces
                 .trim();
         }
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Extracted show name:', showName);
+        console.log('[DEBUG - VIDEO-PLAYER] Extracted show year:', showYear);
         
         // Extract season number - try multiple patterns
         let seasonNumber = null;
@@ -934,17 +952,204 @@ class VideoPlayer {
             }
         }
         
-        return {
+        const result = {
             showName,
+            showYear,
             seasonNumber,
             episodeNumber,
-            isValid: showName !== 'Unknown Show' && (seasonNumber !== null || episodeNumber !== null)
+            isValid: showName !== 'Unknown Show' && showName.length > 0
         };
+        
+        console.log('[DEBUG - VIDEO-PLAYER] extractEpisodeInfo result:', result);
+        
+        return result;
+    }
+
+    // NEW METHOD: Single source of truth for TV show title formatting
+    async processProperTvShowName(episodeInfo, filePath) {
+        console.log('[DEBUG - VIDEO-PLAYER] processProperTvShowName called');
+        console.log('[DEBUG - VIDEO-PLAYER] Episode info:', episodeInfo);
+        console.log('[DEBUG - VIDEO-PLAYER] File path:', filePath);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item:', this.currentMediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item title:', this.currentMediaItem?.title);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item year:', this.currentMediaItem?.year);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item data.year:', this.currentMediaItem?.data?.year);
+        
+        let showName = '';
+        let showYear = null;
+        
+        // Priority 1: Use data from currentMediaItem if available
+        if (this.currentMediaItem) {
+            // Check if title already contains year (from MediaLibraryManager)
+            if (this.currentMediaItem.title && this.currentMediaItem.title.includes('(')) {
+                // Extract show name and year from the title
+                const titleMatch = this.currentMediaItem.title.match(/^(.+?)\s*\((\d{4})\)/);
+                if (titleMatch) {
+                    showName = titleMatch[1].trim();
+                    showYear = titleMatch[2];
+                    console.log('[DEBUG - VIDEO-PLAYER] Using show name and year from media item title:', showName, showYear);
+                }
+            } else {
+                // Title doesn't have year, so we need to add it
+                if (this.currentMediaItem.name) {
+                    showName = this.currentMediaItem.name;
+                    console.log('[DEBUG - VIDEO-PLAYER] Using show name from media item.name:', showName);
+                }
+                
+                // Get year from other properties
+                if (this.currentMediaItem.year) {
+                    showYear = this.currentMediaItem.year;
+                    console.log('[DEBUG - VIDEO-PLAYER] Using year from media item.year:', showYear);
+                } else if (this.currentMediaItem.data && this.currentMediaItem.data.year) {
+                    showYear = this.currentMediaItem.data.year;
+                    console.log('[DEBUG - VIDEO-PLAYER] Using year from media item.data.year:', showYear);
+                }
+            }
+        }
+        
+        // Priority 2: Use episodeInfo if we don't have complete data
+        if (!showName && episodeInfo && episodeInfo.showName) {
+            showName = episodeInfo.showName;
+            console.log('[DEBUG - VIDEO-PLAYER] Using show name from episodeInfo:', showName);
+        }
+        
+        if (!showYear && episodeInfo && episodeInfo.showYear) {
+            showYear = episodeInfo.showYear;
+            console.log('[DEBUG - VIDEO-PLAYER] Using year from episodeInfo:', showYear);
+        }
+        
+        // Priority 3: Extract from file path if still missing data
+        if (!showName || !showYear) {
+            console.log('[DEBUG - VIDEO-PLAYER] Extracting missing data from file path');
+            const extractedInfo = this.extractEpisodeInfo(filePath);
+            
+            if (!showName && extractedInfo && extractedInfo.showName) {
+                showName = extractedInfo.showName;
+                console.log('[DEBUG - VIDEO-PLAYER] Using show name from path extraction:', showName);
+            }
+            
+            if (!showYear && extractedInfo && extractedInfo.showYear) {
+                showYear = extractedInfo.showYear;
+                console.log('[DEBUG - VIDEO-PLAYER] Using year from path extraction:', showYear);
+            }
+        }
+        
+        // Clean the show name
+        if (showName) {
+            showName = this.cleanTVShowTitle(showName);
+        }
+        
+        // Build the final title
+        let finalTitle = '';
+        
+        if (showName) {
+            // Check if the showName already contains the year (from MediaLibraryManager)
+            if (showName.includes('(') && showName.match(/\(\d{4}\)/)) {
+                // Show name already has year, use it as is
+                finalTitle = showName;
+                console.log('[DEBUG - VIDEO-PLAYER] Show name already contains year, using as is:', finalTitle);
+            } else {
+                // Show name doesn't have year, add it
+                finalTitle = showName;
+                if (showYear) {
+                    finalTitle += ` (${showYear})`;
+                    console.log('[DEBUG - VIDEO-PLAYER] Added year to show name:', finalTitle);
+                }
+            }
+            
+            // Add season info if available
+            if (episodeInfo && episodeInfo.seasonNumber !== null) {
+                finalTitle += ` | Season ${episodeInfo.seasonNumber}`;
+            }
+            
+            // Add episode info if available
+            if (episodeInfo && episodeInfo.episodeNumber !== null) {
+                finalTitle += ` | Episode ${episodeInfo.episodeNumber}`;
+            }
+        } else {
+            // Fallback: use the original episodeInfo logic
+            console.log('[DEBUG - VIDEO-PLAYER] Using fallback title construction');
+            finalTitle = this.cleanTVShowTitle(episodeInfo ? episodeInfo.showName : 'Unknown Show');
+            
+            if (showYear) {
+                finalTitle += ` (${showYear})`;
+            } else if (episodeInfo && episodeInfo.showYear) {
+                finalTitle += ` (${episodeInfo.showYear})`;
+            }
+            
+            if (episodeInfo && episodeInfo.seasonNumber !== null) {
+                finalTitle += ` | Season ${episodeInfo.seasonNumber}`;
+            }
+            
+            if (episodeInfo && episodeInfo.episodeNumber !== null) {
+                finalTitle += ` | Episode ${episodeInfo.episodeNumber}`;
+            }
+        }
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Final processed TV show title:', finalTitle);
+        return finalTitle;
+    }
+
+    // Utility to clean up movie titles for display
+    cleanMovieTitle(filename) {
+        if (!filename || typeof filename !== 'string') return '';
+        // Remove extension
+        let name = filename.replace(/\.[^/.]+$/, "");
+        // Keep (year) but remove [quality] only
+        name = name.replace(/\[\d{3,4}p\]/gi, "");    // Remove [1080p], [720p], etc.
+        // Remove standalone years (not in parentheses)
+        name = name.replace(/\b(19|20)\d{2}\b/g, "");
+        // Remove audio channel tags like AAC5 1, AAC51, DDP5 1, DDP51, etc.
+        name = name.replace(/\b(aac|ddp|dd|dts|ac3)[ ._\-]*5[ ._\-]*1\b/gi, "");
+        name = name.replace(/\b(aac|ddp|dd|dts|ac3)[ ._\-]*7[ ._\-]*1\b/gi, "");
+        // Remove common tags (only as whole words or after separators)
+        name = name.replace(/(?:^|[ ._\-])(?:480p|720p|1080p|2160p|4k|8k|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|aac|dts|yify|rarbg|repack|extended|unrated|directors cut|remux|hdtv|amzn|nf|web|ddp|dd5[ ._\-]?1|5[ ._\-]?1|7[ ._\-]?1|mp3|flac|truehd|atmos|hevc|h265|h264|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion)(?=$|[ ._\-])/gi, "");
+        // Remove trailing group tags (e.g., -YTS, -RARBG, etc.)
+        name = name.replace(/[-_. ]+(yts( mx| am)?|rarbg|jyk|kogi|web|amzn|nf|ddp|dd5[ ._\-]?1|aac|dts|hdtv|remux|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion-collection|criterion)\b.*$/i, "");
+        // Replace dots, underscores, dashes with spaces
+        name = name.replace(/[._-]+/g, " ");
+        // Remove extra spaces
+        name = name.replace(/\s+/g, " ").trim();
+        // Capitalize each word
+        name = this.capitalizeTitle(name);
+        return name;
+    }
+
+    // Utility to clean up TV show titles for display
+    cleanTVShowTitle(title) {
+        if (!title || typeof title !== 'string') return '';
+        // For TV shows, extract just the show name for clean UI display
+        // Keep year in parentheses but remove quality info for user-friendly display
+        let name = title.trim();
+        
+        // Keep (year) but remove [quality] info for display
+        name = name.replace(/\[\d{3,4}p\]/gi, "");    // Remove [1080p], [720p], etc.
+        
+        // Replace dots, underscores, dashes with spaces
+        name = name.replace(/[._-]+/g, " ");
+        // Remove extra spaces
+        name = name.replace(/\s+/g, " ").trim();
+        // Capitalize each word
+        name = this.capitalizeTitle(name);
+        return name;
+    }
+
+    // Utility to capitalize title words
+    capitalizeTitle(str) {
+        if (!str || typeof str !== 'string') return '';
+        return str.split(' ').map(word => {
+            if (word.length === 0) return word;
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join(' ');
     }
 
     // Update the episode info header
-    updateEpisodeInfoHeader() {
-        if (!this.episodeInfoHeader) return;
+    async updateEpisodeInfoHeader() {
+        console.log('[DEBUG - VIDEO-PLAYER] updateEpisodeInfoHeader called');
+        if (!this.episodeInfoHeader) {
+            console.log('[DEBUG - VIDEO-PLAYER] No episodeInfoHeader element found');
+            return;
+        }
         
         let filePath = null;
         
@@ -955,7 +1160,12 @@ class VideoPlayer {
             filePath = this.currentMediaItem.path || this.currentMediaItem.absPath;
         }
         
+        console.log('[DEBUG - VIDEO-PLAYER] Current file:', this.currentFile);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item:', this.currentMediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] File path:', filePath);
+        
         if (!filePath) {
+            console.log('[DEBUG - VIDEO-PLAYER] No file path found, clearing header');
             this.episodeInfoHeader.innerHTML = '';
             return;
         }
@@ -978,26 +1188,328 @@ class VideoPlayer {
             decodedPath = filePath;
         }
         
+        console.log('[DEBUG - VIDEO-PLAYER] Decoded path:', decodedPath);
+        
         const episodeInfo = this.extractEpisodeInfo(decodedPath);
+        console.log('[DEBUG - VIDEO-PLAYER] Episode info:', episodeInfo);
         
         if (episodeInfo && episodeInfo.isValid) {
-            let infoText = episodeInfo.showName;
+            console.log('[DEBUG - VIDEO-PLAYER] Processing as TV show');
             
-            if (episodeInfo.seasonNumber !== null) {
-                infoText += ` | Season ${episodeInfo.seasonNumber}`;
-            }
+            // Use the new centralized method for consistent TV show title formatting
+            const infoText = await this.processProperTvShowName(episodeInfo, decodedPath);
             
-            if (episodeInfo.episodeNumber !== null) {
-                infoText += ` | Episode ${episodeInfo.episodeNumber}`;
-            }
-            
+            console.log('[DEBUG - VIDEO-PLAYER] Final TV show title:', infoText);
             this.episodeInfoHeader.innerHTML = infoText;
         } else {
-            // For non-TV show files, just show the filename without extension
+            console.log('[DEBUG - VIDEO-PLAYER] Processing as movie');
+            // For movies and other files, use clean movie title
             const filename = decodedPath.split(/[\/\\]/).pop() || '';
-            const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
-            this.episodeInfoHeader.innerHTML = nameWithoutExt;
+            let cleanTitle = this.cleanMovieTitle(filename);
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Clean movie title:', cleanTitle);
+            
+            // MANDATORY: Ensure movie has a year
+            cleanTitle = await this.ensureTitleHasYear(cleanTitle, filename, 'movie', decodedPath);
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Final movie title:', cleanTitle);
+            this.episodeInfoHeader.innerHTML = cleanTitle;
         }
+    }
+
+    // MANDATORY function to ensure every title has a year
+    async ensureTitleHasYear(cleanTitle, originalTitle, mediaType, filePath) {
+        console.log('[DEBUG - VIDEO-PLAYER] Ensuring title has year:', cleanTitle, 'Type:', mediaType);
+        console.log('[DEBUG - VIDEO-PLAYER] Original title:', originalTitle);
+        console.log('[DEBUG - VIDEO-PLAYER] File path:', filePath);
+        
+        // Check if title already has a year in parentheses
+        const yearMatch = cleanTitle.match(/\((\d{4})\)/);
+        if (yearMatch) {
+            console.log('[DEBUG - VIDEO-PLAYER] Title already has year:', yearMatch[1]);
+            return cleanTitle;
+        }
+        
+        // First, try to get year from current media item's JSON data
+        let year = null;
+        
+        if (this.currentMediaItem && this.currentMediaItem.year) {
+            year = this.currentMediaItem.year;
+            console.log('[DEBUG - VIDEO-PLAYER] Found year in media item JSON:', year);
+        } else if (this.currentMediaItem && this.currentMediaItem.data && this.currentMediaItem.data.year) {
+            year = this.currentMediaItem.data.year;
+            console.log('[DEBUG - VIDEO-PLAYER] Found year in media item data:', year);
+        }
+        
+        // For TV shows, also check if we extracted a year from the episode info
+        if (!year && mediaType === 'tv') {
+            const episodeInfo = this.extractEpisodeInfo(filePath);
+            if (episodeInfo && episodeInfo.showYear) {
+                year = episodeInfo.showYear;
+                console.log('[DEBUG - VIDEO-PLAYER] Found year in episode info:', year);
+            }
+        }
+        
+        // If year found in JSON, update the title immediately
+        if (year) {
+            const updatedTitle = cleanTitle.includes('()') ? 
+                cleanTitle.replace('()', `(${year})`) : 
+                `${cleanTitle} (${year})`;
+            console.log('[DEBUG - VIDEO-PLAYER] Updated title with year from JSON:', updatedTitle);
+            return updatedTitle;
+        }
+        
+        // Second, try to get year from movie cast data (for movies)
+        if (mediaType === 'movie' && filePath) {
+            try {
+                console.log('[DEBUG - VIDEO-PLAYER] Checking movie cast data for year...');
+                
+                // Load movie cast data if not already loaded
+                if (!this.movieCastData) {
+                    const response = await fetch('/components/MediaLibrary/data/movies/movie_cast_normalized.json?t=' + Date.now());
+                    if (response.ok) {
+                        this.movieCastData = await response.json();
+                        console.log('[DEBUG - VIDEO-PLAYER] Loaded movie cast data with', Object.keys(this.movieCastData).length, 'entries');
+                    } else {
+                        console.warn('[DEBUG - VIDEO-PLAYER] Failed to load movie cast data');
+                        this.movieCastData = {};
+                    }
+                }
+                
+                // Try to find the movie in cast data using the file path
+                if (this.movieCastData && Object.keys(this.movieCastData).length > 0) {
+                    // Try different possible keys for the movie
+                    const possibleKeys = [
+                        filePath,
+                        filePath.replace(/\\/g, '/'),
+                        filePath.replace(/\//g, '\\'),
+                        originalTitle,
+                        cleanTitle
+                    ];
+                    
+                    console.log('[DEBUG - VIDEO-PLAYER] Searching for keys:', possibleKeys);
+                    
+                    for (const key of possibleKeys) {
+                        if (this.movieCastData[key] && this.movieCastData[key].year) {
+                            year = this.movieCastData[key].year;
+                            console.log('[DEBUG - VIDEO-PLAYER] Found year in movie cast data:', year, 'for key:', key);
+                            break;
+                        }
+                    }
+                    
+                    // If still not found, try searching by title
+                    if (!year) {
+                        console.log('[DEBUG - VIDEO-PLAYER] No exact key match, searching by title...');
+                        const searchTitle = cleanTitle.toLowerCase();
+                        for (const [key, data] of Object.entries(this.movieCastData)) {
+                            if (data.title && data.title.toLowerCase().includes(searchTitle) && data.year) {
+                                year = data.year;
+                                console.log('[DEBUG - VIDEO-PLAYER] Found year in movie cast data by title search:', year, 'for:', data.title, 'key:', key);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If still not found, try searching for the movie name in the cast data keys
+                    if (!year) {
+                        console.log('[DEBUG - VIDEO-PLAYER] Searching cast data keys for movie name...');
+                        const movieName = cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        for (const [key, data] of Object.entries(this.movieCastData)) {
+                            const keyName = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (keyName.includes(movieName) && data.year) {
+                                year = data.year;
+                                console.log('[DEBUG - VIDEO-PLAYER] Found year in cast data key search:', year, 'for key:', key);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // If year found in cast data, update the title immediately
+                if (year) {
+                    const updatedTitle = cleanTitle.includes('()') ? 
+                        cleanTitle.replace('()', `(${year})`) : 
+                        `${cleanTitle} (${year})`;
+                    console.log('[DEBUG - VIDEO-PLAYER] Updated title with year from cast data:', updatedTitle);
+                    
+                    // Save this year to the media item for future use
+                    if (this.currentMediaItem) {
+                        if (!this.currentMediaItem.data) this.currentMediaItem.data = {};
+                        this.currentMediaItem.data.year = year;
+                    }
+                    
+                    return updatedTitle;
+                }
+            } catch (error) {
+                console.warn('[DEBUG - VIDEO-PLAYER] Error checking movie cast data:', error);
+            }
+        }
+        
+        // Third, try to get year from TV show cast data (for TV shows)
+        if (mediaType === 'tv' && filePath) {
+            try {
+                console.log('[DEBUG - VIDEO-PLAYER] Checking TV show cast data...');
+                
+                // Load TV show cast data if not already loaded
+                if (!this.tvShowCastData) {
+                    const response = await fetch('/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json?t=' + Date.now());
+                    if (response.ok) {
+                        this.tvShowCastData = await response.json();
+                        console.log('[DEBUG - VIDEO-PLAYER] Loaded TV show cast data with', Object.keys(this.tvShowCastData).length, 'entries');
+                    } else {
+                        console.warn('[DEBUG - VIDEO-PLAYER] Failed to load TV show cast data');
+                        this.tvShowCastData = {};
+                    }
+                }
+                
+                // Note: TV show cast data doesn't contain years, but we check it for completeness
+                // The actual year will come from TMDB API call
+                console.log('[DEBUG - VIDEO-PLAYER] TV show cast data loaded, proceeding to TMDB API call...');
+            } catch (error) {
+                console.warn('[DEBUG - VIDEO-PLAYER] Error checking TV show cast data:', error);
+            }
+        }
+        
+        // MANDATORY: If no year in JSON or cast data, MUST call TMDB API
+        console.log('[DEBUG - VIDEO-PLAYER] No year in JSON or cast data, MANDATORY TMDB API call...');
+        
+        try {
+            // Clean the title for TMDB search
+            let searchTitle = originalTitle;
+            if (mediaType === 'movie') {
+                // Remove file extension and quality tags for movie search
+                searchTitle = searchTitle.replace(/\.[^/.]+$/, ""); // Remove extension
+                searchTitle = searchTitle.replace(/\[\d{3,4}p\]/gi, ""); // Remove quality tags
+                searchTitle = searchTitle.replace(/[._-]+/g, " "); // Replace separators with spaces
+                searchTitle = searchTitle.replace(/\s+/g, " ").trim(); // Clean up spaces
+            } else if (mediaType === 'tv') {
+                // For TV shows, extract the show name from the episode info
+                const episodeInfo = this.extractEpisodeInfo(filePath);
+                if (episodeInfo && episodeInfo.showName && episodeInfo.showName !== 'Unknown Show') {
+                    searchTitle = episodeInfo.showName;
+                    console.log('[DEBUG - VIDEO-PLAYER] Using extracted show name for TV search:', searchTitle);
+                } else {
+                    // Fallback: clean the original title
+                    searchTitle = originalTitle.replace(/\.[^/.]+$/, ""); // Remove extension
+                    searchTitle = searchTitle.replace(/\[\d{3,4}p\]/gi, ""); // Remove quality tags
+                    searchTitle = searchTitle.replace(/[._-]+/g, " "); // Replace separators with spaces
+                    searchTitle = searchTitle.replace(/\s+/g, " ").trim(); // Clean up spaces
+                    console.log('[DEBUG - VIDEO-PLAYER] Using fallback cleaned title for TV search:', searchTitle);
+                }
+            }
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Searching TMDB for:', searchTitle, 'Type:', mediaType);
+            
+            const response = await fetch('/api/media/fetch-tmdb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: mediaType,
+                    title: searchTitle
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('[DEBUG - VIDEO-PLAYER] TMDB response:', result);
+                
+                if (result.success && result.results && result.results.length > 0) {
+                    // Use the first (best) result
+                    const bestMatch = result.results[0];
+                    year = bestMatch.year || bestMatch.release_date?.split('-')[0] || bestMatch.first_air_date?.split('-')[0];
+                    
+                    if (year && year !== 'Unknown' && year !== '') {
+                        const updatedTitle = cleanTitle.includes('()') ? 
+                            cleanTitle.replace('()', `(${year})`) : 
+                            `${cleanTitle} (${year})`;
+                        console.log('[DEBUG - VIDEO-PLAYER] Updated title with year from TMDB:', updatedTitle);
+                        
+                        // Save this year to the media item for future use
+                        if (this.currentMediaItem) {
+                            if (!this.currentMediaItem.data) this.currentMediaItem.data = {};
+                            this.currentMediaItem.data.year = year;
+                        }
+                        
+                        return updatedTitle;
+                    } else {
+                        console.warn('[DEBUG - VIDEO-PLAYER] TMDB returned invalid year for:', searchTitle, 'year:', year);
+                    }
+                } else {
+                    console.warn('[DEBUG - VIDEO-PLAYER] No TMDB results found for:', searchTitle);
+                }
+            } else {
+                console.warn('[DEBUG - VIDEO-PLAYER] TMDB API call failed:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.warn('[DEBUG - VIDEO-PLAYER] Error fetching year from TMDB:', error);
+        }
+        
+        // If TMDB failed, try a more aggressive search
+        console.log('[DEBUG - VIDEO-PLAYER] TMDB failed, trying alternative search...');
+        try {
+            // Try searching with just the clean title (without file extensions)
+            let cleanSearchTitle;
+            if (mediaType === 'tv') {
+                // For TV shows, try different variations of the show name
+                const episodeInfo = this.extractEpisodeInfo(filePath);
+                if (episodeInfo && episodeInfo.showName && episodeInfo.showName !== 'Unknown Show') {
+                    cleanSearchTitle = episodeInfo.showName.replace(/[._-]+/g, " ").trim();
+                } else {
+                    cleanSearchTitle = cleanTitle.replace(/[._-]+/g, " ").trim();
+                }
+            } else {
+                cleanSearchTitle = cleanTitle.replace(/[._-]+/g, " ").trim();
+            }
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Alternative TMDB search for:', cleanSearchTitle, 'Type:', mediaType);
+            
+            const response = await fetch('/api/media/fetch-tmdb', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: mediaType,
+                    title: cleanSearchTitle
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('[DEBUG - VIDEO-PLAYER] Alternative TMDB response:', result);
+                
+                if (result.success && result.results && result.results.length > 0) {
+                    const bestMatch = result.results[0];
+                    year = bestMatch.year || bestMatch.release_date?.split('-')[0] || bestMatch.first_air_date?.split('-')[0];
+                    
+                    if (year && year !== 'Unknown' && year !== '') {
+                        const updatedTitle = cleanTitle.includes('()') ? 
+                            cleanTitle.replace('()', `(${year})`) : 
+                            `${cleanTitle} (${year})`;
+                        console.log('[DEBUG - VIDEO-PLAYER] Updated title with year from alternative TMDB search:', updatedTitle);
+                        
+                        // Save this year to the media item for future use
+                        if (this.currentMediaItem) {
+                            if (!this.currentMediaItem.data) this.currentMediaItem.data = {};
+                            this.currentMediaItem.data.year = year;
+                        }
+                        
+                        return updatedTitle;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('[DEBUG - VIDEO-PLAYER] Error in alternative TMDB search:', error);
+        }
+        
+        // If we get here, TMDB completely failed - this should NOT happen
+        console.error('[DEBUG - VIDEO-PLAYER] CRITICAL: TMDB failed to provide year for:', cleanTitle, 'Type:', mediaType);
+        console.error('[DEBUG - VIDEO-PLAYER] This should not happen as TMDB has everything!');
+        
+        // Return the title with empty parentheses as a last resort
+        return cleanTitle.includes('()') ? cleanTitle : `${cleanTitle} ()`;
     }
 
     togglePlay() {
@@ -1846,7 +2358,7 @@ class VideoPlayer {
             this.show();
             
             // Update episode info header
-            this.updateEpisodeInfoHeader();
+            await this.updateEpisodeInfoHeader();
             
             // Improved auto-play handling with better error recovery
             this.vjsPlayer.ready(() => {
