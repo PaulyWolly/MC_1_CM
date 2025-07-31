@@ -1,11 +1,9 @@
 /*
   ANIMATION-EXAMPLE.JS
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Created: 1/6/2025
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  This is an example of how to use the animation helper in any script
 */
 
 const { ProgressAnimation, getProgressLine, getSpinnerLine } = require('./animation-helper');

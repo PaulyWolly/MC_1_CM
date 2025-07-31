@@ -1,13 +1,9 @@
 /*
   SMART_FETCH_TMDB_TV-SHOW_EPISODE_IMAGES_NORMALIZED.JS
   Version: 10
-  AppName: MC_1_CM [v10]
-  Updated: 1/6/2025 @12:00PM
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  DESCRIPTION:
-  Fetches TV show episode images from TMDB and outputs normalized JSON with dot notation keys.
-  No separate normalization step required - outputs directly to normalized format.
 */
 
 const fs = require('fs');

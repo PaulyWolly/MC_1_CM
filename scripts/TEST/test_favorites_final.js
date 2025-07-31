@@ -1,8 +1,8 @@
 /*
   TEST_FAVORITES_FINAL.JS
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Updated: 1/6/2025 @1:45PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
 */
 

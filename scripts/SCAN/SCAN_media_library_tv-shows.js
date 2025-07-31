@@ -1,10 +1,9 @@
 /*
   SCAN_MEDIA_LIBRARY_TV-SHOWS.JS
-  Version: 11
-  AppName: MC_1_CM [v9]
-  Updated: 7/29/2025 @6:25PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  Fixed: Removed special Lost in Space handling since issue is resolved
 */
 
 const fs = require('fs');

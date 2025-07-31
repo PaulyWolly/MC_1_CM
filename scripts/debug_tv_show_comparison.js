@@ -1,3 +1,11 @@
+/*
+  DEBUG_TV_SHOW_COMPARISON.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Debug script to compare main TV show cards vs favorited TV show cards
 // Run this in the browser console
 

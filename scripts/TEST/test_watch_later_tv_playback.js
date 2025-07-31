@@ -1,11 +1,9 @@
 /*
   TEST_WATCH_LATER_TV_PLAYBACK.JS
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Updated: 7/25/2025 @8:40PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Purpose: Test that Watch Later TV show playback works correctly
 */
 
 const fs = require('fs');

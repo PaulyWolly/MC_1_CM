@@ -1,3 +1,11 @@
+/*
+  CHECK_FAVORITES_DEBUG.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Debug script to check favorites localStorage data
 // Run this in the browser console to see what's stored
 

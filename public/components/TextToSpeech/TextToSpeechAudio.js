@@ -1,12 +1,9 @@
 /*
   TEXTTOSPEECHAUDIO.JS
-  Version: 9
-  AppName: MC_1_CM [v9]
-  Updated: 1/6/2025 @9:00AM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Text-to-Speech Audio Manager Component
-  Handles text-to-speech functionality for the application
 */
 
 // public/components/TextToSpeech/TextToSpeechAudio.js

@@ -1,3 +1,11 @@
+/*
+  QUICK_FAVORITES_TEST.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Quick test script for favorites functionality
 // Run this in the browser console
 

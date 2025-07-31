@@ -1,12 +1,9 @@
 /*
   AUDIOMANAGER.JS
-  Version: 1.0
-  AppName: MC_1_CM [v9]
-  Updated: 7/28/2025 @7:00AM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Audio Conversion Manager Component
-  Handles conversion of audio codecs and video containers for Video.js compatibility
 */
 
 export default class AudioManager {

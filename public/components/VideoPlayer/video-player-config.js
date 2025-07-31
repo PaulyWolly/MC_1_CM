@@ -1,11 +1,9 @@
 /*
-  VIDEO PLAYER CONFIG
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Updated: 7/26/2025 @4:11AM
+  VIDEO-PLAYER-CONFIG.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Purpose: Configurable constants for video player timing settings
 */
 
 // Skip Intro timing (in seconds)

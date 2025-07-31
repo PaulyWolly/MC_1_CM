@@ -1,11 +1,9 @@
 /*
   RESTORE_WATCH_LATER.JS
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Updated: 7/25/2025 @9:20PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Purpose: Restore Watch Later data from backup
 */
 
 const fs = require('fs');

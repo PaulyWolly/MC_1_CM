@@ -1,3 +1,11 @@
+/*
+  FORCE_REFRESH_CONTENT.JS
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+  Created by Paul Welby
+*/
+
 // Force refresh Media Library content to see new heart icon classes
 console.log('[DEBUG] Force refreshing Media Library content...');
 

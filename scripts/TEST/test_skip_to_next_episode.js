@@ -1,11 +1,9 @@
 /*
   TEST_SKIP_TO_NEXT_EPISODE.JS
-  Version: 1
-  AppName: MC_1_CM [v9]
-  Updated: 7/25/2025 @8:45PM
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
   Created by Paul Welby
-  
-  Purpose: Test that Skip to Next Episode functionality works correctly for TV shows
 */
 
 const fs = require('fs');

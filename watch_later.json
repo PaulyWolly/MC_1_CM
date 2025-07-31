@@ -5,7 +5,7 @@
     "name": "The Matrix",
     "currentTime": 1800,
     "duration": 8160,
-    "lastWatched": 1753741989380,
+    "lastWatched": 1753904129520,
     "type": "movie"
   },
   {
@@ -14,9 +14,9 @@
     "name": "Breaking Bad S01E02",
     "currentTime": 600,
     "duration": 3600,
-    "lastWatched": 1753741989383,
+    "lastWatched": 1753904129521,
     "type": "tv-show",
-    "filePath": "S:/MEDIA/TV-SHOWS/Breaking Bad/Season 01/Breaking Bad S01E02.mp4",
+    "filePath": "/media/tv-shows/Breaking Bad/Season 01/Breaking Bad S01E02.mp4",
     "relPath": "Breaking Bad/Season 01/Breaking Bad S01E02.mp4"
   },
   {
@@ -25,7 +25,7 @@
     "name": "Inception",
     "currentTime": 2400,
     "duration": 8880,
-    "lastWatched": 1753741989384,
+    "lastWatched": 1753904129521,
     "type": "movie"
   },
   {
@@ -34,7 +34,7 @@
     "name": "Breaking Bad S01E01",
     "currentTime": 1500,
     "duration": 3600,
-    "lastWatched": 1753741989385,
+    "lastWatched": 1753904129521,
     "type": "tv-show",
     "filePath": "S:/MEDIA/TV-SHOWS/Breaking Bad/Season 01/Breaking Bad S01E01.mp4",
     "relPath": "Breaking Bad\\Season 01\\Breaking Bad S01E01.mp4"
