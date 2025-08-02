@@ -1706,6 +1706,20 @@ class MediaLibraryManager {
                 }
             }
         });
+        
+        // Auto-save resume progress on pause
+        player.on('pause', () => {
+            const currentTime = player.currentTime();
+            const duration = player.duration();
+            
+            // Use the current media item that's being played
+            const mediaItem = this.currentMediaItem || this.currentFile;
+            
+            if (mediaItem && currentTime > 0 && duration > 0) {
+                this.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
+            }
+        });
+        
         player.on('ended', () => {
             // Always reopen MediaLibrary modal when video ends with last active tab
             if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
@@ -2294,14 +2308,12 @@ class MediaLibraryManager {
                     // Resume button click handler
                     resumeBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('[WATCH-LATER] Resume clicked for:', item);
                         this.playMedia(item, item.currentTime);
                     });
                     
                     // Delete button click handler
                     deleteBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('[WATCH-LATER] Delete clicked for:', item);
                         this.removeResumeProgress(item.path);
                         this.renderWatchLaterContent();
                         this.showToast('Removed from Watch Later');
@@ -2320,35 +2332,42 @@ class MediaLibraryManager {
     }
 
     renderWatchLaterContent() {
-        const resumeList = this.getResumeList();
-        console.log('[DEBUG - WATCH-LATER] Rendering content with resumeList:', resumeList);
+        // Always clean up duplicates when rendering Watch Later content
+        this.cleanupWatchLaterDuplicates();
         
-        // Separate movies and TV-Shows
+        // Get the resume list sorted by lastWatched (newest first)
+        const resumeList = this.getResumeList();
+        
+        // Improved TV-Show detection: check for episode patterns, TV show paths, and type
         const tvshows = resumeList.filter(item => {
-            // Check type first (most reliable)
-            if (item.type) {
-                const isTV = item.type.toLowerCase().includes('tv') || item.type.toLowerCase().includes('show');
-                console.log('[DEBUG - WATCH-LATER] Item type check:', { path: item.path, type: item.type, isTV });
-                return isTV;
+            const path = (item.path || '').toLowerCase();
+            const type = (item.type || '').toLowerCase();
+            const title = (item.title || '').toLowerCase();
+            
+            // Check for TV show type
+            if (type.includes('tv-show') || type.includes('tv') || type.includes('show')) {
+                return true;
             }
             
-            // Check path for TV show patterns
-            if (item.path) {
-                const hasTVPattern = /season\s*\d+|s\d+e\d+|tv-shows|tv_shows/i.test(item.path);
-                console.log('[DEBUG - WATCH-LATER] Item path check:', { path: item.path, hasTVPattern });
-                return hasTVPattern;
+            // Check for TV show paths
+            if (path.includes('tv-shows') || path.includes('tv_shows') || path.includes('tv shows')) {
+                return true;
+            }
+            
+            // Check for episode patterns in path or title (S01E01, S02E05, etc.)
+            if (path.match(/s\d+e\d+/i) || title.match(/s\d+e\d+/i)) {
+                return true;
+            }
+            
+            // Check for season patterns in path
+            if (path.includes('season') || path.includes('s01') || path.includes('s02')) {
+                return true;
             }
             
             return false;
         });
         
         const movies = resumeList.filter(item => !tvshows.includes(item));
-        
-        console.log('[DEBUG - WATCH-LATER] Filtered results:', { 
-            total: resumeList.length, 
-            tvshows: tvshows.length, 
-            movies: movies.length 
-        });
         // Helper for TV show label and screenshot
         const getTvShowLabel = (item) => {
             let path = decodeURIComponent(item.path || '');
@@ -2571,7 +2590,7 @@ class MediaLibraryManager {
                     
                     // Create the EXACT SAME HTML structure as main TV-SHOWS tab
                     const episodeData = JSON.stringify(episodeObj).replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-                    return `<div class="media-library-card episode watch-later-card" data-episode="${episodeData}" data-resume-time="${item.currentTime || 0}" onclick="mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)">
+                    return `<div class="media-library-card episode watch-later-card" data-episode="${episodeData}" data-resume-time="${item.currentTime || 0}">
                         <div class="media-library-card-poster">
                             <img src="${getTvShowScreenshot(item, this)}" alt="${getTvShowLabel(item)}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
                             <div class="media-library-play-overlay">▶</div>
@@ -2606,14 +2625,39 @@ class MediaLibraryManager {
                         e.stopPropagation();
                         // Use .watch-later-card to match both movie and tvshow cards
                         const card = btn.closest('.watch-later-card');
-                        const path = card ? card.getAttribute('data-path') : null;
-                        this.removeResumeProgress(path);
-                        this.renderWatchLaterContent();
-                        this.showToast('Removed from Watch Later');
+                        let path = null;
+                        
+                        if (card) {
+                            // For movies, get path from data-path attribute
+                            path = card.getAttribute('data-path');
+                            
+                            // For TV shows, extract path from episode data
+                            if (!path) {
+                                const episodeData = card.getAttribute('data-episode');
+                                if (episodeData) {
+                                    try {
+                                        const episodeObj = JSON.parse(episodeData);
+                                        path = episodeObj.path;
+                                        console.log('[DEBUG - WATCH-LATER] Extracted path from episode data:', path);
+                                    } catch (error) {
+                                        console.error('[DEBUG - WATCH-LATER] Error parsing episode data:', error);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (path) {
+                            this.removeResumeProgress(path);
+                            this.renderWatchLaterContent();
+                            this.showToast('Removed from Watch Later');
+                        } else {
+                            console.error('[DEBUG - WATCH-LATER] Could not find path for delete operation');
+                            this.showToast('Error: Could not remove item', 'error');
+                        }
                     };
                 });
                 
-                // Resume handlers for movies only (TV shows use onclick)
+                // Resume handlers for movies
                 document.querySelectorAll('.media-library-movie-card-movies .watch-later-resume-btn').forEach(btn => {
                     btn.onclick = async (e) => {
                         e.stopPropagation();
@@ -2623,6 +2667,18 @@ class MediaLibraryManager {
                         if (item) {
                             console.log('[DEBUG - WATCH-LATER] Playing movie with:', item.path, item.currentTime);
                             this.playMedia(item, item.currentTime);
+                        }
+                    };
+                });
+                
+                // Resume handlers for TV shows
+                document.querySelectorAll('.media-library-card.episode .watch-later-resume-btn').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const card = btn.closest('.watch-later-card');
+                        if (card) {
+                            console.log('[DEBUG - WATCH-LATER] Playing TV show from Watch Later');
+                            this.playEpisodeFromDataAttributeAsync(card);
                         }
                     };
                 });
@@ -2639,7 +2695,30 @@ class MediaLibraryManager {
                             this.playMedia(item, item.currentTime);
                         }
                     };
-                                });
+                });
+                
+                // Image click handlers for TV shows (same functionality as Watch button)
+                document.querySelectorAll('.media-library-card.episode .media-library-card-poster img').forEach(img => {
+                    img.onclick = async (e) => {
+                        e.stopPropagation();
+                        const card = img.closest('.watch-later-card');
+                        if (card) {
+                            console.log('[DEBUG - WATCH-LATER] Playing TV show (img click) from Watch Later');
+                            this.playEpisodeFromDataAttributeAsync(card);
+                        }
+                    };
+                });
+                
+                // Add manual cleanup button
+                const cleanupBtn = document.createElement('button');
+                cleanupBtn.innerHTML = '🧹 Clean Duplicates';
+                cleanupBtn.className = 'cleanup-btn';
+                cleanupBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;';
+                cleanupBtn.onclick = () => {
+                    this.renderWatchLaterContent();
+                    this.showToast('Content refreshed!');
+                };
+                document.body.appendChild(cleanupBtn);
                 
 
             }, 0);
@@ -3932,7 +4011,7 @@ class MediaLibraryManager {
             description,
             cast
         };
-    }
+        }
 
     async renderSeasonsView(showPath) {
         const show = this.findShowByPath(showPath);
@@ -5173,66 +5252,48 @@ class MediaLibraryManager {
         console.log('[MEDIA-LIBRARY] saveResumeProgress called:', {mediaItem, currentTime, duration, isManualSave});
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
         
-        // Remove any existing entry for this path or relPath
-        // Also check for duplicates by title and filePath for TV shows
-        const originalCount = resumeList.length;
-        resumeList = resumeList.filter(item => {
-            // Check exact path matches
-            if (item.path === mediaItem.path || item.path === mediaItem.relPath) {
-                console.log('[DEBUG - WATCH-LATER] Removing duplicate by path:', item.path);
-                return false; // Remove duplicate
-            }
-            
-            // For TV shows, also check by title and filePath
-            if (mediaItem.title && item.title === mediaItem.title) {
-                console.log('[DEBUG - WATCH-LATER] Removing duplicate by title:', item.title);
-                return false; // Remove duplicate by title
-            }
-            
-            // Check if filePath matches (for TV shows)
-            if (mediaItem.filePath && item.filePath === mediaItem.filePath) {
-                console.log('[DEBUG - WATCH-LATER] Removing duplicate by filePath:', item.filePath);
-                return false; // Remove duplicate by filePath
-            }
-            
-            return true; // Keep this item
-        });
-        
-        const removedCount = originalCount - resumeList.length;
-        if (removedCount > 0) {
-            console.log('[DEBUG - WATCH-LATER] Removed', removedCount, 'duplicate(s)');
-        }
-
-        // Determine if this is a TV show by checking the path
+        // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
         const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
         const isTVShow = pathToCheck.includes('tv-shows') || 
                         pathToCheck.includes('tv_shows') ||
                         pathToCheck.includes('season') ||
                         (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
         
-        console.log('[DEBUG - WATCH-LATER] Path check for TV show detection:', {
-            path: mediaItem.path || mediaItem.absPath || mediaItem.relPath,
-            title: mediaItem.title,
-            isTVShow: isTVShow
+        // Remove any existing entry for this path (deduplication)
+        resumeList = resumeList.filter(item => {
+            const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+            const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+            
+            // Remove exact path matches
+            if (itemPath === mediaPath && itemPath !== '') {
+                return false; // Remove duplicate
+            }
+            
+            // For TV shows, also check by title to catch different path formats
+            if (isTVShow && mediaItem.title && item.title) {
+                const itemTitle = item.title.toLowerCase().trim();
+                const mediaTitle = mediaItem.title.toLowerCase().trim();
+                if (itemTitle === mediaTitle) {
+                    return false; // Remove duplicate by title
+                }
+            }
+            
+            return true; // Keep this item
         });
-        
+
         let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
         
         // For TV-Shows, ensure we have the correct path format
         if (isTVShow && savePath) {
-            console.log('[DEBUG - WATCH-LATER] Processing TV show path:', savePath);
-            
             // If it's an absolute path, convert to relative
             if (savePath.startsWith('/media/')) {
                 savePath = savePath.replace(/^\/media\//, '');
             }
             
-            // Handle Windows paths with backslashes
+            // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
             if (savePath.includes('\\')) {
                 savePath = savePath.replace(/\\/g, '/');
             }
-            
-            console.log('[DEBUG - WATCH-LATER] Final TV show path:', savePath);
         }
         
         // If path is missing, try to look up from main media library by filename or title
@@ -5304,11 +5365,10 @@ class MediaLibraryManager {
             }
             
             resumeList.push(savedItem);
-            console.log('[MEDIA-LIBRARY] Saved to Watch Later:', savedItem);
         }
         
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
-        console.log('[MEDIA-LIBRARY] Updated resumeList:', resumeList);
+        
         this.renderWatchLaterContent();
         if (isManualSave) {
             this.showToast('Saved to Watch Later!');
@@ -5317,10 +5377,25 @@ class MediaLibraryManager {
 
     removeResumeProgress(path) {
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
-        // Remove any entry where path matches either item.path or item.relPath
-        resumeList = resumeList.filter(item => item.path !== path && item.relPath !== path);
+        
+        // Normalize the target path
+        const normalizedPath = path.replace(/\\/g, '/').toLowerCase().trim();
+        
+        // Remove items that match the path (check all possible path properties)
+        const originalCount = resumeList.length;
+        resumeList = resumeList.filter(item => {
+            const itemPaths = [
+                item.path,
+                item.relPath,
+                item.filePath,
+                item.absPath
+            ].filter(p => p).map(p => p.replace(/\\/g, '/').toLowerCase().trim());
+            
+            return !itemPaths.some(itemPath => itemPath === normalizedPath);
+        });
+        
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
-        console.log('[MEDIA-LIBRARY] Removed from resume list:', path);
+        
         // Refresh the Watch Later content if we're currently on that tab
         if (this.currentTab === 'watchlater') {
             this.renderWatchLaterContent();
@@ -5329,9 +5404,46 @@ class MediaLibraryManager {
 
     getResumeList() {
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
-        console.log('[MEDIA-LIBRARY] getResumeList returns:', resumeList);
         // Sort by lastWatched desc (most recent first)
         return resumeList.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
+    }
+
+    cleanupWatchLaterDuplicates() {
+        let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
+        const originalCount = resumeList.length;
+        
+        // Group items by normalized path and title
+        const groups = {};
+        resumeList.forEach(item => {
+            const path = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+            const title = (item.title || '').toLowerCase().trim();
+            const key = path || title; // Use path if available, otherwise title
+            
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(item);
+        });
+        
+        // Keep only the most recent item from each group
+        const cleanedList = [];
+        Object.keys(groups).forEach(key => {
+            const items = groups[key];
+            if (items.length > 1) {
+                // Sort by lastWatched and keep the most recent
+                items.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
+                cleanedList.push(items[0]); // Keep the most recent
+            } else {
+                cleanedList.push(items[0]); // Keep single items
+            }
+        });
+        
+        // Sort the cleaned list by lastWatched (most recent first)
+        cleanedList.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
+        
+        localStorage.setItem('mediaLibraryResumeList', JSON.stringify(cleanedList));
+        
+        return cleanedList;
     }
 
     showToast(msg, type) {

@@ -149,6 +149,82 @@ class WatchLaterSync {
             console.error('[WATCH-LATER-SYNC] MongoDB auto-restore error:', error);
         }
     }
+
+    // Force sync current UI data to MongoDB (overwrites MongoDB with current localStorage)
+    async forceSyncUIToMongoDB() {
+        try {
+            console.log('[WATCH-LATER-SYNC] Force syncing current UI data to MongoDB...');
+            const data = localStorage.getItem('mediaLibraryResumeList');
+            if (!data) {
+                console.log('[WATCH-LATER-SYNC] No localStorage data found to sync');
+                return false;
+            }
+            
+            const watchLaterData = JSON.parse(data);
+            console.log('[WATCH-LATER-SYNC] Current UI data to sync:', watchLaterData.length, 'items');
+            
+            // First clear MongoDB collection
+            const clearResponse = await fetch(`${this.apiBase}/clear`, {
+                method: 'DELETE'
+            });
+            
+            if (!clearResponse.ok) {
+                console.error('[WATCH-LATER-SYNC] Failed to clear MongoDB collection');
+                return false;
+            }
+            
+            // Then bulk import current UI data
+            const response = await fetch(`${this.apiBase}/bulk-import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ items: watchLaterData })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('[WATCH-LATER-SYNC] Force sync successful:', result.totalItems, 'items synced to MongoDB');
+                
+                // Trigger UI refresh
+                if (window.mediaLibraryManager && window.mediaLibraryManager.updateModalContent) {
+                    setTimeout(() => {
+                        window.mediaLibraryManager.updateModalContent();
+                    }, 500);
+                }
+                
+                return true;
+            } else {
+                console.error('[WATCH-LATER-SYNC] Force sync failed:', response.status);
+                return false;
+            }
+        } catch (error) {
+            console.error('[WATCH-LATER-SYNC] Force sync error:', error);
+            return false;
+        }
+    }
+
+    // Get sync status and statistics
+    async getSyncStatus() {
+        try {
+            const localStorageData = localStorage.getItem('mediaLibraryResumeList');
+            const localStorageItems = localStorageData ? JSON.parse(localStorageData) : [];
+            
+            const mongoInfo = await this.getMongoDBInfo();
+            
+            return {
+                localStorage: {
+                    itemCount: localStorageItems.length,
+                    lastModified: localStorageData ? new Date().toISOString() : null
+                },
+                mongodb: mongoInfo || { itemCount: 0, lastModified: null },
+                isInSync: localStorageItems.length === (mongoInfo?.itemCount || 0)
+            };
+        } catch (error) {
+            console.error('[WATCH-LATER-SYNC] Get sync status error:', error);
+            return null;
+        }
+    }
 }
 
 // Initialize the sync system when the page loads

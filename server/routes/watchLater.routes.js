@@ -134,7 +134,9 @@ router.put('/update-progress', async (req, res) => {
 // DELETE - Remove item from watch later
 router.delete('/remove', async (req, res) => {
     try {
-        const { mediaId, mediaType } = req.body;
+        // Support both body and query parameters
+        const mediaId = req.body.mediaId || req.query.mediaId;
+        const mediaType = req.body.mediaType || req.query.mediaType;
         
         if (!mediaId || !mediaType) {
             return res.status(400).json({ 

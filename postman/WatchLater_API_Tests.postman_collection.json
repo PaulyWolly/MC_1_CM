@@ -1,0 +1,300 @@
+{
+	"info": {
+		"_postman_id": "watch-later-mongodb-api-tests",
+		"name": "Watch Later MongoDB API Tests",
+		"description": "Comprehensive test suite for Watch Later MongoDB API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Collection Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/info",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "info"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Get All Items",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", ""]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Get Movies Only",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/type/movie",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "type", "movie"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Get TV Shows Only",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/type/tv-show",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "type", "tv-show"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Add Movie",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"mediaId\": \"postman_test_movie_001\",\n  \"mediaType\": \"movie\",\n  \"title\": \"Postman Test Movie\",\n  \"filePath\": \"/media/movies/Postman Test Movie.mp4\",\n  \"fileName\": \"Postman Test Movie.mp4\",\n  \"currentTime\": 0,\n  \"duration\": 7200,\n  \"year\": 2024,\n  \"quality\": \"1080p\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/add",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "add"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6. Add TV Show",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"mediaId\": \"postman_test_tv_001\",\n  \"mediaType\": \"tv-show\",\n  \"title\": \"Postman Test Show S01E01\",\n  \"filePath\": \"/media/tv-shows/Postman Test Show/Season 01/Postman Test Show S01E01.mp4\",\n  \"fileName\": \"Postman Test Show S01E01.mp4\",\n  \"currentTime\": 0,\n  \"duration\": 3600,\n  \"season\": 1,\n  \"episode\": 1,\n  \"episodeTitle\": \"Pilot\",\n  \"year\": 2024,\n  \"quality\": \"720p\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/add",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "add"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7. Update Progress",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"mediaId\": \"postman_test_movie_001\",\n  \"mediaType\": \"movie\",\n  \"currentTime\": 1800,\n  \"duration\": 7200\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/update-progress",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "update-progress"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8. Remove Item",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"mediaId\": \"postman_test_movie_001\",\n  \"mediaType\": \"movie\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/remove",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "remove"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9. Bulk Import Test",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"timestamp\": \"2025-07-31T19:40:00.000Z\",\n  \"source\": \"postman-test\",\n  \"itemCount\": 2,\n  \"items\": [\n    {\n      \"mediaId\": \"bulk_test_movie_001\",\n      \"mediaType\": \"movie\",\n      \"title\": \"Bulk Test Movie 1\",\n      \"filePath\": \"/media/movies/Bulk Test Movie 1.mp4\",\n      \"fileName\": \"Bulk Test Movie 1.mp4\",\n      \"currentTime\": 0,\n      \"duration\": 7200,\n      \"season\": null,\n      \"episode\": null,\n      \"episodeTitle\": null,\n      \"posterPath\": null,\n      \"year\": 2024,\n      \"quality\": \"1080p\",\n      \"addedAt\": \"2025-07-31T19:40:00.000Z\",\n      \"lastWatched\": \"2025-07-31T19:40:00.000Z\",\n      \"lastUpdated\": \"2025-07-31T19:40:00.000Z\"\n    },\n    {\n      \"mediaId\": \"bulk_test_tv_001\",\n      \"mediaType\": \"tv-show\",\n      \"title\": \"Bulk Test Show S01E02\",\n      \"filePath\": \"/media/tv-shows/Bulk Test Show/Season 01/Bulk Test Show S01E02.mp4\",\n      \"fileName\": \"Bulk Test Show S01E02.mp4\",\n      \"currentTime\": 0,\n      \"duration\": 3600,\n      \"season\": 1,\n      \"episode\": 2,\n      \"episodeTitle\": \"Episode 2\",\n      \"posterPath\": null,\n      \"year\": 2024,\n      \"quality\": \"720p\",\n      \"addedAt\": \"2025-07-31T19:40:00.000Z\",\n      \"lastWatched\": \"2025-07-31T19:40:00.000Z\",\n      \"lastUpdated\": \"2025-07-31T19:40:00.000Z\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/bulk-import",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "bulk-import"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10. Clear All Items",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/watch-later/clear",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "watch-later", "clear"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "11. Error Tests",
+			"item": [
+				{
+					"name": "Add Invalid Item (Missing Required Fields)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Invalid Item\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/watch-later/add",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "watch-later", "add"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Non-existent Item",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mediaId\": \"non_existent_item\",\n  \"mediaType\": \"movie\",\n  \"currentTime\": 1000,\n  \"duration\": 7200\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/watch-later/update-progress",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "watch-later", "update-progress"]
+				}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Non-existent Item",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"mediaId\": \"non_existent_item\",\n  \"mediaType\": \"movie\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/watch-later/remove",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "watch-later", "remove"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Pre-request script to set up test data",
+					"console.log('Starting test: ' + pm.info.requestName);"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Test script to validate responses",
+					"pm.test('Status code is 200', function () {",
+					"    pm.response.to.have.status(200);",
+					"});",
+					"",
+					"pm.test('Response has valid JSON', function () {",
+					"    pm.response.to.be.json;",
+					"});",
+					"",
+					"pm.test('Response time is less than 1000ms', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(1000);",
+					"});",
+					"",
+					"// Store response data for other tests",
+					"if (pm.response.json()) {",
+					"    pm.globals.set('lastResponse', JSON.stringify(pm.response.json()));",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4800",
+			"type": "string"
+		}
+	]
+} 
