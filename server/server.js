@@ -139,11 +139,13 @@ app.use('/config', express.static(path.join(__dirname, '../config')));
 const playlistRoutes = require('./routes/playlists.routes');
 const youtubeHistoryRoutes = require('./routes/youtubeHistory.routes.js');
 const clickedVideosRoutes = require('./routes/clickedVideos.routes.js');
+const watchLaterRoutes = require('./routes/watchLater.routes.js');
 
 // Mount the routes
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/youtube/history', youtubeHistoryRoutes);
 app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
+app.use('/api/watch-later', watchLaterRoutes);
 
 // 1. Serve S:/MEDIA as /media (STATIC)
 app.use('/media', express.static('S:/MEDIA'));
@@ -4011,75 +4013,8 @@ app.post('/api/admin/backfill-youtube-timestamps', async (req, res) => {
 // =========================
 // WATCH LATER DATA API ENDPOINTS
 // =========================
-
-const WATCH_LATER_DATA_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/watch_later/watch_later_backup.json');
-
-// Ensure the data file exists
-if (!fs.existsSync(WATCH_LATER_DATA_FILE)) {
-    fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify({
-        timestamp: new Date().toISOString(),
-        itemCount: 0,
-        items: []
-    }, null, 2));
-}
-
-// API endpoint to save Watch Later data
-app.post('/api/watch-later-data', (req, res) => {
-    try {
-        const backupData = req.body;
-        
-        // Validate the data
-        if (!backupData || !Array.isArray(backupData.items)) {
-            return res.status(400).json({ error: 'Invalid data format' });
-        }
-        
-        // Save to file
-        fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify(backupData, null, 2));
-        
-        console.log('[WATCH-LATER-API] Backup saved:', backupData.items.length, 'items');
-        res.json({ success: true, itemCount: backupData.items.length });
-        
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Save error:', error);
-        res.status(500).json({ error: 'Failed to save backup' });
-    }
-});
-
-// API endpoint to get Watch Later data
-app.get('/api/watch-later-data', (req, res) => {
-    try {
-        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
-            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
-            res.json(data);
-        } else {
-            res.json({ timestamp: new Date().toISOString(), itemCount: 0, items: [] });
-        }
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Read error:', error);
-        res.status(500).json({ error: 'Failed to read backup' });
-    }
-});
-
-// API endpoint to get backup info
-app.get('/api/watch-later-data/info', (req, res) => {
-    try {
-        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
-            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
-            const stats = fs.statSync(WATCH_LATER_DATA_FILE);
-            res.json({
-                timestamp: data.timestamp,
-                itemCount: data.itemCount,
-                fileSize: stats.size,
-                lastModified: stats.mtime
-            });
-        } else {
-            res.json({ timestamp: null, itemCount: 0, fileSize: 0, lastModified: null });
-        }
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Info error:', error);
-        res.status(500).json({ error: 'Failed to get backup info' });
-    }
-});
+// Note: Watch Later functionality has been moved to MongoDB-based API routes
+// See /api/watch-later/* endpoints for the new implementation
 
 // =========================
 // SERVER STARTUP
