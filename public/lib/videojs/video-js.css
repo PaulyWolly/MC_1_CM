@@ -911,10 +911,10 @@ body.vjs-pip-window .video-js {
   display: none;
   width: 100%;
   position: absolute;
-  bottom: 80px;
+  bottom: 62px !important;
   left: 0;
   right: 0;
-  height: 3em;
+  height: 6.8em;
   background-color: #2B333F;
   background-color: rgba(43, 51, 63, 0.7);
 }

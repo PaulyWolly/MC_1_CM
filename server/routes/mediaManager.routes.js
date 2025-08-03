@@ -504,6 +504,164 @@ router.post('/api/media/validate-path', (req, res) => {
   }
 });
 
+// GET /api/media/fetch-episode-still
+router.get('/fetch-episode-still', async (req, res) => {
+  try {
+    const { tmdbId, season, episode } = req.query;
+    
+    if (!tmdbId || !season || !episode) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: tmdbId, season, episode' });
+    }
+    
+    if (!TMDB_API_KEY) {
+      console.error('[FETCH-EPISODE-STILL] ERROR: TMDB_API_KEY is missing!');
+      return res.status(500).json({ success: false, error: 'TMDB API key not found' });
+    }
+    
+    console.log(`[FETCH-EPISODE-STILL] Fetching still for TMDB ID: ${tmdbId}, Season: ${season}, Episode: ${episode}`);
+    
+    const url = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${season}/episode/${episode}?api_key=${TMDB_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('[FETCH-EPISODE-STILL] TMDB API error:', data);
+      return res.status(404).json({ success: false, error: 'Episode not found on TMDB' });
+    }
+    
+    if (data.still_path) {
+      const stillUrl = `https://image.tmdb.org/t/p/w500${data.still_path}`;
+      console.log(`[FETCH-EPISODE-STILL] Found still: ${stillUrl}`);
+      return res.json({ success: true, stillUrl: stillUrl });
+    } else {
+      console.log(`[FETCH-EPISODE-STILL] No still found for S${season}E${episode}`);
+      return res.json({ success: false, stillUrl: null });
+    }
+    
+  } catch (err) {
+    console.error('[FETCH-EPISODE-STILL] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/media/save-episode-images
+router.post('/save-episode-images', async (req, res) => {
+  try {
+    const { normalizedKey, episodeImagesData } = req.body;
+    
+    if (!normalizedKey || !episodeImagesData) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: normalizedKey, episodeImagesData' });
+    }
+    
+    console.log(`[SAVE-EPISODE-IMAGES] Saving episode images for: ${normalizedKey}`);
+    
+    const episodeImagesPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json');
+    
+    // Load existing data
+    let existingData = {};
+    if (fs.existsSync(episodeImagesPath)) {
+      try {
+        existingData = JSON.parse(fs.readFileSync(episodeImagesPath, 'utf8'));
+      } catch (e) {
+        console.warn('[SAVE-EPISODE-IMAGES] Could not parse existing episode images JSON, starting fresh');
+        existingData = {};
+      }
+    }
+    
+    // Merge the new data with existing data
+    const mergedData = { ...existingData, ...episodeImagesData };
+    
+    // Save the merged data
+    fs.writeFileSync(episodeImagesPath, JSON.stringify(mergedData, null, 2));
+    
+    console.log(`[SAVE-EPISODE-IMAGES] Successfully saved episode images for: ${normalizedKey}`);
+    return res.json({ success: true, message: 'Episode images saved successfully' });
+    
+  } catch (err) {
+    console.error('[SAVE-EPISODE-IMAGES] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/media/fetch-season-poster
+router.get('/fetch-season-poster', async (req, res) => {
+  try {
+    const { tmdbId, season } = req.query;
+    
+    if (!tmdbId || !season) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: tmdbId, season' });
+    }
+    
+    if (!TMDB_API_KEY) {
+      console.error('[FETCH-SEASON-POSTER] ERROR: TMDB_API_KEY is missing!');
+      return res.status(500).json({ success: false, error: 'TMDB API key not found' });
+    }
+    
+    console.log(`[FETCH-SEASON-POSTER] Fetching poster for TMDB ID: ${tmdbId}, Season: ${season}`);
+    
+    const url = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${season}?api_key=${TMDB_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('[FETCH-SEASON-POSTER] TMDB API error:', data);
+      return res.status(404).json({ success: false, error: 'Season not found on TMDB' });
+    }
+    
+    if (data.poster_path) {
+      const posterUrl = `https://image.tmdb.org/t/p/w500${data.poster_path}`;
+      console.log(`[FETCH-SEASON-POSTER] Found poster: ${posterUrl}`);
+      return res.json({ success: true, posterUrl: posterUrl });
+    } else {
+      console.log(`[FETCH-SEASON-POSTER] No poster found for Season ${season}`);
+      return res.json({ success: false, posterUrl: null });
+    }
+    
+  } catch (err) {
+    console.error('[FETCH-SEASON-POSTER] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/media/save-season-images
+router.post('/save-season-images', async (req, res) => {
+  try {
+    const { normalizedKey, seasonImagesData } = req.body;
+    
+    if (!normalizedKey || !seasonImagesData) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters: normalizedKey, seasonImagesData' });
+    }
+    
+    console.log(`[SAVE-SEASON-IMAGES] Saving season images for: ${normalizedKey}`);
+    
+    const seasonImagesPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json');
+    
+    // Load existing data
+    let existingData = {};
+    if (fs.existsSync(seasonImagesPath)) {
+      try {
+        existingData = JSON.parse(fs.readFileSync(seasonImagesPath, 'utf8'));
+      } catch (e) {
+        console.warn('[SAVE-SEASON-IMAGES] Could not parse existing season images JSON, starting fresh');
+        existingData = {};
+      }
+    }
+    
+    // Merge the new data with existing data
+    const mergedData = { ...existingData, ...seasonImagesData };
+    
+    // Save the merged data
+    fs.writeFileSync(seasonImagesPath, JSON.stringify(mergedData, null, 2));
+    
+    console.log(`[SAVE-SEASON-IMAGES] Successfully saved season images for: ${normalizedKey}`);
+    return res.json({ success: true, message: 'Season images saved successfully' });
+    
+  } catch (err) {
+    console.error('[SAVE-SEASON-IMAGES] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/media/scan-tv-structure
 router.post('/scan-tv-structure', (req, res) => {
   try {
@@ -522,10 +680,17 @@ router.post('/scan-tv-structure', (req, res) => {
     const showDir = fs.readdirSync(showPath, { withFileTypes: true });
     const seasonFolders = showDir
       .filter(dirent => dirent.isDirectory())
-      .filter(dirent => /season\s*\d+/i.test(dirent.name));
+      .filter(dirent => {
+        // Support both "Season 01" and "S01" formats
+        return /season\s*\d+/i.test(dirent.name) || /^s\d+/i.test(dirent.name);
+      });
     seasonFolders.forEach(seasonFolder => {
       const seasonPath = path.join(showPath, seasonFolder.name);
-      const seasonMatch = seasonFolder.name.match(/season\s*(\d+)/i);
+      // Support both "Season 01" and "S01" formats for season number extraction
+      let seasonMatch = seasonFolder.name.match(/season\s*(\d+)/i);
+      if (!seasonMatch) {
+        seasonMatch = seasonFolder.name.match(/^s(\d+)/i);
+      }
       const seasonNumber = seasonMatch ? parseInt(seasonMatch[1], 10) : undefined;
       const episodes = [];
       const files = fs.readdirSync(seasonPath, { withFileTypes: true })
@@ -1187,6 +1352,103 @@ router.get('/get-tv-shows-list', async (req, res) => {
       error: err.message
     });
   }
+});
+
+// Add this new route for auto-processing TV shows
+router.post('/auto-process-tv-show', async (req, res) => {
+    try {
+        console.log('[AUTO-PROCESS] Received auto-process request:', req.body);
+        
+        const { showPath, tmdbDetails, normalizedKey } = req.body;
+        
+        if (!showPath || !tmdbDetails || !normalizedKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required parameters: showPath, tmdbDetails, or normalizedKey'
+            });
+        }
+
+        // Import the automated processor
+        const AutomatedTVShowProcessor = require('../../scripts/SMART/SMART_automated_tv_show_processor.js');
+        const processor = new AutomatedTVShowProcessor();
+        
+        // Initialize the processor
+        await processor.init();
+        
+        // Process the show
+        const success = await processor.processShow(showPath);
+        
+        if (success) {
+            console.log('[AUTO-PROCESS] Successfully processed TV show:', showPath);
+            res.json({
+                success: true,
+                message: 'TV show auto-processed successfully',
+                normalizedKey: normalizedKey
+            });
+        } else {
+            console.log('[AUTO-PROCESS] Failed to process TV show:', showPath);
+            res.json({
+                success: false,
+                message: 'Failed to auto-process TV show',
+                normalizedKey: normalizedKey
+            });
+        }
+        
+    } catch (error) {
+        console.error('[AUTO-PROCESS] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Add this new route for auto-detecting new TV shows
+router.post('/auto-detect-new-shows', async (req, res) => {
+    try {
+        console.log('[AUTO-DETECT] Received auto-detect request');
+        
+        // Import the integration processor
+        const MediaManagerIntegration = require('../../scripts/SMART/SMART_media_manager_integration.js');
+        const integration = new MediaManagerIntegration();
+        
+        // Initialize the integration
+        await integration.init();
+        
+        // Detect new shows
+        const newShows = await integration.detectNewShows();
+        
+        if (newShows.length > 0) {
+            console.log('[AUTO-DETECT] Found new shows:', newShows);
+            
+            // Process the new shows
+            const result = await integration.processNewShows(newShows);
+            
+            res.json({
+                success: true,
+                message: `Found and processed ${newShows.length} new TV show(s)`,
+                newShows: newShows.map(show => require('path').basename(show)),
+                processed: result.processed,
+                failed: result.failed
+            });
+        } else {
+            console.log('[AUTO-DETECT] No new shows found');
+            res.json({
+                success: true,
+                message: 'No new TV shows detected',
+                newShows: [],
+                processed: 0,
+                failed: 0
+            });
+        }
+        
+    } catch (error) {
+        console.error('[AUTO-DETECT] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
 });
 
 module.exports = router;

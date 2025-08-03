@@ -135,6 +135,9 @@ app.use(express.urlencoded({limit: '50mb', extended: true}));
 // Serve config to the frontend FIRST
 app.use('/config', express.static(path.join(__dirname, '../config')));
 
+// Serve shared directory to the frontend
+app.use('/shared', express.static(path.join(__dirname, '../shared')));
+
 // Mount playlist API routes
 const playlistRoutes = require('./routes/playlists.routes');
 const youtubeHistoryRoutes = require('./routes/youtubeHistory.routes.js');

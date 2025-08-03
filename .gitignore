@@ -56,3 +56,6 @@ watch_later_raw.json
 # System files
 .DS_Store
 Thumbs.db
+
+# User-specific data files
+watch_later.json

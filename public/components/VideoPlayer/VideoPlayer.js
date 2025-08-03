@@ -852,13 +852,30 @@ class VideoPlayer {
     }
 
     async loadVideo(file) {
-        if (!file) return;
+        console.log('[DEBUG - VIDEO-PLAYER] loadVideo called with:', file);
+        console.log('[DEBUG - VIDEO-PLAYER] File type:', typeof file);
+        console.log('[DEBUG - VIDEO-PLAYER] File properties:', Object.keys(file || {}));
+        if (!file) {
+            console.log('[DEBUG - VIDEO-PLAYER] No file provided to loadVideo');
+            return;
+        }
         if (!this.vjsPlayer) {
             console.error('🎬 [VIDEO-PLAYER] Video.js player not initialized');
             return;
         }
         
         console.log('🎬 [VIDEO-PLAYER] Loading video:', file.name);
+        
+        // Store current TV show info in localStorage
+        console.log('[DEBUG - VIDEO-PLAYER] About to store TV show info for video:', file.name);
+        console.log('[DEBUG - VIDEO-PLAYER] File object details:', {
+            name: file.name,
+            absPath: file.absPath,
+            relPath: file.relPath,
+            path: file.path
+        });
+        this.storeCurrentTVShowInfo(file);
+        console.log('[DEBUG - VIDEO-PLAYER] Finished storing TV show info');
         this.currentFile = file;
         const url = URL.createObjectURL(file);
         
@@ -975,6 +992,12 @@ class VideoPlayer {
         
         console.log('[DEBUG - VIDEO-PLAYER] extractEpisodeInfo called with:', filePath);
         
+        // Add more detailed debugging for the file path
+        console.log('[DEBUG - VIDEO-PLAYER] File path type:', typeof filePath);
+        console.log('[DEBUG - VIDEO-PLAYER] File path length:', filePath.length);
+        console.log('[DEBUG - VIDEO-PLAYER] File path contains "Lost in Space":', filePath.includes('Lost in Space'));
+        console.log('[DEBUG - VIDEO-PLAYER] File path contains "S01E01":', filePath.includes('S01E01'));
+        
         const path = filePath.replace(/\\/g, '/'); // Normalize path separators
         
         // Extract show name from TV-SHOWS directory structure
@@ -1005,6 +1028,9 @@ class VideoPlayer {
         
         console.log('[DEBUG - VIDEO-PLAYER] Extracted show name:', showName);
         console.log('[DEBUG - VIDEO-PLAYER] Extracted show year:', showYear);
+        console.log('[DEBUG - VIDEO-PLAYER] Show name length:', showName.length);
+        console.log('[DEBUG - VIDEO-PLAYER] Show name contains "Daisy":', showName.includes('Daisy'));
+        console.log('[DEBUG - VIDEO-PLAYER] Show name contains "Jones":', showName.includes('Jones'));
         
         // Extract season number - try multiple patterns
         let seasonNumber = null;
@@ -1012,19 +1038,24 @@ class VideoPlayer {
             /season[\s_-]*(\d+)/i,
             /s(\d+)e\d+/i,
             /s(\d+)/i,
-            /(\d+)x\d+/i
+            /(\d+)x\d+/i,
+            /season\s*(\d+)/i,
+            /s(\d+)/i
         ];
         
         for (const pattern of seasonPatterns) {
             const match = path.match(pattern);
             if (match) {
                 seasonNumber = parseInt(match[1], 10);
+                console.log('[DEBUG - VIDEO-PLAYER] Found season number:', seasonNumber, 'using pattern:', pattern);
                 break;
             }
         }
         
         // Extract episode number from filename - try multiple patterns
         const filename = path.split('/').pop() || '';
+        console.log('[DEBUG - VIDEO-PLAYER] Extracting episode from filename:', filename);
+        
         let episodeNumber = null;
         const episodePatterns = [
             /S\d+E(\d+)/i,
@@ -1033,7 +1064,9 @@ class VideoPlayer {
             /E(\d+)/i,
             /\d+x(\d+)/i,
             /[\s_-](\d+)[\s_-]/,
-            /(\d+)\.(?:mp4|mkv|avi|mov|wmv|flv|m4v)$/i
+            /(\d+)\.(?:mp4|mkv|avi|mov|wmv|flv|m4v)$/i,
+            /episode\s*(\d+)/i,
+            /ep\s*(\d+)/i
         ];
         
         for (const pattern of episodePatterns) {
@@ -1043,8 +1076,18 @@ class VideoPlayer {
                 // Only accept reasonable episode numbers (1-999)
                 if (num >= 1 && num <= 999) {
                     episodeNumber = num;
+                    console.log('[DEBUG - VIDEO-PLAYER] Found episode number:', episodeNumber, 'using pattern:', pattern);
                     break;
                 }
+            }
+        }
+        
+        // If we still don't have episode number, try to extract from the title
+        if (!episodeNumber && filename.includes('Episode')) {
+            const episodeMatch = filename.match(/Episode\s*(\d+)/i);
+            if (episodeMatch) {
+                episodeNumber = parseInt(episodeMatch[1], 10);
+                console.log('[DEBUG - VIDEO-PLAYER] Found episode number from title:', episodeNumber);
             }
         }
         
@@ -1076,20 +1119,24 @@ class VideoPlayer {
         
         // Priority 1: Use data from currentMediaItem if available
         if (this.currentMediaItem) {
+            // Clean the currentMediaItem.title/name before processing
+            const cleanedMediaItemTitle = this.currentMediaItem.title ? this.cleanTVShowTitle(this.currentMediaItem.title) : '';
+            const cleanedMediaItemName = this.currentMediaItem.name ? this.cleanTVShowTitle(this.currentMediaItem.name) : '';
+            
             // Check if title already contains year (from MediaLibraryManager)
-            if (this.currentMediaItem.title && this.currentMediaItem.title.includes('(')) {
-                // Extract show name and year from the title
-                const titleMatch = this.currentMediaItem.title.match(/^(.+?)\s*\((\d{4})\)/);
+            if (cleanedMediaItemTitle && cleanedMediaItemTitle.includes('(')) {
+                // Extract show name and year from the cleaned title
+                const titleMatch = cleanedMediaItemTitle.match(/^(.+?)\s*\((\d{4})\)/);
                 if (titleMatch) {
                     showName = titleMatch[1].trim();
                     showYear = titleMatch[2];
-                    console.log('[DEBUG - VIDEO-PLAYER] Using show name and year from media item title:', showName, showYear);
+                    console.log('[DEBUG - VIDEO-PLAYER] Using show name and year from media item title (cleaned):', showName, showYear);
                 }
             } else {
                 // Title doesn't have year, so we need to add it
-                if (this.currentMediaItem.name) {
-                    showName = this.currentMediaItem.name;
-                    console.log('[DEBUG - VIDEO-PLAYER] Using show name from media item.name:', showName);
+                if (cleanedMediaItemName) {
+                    showName = cleanedMediaItemName;
+                    console.log('[DEBUG - VIDEO-PLAYER] Using show name from media item.name (cleaned):', showName);
                 }
                 
                 // Get year from other properties
@@ -1105,8 +1152,9 @@ class VideoPlayer {
         
         // Priority 2: Use episodeInfo if we don't have complete data
         if (!showName && episodeInfo && episodeInfo.showName) {
-            showName = episodeInfo.showName;
-            console.log('[DEBUG - VIDEO-PLAYER] Using show name from episodeInfo:', showName);
+            // Ensure episodeInfo.showName is also cleaned
+            showName = this.cleanTVShowTitle(episodeInfo.showName);
+            console.log('[DEBUG - VIDEO-PLAYER] Using show name from episodeInfo (cleaned):', showName);
         }
         
         if (!showYear && episodeInfo && episodeInfo.showYear) {
@@ -1120,8 +1168,9 @@ class VideoPlayer {
             const extractedInfo = this.extractEpisodeInfo(filePath);
             
             if (!showName && extractedInfo && extractedInfo.showName) {
-                showName = extractedInfo.showName;
-                console.log('[DEBUG - VIDEO-PLAYER] Using show name from path extraction:', showName);
+                // Ensure extractedInfo.showName is also cleaned
+                showName = this.cleanTVShowTitle(extractedInfo.showName);
+                console.log('[DEBUG - VIDEO-PLAYER] Using show name from path extraction (cleaned):', showName);
             }
             
             if (!showYear && extractedInfo && extractedInfo.showYear) {
@@ -1155,12 +1204,12 @@ class VideoPlayer {
             
             // Add season info if available
             if (episodeInfo && episodeInfo.seasonNumber !== null) {
-                finalTitle += ` | Season ${episodeInfo.seasonNumber}`;
+                finalTitle += ` | Season ${String(episodeInfo.seasonNumber).padStart(2, '0')}`;
             }
             
             // Add episode info if available
             if (episodeInfo && episodeInfo.episodeNumber !== null) {
-                finalTitle += ` | Episode ${episodeInfo.episodeNumber}`;
+                finalTitle += ` | Episode ${String(episodeInfo.episodeNumber).padStart(2, '0')}`;
             }
         } else {
             // Fallback: use the original episodeInfo logic
@@ -1174,11 +1223,11 @@ class VideoPlayer {
             }
             
             if (episodeInfo && episodeInfo.seasonNumber !== null) {
-                finalTitle += ` | Season ${episodeInfo.seasonNumber}`;
+                finalTitle += ` | Season ${String(episodeInfo.seasonNumber).padStart(2, '0')}`;
             }
             
             if (episodeInfo && episodeInfo.episodeNumber !== null) {
-                finalTitle += ` | Episode ${episodeInfo.episodeNumber}`;
+                finalTitle += ` | Episode ${String(episodeInfo.episodeNumber).padStart(2, '0')}`;
             }
         }
         
@@ -1240,7 +1289,7 @@ class VideoPlayer {
         name = name.replace(/\b(aac|ddp|dd|dts|ac3)[ ._\-]*7[ ._\-]*1\b/gi, "");
         
         // Remove other common tags (only as whole words or after separators)
-        name = name.replace(/(?:^|[ ._\-])(?:480p|720p|1080p|2160p|4k|8k|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|aac|dts|yify|rarbg|repack|extended|unrated|directors cut|remux|hdtv|amzn|nf|web|ddp|dd5[ ._\-]?1|5[ ._\-]?1|7[ ._\-]?1|mp3|flac|truehd|atmos|hevc|h265|h264|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion)(?=$|[ ._\-])/gi, "");
+        name = name.replace(/(?:^|[ ._\-])(?:480p|720p|1080p|2160p|4k|8k|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|aac|dts|yify|rarbg|repack|extended|unrated|directors cut|remux|hdtv|amzn|nf|web|ddp|dd5[ ._\-]?1|5[ ._\-]?1|7[ ._\-]?1|mp3|flac|truehd|atmos|hevc|h265|h264|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion-collection|criterion)(?=$|[ ._\-])/gi, "");
         
         // Remove trailing group tags (e.g., -YTS, -RARBG, etc.)
         name = name.replace(/[-_. ]+(yts( mx| am)?|rarbg|jyk|kogi|web|amzn|nf|ddp|dd5[ ._\-]?1|aac|dts|hdtv|remux|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion-collection|criterion)\b.*$/i, "");
@@ -2028,30 +2077,215 @@ class VideoPlayer {
 
     // Find the current episode and next episode in the library
     findCurrentAndNextEpisode(currentFilePath) {
-        // Flatten the media library to find the current and next episode
-        const flattenEpisodes = (node, episodes = []) => {
+        console.log('[DEBUG - VIDEO-PLAYER] findCurrentAndNextEpisode called with:', currentFilePath);
+        
+        if (!this.mediaLibrary) {
+            console.log('[DEBUG - VIDEO-PLAYER] No media library available');
+            return { current: null, next: null };
+        }
+
+        // Extract episode info from current file
+        const currentEpisodeInfo = this.extractEpisodeInfo(currentFilePath);
+        console.log('[DEBUG - VIDEO-PLAYER] Current episode info:', currentEpisodeInfo);
+
+        if (!currentEpisodeInfo || !currentEpisodeInfo.showName) {
+            console.log('[DEBUG - VIDEO-PLAYER] Could not extract episode info');
+            console.log('[DEBUG - VIDEO-PLAYER] currentEpisodeInfo:', currentEpisodeInfo);
+            console.log('[DEBUG - VIDEO-PLAYER] showName:', currentEpisodeInfo?.showName);
+            return { current: null, next: null };
+        }
+
+        // Find all episodes for this show
+        const showEpisodes = this.findAllEpisodesForShow(currentEpisodeInfo.showName);
+        console.log('[DEBUG - VIDEO-PLAYER] Found episodes for show:', showEpisodes.length);
+
+        if (showEpisodes.length === 0) {
+            console.log('[DEBUG - VIDEO-PLAYER] No episodes found for show, trying alternative search...');
+            
+            // Try alternative search - look for any episodes in the media library
+            const allEpisodes = [];
+            const searchAllEpisodes = (node) => {
             if (node.files && node.files.length > 0) {
-                for (const file of node.files) {
+                    allEpisodes.push(...node.files);
+                }
+                if (node.folders && node.folders.length > 0) {
+                    for (const folder of node.folders) {
+                        searchAllEpisodes(folder);
+                    }
+                }
+            };
+            searchAllEpisodes(this.mediaLibrary);
+            console.log('[DEBUG - VIDEO-PLAYER] Total episodes in media library:', allEpisodes.length);
+            console.log('[DEBUG - VIDEO-PLAYER] First 10 episodes:', allEpisodes.slice(0, 10).map(ep => ep.name));
+            
+            // Try to find episodes that might be from the same show by looking at the current file path
+            const currentPath = currentFilePath.toLowerCase();
+            const potentialEpisodes = allEpisodes.filter(ep => {
+                const epPath = (ep.absPath || ep.relPath || ep.path || '').toLowerCase();
+                // Look for episodes in similar paths (same show folder)
+                return epPath.includes('tv-shows') || epPath.includes('tv_shows') || epPath.includes('tv shows');
+            });
+            console.log('[DEBUG - VIDEO-PLAYER] Potential episodes found:', potentialEpisodes.length);
+            console.log('[DEBUG - VIDEO-PLAYER] Potential episode names:', potentialEpisodes.map(ep => ep.name));
+            
+            if (potentialEpisodes.length > 0) {
+                // Use the first potential episode as next (simple fallback)
+                const nextEpisode = potentialEpisodes[0];
+                console.log('[DEBUG - VIDEO-PLAYER] Using fallback next episode:', nextEpisode.name);
+                return { current: null, next: nextEpisode };
+            }
+            
+            return { current: null, next: null };
+        }
+
+        // Find current episode in the list
+        const currentEpisode = showEpisodes.find(ep => {
+            const epPath = ep.absPath || ep.relPath || ep.path || '';
+            return epPath === currentFilePath || epPath.includes(currentEpisodeInfo.filename);
+        });
+
+        if (!currentEpisode) {
+            console.log('[DEBUG - VIDEO-PLAYER] Current episode not found in show episodes');
+            return { current: null, next: null };
+        }
+
+        // Find next episode based on season/episode numbers
+        const nextEpisode = this.findNextEpisodeBySeasonEpisode(showEpisodes, currentEpisodeInfo);
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode found:', nextEpisode ? nextEpisode.name : 'None');
+
+        return { current: currentEpisode, next: nextEpisode };
+    }
+
+    findAllEpisodesForShow(showName) {
+        console.log('[DEBUG - EPISODE-MATCH] findAllEpisodesForShow called with showName:', showName);
+        console.log('[DEBUG - EPISODE-MATCH] Media library type:', typeof this.mediaLibrary);
+        console.log('[DEBUG - EPISODE-MATCH] Media library is array:', Array.isArray(this.mediaLibrary));
+        console.log('[DEBUG - EPISODE-MATCH] Media library length:', this.mediaLibrary ? this.mediaLibrary.length : 'null');
+        
+        if (this.mediaLibrary && this.mediaLibrary.length > 0) {
+            console.log('[DEBUG - EPISODE-MATCH] First media library item:', this.mediaLibrary[0]);
+            console.log('[DEBUG - EPISODE-MATCH] First item keys:', this.mediaLibrary[0] ? Object.keys(this.mediaLibrary[0]) : 'null');
+        }
+        
+        const episodes = [];
+        
+        const searchInNode = (node) => {
+            console.log('[DEBUG - EPISODE-MATCH] Searching in node:', node.name);
+            console.log('[DEBUG - EPISODE-MATCH] Node type:', typeof node);
+            console.log('[DEBUG - EPISODE-MATCH] Node keys:', Object.keys(node));
+            
+            // Only search in TV-SHOWS directories
+            if (node.name && node.name.toLowerCase().includes('tv-shows') || node.name && node.name.toLowerCase().includes('tv_shows')) {
+                console.log('[DEBUG - EPISODE-MATCH] Found TV-SHOWS directory:', node.name);
+                
+                // Search in subfolders (TV show directories) - this is where the actual episodes are
+                if (node.folders && node.folders.length > 0) {
+                    console.log('[DEBUG - EPISODE-MATCH] Found', node.folders.length, 'folders in TV-SHOWS directory');
+                    for (const folder of node.folders) {
+                        console.log('[DEBUG - EPISODE-MATCH] Searching in TV show folder:', folder.name);
+                        
+                        // Check if this folder matches the show name we're looking for
+                        const folderName = folder.name || '';
+                        const normalizedFolderName = folderName.toLowerCase().replace(/[._-]/g, ' ').trim();
+                        const normalizedShowName = showName.toLowerCase().replace(/[._-]/g, ' ').trim();
+                        
+                        console.log('[DEBUG - EPISODE-MATCH] Comparing folder name:', normalizedFolderName);
+                        console.log('[DEBUG - EPISODE-MATCH] With show name:', normalizedShowName);
+                        console.log('[DEBUG - EPISODE-MATCH] Match:', normalizedFolderName.includes(normalizedShowName) || normalizedShowName.includes(normalizedFolderName));
+                        
+                        // If this folder matches our show, search for episodes in its subfolders
+                        if (normalizedFolderName.includes(normalizedShowName) || normalizedShowName.includes(normalizedFolderName)) {
+                            console.log('[DEBUG - EPISODE-MATCH] Found matching show folder:', folder.name);
+                            
+                            // Search in season folders
+                            if (folder.folders && folder.folders.length > 0) {
+                                console.log('[DEBUG - EPISODE-MATCH] Found', folder.folders.length, 'season folders');
+                                for (const seasonFolder of folder.folders) {
+                                    console.log('[DEBUG - EPISODE-MATCH] Searching in season folder:', seasonFolder.name);
+                                    
+                                    // Look for episode files in season folders
+                                    if (seasonFolder.files && seasonFolder.files.length > 0) {
+                                        console.log('[DEBUG - EPISODE-MATCH] Found', seasonFolder.files.length, 'episode files in season folder');
+                                        for (const file of seasonFolder.files) {
+                                            const fileEpisodeInfo = this.extractEpisodeInfo(file.absPath || file.relPath || file.path || '');
+                                            
+                                            console.log('[DEBUG - EPISODE-MATCH] Checking episode file:', file.name);
+                                            console.log('[DEBUG - EPISODE-MATCH] Extracted show name:', fileEpisodeInfo?.showName);
+                                            console.log('[DEBUG - EPISODE-MATCH] Has season number:', !!fileEpisodeInfo?.seasonNumber);
+                                            console.log('[DEBUG - EPISODE-MATCH] Has episode number:', !!fileEpisodeInfo?.episodeNumber);
+                                            
+                                            // Add all episode files from this show (they should all match)
+                                            if (fileEpisodeInfo && fileEpisodeInfo.seasonNumber && fileEpisodeInfo.episodeNumber) {
+                                                console.log('[DEBUG - EPISODE-MATCH] TV SHOW EPISODE FOUND! Adding episode:', file.name, 'S' + fileEpisodeInfo.seasonNumber + 'E' + fileEpisodeInfo.episodeNumber);
+                                                
                     episodes.push({
                         ...file,
-                        folder: node.path
+                                                    episodeInfo: fileEpisodeInfo
                     });
                 }
             }
-            if (node.folders && node.folders.length > 0) {
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (node.folders && node.folders.length > 0) {
+                // Continue searching in other directories to find TV-SHOWS
                 for (const folder of node.folders) {
-                    flattenEpisodes(folder, episodes);
+                    searchInNode(folder);
                 }
             }
-            return episodes;
         };
-        if (!this.mediaLibrary) return { current: null, next: null };
-        const allEpisodes = flattenEpisodes(this.mediaLibrary);
-        const idx = allEpisodes.findIndex(ep => ep.absPath === currentFilePath || ep.relPath === currentFilePath);
-        if (idx === -1) return { current: null, next: null };
-        const current = allEpisodes[idx];
-        const next = allEpisodes[idx + 1] || null;
-        return { current, next };
+
+        searchInNode(this.mediaLibrary);
+        console.log('[DEBUG - EPISODE-MATCH] Found episodes for show:', episodes.length);
+        console.log('[DEBUG - EPISODE-MATCH] Episode names:', episodes.map(ep => ep.name));
+        return episodes;
+    }
+
+    findNextEpisodeBySeasonEpisode(episodes, currentEpisodeInfo) {
+        console.log('[DEBUG - VIDEO-PLAYER] Finding next episode for:', currentEpisodeInfo);
+        
+        // Sort episodes by season and episode number
+        const sortedEpisodes = episodes.sort((a, b) => {
+            const aInfo = a.episodeInfo || this.extractEpisodeInfo(a.absPath || a.relPath || a.path || '');
+            const bInfo = b.episodeInfo || this.extractEpisodeInfo(b.absPath || b.relPath || b.path || '');
+            
+            if (!aInfo || !bInfo) return 0;
+            
+            // Compare seasons first
+            if (aInfo.seasonNumber !== bInfo.seasonNumber) {
+                return aInfo.seasonNumber - bInfo.seasonNumber;
+            }
+            
+            // Then compare episodes
+            return aInfo.episodeNumber - bInfo.episodeNumber;
+        });
+
+        console.log('[DEBUG - VIDEO-PLAYER] Sorted episodes:', sortedEpisodes.map(ep => {
+            const info = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            return `${info?.seasonNumber || '?'}x${info?.episodeNumber || '?'} - ${ep.name}`;
+        }));
+
+        // Find current episode in sorted list
+        const currentIndex = sortedEpisodes.findIndex(ep => {
+            const epInfo = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            return epInfo && 
+                   epInfo.seasonNumber === currentEpisodeInfo.seasonNumber && 
+                   epInfo.episodeNumber === currentEpisodeInfo.episodeNumber;
+        });
+
+        console.log('[DEBUG - VIDEO-PLAYER] Current episode index:', currentIndex);
+
+        if (currentIndex === -1 || currentIndex === sortedEpisodes.length - 1) {
+            console.log('[DEBUG - VIDEO-PLAYER] No next episode available');
+            return null;
+        }
+
+        const nextEpisode = sortedEpisodes[currentIndex + 1];
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode:', nextEpisode.name);
+        return nextEpisode;
     }
 
     setupUpNextAndSkipIntro() {
@@ -2064,6 +2298,7 @@ class VideoPlayer {
         this.removeUpNextOverlay();
         this.removeSkipIntroButton();
         this.removeSkipToNextButton();
+        this.removeNextShowButton();
 
         // Listen for timeupdate to show Skip Intro, Up Next overlay, and Skip to Next button
         this.vjsPlayer.off('timeupdate'); // Remove previous listeners
@@ -2157,16 +2392,253 @@ class VideoPlayer {
         }
     }
 
-    showSkipToNextButton() {
-        // Only show for TV shows
+    addNextShowButton() {
+        if (this.nextShowBtn) return;
+        
+        console.log('[DEBUG - VIDEO-PLAYER] addNextShowButton called');
+        console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem:', this.currentMediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] currentFile:', this.currentFile);
+        
+        // Only add Next Show button for TV shows - improved detection
         let isTVShow = false;
-        if (this.currentMediaItem && this.currentMediaItem.type === 'tv-show') {
+        
+        // Check multiple ways to detect TV shows
+        if (this.currentMediaItem) {
+            if (this.currentMediaItem.type === 'tvshow' || this.currentMediaItem.type === 'tv-show') {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Detected TV show via mediaItem.type:', this.currentMediaItem.type);
+            } else if (this.currentMediaItem.path && /TV[-_ ]SHOWS?/i.test(this.currentMediaItem.path)) {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Detected TV show via mediaItem.path:', this.currentMediaItem.path);
+            }
+        }
+        
+        if (!isTVShow && this.currentFile) {
+            if (this.currentFile.absPath && /TV[-_ ]SHOWS?/i.test(this.currentFile.absPath)) {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Detected TV show via currentFile.absPath:', this.currentFile.absPath);
+            } else if (this.currentFile.name && /TV[-_ ]SHOWS?/i.test(this.currentFile.name)) {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Detected TV show via currentFile.name:', this.currentFile.name);
+            }
+        }
+        
+        // Additional check: look for episode patterns in filename
+        if (!isTVShow && this.currentFile && this.currentFile.name) {
+            const episodePatterns = [/S\d{1,2}E\d{1,2}/i, /Season\s*\d+/i, /Episode\s*\d+/i];
+            if (episodePatterns.some(pattern => pattern.test(this.currentFile.name))) {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Detected TV show via episode pattern in filename:', this.currentFile.name);
+            }
+        }
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Final isTVShow result:', isTVShow);
+        if (!isTVShow) {
+            console.log('[DEBUG - VIDEO-PLAYER] Not a TV show, skipping Next Show button');
+            return;
+        }
+        
+        // Force show for any video with episode patterns (fallback)
+        if (this.currentFile && this.currentFile.name) {
+            const episodePatterns = [/S\d{1,2}E\d{1,2}/i, /Season\s*\d+/i, /Episode\s*\d+/i];
+            if (episodePatterns.some(pattern => pattern.test(this.currentFile.name))) {
+                isTVShow = true;
+                console.log('[DEBUG - VIDEO-PLAYER] Forcing TV show detection due to episode patterns');
+            }
+        }
+
+        // Get next episode info (but don't require it to show the button)
+        const filePath = this.currentFile.absPath || this.currentFile.name;
+        console.log('[DEBUG - VIDEO-PLAYER] Looking for next episode with filePath:', filePath);
+        const { next } = this.findCurrentAndNextEpisode(filePath);
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode found:', next);
+
+        this.nextShowBtn = document.createElement('button');
+        this.nextShowBtn.className = 'video-player-next-show-btn';
+        
+        // Always show the Next Episode button with simple text
+        this.nextShowBtn.innerHTML = `
+            <div class="next-show-text">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">📺 Episode List</div>
+                <div style="font-size: 12px; opacity: 0.8;">Choose next episode</div>
+            </div>
+        `;
+        this.nextShowBtn.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10002;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border: 2px solid #43a047;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 200px;
+            transition: all 0.3s ease;
+        `;
+        
+        // Add hover effects for the button itself (scale and background change)
+        this.nextShowBtn.onmouseenter = () => {
+            this.nextShowBtn.style.transform = 'scale(1.05)';
+            this.nextShowBtn.style.background = 'rgba(0,0,0,0.9)';
+        };
+        
+        this.nextShowBtn.onmouseleave = () => {
+            this.nextShowBtn.style.transform = 'scale(1)';
+            this.nextShowBtn.style.background = 'rgba(0,0,0,0.8)';
+        };
+        
+        this.nextShowBtn.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            console.log('[VIDEO-PLAYER] Episode List button clicked');
+            
+            // Get current episode info to determine show name
+            let filePath = null;
+            if (this.currentFile) {
+                filePath = this.currentFile.absPath || this.currentFile.name;
+                console.log('[VIDEO-PLAYER] Using currentFile path:', filePath);
+            } else if (this.currentMediaItem) {
+                filePath = this.currentMediaItem.path || this.currentMediaItem.absPath;
+                console.log('[VIDEO-PLAYER] Using currentMediaItem path:', filePath);
+            }
+            
+            if (!filePath) {
+                console.log('[VIDEO-PLAYER] No filePath found');
+                this.showOverlayAlert('Cannot determine current video path', 3000);
+                return;
+            }
+            
+            // Decode URL-encoded path if needed
+            let decodedPath = filePath;
+            if (filePath.includes('%')) {
+                try {
+                    decodedPath = decodeURIComponent(filePath);
+                    console.log('[VIDEO-PLAYER] Decoded path:', decodedPath);
+                } catch (e) {
+                    console.log('[VIDEO-PLAYER] Failed to decode path:', e);
+                }
+            }
+            
+            const currentEpisodeInfo = this.extractEpisodeInfo(decodedPath);
+            console.log('[VIDEO-PLAYER] Extracted episode info:', currentEpisodeInfo);
+            
+            if (!currentEpisodeInfo || !currentEpisodeInfo.showName) {
+                console.log('[VIDEO-PLAYER] No show name found in episode info');
+                this.showOverlayAlert('Current video is not a TV show episode', 3000);
+                return;
+            }
+            
+            // Pause video if it's playing when modal opens
+            if (this.vjsPlayer && !this.vjsPlayer.paused()) {
+                console.log('[VIDEO-PLAYER] Pausing video for modal');
+                this.vjsPlayer.pause();
+            }
+            
+            console.log('[VIDEO-PLAYER] Opening episode modal for show:', currentEpisodeInfo.showName);
+            console.log('[VIDEO-PLAYER] EpisodeModal available:', typeof window.EpisodeModal);
+            console.log('[VIDEO-PLAYER] window.episodeModal exists:', !!window.episodeModal);
+            console.log('[VIDEO-PLAYER] EPISODE_MODAL_LOADED flag:', window.EPISODE_MODAL_LOADED);
+            
+            // Initialize episode modal if not already done
+            if (!window.episodeModal) {
+                console.log('[VIDEO-PLAYER] Creating new EpisodeModal instance');
+                console.log('[VIDEO-PLAYER] EpisodeModal constructor:', typeof EpisodeModal);
+                if (typeof EpisodeModal === 'undefined') {
+                    console.error('[VIDEO-PLAYER] EpisodeModal class is not available!');
+                    this.showOverlayAlert('EpisodeModal not loaded', 3000);
+                    return;
+                }
+                window.episodeModal = new EpisodeModal();
+                window.episodeModal.init(
+                    // onEpisodeSelect callback
+                    (selectedEpisode) => {
+                        console.log('[VIDEO-PLAYER] Episode selected:', selectedEpisode.name);
+                        
+                        const episodeFile = {
+                            name: selectedEpisode.name,
+                            absPath: selectedEpisode.absPath || selectedEpisode.path,
+                            relPath: selectedEpisode.relPath,
+                            path: selectedEpisode.path,
+                            type: 'video/mp4',
+                            ...selectedEpisode
+                        };
+                        
+                        this.showOverlayAlert(`Loading: ${selectedEpisode.name}`, 2000);
+                        
+                        // Use the same approach as MediaLibraryManager for loading videos
+                        const videoPath = episodeFile.absPath || episodeFile.path;
+                        if (videoPath) {
+                            console.log('[VIDEO-PLAYER] Loading video from path:', videoPath);
+                            
+                            // Use the API endpoint like MediaLibraryManager does
+                            const encodedPath = encodeURIComponent(videoPath);
+                            const videoUrl = `/api/video?path=${encodedPath}`;
+                            
+                            console.log('[VIDEO-PLAYER] Video URL:', videoUrl);
+                            this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
+                        } else {
+                            console.error('[VIDEO-PLAYER] No video path found for episode:', selectedEpisode);
+                            this.showOverlayAlert('Error: No video path found', 2000);
+                        }
+                    },
+                    // onClose callback
+                    () => {
+                        console.log('[VIDEO-PLAYER] Episode modal closed');
+                    }
+                );
+            }
+            
+            // Open the episode modal
+            console.log('[VIDEO-PLAYER] Calling episodeModal.open()');
+            window.episodeModal.open(currentEpisodeInfo.showName);
+        };
+        
+        this.container.appendChild(this.nextShowBtn);
+    }
+
+    removeNextShowButton() {
+        if (this.nextShowBtn) {
+            this.nextShowBtn.remove();
+            this.nextShowBtn = null;
+        }
+    }
+
+    showSkipToNextButton() {
+        // Only show for TV shows - using same improved detection logic
+        let isTVShow = false;
+        
+        // Check multiple ways to detect TV shows
+        if (this.currentMediaItem) {
+            if (this.currentMediaItem.type === 'tvshow' || this.currentMediaItem.type === 'tv-show') {
             isTVShow = true;
-        } else if (this.currentMediaItem && this.currentMediaItem.path && /TV[-_ ]SHOWS?/i.test(this.currentMediaItem.path)) {
+            } else if (this.currentMediaItem.path && /TV[-_ ]SHOWS?/i.test(this.currentMediaItem.path)) {
             isTVShow = true;
-        } else if (this.currentFile && this.currentFile.absPath && /TV[-_ ]SHOWS?/i.test(this.currentFile.absPath)) {
+            }
+        }
+        
+        if (!isTVShow && this.currentFile) {
+            if (this.currentFile.absPath && /TV[-_ ]SHOWS?/i.test(this.currentFile.absPath)) {
+                isTVShow = true;
+            } else if (this.currentFile.name && /TV[-_ ]SHOWS?/i.test(this.currentFile.name)) {
             isTVShow = true;
         }
+        }
+        
+        // Additional check: look for episode patterns in filename
+        if (!isTVShow && this.currentFile && this.currentFile.name) {
+            const episodePatterns = [/S\d{1,2}E\d{1,2}/i, /Season\s*\d+/i, /Episode\s*\d+/i];
+            if (episodePatterns.some(pattern => pattern.test(this.currentFile.name))) {
+                isTVShow = true;
+            }
+        }
+        
         if (!isTVShow) return;
 
         // Find next episode
@@ -2288,9 +2760,8 @@ class VideoPlayer {
 
     skipToNextEpisode() {
         this.removeSkipToNextButton();
-        if (this.nextEpisodeInfo) {
-            this.playNextEpisode();
-        }
+        console.log('[DEBUG - VIDEO-PLAYER] skipToNextEpisode called - using playNextEpisodeInSeries');
+        this.playNextEpisodeInSeries();
     }
 
     removeSkipToNextButton() {
@@ -2306,11 +2777,35 @@ class VideoPlayer {
     }
 
     showUpNextOverlay() {
-        // Find next episode
-        const filePath = this.currentFile.absPath || this.currentFile.name;
+        // Find next episode using the same logic as playNextEpisode
+        let filePath = this.currentFile.absPath || this.currentFile.name;
+        
+        // If it's a URL, try to extract the actual file path
+        if (filePath.startsWith('http') || filePath.startsWith('blob:')) {
+            console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: Detected URL, trying to extract file path');
+            
+            // Try to get the actual file path from the media library
+            if (this.currentMediaItem && this.currentMediaItem.filePath) {
+                filePath = this.currentMediaItem.filePath;
+                console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: Using currentMediaItem.filePath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.absPath) {
+                filePath = this.currentMediaItem.absPath;
+                console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: Using currentMediaItem.absPath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.path) {
+                filePath = this.currentMediaItem.path;
+                console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: Using currentMediaItem.path:', filePath);
+            } else {
+                console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: No file path found in currentMediaItem');
+                return; // Don't show overlay if we can't determine the path
+            }
+        }
+        
         const { next } = this.findCurrentAndNextEpisode(filePath);
         this.nextEpisodeInfo = next;
-        if (!next) return;
+        if (!next) {
+            console.log('[DEBUG - VIDEO-PLAYER] showUpNextOverlay: No next episode found - not showing overlay');
+            return;
+        }
         // Create overlay
         this.removeUpNextOverlay();
         this.upNextOverlay = document.createElement('div');
@@ -2375,16 +2870,731 @@ class VideoPlayer {
         this.upNextShown = false;
     }
 
-    playNextEpisode() {
+    async playNextEpisodeInSeries() {
+        console.log('[DEBUG - VIDEO-PLAYER] playNextEpisodeInSeries called');
+        
+        // Get current video info from Video.js (same as updateEpisodeInfoHeader)
+        let filePath = null;
+        
+        // Get file path from current file or media item (same logic as updateEpisodeInfoHeader)
+        if (this.currentFile) {
+            filePath = this.currentFile.absPath || this.currentFile.name;
+        } else if (this.currentMediaItem) {
+            filePath = this.currentMediaItem.path || this.currentMediaItem.absPath;
+        }
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Current file from Video.js:', this.currentFile);
+        console.log('[DEBUG - VIDEO-PLAYER] Current media item from Video.js:', this.currentMediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] File path from Video.js:', filePath);
+        
+        if (!filePath) {
+            this.showOverlayAlert('Cannot determine current video path', 3000);
+            return;
+        }
+        
+        // Extract episode info from the current video path
+        console.log('[DEBUG - EPISODE-MATCH] About to extract episode info from filePath:', filePath);
+        
+        // Decode URL-encoded path if needed
+        let decodedPath = filePath;
+        if (filePath.includes('%')) {
+            try {
+                decodedPath = decodeURIComponent(filePath);
+                console.log('[DEBUG - EPISODE-MATCH] Decoded path:', decodedPath);
+            } catch (e) {
+                console.log('[DEBUG - EPISODE-MATCH] Failed to decode path:', e);
+            }
+        }
+        
+        const currentEpisodeInfo = this.extractEpisodeInfo(decodedPath);
+        console.log('[DEBUG - EPISODE-MATCH] Current episode info from Video.js:', currentEpisodeInfo);
+        
+        if (!currentEpisodeInfo || !currentEpisodeInfo.showName) {
+            this.showOverlayAlert('Current video is not a TV show episode', 3000);
+            return;
+        }
+        
+        // Ensure media library is loaded
+        if (!this.mediaLibrary) {
+            console.log('[DEBUG - VIDEO-PLAYER] Media library not loaded, fetching...');
+            await this.fetchMediaLibrary();
+        }
+        
+        // Find all episodes from the same show
+        const showEpisodes = this.findAllEpisodesForShow(currentEpisodeInfo.showName);
+        console.log('[DEBUG - EPISODE-MATCH] Episodes from same show:', showEpisodes.length);
+        console.log('[DEBUG - EPISODE-MATCH] Show name being searched for:', JSON.stringify(currentEpisodeInfo.showName));
+        
+        if (showEpisodes.length === 0) {
+            console.log('[DEBUG - EPISODE-MATCH] No episodes found for show. This might be a show name matching issue.');
+            this.showOverlayAlert(`No episodes found for "${currentEpisodeInfo.showName}"`, 3000);
+            return;
+        }
+        
+        console.log('[DEBUG - EPISODE-MATCH] First 5 episodes found for this show:');
+        for (let i = 0; i < Math.min(5, showEpisodes.length); i++) {
+            const ep = showEpisodes[i];
+            const epInfo = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            console.log(`[DEBUG - EPISODE-MATCH] Episode ${i}: S${epInfo?.seasonNumber || '?'}E${epInfo?.episodeNumber || '?'} - ${ep.name}`);
+        }
+        
+        // Sort episodes by season and episode number
+        const sortedEpisodes = showEpisodes.sort((a, b) => {
+            const aInfo = a.episodeInfo || this.extractEpisodeInfo(a.absPath || a.relPath || a.path || '');
+            const bInfo = b.episodeInfo || this.extractEpisodeInfo(b.absPath || b.relPath || b.path || '');
+            
+            if (!aInfo || !bInfo) return 0;
+            
+            // Compare seasons first
+            if (aInfo.seasonNumber !== bInfo.seasonNumber) {
+                return aInfo.seasonNumber - bInfo.seasonNumber;
+            }
+            
+            // Then compare episodes
+            return aInfo.episodeNumber - bInfo.episodeNumber;
+        });
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Sorted episodes:', sortedEpisodes.map(ep => {
+            const info = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            return `${info?.seasonNumber || '?'}x${info?.episodeNumber || '?'} - ${ep.name}`;
+        }));
+        
+        // Debug: Show the first few episodes to see the order
+        console.log('[DEBUG - VIDEO-PLAYER] First 5 episodes in sorted list:');
+        for (let i = 0; i < Math.min(5, sortedEpisodes.length); i++) {
+            const ep = sortedEpisodes[i];
+            const info = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            console.log(`[DEBUG - VIDEO-PLAYER] Episode ${i}: S${info?.seasonNumber || '?'}E${info?.episodeNumber || '?'} - ${ep.name}`);
+        }
+        
+        // Find current episode in sorted list
+        console.log('[DEBUG - EPISODE-MATCH] Looking for current episode: S' + currentEpisodeInfo.seasonNumber + 'E' + currentEpisodeInfo.episodeNumber);
+        console.log('[DEBUG - EPISODE-MATCH] Current episode info details:', currentEpisodeInfo);
+        
+        const currentIndex = sortedEpisodes.findIndex(ep => {
+            const epInfo = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+            console.log('[DEBUG - EPISODE-MATCH] Comparing with episode:', ep.name);
+            console.log('[DEBUG - EPISODE-MATCH] Episode info from file:', epInfo);
+            
+            const matches = epInfo && 
+                   epInfo.seasonNumber === currentEpisodeInfo.seasonNumber && 
+                   epInfo.episodeNumber === currentEpisodeInfo.episodeNumber;
+            
+            console.log('[DEBUG - EPISODE-MATCH] Season match:', epInfo?.seasonNumber, '===', currentEpisodeInfo.seasonNumber, '=', epInfo?.seasonNumber === currentEpisodeInfo.seasonNumber);
+            console.log('[DEBUG - EPISODE-MATCH] Episode match:', epInfo?.episodeNumber, '===', currentEpisodeInfo.episodeNumber, '=', epInfo?.episodeNumber === currentEpisodeInfo.episodeNumber);
+            console.log('[DEBUG - EPISODE-MATCH] Overall match:', matches);
+            
+            if (matches) {
+                console.log('[DEBUG - EPISODE-MATCH] Found current episode at index:', sortedEpisodes.indexOf(ep), 'Episode:', ep.name);
+            }
+            return matches;
+        });
+        
+        console.log('[DEBUG - EPISODE-MATCH] Current episode index:', currentIndex);
+        
+        if (currentIndex === -1) {
+            console.log('[DEBUG - EPISODE-MATCH] Current episode not found in sorted list');
+            console.log('[DEBUG - EPISODE-MATCH] Current episode we were looking for: S' + currentEpisodeInfo.seasonNumber + 'E' + currentEpisodeInfo.episodeNumber);
+            console.log('[DEBUG - EPISODE-MATCH] Available episodes in sorted list:');
+            for (let i = 0; i < Math.min(10, sortedEpisodes.length); i++) {
+                const ep = sortedEpisodes[i];
+                const epInfo = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+                console.log(`[DEBUG - EPISODE-MATCH] Episode ${i}: S${epInfo?.seasonNumber || '?'}E${epInfo?.episodeNumber || '?'} - ${ep.name}`);
+            }
+            this.showOverlayAlert('Could not find current episode in series', 3000);
+            return;
+        }
+        
+        if (currentIndex === sortedEpisodes.length - 1) {
+            console.log('[DEBUG - VIDEO-PLAYER] This is the last episode in the series');
+            this.showOverlayAlert('This is the last episode in the series', 3000);
+            return;
+        }
+        
+        // Get the next episode
+        const nextEpisode = sortedEpisodes[currentIndex + 1];
+        const nextEpisodeInfo = nextEpisode.episodeInfo || this.extractEpisodeInfo(nextEpisode.absPath || nextEpisode.relPath || nextEpisode.path || '');
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode:', nextEpisode.name);
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode info:', nextEpisodeInfo);
+        
+        // Load the next episode
+        const nextFile = {
+            name: nextEpisode.name,
+            absPath: nextEpisode.absPath,
+            relPath: nextEpisode.relPath,
+            path: nextEpisode.path,
+            type: 'video/mp4',
+        };
+        
+        this.showOverlayAlert(`Loading next episode: ${nextEpisode.name}`, 3000);
+        
+        // Show episode selection popup instead of automatic loading
+        this.showEpisodeSelectionPopup(currentEpisodeInfo.showName);
+    }
+
+    async showNextEpisodeOptions() {
+        console.log('[DEBUG - VIDEO-PLAYER] showNextEpisodeOptions called');
+        
+        // Ensure media library is loaded
+        if (!this.mediaLibrary) {
+            console.log('[DEBUG - VIDEO-PLAYER] Media library not loaded, fetching...');
+            await this.fetchMediaLibrary();
+        }
+        
+        // Get the current file path, handling both URL and file path cases
+        let filePath = this.currentFile.absPath || this.currentFile.name;
+        console.log('[DEBUG - VIDEO-PLAYER] Current file path/URL:', filePath);
+        
+        // If it's a URL, try to extract the actual file path
+        if (filePath.startsWith('http') || filePath.startsWith('blob:')) {
+            console.log('[DEBUG - VIDEO-PLAYER] Detected URL, trying to extract file path');
+            
+            // Try to get the actual file path from the media library
+            if (this.currentMediaItem && this.currentMediaItem.filePath) {
+                filePath = this.currentMediaItem.filePath;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.filePath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.absPath) {
+                filePath = this.currentMediaItem.absPath;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.absPath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.path) {
+                filePath = this.currentMediaItem.path;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.path:', filePath);
+            } else {
+                console.log('[DEBUG - VIDEO-PLAYER] No file path found in currentMediaItem');
+                console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem properties:', this.currentMediaItem ? Object.keys(this.currentMediaItem) : 'null');
+                this.showOverlayAlert('Cannot determine current episode path', 5000);
+                return;
+            }
+        }
+        
+        // Find episodes from the SAME TV SHOW SERIES
+        if (this.mediaLibrary) {
+            // Extract the show name from the current episode
+            const currentEpisodeInfo = this.extractEpisodeInfo(filePath);
+            console.log('[DEBUG - VIDEO-PLAYER] Current episode info:', currentEpisodeInfo);
+            
+            if (currentEpisodeInfo && currentEpisodeInfo.showName) {
+                // Find all episodes from the same show
+                const showEpisodes = this.findAllEpisodesForShow(currentEpisodeInfo.showName);
+                console.log('[DEBUG - VIDEO-PLAYER] Episodes from same show:', showEpisodes.length);
+                
+                if (showEpisodes.length > 0) {
+                    // Sort episodes by season and episode number
+                    const sortedEpisodes = showEpisodes.sort((a, b) => {
+                        const aInfo = a.episodeInfo || this.extractEpisodeInfo(a.absPath || a.relPath || a.path || '');
+                        const bInfo = b.episodeInfo || this.extractEpisodeInfo(b.absPath || b.relPath || b.path || '');
+                        
+                        if (!aInfo || !bInfo) return 0;
+                        
+                        // Compare seasons first
+                        if (aInfo.seasonNumber !== bInfo.seasonNumber) {
+                            return aInfo.seasonNumber - bInfo.seasonNumber;
+                        }
+                        
+                        // Then compare episodes
+                        return aInfo.episodeNumber - bInfo.episodeNumber;
+                    });
+                    
+                    console.log('[DEBUG - VIDEO-PLAYER] Sorted episodes:', sortedEpisodes.map(ep => {
+                        const info = ep.episodeInfo || this.extractEpisodeInfo(ep.absPath || ep.relPath || ep.path || '');
+                        return `${info?.seasonNumber || '?'}x${info?.episodeNumber || '?'} - ${ep.name}`;
+                    }));
+                    
+                    // Show episodes from the same show
+                    this.showEpisodeSelectionOverlay(sortedEpisodes, currentEpisodeInfo.showName);
+                } else {
+                    this.showOverlayAlert(`No other episodes found for "${currentEpisodeInfo.showName}"`, 5000);
+                }
+            } else {
+                this.showOverlayAlert('Could not determine current show name', 5000);
+            }
+        } else {
+            this.showOverlayAlert('Media library not available', 5000);
+        }
+    }
+
+    showEpisodeSelectionOverlay(episodes, showName = '') {
+        // Remove any existing overlay
         this.removeUpNextOverlay();
-        if (this.nextEpisodeInfo) {
-            // Simulate a File object for the next episode
+        
+        // Create overlay with episode options
+        this.episodeSelectionOverlay = document.createElement('div');
+        this.episodeSelectionOverlay.className = 'video-player-episode-selection-overlay';
+        this.episodeSelectionOverlay.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            font-size: 16px;
+            z-index: 10004;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        `;
+        
+        let overlayHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 16px 0; color: #43a047;">Select Next Episode</h3>
+                <p style="margin: 0; opacity: 0.8; font-size: 14px; color: #43a047;">${showName}</p>
+                <p style="margin: 8px 0 0 0; opacity: 0.8;">Click an episode to play it:</p>
+            </div>
+        `;
+        
+        episodes.forEach((episode, index) => {
+            const episodeName = episode.name || 'Unknown Episode';
+            const episodeInfo = episode.episodeInfo || this.extractEpisodeInfo(episode.absPath || episode.relPath || episode.path || '');
+            const seasonEpisode = episodeInfo ? `S${episodeInfo.seasonNumber || '?'}E${episodeInfo.episodeNumber || '?'}` : '';
+            
+            overlayHTML += `
+                <div style="
+                    padding: 12px;
+                    margin: 8px 0;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                    border: 1px solid rgba(255,255,255,0.2);
+                " 
+                onmouseover="this.style.background='rgba(67,160,71,0.3)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.1)'"
+                onclick="window.videoPlayer.loadEpisodeFromSelection('${episode.name.replace(/'/g, "\\'")}')">
+                    <div style="font-weight: bold; color: #43a047;">${episodeName}</div>
+                    <div style="font-size: 12px; opacity: 0.7; margin-top: 4px;">
+                        ${seasonEpisode} ${episodeInfo?.showName || ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        overlayHTML += `
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="window.videoPlayer.closeEpisodeSelection()" 
+                        style="
+                            padding: 8px 16px;
+                            background: #b71c1c;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">Cancel</button>
+            </div>
+        `;
+        
+        this.episodeSelectionOverlay.innerHTML = overlayHTML;
+        this.container.appendChild(this.episodeSelectionOverlay);
+    }
+
+    loadEpisodeFromSelection(episodeName) {
+        console.log('[DEBUG - VIDEO-PLAYER] Loading episode from selection:', episodeName);
+        
+        // Find the episode in the media library
+        const findEpisode = (node) => {
+            if (node.files && node.files.length > 0) {
+                for (const file of node.files) {
+                    if (file.name === episodeName) {
+                        return file;
+                    }
+                }
+            }
+            if (node.folders && node.folders.length > 0) {
+                for (const folder of node.folders) {
+                    const found = findEpisode(folder);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        
+        const episode = findEpisode(this.mediaLibrary);
+        
+        if (episode) {
+            console.log('[DEBUG - VIDEO-PLAYER] Found episode:', episode);
+            this.closeEpisodeSelection();
+            
+            const nextFile = {
+                name: episode.name,
+                absPath: episode.absPath,
+                relPath: episode.relPath,
+                path: episode.path,
+                type: 'video/mp4',
+            };
+            
+            this.showOverlayAlert(`Loading: ${episode.name}`, 3000);
+            this.loadVideo(nextFile);
+        } else {
+            this.showOverlayAlert(`Episode not found: ${episodeName}`, 3000);
+        }
+    }
+
+    storeCurrentTVShowInfo(file) {
+        console.log('[DEBUG - VIDEO-PLAYER] storeCurrentTVShowInfo called with:', file);
+        
+        // Extract episode info from file path
+        const filePath = file.absPath || file.relPath || file.path || file.name;
+        console.log('[DEBUG - VIDEO-PLAYER] Using filePath for extraction:', filePath);
+        console.log('[DEBUG - VIDEO-PLAYER] FilePath contains S01E01:', filePath.includes('S01E01'));
+        console.log('[DEBUG - VIDEO-PLAYER] FilePath contains S01E02:', filePath.includes('S01E02'));
+        const episodeInfo = this.extractEpisodeInfo(filePath);
+        
+        if (episodeInfo && episodeInfo.showName) {
+            const tvShowInfo = {
+                showName: episodeInfo.showName,
+                seasonNumber: episodeInfo.seasonNumber,
+                episodeNumber: episodeInfo.episodeNumber,
+                fileName: file.name,
+                filePath: filePath,
+                timestamp: Date.now(),
+                current: true  // Flag to identify this as the currently viewing episode
+            };
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Storing TV show info:', tvShowInfo);
+            console.log('[DEBUG - VIDEO-PLAYER] Storing showName as:', JSON.stringify(tvShowInfo.showName));
+            console.log('[DEBUG - VIDEO-PLAYER] Setting current flag to true for:', episodeInfo.showName);
+            localStorage.setItem('currentTVShow', JSON.stringify(tvShowInfo));
+        } else {
+            console.log('[DEBUG - VIDEO-PLAYER] Could not extract episode info, not storing TV show info');
+        }
+    }
+
+    getCurrentTVShowInfo() {
+        const stored = localStorage.getItem('currentTVShow');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                console.log('[DEBUG - VIDEO-PLAYER] Retrieved TV show info from localStorage:', parsed);
+                console.log('[DEBUG - VIDEO-PLAYER] Retrieved showName as:', JSON.stringify(parsed.showName));
+                return parsed;
+            } catch (e) {
+                console.log('[DEBUG - VIDEO-PLAYER] Error parsing stored TV show info:', e);
+                return null;
+            }
+        }
+        return null;
+    }
+
+    stopCurrentVideoAndLoadNext(nextFile) {
+        console.log('[DEBUG - VIDEO-PLAYER] stopCurrentVideoAndLoadNext called with:', nextFile);
+        
+        if (!this.vjsPlayer) {
+            console.error('[DEBUG - VIDEO-PLAYER] Video.js player not initialized');
+            return;
+        }
+        
+        // STOP the current video completely
+        console.log('[DEBUG - VIDEO-PLAYER] Stopping current video...');
+        this.vjsPlayer.pause();
+        this.vjsPlayer.currentTime(0);
+        
+        // Clear any existing source
+        this.vjsPlayer.src('');
+        
+        // Wait a moment for the stop to take effect, then load the new video
+        setTimeout(() => {
+            console.log('[DEBUG - VIDEO-PLAYER] Loading new video:', nextFile.name);
+            console.log('[DEBUG - VIDEO-PLAYER] Next file object:', nextFile);
+            
+            // Create a proper file object for loadVideo
+            const fileToLoad = {
+                name: nextFile.name,
+                absPath: nextFile.absPath,
+                relPath: nextFile.relPath,
+                path: nextFile.path,
+                type: 'video/mp4',
+                // Add any other properties that loadVideo might need
+                ...nextFile
+            };
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Created file object for loading:', fileToLoad);
+            
+            // Use the existing loadVideo method which properly handles file loading
+            this.loadVideo(fileToLoad);
+            
+        }, 500); // Wait 500ms for the stop to complete
+    }
+
+    closeEpisodeSelection() {
+        if (this.episodeSelectionOverlay) {
+            this.episodeSelectionOverlay.remove();
+            this.episodeSelectionOverlay = null;
+        }
+        // Clean up any keyboard event listeners
+        document.removeEventListener('keydown', this.handleEpisodeSelectionKeyDown);
+    }
+
+    // Episode modal functionality moved to dedicated EpisodeModal component
+    showEpisodeSelectionPopup(showName) {
+        console.log('[VIDEO-PLAYER] showEpisodeSelectionPopup called - use EpisodeModal instead');
+        // This method is kept for backward compatibility but functionality moved to EpisodeModal
+    }
+
+    async loadEpisodesForSelection(showName) {
+        console.log('[EPISODE-SELECTION] Loading episodes for:', showName);
+        
+        // Get episodes directly from MediaLibraryManager
+        let episodes = [];
+        
+        if (window.mediaLibraryManager && window.mediaLibraryManager.tvShowsData) {
+            console.log('[EPISODE-SELECTION] Using MediaLibraryManager data');
+            
+            // Find the TV show in the data
+            const tvShow = window.mediaLibraryManager.tvShowsData.find(show => {
+                const showTitle = show.TMDBTitle || show.name || show.path || '';
+                return showTitle.toLowerCase().includes(showName.toLowerCase()) || 
+                       showName.toLowerCase().includes(showTitle.toLowerCase());
+            });
+            
+            if (tvShow && tvShow.folders) {
+                console.log('[EPISODE-SELECTION] Found TV show:', tvShow.path);
+                console.log('[EPISODE-SELECTION] Seasons found:', tvShow.folders.length);
+                
+                // Collect all episodes from all seasons
+                tvShow.folders.forEach(season => {
+                    if (season.files && season.files.length > 0) {
+                        console.log('[EPISODE-SELECTION] Season', season.name, 'has', season.files.length, 'episodes');
+                        episodes.push(...season.files);
+                    }
+                });
+            }
+        }
+        
+        console.log('[EPISODE-SELECTION] Total episodes found:', episodes.length);
+        
+        const episodeList = document.getElementById('episode-list');
+        
+        // Update the title to show episode count
+        const titleElement = document.querySelector('h2');
+        if (titleElement) {
+            titleElement.textContent = `Select Episode - ${showName} (${episodes.length} episodes)`;
+        }
+        
+        if (episodes.length === 0) {
+            episodeList.innerHTML = `
+                <div style="text-align: center; color: #888; padding: 20px;">
+                    No episodes found for "${showName}"
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort episodes by season and episode
+        const sortedEpisodes = episodes.sort((a, b) => {
+            const aInfo = a.episodeInfo || this.extractEpisodeInfo(a.absPath || a.relPath || a.path || '');
+            const bInfo = b.episodeInfo || this.extractEpisodeInfo(b.absPath || b.relPath || b.path || '');
+            
+            if (!aInfo || !bInfo) return 0;
+            
+            if (aInfo.seasonNumber !== bInfo.seasonNumber) {
+                return aInfo.seasonNumber - bInfo.seasonNumber;
+            }
+            return aInfo.episodeNumber - bInfo.episodeNumber;
+        });
+        
+        // Get current episode info for highlighting
+        let currentEpisodeInfo = null;
+        if (this.currentFile) {
+            const currentFilePath = this.currentFile.absPath || this.currentFile.name;
+            currentEpisodeInfo = this.extractEpisodeInfo(currentFilePath);
+        }
+        
+        // Create episode buttons
+        let episodeButtons = '';
+        sortedEpisodes.forEach((episode, index) => {
+            const epInfo = episode.episodeInfo || this.extractEpisodeInfo(episode.absPath || episode.relPath || episode.path || '');
+            const episodeLabel = epInfo ? `S${epInfo.seasonNumber}E${epInfo.episodeNumber}` : `Episode ${index + 1}`;
+            
+            // Check if this is the currently playing episode
+            const isCurrentEpisode = currentEpisodeInfo && epInfo && 
+                currentEpisodeInfo.seasonNumber === epInfo.seasonNumber && 
+                currentEpisodeInfo.episodeNumber === epInfo.episodeNumber;
+            
+            const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
+            const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
+            
+            episodeButtons += `
+                <button class="${buttonClass}" data-index="${index}" ${isCurrentEpisode ? 'disabled' : ''}>
+                    <div class="episode-label">${episodeLabel}${statusText}</div>
+                    <div class="episode-name">${episode.name}</div>
+                </button>
+            `;
+        });
+        
+        episodeList.innerHTML = episodeButtons;
+        
+        // Add click handlers
+        document.querySelectorAll('.episode-button').forEach(button => {
+            button.onclick = () => {
+                // Don't allow clicking on disabled (current) episode
+                if (button.disabled) {
+                    return;
+                }
+                
+                const index = parseInt(button.dataset.index);
+                const selectedEpisode = sortedEpisodes[index];
+                console.log('[DEBUG - EPISODE-SELECTION] Selected episode:', selectedEpisode.name);
+                
+                // Load the selected episode
+                console.log('[EPISODE-SELECTION] Selected episode object:', selectedEpisode);
+                
+                const episodeFile = {
+                    name: selectedEpisode.name,
+                    absPath: selectedEpisode.absPath || selectedEpisode.path,
+                    relPath: selectedEpisode.relPath,
+                    path: selectedEpisode.path,
+                    type: 'video/mp4',
+                    // Add any other properties that might be needed
+                    ...selectedEpisode
+                };
+                
+                console.log('[EPISODE-SELECTION] Created episode file object:', episodeFile);
+                
+                this.closeEpisodeSelection();
+                this.showOverlayAlert(`Loading: ${selectedEpisode.name}`, 2000);
+                
+                // Use the same approach as MediaLibraryManager for loading videos
+                const videoPath = episodeFile.absPath || episodeFile.path;
+                if (videoPath) {
+                    console.log('[EPISODE-SELECTION] Loading video from path:', videoPath);
+                    
+                    // Use the API endpoint like MediaLibraryManager does
+                    const encodedPath = encodeURIComponent(videoPath);
+                    const videoUrl = `/api/video?path=${encodedPath}`;
+                    
+                    console.log('[EPISODE-SELECTION] Video URL:', videoUrl);
+                    this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
+                } else {
+                    console.error('[EPISODE-SELECTION] No video path found for episode:', selectedEpisode);
+                    this.showOverlayAlert('Error: No video path found', 2000);
+                }
+            };
+        });
+    }
+
+    async playNextEpisode() {
+        console.log('[DEBUG - VIDEO-PLAYER] playNextEpisode called');
+        this.removeUpNextOverlay();
+        
+        // Ensure media library is loaded
+        if (!this.mediaLibrary) {
+            console.log('[DEBUG - VIDEO-PLAYER] Media library not loaded, fetching...');
+            await this.fetchMediaLibrary();
+        }
+        
+        // Get the current file path, handling both URL and file path cases
+        let filePath = this.currentFile.absPath || this.currentFile.name;
+        console.log('[DEBUG - VIDEO-PLAYER] Current file path/URL:', filePath);
+        
+        // If it's a URL, try to extract the actual file path
+        if (filePath.startsWith('http') || filePath.startsWith('blob:')) {
+            console.log('[DEBUG - VIDEO-PLAYER] Detected URL, trying to extract file path');
+            
+            // Try to get the actual file path from the media library
+            if (this.currentMediaItem && this.currentMediaItem.filePath) {
+                filePath = this.currentMediaItem.filePath;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.filePath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.absPath) {
+                filePath = this.currentMediaItem.absPath;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.absPath:', filePath);
+            } else if (this.currentMediaItem && this.currentMediaItem.path) {
+                filePath = this.currentMediaItem.path;
+                console.log('[DEBUG - VIDEO-PLAYER] Using currentMediaItem.path:', filePath);
+            } else {
+                console.log('[DEBUG - VIDEO-PLAYER] No file path found in currentMediaItem');
+                console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem properties:', this.currentMediaItem ? Object.keys(this.currentMediaItem) : 'null');
+                this.showOverlayAlert('Cannot determine current episode path', 2000);
+                return;
+            }
+        }
+        
+        const { next } = this.findCurrentAndNextEpisode(filePath);
+        console.log('[DEBUG - VIDEO-PLAYER] Next episode found:', next);
+        
+        if (next) {
+            // Create a File object for the next episode
+            const nextFile = {
+                name: next.name,
+                absPath: next.absPath,
+                relPath: next.relPath,
+                path: next.path,
+                type: 'video/mp4', // Assume mp4 for now
+            };
+            console.log('[DEBUG - VIDEO-PLAYER] Loading next episode:', nextFile);
+            this.loadVideo(nextFile);
+        } else if (this.nextEpisodeInfo) {
+            // Fallback to the old nextEpisodeInfo if available
+            console.log('[DEBUG - VIDEO-PLAYER] Using fallback nextEpisodeInfo');
             const nextFile = {
                 name: this.nextEpisodeInfo.name,
                 absPath: this.nextEpisodeInfo.absPath,
-                type: 'video/mp4', // Assume mp4 for now
+                type: 'video/mp4',
             };
             this.loadVideo(nextFile);
+        } else {
+            console.log('[DEBUG - VIDEO-PLAYER] No next episode found, trying simple fallback...');
+            
+                    // SIMPLE FALLBACK: Just find ANY episode in the media library and play it
+        if (this.mediaLibrary) {
+            this.showOverlayAlert('Searching for episodes...', 3000);
+            
+            const allEpisodes = [];
+            const searchAllEpisodes = (node) => {
+                if (node.files && node.files.length > 0) {
+                    allEpisodes.push(...node.files);
+                }
+                if (node.folders && node.folders.length > 0) {
+                    for (const folder of node.folders) {
+                        searchAllEpisodes(folder);
+                    }
+                }
+            };
+            searchAllEpisodes(this.mediaLibrary);
+            
+            console.log('[DEBUG - VIDEO-PLAYER] Total episodes found in media library:', allEpisodes.length);
+            this.showOverlayAlert(`Found ${allEpisodes.length} episodes in library`, 3000);
+                
+                if (allEpisodes.length > 0) {
+                    // Find a different episode than the current one
+                    const currentFileName = this.currentFile.name || '';
+                    const differentEpisode = allEpisodes.find(ep => ep.name !== currentFileName);
+                    
+                    if (differentEpisode) {
+                        console.log('[DEBUG - VIDEO-PLAYER] Using fallback episode:', differentEpisode.name);
+                        console.log('[DEBUG - VIDEO-PLAYER] Episode details:', differentEpisode);
+                        const nextFile = {
+                            name: differentEpisode.name,
+                            absPath: differentEpisode.absPath,
+                            relPath: differentEpisode.relPath,
+                            path: differentEpisode.path,
+                            type: 'video/mp4',
+                        };
+                        console.log('[DEBUG - VIDEO-PLAYER] About to call loadVideo with:', nextFile);
+                        this.showOverlayAlert(`Loading: ${nextFile.name}`, 5000);
+                        this.loadVideo(nextFile);
+                        return;
+                    } else {
+                        console.log('[DEBUG - VIDEO-PLAYER] No different episode found, using first available');
+                        const firstEpisode = allEpisodes[0];
+                        const nextFile = {
+                            name: firstEpisode.name,
+                            absPath: firstEpisode.absPath,
+                            relPath: firstEpisode.relPath,
+                            path: firstEpisode.path,
+                            type: 'video/mp4',
+                        };
+                        this.loadVideo(nextFile);
+                        return;
+                    }
+                }
+            }
+            
+            console.log('[DEBUG - VIDEO-PLAYER] No episodes found in media library at all');
+            this.showOverlayAlert('No episodes found in media library', 5000);
         }
     }
 
@@ -2413,6 +3623,7 @@ class VideoPlayer {
             window.mediaLibraryManager.currentFile = mediaItem;
             console.log('[DEBUG - VIDEO-PLAYER] Synced mediaItem with MediaLibraryManager');
         }
+        
         try {
             // --- Remove any existing subtitle track and button ---
             const oldTrack = this.video.querySelector('track[data-autosub]');
