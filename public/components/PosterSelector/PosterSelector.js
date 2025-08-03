@@ -10,15 +10,12 @@
 // Modular component for selecting and saving TMDB posters for TV or movies
 
 // Use shared normalization service
-const normalizeKey = window.normalizeKey || ((name) => {
-  return name
-    .replace(/\\/g, '/')
-    .replace(/\s*&\s*/g, '.&.') // preserve ampersand as dot-ampersand-dot
-    .replace(/\s+/g, '.')
-    .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '') // include & in allowed characters
-    .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '');
-});
+// Note: window.normalizeKey should be available from NormalizationService.js
+// If not available, this will cause an error - which is what we want!
+const normalizeKey = window.normalizeKey;
+if (!normalizeKey) {
+    console.error('[POSTER SELECTOR] NormalizationService not loaded - this should not happen!');
+}
 // Use normalizeKey for all mapping key normalization in this file.
 
 class PosterSelector {

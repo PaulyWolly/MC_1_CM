@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="components/MyJokesManager/MyJokesManager.css">
     <link rel="stylesheet" href="components/YouTubeSearch/YouTubeSearchManager.css">
     <link rel="stylesheet" href="components/VideoPlayer/VideoPlayer.css">
+    <link rel="stylesheet" href="components/EpisodeModal/EpisodeModal.css">
     <link rel="stylesheet" href="components/MediaLibrary/MediaLibrary.css">
     <link rel="stylesheet" href="components/CustomTooltip/CustomTooltip.css">
     <!-- Video.js CSS -->
@@ -177,6 +178,9 @@
     <script type="module">
         window.appConfig = window.configExport.default;
     </script>
+    <!-- Load shared normalization service -->
+    <script src="/shared/NormalizationService.js"></script>
+    
     <!-- Load all manager modules as ES6 modules -->
     <script type="module" src="components/ToastManager.js"></script>
     <script type="module" src="components/ConfirmModal/ConfirmModal.js"></script>
@@ -187,6 +191,8 @@
     <!-- Video Player Configuration -->
     <script type="module" src="components/VideoPlayer/video-player-config.js"></script>
     <script type="module" src="components/VideoPlayer/VideoPlayer.js"></script>
+    <!-- Episode Modal -->
+    <script src="components/EpisodeModal/EpisodeModal.js"></script>
     
     <!-- Load PosterSelector globally for modal support -->
     <script src="components/PosterSelector/PosterSelector.js"></script>

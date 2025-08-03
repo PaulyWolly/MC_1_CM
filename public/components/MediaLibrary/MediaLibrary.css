@@ -238,13 +238,27 @@
 }
 
 .tv-show-season-episode-name {
-    font-size: 0.85em !important;
+    font-size: 0.8em !important;
     line-height: 1.2;
     white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 200px;
+    text-align: center;
+    padding: 4px 2px;
+    min-height: 2.4em;
+    max-height: 2.4em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 auto;
 }
 
 .tv-show-episode-name {
-    font-size: 0.8em !important;
+    font-size: 0.7em !important;
     line-height: 1.2;
     white-space: normal;
 }
@@ -1381,7 +1395,8 @@
     display: flex;
     gap: 24px;
     justify-content: space-between;
-    width: 100%;
+    width: 82vw;
+    margin-left: 100px;
     height: 525px;
     flex-direction: row;
   }
@@ -1639,10 +1654,10 @@
 .media-library-seasons-description {
     margin-bottom: 0;
     position: absolute;
-    width: 800px;
-    right: -120px;
+    width: 820px;
+    right: -150px;
     text-align: justify;
-    top: 6px;
+    top: 4px;
 }
 
 .media-library-details-buttons {
@@ -1839,6 +1854,41 @@
   font-size: 1.1rem;
   text-align: left;
 }
+
+.media-library-tv-show-title {
+  margin: 0 0 4px 0;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-library-tv-show-title-lois-clark {
+    margin: 0 0 4px 0;
+    font-size: 1.2rem !important;
+    font-weight: 700;
+    text-align: left;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
 .media-library-details-description {
     max-width: 700px;
     font-size: 1.08rem;
@@ -1892,6 +1942,11 @@
     flex-direction: column;
     gap: 18px;
   }
+  
+  .media-library-tv-show-title {
+    font-size: 1.6rem;
+    -webkit-line-clamp: 3;
+  }
   .media-library-seasons-side-col {
     max-width: 100%;
     width: 100%;
@@ -1903,6 +1958,13 @@
   }
   .media-library-seasons-grid {
     width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .media-library-tv-show-title {
+    font-size: 1.4rem;
+    -webkit-line-clamp: 4;
   }
 }
 
@@ -2081,6 +2143,7 @@
     display: block;
     margin: 0 auto;
     width: 170px;
+    margin-top: 0px !important;
 }
 
 /* --- BASE POSTER IMAGE STYLES --- */
@@ -2361,7 +2424,7 @@
     width: 1270px;
     background-color: #917d7d !important;
     border-radius: 14px;
-    min-width: 1270px;
+    min-width: 1130px;
     gap: 16px;
     box-sizing: border-box;
     align-items: center;
@@ -2396,7 +2459,7 @@
 
 .media-library-card.episode .media-library-card-poster img {
   width: 160px;
-  height: 220px;
+  height: 180px;
   object-fit: cover;
   border-radius: 8px;
   display: block;

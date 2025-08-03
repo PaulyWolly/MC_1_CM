@@ -156,16 +156,18 @@
 
 /* Hide file and close buttons unless hovering over the video player */
 .video-player-file-btn,
-.video-player-close-btn {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
+.video-player-close-btn,
+.video-player-next-show-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
 }
 
 .video-player-container:hover .video-player-file-btn,
-.video-player-container:hover .video-player-close-btn {
-    opacity: 1;
-    pointer-events: auto;
+.video-player-container:hover .video-player-close-btn,
+.video-player-container:hover .video-player-next-show-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Episode info header styling */
@@ -412,6 +414,59 @@
   bottom: 35px;
 }
 
+.save-later-icon {
+  font-size: 1.5em;
+  position: relative;
+  bottom: 5px;
+}
+
+/* Next Show Button Styles */
+.video-player-next-show-btn {
+  position: absolute;
+  top: 5px !important;
+  right: 65px !important;
+  z-index: 10002;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  border: 2px solid #43a047;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-player-next-show-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  background: rgba(0,0,0,0.9);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.video-player-next-show-btn .next-show-text {
+  text-align: center;
+  font-weight: bold;
+}
+
+.video-player-next-show-btn .next-show-text div:first-child {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.video-player-next-show-btn .next-show-text div:last-child {
+  font-size: 12px;
+  opacity: 0.8;
+  word-wrap: break-word;
+  max-width: 180px;
+}
+
 /* Skip to Next Episode Button Styles */
 .video-player-skip-to-next-btn {
   position: absolute;
@@ -515,4 +570,112 @@
     font-size: 12px;
     max-width: 200px;
   }
+}
+
+/* Episode Selection Popup Styles */
+.episode-selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000000000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.episode-selection-popup {
+    background: #1a1a1a;
+    border: 2px solid #43a047;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: white;
+}
+
+.episode-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.episode-selection-title {
+    margin: 0;
+    color: #43a047;
+}
+
+.episode-selection-close-btn {
+    background: #b71c1c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.episode-selection-close-btn:hover {
+    background: #d32f2f;
+}
+
+.episode-list {
+    display: grid;
+    gap: 8px;
+}
+
+.episode-button {
+    background: #2a2a2a;
+    color: white;
+    border: 1px solid #43a047;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.episode-button:hover {
+    background: #3a3a3a;
+}
+
+.episode-button.current-episode {
+    background: #2a2a2a;
+    color: white;
+    border: 2px solid #43a047;
+    opacity: 1;
+}
+
+.episode-button.current-episode .episode-label {
+    color: #43a047;
+}
+
+.episode-button.current-episode .episode-name {
+    color: #fff;
+}
+
+.episode-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.episode-label {
+    font-weight: bold;
+    color: #43a047;
+}
+
+.episode-name {
+    font-size: 14px;
+    color: #ccc;
+    margin-top: 4px;
+}
+
+.episode-loading {
+    text-align: center;
+    color: #888;
 }

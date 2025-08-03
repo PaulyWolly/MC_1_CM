@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test NormalizationService</title>
+</head>
+<body>
+    <h1>Testing NormalizationService Loading</h1>
+    <div id="results"></div>
+    
+    <script src="/shared/NormalizationService.js"></script>
+    <script>
+        const results = document.getElementById('results');
+        
+        function testLoading() {
+            results.innerHTML = '<h2>Testing NormalizationService...</h2>';
+            
+            if (typeof window.normalizeKey === 'function') {
+                results.innerHTML += '<p style="color: green;">✅ window.normalizeKey is available</p>';
+                
+                // Test the function
+                const testResult = window.normalizeKey('Lois & Clark: The New Adventures of Superman');
+                results.innerHTML += `<p><strong>Test result:</strong> "${testResult}"</p>`;
+                
+                if (typeof window.getInternalKey === 'function') {
+                    results.innerHTML += '<p style="color: green;">✅ window.getInternalKey is available</p>';
+                    const internalKey = window.getInternalKey('Lois & Clark: The New Adventures of Superman', '1993');
+                    results.innerHTML += `<p><strong>getInternalKey result:</strong> "${internalKey}"</p>`;
+                } else {
+                    results.innerHTML += '<p style="color: red;">❌ window.getInternalKey is NOT available</p>';
+                }
+                
+            } else {
+                results.innerHTML += '<p style="color: red;">❌ window.normalizeKey is NOT available</p>';
+                results.innerHTML += '<p>This means the NormalizationService.js file is not loading properly.</p>';
+            }
+        }
+        
+        window.addEventListener('load', testLoading);
+    </script>
+</body>
+</html> 

@@ -127,7 +127,12 @@ async function main() {
         let foundAnyStills = false;
         
         for (const seasonFolder of seasonFolders) {
-            const match = seasonFolder.match(/season[ _-]?(\d+)/i);
+            // Support both "Season 01" and "S01" formats
+            let match = seasonFolder.match(/season[ _-]?(\d+)/i);
+            if (!match) {
+                // Try S01, S02 format
+                match = seasonFolder.match(/S(\d{1,2})/i);
+            }
             if (!match) continue;
             const seasonNumber = parseInt(match[1], 10);
             if (!seasonNumber) continue;

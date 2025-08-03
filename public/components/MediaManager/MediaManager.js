@@ -8,29 +8,50 @@
 
 class MediaManager {
     constructor(containerElement) {
+      console.log('[DEBUG - MediaManager] Constructor called');
       this.containerElement = containerElement;
-    this.isInitialized = false;
-    this.htmlTemplate = null;
-    this.currentCastData = []; // Store full cast data including profile URLs
-    this.activeSubTab = 'single';
+      this.isInitialized = false;
+      this.htmlTemplate = null;
+      this.currentCastData = []; // Store full cast data including profile URLs
+      this.activeSubTab = 'single';
       this.removeAllTitleAttributes();
       // Brute-force: Remove all title attributes on every mouseover
       document.body.addEventListener('mouseover', function() {
         document.querySelectorAll('[title]').forEach(el => el.removeAttribute('title'));
       });
+      console.log('[DEBUG - MediaManager] Constructor completed');
   }
 
   async init() {
-    if (this.isInitialized) return;
-    await Promise.all([
-      this.loadCSS(),
-      this.loadHTML()
-    ]);
-    this.createFromTemplate();
-    this.setupElements();
-    this.setupEventListeners();
-    this.isInitialized = true;
-    this.show();
+    console.log('[DEBUG - MediaManager] Init method called');
+    if (this.isInitialized) {
+      console.log('[DEBUG - MediaManager] Already initialized, returning');
+      return;
+    }
+    try {
+      console.log('[DEBUG - MediaManager] Loading CSS and HTML...');
+      await Promise.all([
+        this.loadCSS(),
+        this.loadHTML()
+      ]);
+      console.log('[DEBUG - MediaManager] Creating template...');
+      this.createFromTemplate();
+      console.log('[DEBUG - MediaManager] Setting up elements...');
+      this.setupElements();
+      console.log('[DEBUG - MediaManager] Setting up event listeners...');
+      this.setupEventListeners();
+      this.isInitialized = true;
+      console.log('[DEBUG - MediaManager] Showing MediaManager...');
+      this.show();
+      
+      // Auto-detect and process new TV shows
+      await this.autoDetectNewShows();
+      
+      console.log('[DEBUG - MediaManager] Initialization completed successfully');
+    } catch (error) {
+      console.error('[DEBUG - MediaManager] Error during initialization:', error);
+      throw error;
+    }
   }
 
   async loadCSS() {
@@ -1734,6 +1755,18 @@ class MediaManager {
         console.log('[DEBUG - TV_IMAGES_FETCH] TMDB ID:', data.data.tmdbId);
         console.log('[DEBUG - TV_IMAGES_FETCH] Show Path:', showPath);
         
+        // Extract year from title or use year input field
+        let year = '';
+        if (this.inputTVYear && this.inputTVYear.value.trim()) {
+          year = this.inputTVYear.value.trim();
+        } else if (title) {
+          // Try to extract year from title like "Show Name (2023)"
+          const yearMatch = title.match(/\((\d{4})\)/);
+          if (yearMatch) {
+            year = yearMatch[1];
+          }
+        }
+        
         this.showModalToast('Fetching season and episode images...', 'info');
         
         console.log('[DEBUG - TV_IMAGES_FETCH] Making API call to /api/media/fetch-tv-images');
@@ -1951,8 +1984,27 @@ class MediaManager {
     const modalContent = this.seasonsModalOverlay?.querySelector('.media-manager-seasons-modal-content');
     if (!modalContent) return;
     
+    // Extract normalized key from show path or use form values
+    let normalizedKey = this.getNormalizedKeyTV();
+    
+    // If the normalized key is empty or doesn't match the expected format, try to extract from show path
+    if (!normalizedKey || normalizedKey.length < 3) {
+      const showPath = scanData.showPath || '';
+      const pathParts = showPath.split('\\');
+      const folderName = pathParts[pathParts.length - 1]; // Get the last folder name
+      
+      if (folderName) {
+        // Convert folder name to normalized key format
+        normalizedKey = folderName.replace(/\s+/g, '.').replace(/[^a-zA-Z0-9.()]/g, '');
+        console.log('[DEBUG - SEASONS_MODAL] Extracted normalized key from path:', normalizedKey);
+      }
+    }
+    
+    console.log('[DEBUG - SEASONS_MODAL] Using normalized key:', normalizedKey);
+    console.log('[DEBUG - SEASONS_MODAL] Title from form:', this.inputTVTitle ? this.inputTVTitle.value.trim() : 'N/A');
+    console.log('[DEBUG - SEASONS_MODAL] Year from form:', this.inputTVYear ? this.inputTVYear.value.trim() : 'N/A');
+    
     // Load season and episode images for thumbnails
-    const normalizedKey = this.getNormalizedKeyTV();
     let seasonImages = {};
     let episodeImages = {};
     
@@ -1970,14 +2022,37 @@ class MediaManager {
       console.log('[DEBUG - SEASONS_MODAL] Could not load episode images:', err.message);
     }
     
-    const showSeasons = seasonImages[normalizedKey]?.seasons || {};
-    const showEpisodes = episodeImages[normalizedKey]?.seasons || {};
+    let showSeasons = seasonImages[normalizedKey]?.seasons || {};
+    let showEpisodes = episodeImages[normalizedKey]?.seasons || {};
     
     console.log('[DEBUG - SEASONS_MODAL] Normalized key:', normalizedKey);
     console.log('[DEBUG - SEASONS_MODAL] Season images found:', !!seasonImages[normalizedKey]);
     console.log('[DEBUG - SEASONS_MODAL] Episode images found:', !!episodeImages[normalizedKey]);
     console.log('[DEBUG - SEASONS_MODAL] Show seasons:', showSeasons);
     console.log('[DEBUG - SEASONS_MODAL] Show episodes:', showEpisodes);
+    
+    // Debug: Show all available keys in the JSON files
+    const seasonKeys = Object.keys(seasonImages);
+    const episodeKeys = Object.keys(episodeImages);
+    console.log('[DEBUG - SEASONS_MODAL] All season keys:', seasonKeys);
+    console.log('[DEBUG - SEASONS_MODAL] All episode keys:', episodeKeys);
+    
+    // Check if there's a similar key that might match
+    const similarSeasonKey = seasonKeys.find(key => key.includes('Lois') && key.includes('Clark'));
+    const similarEpisodeKey = episodeKeys.find(key => key.includes('Lois') && key.includes('Clark'));
+    console.log('[DEBUG - SEASONS_MODAL] Similar season key found:', similarSeasonKey);
+    console.log('[DEBUG - SEASONS_MODAL] Similar episode key found:', similarEpisodeKey);
+    
+    // If no images found with the exact key, try the similar key
+    if (!seasonImages[normalizedKey] && similarSeasonKey) {
+      console.log('[DEBUG - SEASONS_MODAL] Using fallback season key:', similarSeasonKey);
+      showSeasons = seasonImages[similarSeasonKey]?.seasons || {};
+    }
+    
+    if (!episodeImages[normalizedKey] && similarEpisodeKey) {
+      console.log('[DEBUG - SEASONS_MODAL] Using fallback episode key:', similarEpisodeKey);
+      showEpisodes = episodeImages[similarEpisodeKey]?.seasons || {};
+    }
     
     let html = `
       <div class="media-manager-scan-summary">
@@ -2003,16 +2078,25 @@ class MediaManager {
         const fileSize = episode.size ? this.formatFileSize(episode.size) : 'Unknown size';
         const modifiedDate = episode.modified ? new Date(episode.modified).toLocaleDateString() : 'Unknown date';
         
-        // Get episode thumbnail
-        const episodeThumbnail = showEpisodes[season.seasonNumber]?.episodes?.[episode.episodeNumber]?.still || null;
+        // Get episode thumbnail - try both string and number versions of episode number
+        const episodeNumberStr = String(episode.episodeNumber);
+        const episodeNumberNum = Number(episode.episodeNumber);
+        const seasonNumberStr = String(season.seasonNumber);
+        
+        let episodeThumbnail = showEpisodes[seasonNumberStr]?.episodes?.[episodeNumberStr]?.still || 
+                              showEpisodes[seasonNumberStr]?.episodes?.[episodeNumberNum]?.still || null;
         
         // Debug logging
         console.log('[DEBUG - SEASONS_MODAL] Episode data:', {
           seasonNumber: season.seasonNumber,
+          seasonNumberStr: seasonNumberStr,
           episodeNumber: episode.episodeNumber,
+          episodeNumberStr: episodeNumberStr,
+          episodeNumberNum: episodeNumberNum,
           episodeNumberType: typeof episode.episodeNumber,
-          showEpisodesForSeason: showEpisodes[season.seasonNumber],
-          episodeThumbnail: episodeThumbnail
+          showEpisodesForSeason: showEpisodes[seasonNumberStr],
+          episodeThumbnail: episodeThumbnail,
+          availableEpisodes: showEpisodes[seasonNumberStr]?.episodes ? Object.keys(showEpisodes[seasonNumberStr].episodes) : []
         });
         
         html += `
@@ -2072,7 +2156,46 @@ class MediaManager {
     // Refresh images button
     const refreshImagesBtn = modalContent.querySelector('.media-manager-refresh-images-btn');
     if (refreshImagesBtn) {
-      refreshImagesBtn.onclick = () => this.scanTVStructure(scanData.showPath);
+      refreshImagesBtn.onclick = async () => {
+        console.log('[DEBUG - SEASONS_MODAL] Refresh images button clicked');
+        
+        // Get the current TMDB ID and seasons data from the form
+        const tmdbId = this.inputTVTMDBId ? this.inputTVTMDBId.value.trim() : '';
+        const seasonsData = this.scannedSeasonsData || [];
+        
+        if (!tmdbId) {
+          this.showModalToast('No TMDB ID found. Please fetch show info first.', 'warning');
+          return;
+        }
+        
+        if (seasonsData.length === 0) {
+          this.showModalToast('No seasons data found. Please fetch show info first.', 'warning');
+          return;
+        }
+        
+        // Get the normalized key
+        const normalizedKey = this.getNormalizedKeyTV();
+        if (!normalizedKey) {
+          this.showModalToast('Could not determine show key. Please check title and year.', 'warning');
+          return;
+        }
+        
+        this.showModalToast('Fetching episode and season images...', 'info');
+        
+        try {
+          await this.fetchEpisodeImages(tmdbId, seasonsData, normalizedKey);
+          this.showModalToast('Images fetched successfully! Refreshing modal...', 'success');
+          
+          // Refresh the modal content
+          setTimeout(() => {
+            this.scanTVStructure(scanData.showPath);
+          }, 1000);
+          
+        } catch (error) {
+          console.error('[DEBUG - SEASONS_MODAL] Error refreshing images:', error);
+          this.showModalToast('Failed to fetch images: ' + error.message, 'error');
+        }
+      };
     }
     
     // Add season button
@@ -2278,11 +2401,24 @@ Modified: ${new Date(episode.modified).toLocaleString()}
               const seasonMatch = folder.path.match(/Season\s*(\d+)/i);
               if (seasonMatch) {
                 const seasonNumber = parseInt(seasonMatch[1], 10);
-                const episodes = (folder.files || []).map(file => ({
-                  episodeNumber: 1, // We'll need to extract this from filename
-                  filename: file.name || file.filename || '',
-                  filePath: file.filePath || file.absPath || file.relPath || ''
-                }));
+                const episodes = (folder.files || []).map(file => {
+                  // Extract episode number from filename
+                  const filename = file.name || file.filename || '';
+                  let episodeNumber = 1; // Default fallback
+                  
+                  // Try to extract episode number from filename patterns like:
+                  // S01E01, S1E1, E01, E1, Episode 01, Episode 1
+                  const episodeMatch = filename.match(/S\d+E(\d+)|E(\d+)|Episode\s*(\d+)/i);
+                  if (episodeMatch) {
+                    episodeNumber = parseInt(episodeMatch[1] || episodeMatch[2] || episodeMatch[3], 10);
+                  }
+                  
+                  return {
+                    episodeNumber: episodeNumber,
+                    filename: filename,
+                    filePath: file.filePath || file.absPath || file.relPath || ''
+                  };
+                });
                 return {
                   seasonNumber: seasonNumber,
                   episodes: episodes
@@ -2292,6 +2428,11 @@ Modified: ${new Date(episode.modified).toLocaleString()}
             }).filter(season => season !== null);
             
             console.log('[DEBUG - TV CONFIRM] Loaded seasons from scanned JSON:', seasons.length, 'seasons');
+            console.log('[DEBUG - TV CONFIRM] Seasons with episodes:', seasons.map(s => ({
+              season: s.seasonNumber,
+              episodeCount: s.episodes.length,
+              episodes: s.episodes.map(e => ({ episode: e.episodeNumber, filename: e.filename }))
+            })));
           }
         }
       } catch (error) {
@@ -2374,10 +2515,50 @@ Modified: ${new Date(episode.modified).toLocaleString()}
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
-      .then(data => {
+      .then(async data => {
         if (!data.success) throw new Error(data.error || 'Failed to save TV show');
         this.showModalToast('TV show saved successfully!', 'success');
         console.info('[DEBUG - TV CONFIRM] TV show saved successfully!');
+        
+        // Fetch episode and season images if we have a TMDB ID and seasons data
+        if (tmdbId && seasons && seasons.length > 0) {
+          console.log('[DEBUG - TV CONFIRM] Starting episode and season image fetch...');
+          console.log('[DEBUG - TV CONFIRM] tmdbId:', tmdbId);
+          console.log('[DEBUG - TV CONFIRM] seasons count:', seasons.length);
+          console.log('[DEBUG - TV CONFIRM] normalizedKey:', normalizedKey);
+          this.showModalToast('Fetching episode and season images...', 'info');
+          
+          try {
+            // Clear existing episode images for this show to start fresh
+            console.log('[DEBUG - TV CONFIRM] Clearing existing episode images...');
+            await this.clearExistingEpisodeImages(normalizedKey);
+            
+            console.log('[DEBUG - TV CONFIRM] Calling fetchEpisodeImages...');
+            await this.fetchEpisodeImages(tmdbId, seasons, normalizedKey);
+            this.showModalToast('Episode and season images fetched successfully!', 'success');
+            console.log('[DEBUG - TV CONFIRM] Episode and season images fetched successfully!');
+            
+            // Auto-process the show for complete integration
+            console.log('[DEBUG - TV CONFIRM] Starting auto-processing for complete integration...');
+            await this.autoProcessTVShow(showPath, { id: tmdbId, name: title }, normalizedKey);
+          } catch (error) {
+            console.error('[DEBUG - TV CONFIRM] Error fetching episode and season images:', error);
+            this.showModalToast('TV show saved, but episode and season images could not be fetched.', 'warning');
+          }
+        } else {
+          console.log('[DEBUG - TV CONFIRM] Skipping episode/season image fetch:');
+          console.log('[DEBUG - TV CONFIRM] - tmdbId exists:', !!tmdbId);
+          console.log('[DEBUG - TV CONFIRM] - seasons exists:', !!seasons);
+          console.log('[DEBUG - TV CONFIRM] - seasons length:', seasons ? seasons.length : 'N/A');
+        }
+        
+        // Trigger Media Library refresh to show updated poster information
+        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.refreshCurrentContent === 'function') {
+          console.log('[DEBUG - TV CONFIRM] Triggering Media Library refresh...');
+          setTimeout(() => {
+            window.mediaLibraryManager.refreshCurrentContent();
+          }, 500);
+        }
         
         // Close the Media Manager after successful save
         setTimeout(() => this.destroy(), 1200);
@@ -2392,6 +2573,254 @@ Modified: ${new Date(episode.modified).toLocaleString()}
           this.confirmBtnTV.innerHTML = 'Confirm';
         }
       });
+  }
+
+  // New method to fetch episode and season images from TMDB
+  async fetchEpisodeImages(tmdbId, seasons, normalizedKey) {
+    console.log('[DEBUG - EPISODE IMAGES] Starting fetch for TMDB ID:', tmdbId);
+    console.log('[DEBUG - EPISODE IMAGES] Seasons data:', seasons);
+    console.log('[DEBUG - EPISODE IMAGES] Normalized key:', normalizedKey);
+    
+    // Load existing episode images data
+    let episodeImagesData = {};
+    try {
+      const response = await fetch('/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json?t=' + Date.now());
+      if (response.ok) {
+        episodeImagesData = await response.json();
+      }
+    } catch (error) {
+      console.warn('[DEBUG - EPISODE IMAGES] Could not load existing episode images data:', error);
+    }
+    
+    // Load existing season images data
+    let seasonImagesData = {};
+    try {
+      const seasonResponse = await fetch('/components/MediaLibrary/data/tv-shows/tv-show_season_images_normalized.json?t=' + Date.now());
+      if (seasonResponse.ok) {
+        seasonImagesData = await seasonResponse.json();
+      }
+    } catch (error) {
+      console.warn('[DEBUG - SEASON IMAGES] Could not load existing season images data:', error);
+    }
+    
+    // Initialize the show entry if it doesn't exist
+    if (!episodeImagesData[normalizedKey]) {
+      episodeImagesData[normalizedKey] = { seasons: {} };
+    }
+    if (!seasonImagesData[normalizedKey]) {
+      seasonImagesData[normalizedKey] = { seasons: {} };
+    }
+    
+    let totalEpisodes = 0;
+    let episodesWithImages = 0;
+    let totalSeasons = 0;
+    let seasonsWithImages = 0;
+    
+    // Process each season
+    for (const season of seasons) {
+      const seasonNumber = season.seasonNumber;
+      totalSeasons++;
+      console.log(`[DEBUG - EPISODE IMAGES] Processing Season ${seasonNumber}`);
+      
+      // Initialize season entry if it doesn't exist
+      if (!episodeImagesData[normalizedKey].seasons[seasonNumber]) {
+        episodeImagesData[normalizedKey].seasons[seasonNumber] = { episodes: {} };
+      }
+      if (!seasonImagesData[normalizedKey].seasons[seasonNumber]) {
+        seasonImagesData[normalizedKey].seasons[seasonNumber] = {};
+      }
+      
+      // Fetch season poster first
+      try {
+        console.log(`[DEBUG - SEASON IMAGES] Fetching poster for Season ${seasonNumber}`);
+        console.log(`[DEBUG - SEASON IMAGES] TMDB ID: ${tmdbId}, Season: ${seasonNumber}`);
+        const posterUrl = await this.fetchSeasonPosterFromTMDB(tmdbId, seasonNumber);
+        
+        if (posterUrl) {
+          seasonImagesData[normalizedKey].seasons[seasonNumber].poster = posterUrl;
+          seasonsWithImages++;
+          console.log(`[DEBUG - SEASON IMAGES] Found poster for Season ${seasonNumber}:`, posterUrl);
+        } else {
+          console.log(`[DEBUG - SEASON IMAGES] No poster found for Season ${seasonNumber}`);
+        }
+      } catch (error) {
+        console.error(`[DEBUG - SEASON IMAGES] Error fetching Season ${seasonNumber} poster:`, error);
+      }
+      
+      // Process each episode in the season
+      for (const episode of season.episodes) {
+        const episodeNumber = episode.episodeNumber;
+        totalEpisodes++;
+        
+        console.log(`[DEBUG - EPISODE IMAGES] Fetching S${seasonNumber}E${episodeNumber}`);
+        console.log(`[DEBUG - EPISODE IMAGES] TMDB ID: ${tmdbId}, Season: ${seasonNumber}, Episode: ${episodeNumber}`);
+        
+        try {
+          // Fetch episode still from TMDB
+          const stillUrl = await this.fetchEpisodeStillFromTMDB(tmdbId, seasonNumber, episodeNumber);
+          
+          if (stillUrl) {
+            episodeImagesData[normalizedKey].seasons[seasonNumber].episodes[episodeNumber] = {
+              still: stillUrl
+            };
+            episodesWithImages++;
+            console.log(`[DEBUG - EPISODE IMAGES] Found still for S${seasonNumber}E${episodeNumber}:`, stillUrl);
+          } else {
+            console.log(`[DEBUG - EPISODE IMAGES] No still found for S${seasonNumber}E${episodeNumber}`);
+          }
+        } catch (error) {
+          console.error(`[DEBUG - EPISODE IMAGES] Error fetching S${seasonNumber}E${episodeNumber}:`, error);
+        }
+        
+        // Add a small delay to avoid overwhelming TMDB API
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    // Save the updated episode images data
+    try {
+      const saveResponse = await fetch('/api/media/save-episode-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          normalizedKey: normalizedKey,
+          episodeImagesData: episodeImagesData
+        })
+      });
+      
+      if (saveResponse.ok) {
+        const result = await saveResponse.json();
+        if (result.success) {
+          console.log(`[DEBUG - EPISODE IMAGES] Successfully saved ${episodesWithImages}/${totalEpisodes} episode images`);
+        } else {
+          throw new Error(result.error || 'Failed to save episode images');
+        }
+      } else {
+        throw new Error('Failed to save episode images');
+      }
+    } catch (error) {
+      console.error('[DEBUG - EPISODE IMAGES] Error saving episode images data:', error);
+      throw error;
+    }
+    
+    // Save the updated season images data
+    try {
+      const saveSeasonResponse = await fetch('/api/media/save-season-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          normalizedKey: normalizedKey,
+          seasonImagesData: seasonImagesData
+        })
+      });
+      
+      if (saveSeasonResponse.ok) {
+        const result = await saveSeasonResponse.json();
+        if (result.success) {
+          console.log(`[DEBUG - SEASON IMAGES] Successfully saved ${seasonsWithImages}/${totalSeasons} season images`);
+        } else {
+          throw new Error(result.error || 'Failed to save season images');
+        }
+      } else {
+        throw new Error('Failed to save season images');
+      }
+    } catch (error) {
+      console.error('[DEBUG - SEASON IMAGES] Error saving season images data:', error);
+      throw error;
+    }
+  }
+
+  // Helper method to fetch a single episode still from TMDB
+  async fetchEpisodeStillFromTMDB(tmdbId, seasonNumber, episodeNumber) {
+    try {
+      console.log(`[DEBUG - EPISODE STILL] Making API call for S${seasonNumber}E${episodeNumber}`);
+      const url = `/api/media/fetch-episode-still?tmdbId=${tmdbId}&season=${seasonNumber}&episode=${episodeNumber}`;
+      console.log(`[DEBUG - EPISODE STILL] URL:`, url);
+      
+      const response = await fetch(url);
+      console.log(`[DEBUG - EPISODE STILL] Response status:`, response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[DEBUG - EPISODE STILL] Response data:`, data);
+        return data.success ? data.stillUrl : null;
+      } else {
+        console.error(`[DEBUG - EPISODE STILL] HTTP error:`, response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error(`[DEBUG - EPISODE IMAGES] Error fetching still for S${seasonNumber}E${episodeNumber}:`, error);
+    }
+    return null;
+  }
+
+  // Helper method to fetch a single season poster from TMDB
+  async fetchSeasonPosterFromTMDB(tmdbId, seasonNumber) {
+    try {
+      console.log(`[DEBUG - SEASON POSTER] Making API call for Season ${seasonNumber}`);
+      const url = `/api/media/fetch-season-poster?tmdbId=${tmdbId}&season=${seasonNumber}`;
+      console.log(`[DEBUG - SEASON POSTER] URL:`, url);
+      
+      const response = await fetch(url);
+      console.log(`[DEBUG - SEASON POSTER] Response status:`, response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[DEBUG - SEASON POSTER] Response data:`, data);
+        return data.success ? data.posterUrl : null;
+      } else {
+        console.error(`[DEBUG - SEASON POSTER] HTTP error:`, response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error(`[DEBUG - SEASON IMAGES] Error fetching poster for Season ${seasonNumber}:`, error);
+    }
+    return null;
+  }
+
+  // Helper method to clear existing episode images for a show
+  async clearExistingEpisodeImages(normalizedKey) {
+    try {
+      console.log(`[DEBUG - EPISODE IMAGES] Clearing existing episode images for: ${normalizedKey}`);
+      
+      // Load existing episode images data
+      let episodeImagesData = {};
+      try {
+        const response = await fetch('/components/MediaLibrary/data/tv-shows/tv-show_episode_images_normalized.json?t=' + Date.now());
+        if (response.ok) {
+          episodeImagesData = await response.json();
+        }
+      } catch (error) {
+        console.warn('[DEBUG - EPISODE IMAGES] Could not load existing episode images data:', error);
+      }
+      
+      // Remove the show entry if it exists
+      if (episodeImagesData[normalizedKey]) {
+        delete episodeImagesData[normalizedKey];
+        console.log(`[DEBUG - EPISODE IMAGES] Removed existing episode images for: ${normalizedKey}`);
+        
+        // Save the updated data
+        const saveResponse = await fetch('/api/media/save-episode-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            normalizedKey: normalizedKey,
+            episodeImagesData: episodeImagesData
+          })
+        });
+        
+        if (saveResponse.ok) {
+          const result = await saveResponse.json();
+          if (result.success) {
+            console.log(`[DEBUG - EPISODE IMAGES] Successfully cleared episode images for: ${normalizedKey}`);
+          } else {
+            console.warn(`[DEBUG - EPISODE IMAGES] Failed to save cleared episode images: ${result.error}`);
+          }
+        } else {
+          console.warn(`[DEBUG - EPISODE IMAGES] Failed to save cleared episode images`);
+        }
+      }
+    } catch (error) {
+      console.error(`[DEBUG - EPISODE IMAGES] Error clearing episode images for ${normalizedKey}:`, error);
+    }
   }
 
   showTMDBSelectModal(results) {
@@ -2595,16 +3024,11 @@ Modified: ${new Date(episode.modified).toLocaleString()}
 
   async loadTVShowDetailsByTitle(title) {
     // Always load from normalized files
-    const normalizeKey = (name) => {
-      return name
-        .replace(/\\/g, '/')
-        .replace(/\s*&\s*/g, '.&.')
-        .replace(/\s+/g, '.')
-        .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^\.|\.$/g, '');
-    };
-    const dotKey = normalizeKey(title);
+    if (!window.normalizeKey) {
+      console.error('[MEDIA MANAGER] NormalizationService not loaded - this should not happen!');
+      return;
+    }
+    const dotKey = window.normalizeKey(title);
     // Description
     let desc = '';
     try {
@@ -2750,10 +3174,13 @@ Modified: ${new Date(episode.modified).toLocaleString()}
       normalizedKey = `${title} (${year})`;
     }
     
-    // Convert to the dot notation format used in JSON files
-    normalizedKey = normalizedKey.replace(/\s+/g, '.').replace(/[^a-zA-Z0-9.()]/g, '');
+    // Use the shared normalization service for consistency
+    if (!window.normalizeKey) {
+      console.error('[DEBUG - MediaManager] Shared normalizeKey function not found!');
+      return '';
+    }
     
-    return normalizedKey;
+    return window.normalizeKey(normalizedKey);
   }
 
   // ========================================
@@ -2775,6 +3202,69 @@ Modified: ${new Date(episode.modified).toLocaleString()}
     } catch (error) {
       console.error('[DEBUG - MediaManager] Failed to launch AudioManager:', error);
       this.showModalToast('Failed to launch Audio Manager: ' + error.message, 'error');
+    }
+  }
+
+  async autoProcessTVShow(showPath, tmdbDetails, normalizedKey) {
+    console.log('[DEBUG - MediaManager] Auto-processing TV show for complete integration...');
+    
+    try {
+      // This will automatically ensure all data is consistent and complete
+      const response = await fetch('/api/media/auto-process-tv-show', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          showPath: showPath,
+          tmdbDetails: tmdbDetails,
+          normalizedKey: normalizedKey
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to auto-process TV show');
+      }
+
+      const result = await response.json();
+      console.log('[DEBUG - MediaManager] Auto-processing result:', result);
+      
+      if (result.success) {
+        this.showModalToast('TV show fully integrated and ready!', 'success');
+      } else {
+        console.warn('[DEBUG - MediaManager] Auto-processing completed with warnings:', result.message);
+      }
+      
+    } catch (error) {
+      console.error('[DEBUG - MediaManager] Auto-processing failed:', error);
+      // Don't fail the main process, just log the error
+      this.showModalToast('TV show saved, but auto-processing failed. Manual processing may be needed.', 'warning');
+    }
+  }
+
+  async autoDetectNewShows() {
+    console.log('[DEBUG - MediaManager] Auto-detecting new TV shows...');
+    
+    try {
+      const response = await fetch('/api/media/auto-detect-new-shows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.newShows && result.newShows.length > 0) {
+          console.log('[DEBUG - MediaManager] Found new shows:', result.newShows);
+          this.showModalToast(`Found ${result.newShows.length} new TV show(s) and auto-processed them!`, 'success');
+        } else {
+          console.log('[DEBUG - MediaManager] No new shows detected');
+        }
+      }
+    } catch (error) {
+      console.error('[DEBUG - MediaManager] Auto-detection failed:', error);
+      // Don't fail the main process, just log the error
     }
   }
 }
