@@ -821,14 +821,27 @@
 }
 
 /* --- TV Show Navigation Styles --- */
+.season-episode-breadcrumb {
+    margin-bottom: 20px;
+    width: 100%;
+    margin-left: -20px;
+}
+
 .media-library-breadcrumbs {
     padding: 15px 20px;
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     font-size: 14px;
     color: #6c757d;
-    width: 80vw;
+    /* width: 80vw; */
     height: 2%;
+}
+
+/* Override for seasons and episodes views - breadcrumb flush left */
+.media-library-modal-content.tvshows .season-episode-breadcrumb .media-library-breadcrumbs {
+    padding-left: 0px;
+    background: none;
+    border-bottom: none;
 }
 
 .breadcrumb-link {
@@ -2183,14 +2196,13 @@
 
 /* Breadcrumb flush left, with spacing */
 .media-library-breadcrumbs {
-  margin-top: 18px;
-  margin-bottom: 12px;
-  font-size: 1.1em;
-  color: #6c757d;
-  width: 100%;
-  background: none;
-  padding-left: 0;
-  position: static;
+    margin-top: 18px;
+    margin-bottom: 12px;
+    font-size: 1.0em;
+    color: #6c757d;
+    background: none;
+    padding-left: 0px;
+    position: static;
 }
 
 /* Header row: title and description side by side on desktop, stacked on mobile */

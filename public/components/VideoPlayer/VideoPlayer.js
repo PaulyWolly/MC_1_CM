@@ -442,29 +442,88 @@ class VideoPlayer {
                             duration = this.player().duration();
                         }
                         console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
+                        console.log('[VIDEO-PLAYER] MediaLibraryManager available:', !!window.mediaLibraryManager);
+                        console.log('[VIDEO-PLAYER] saveResumeProgress function available:', typeof window.mediaLibraryManager?.saveResumeProgress);
                         
                         // Handle TV show episodes that have filePath instead of path
                         if (movie && movie.filePath && !movie.path) {
                             movie.path = movie.filePath;
+                            console.log('[VIDEO-PLAYER] Set movie.path to filePath:', movie.path);
                         }
                         
                         // Try to find the media item in the library by path or name if not already a full object
-                        if ((!movie?.path || !movie?.title) && window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary) {
-                            const found = window.mediaLibraryManager.mediaLibrary.find(item =>
-                                (movie?.path && item.path === movie.path) ||
-                                (movie?.title && item.title === movie.title) ||
-                                (movie?.name && item.name === movie.name)
-                            );
-                            if (found) movie = found;
+                        if ((!movie?.path || !movie?.title) && window.mediaLibraryManager) {
+                            let found = null;
+                            
+                            // First try to find in movie library
+                            if (window.mediaLibraryManager.mediaLibrary) {
+                                console.log('[VIDEO-PLAYER] Searching for media item in movie library...');
+                                found = window.mediaLibraryManager.mediaLibrary.find(item =>
+                                    (movie?.path && item.path === movie.path) ||
+                                    (movie?.title && item.title === movie.title) ||
+                                    (movie?.name && item.name === movie.name)
+                                );
+                                if (found) {
+                                    movie = found;
+                                    console.log('[VIDEO-PLAYER] Found media item in movie library:', found);
+                                } else {
+                                    console.log('[VIDEO-PLAYER] No matching item found in movie library');
+                                }
+                            }
+                            
+                            // If not found in movie library, try TV shows library
+                            if (!found && window.mediaLibraryManager.tvShowsData) {
+                                console.log('[VIDEO-PLAYER] Searching TV shows data for media item');
+                                // Search through TV shows data to find matching episode
+                                for (const show of window.mediaLibraryManager.tvShowsData) {
+                                    if (show.seasons) {
+                                        for (const season of show.seasons) {
+                                            if (season.episodes) {
+                                                for (const episode of season.episodes) {
+                                                    if ((movie?.path && episode.filePath === movie.path) ||
+                                                        (movie?.title && episode.title === movie.title) ||
+                                                        (movie?.name && episode.name === movie.name)) {
+                                                        found = episode;
+                                                        console.log('[VIDEO-PLAYER] Found episode in TV shows data:', episode);
+                                                        break;
+                                                    }
+                                                }
+                                                if (found) break;
+                                            }
+                                        }
+                                        if (found) break;
+                                    }
+                                }
+                                if (found) {
+                                    movie = found;
+                                    console.log('[VIDEO-PLAYER] Found media item in TV shows data:', found);
+                                } else {
+                                    console.log('[VIDEO-PLAYER] No matching item found in TV shows data');
+                                }
+                            }
                         }
                         
                         // Ensure title and path are set
-                        if (movie && !movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
-                        if (movie && !movie.path && movie.absPath) movie.path = movie.absPath;
-                        if (movie && !movie.path && movie.filePath) movie.path = movie.filePath;
+                        if (movie && !movie.title) {
+                            movie.title = movie.name || movie.filename || movie.path || 'Untitled';
+                            console.log('[VIDEO-PLAYER] Set movie.title to:', movie.title);
+                        }
+                        if (movie && !movie.path && movie.absPath) {
+                            movie.path = movie.absPath;
+                            console.log('[VIDEO-PLAYER] Set movie.path to absPath:', movie.path);
+                        }
+                        if (movie && !movie.path && movie.filePath) {
+                            movie.path = movie.filePath;
+                            console.log('[VIDEO-PLAYER] Set movie.path to filePath:', movie.path);
+                        }
+                        
+                        console.log('[VIDEO-PLAYER] Final movie object:', movie);
+                        console.log('[VIDEO-PLAYER] Has path:', !!movie?.path);
+                        console.log('[VIDEO-PLAYER] Has title:', !!movie?.title);
                         
                         // Save to Watch Later using MediaLibraryManager
                         if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && movie.path) {
+                            console.log('[VIDEO-PLAYER] Calling saveResumeProgress...');
                             window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
                             if (typeof window.mediaLibraryManager.showToast === 'function') {
                                 window.mediaLibraryManager.showToast('Saved to Watch Later!', 'success');
@@ -472,6 +531,12 @@ class VideoPlayer {
                             this.player().showOverlayAlert?.('Saved to Watch Later!');
                             console.log('[VIDEO-PLAYER] Saved to Watch Later:', movie, currentTime, duration);
                         } else {
+                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later:');
+                            console.warn('- MediaLibraryManager available:', !!window.mediaLibraryManager);
+                            console.warn('- saveResumeProgress function:', typeof window.mediaLibraryManager?.saveResumeProgress);
+                            console.warn('- movie object:', !!movie);
+                            console.warn('- movie.path:', !!movie?.path);
+                            
                             if (typeof window.mediaLibraryManager?.showToast === 'function') {
                                 window.mediaLibraryManager.showToast('Cannot save - no media data available', 'error');
                             }
@@ -689,12 +754,43 @@ class VideoPlayer {
             console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
             
             // Try to find the media item in the library by path or name if not already a full object
-            if ((!movie.path || !movie.title) && window.mediaLibraryManager && window.mediaLibraryManager.mediaLibrary) {
-                const found = window.mediaLibraryManager.mediaLibrary.find(item =>
-                    (movie.path && item.path === movie.path) ||
-                    (movie.title && item.title === movie.title) ||
-                    (movie.name && item.name === movie.name)
-                );
+            if ((!movie.path || !movie.title) && window.mediaLibraryManager) {
+                let found = null;
+                
+                // First try to find in movie library
+                if (window.mediaLibraryManager.mediaLibrary) {
+                    found = window.mediaLibraryManager.mediaLibrary.find(item =>
+                        (movie.path && item.path === movie.path) ||
+                        (movie.title && item.title === movie.title) ||
+                        (movie.name && item.name === movie.name)
+                    );
+                }
+                
+                // If not found in movie library, try TV shows library
+                if (!found && window.mediaLibraryManager.tvShowsData) {
+                    console.log('[VIDEO-PLAYER] Searching TV shows data for media item');
+                    // Search through TV shows data to find matching episode
+                    for (const show of window.mediaLibraryManager.tvShowsData) {
+                        if (show.seasons) {
+                            for (const season of show.seasons) {
+                                if (season.episodes) {
+                                    for (const episode of season.episodes) {
+                                        if ((movie.path && episode.filePath === movie.path) ||
+                                            (movie.title && episode.title === movie.title) ||
+                                            (movie.name && episode.name === movie.name)) {
+                                            found = episode;
+                                            console.log('[VIDEO-PLAYER] Found episode in TV shows data:', episode);
+                                            break;
+                                        }
+                                    }
+                                    if (found) break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                }
+                
                 if (found) movie = found;
             }
             
@@ -1168,30 +1264,35 @@ class VideoPlayer {
     cleanTVShowTitle(title) {
         if (!title || typeof title !== 'string') return '';
         // For TV shows, extract just the show name for clean UI display
-        // Keep year in parentheses but remove quality info and episode codes for user-friendly display
+        // Keep year in parentheses but remove quality info and file extensions for user-friendly display
         let name = title.trim();
         
-        // Remove episode codes in various formats (S01e05, S1E5, Season 01 Episode 05, Ep 05, etc.)
-        name = name.replace(/\bS\d{1,2}[Ee]\d{1,2}\b/g, ''); // Remove S01e05, S1E5, etc.
-        name = name.replace(/\bSeason\s+\d{1,2}\s+Episode\s+\d{1,2}\b/gi, ''); // Remove "Season 01 Episode 05"
-        name = name.replace(/\bEp\s*\d{1,2}\b/gi, ''); // Remove "Ep 05", "Episode 05"
-        name = name.replace(/\bEpisode\s+\d{1,2}\b/gi, ''); // Remove "Episode 05"
+        // Remove file extensions first
+        name = name.replace(/\.[^/.]+$/, ""); // Remove .mkv, .mp4, etc.
         
-        // Remove file extensions and common video format tags
-        name = name.replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm)$/gi, ''); // Remove file extensions
-        name = name.replace(/\b(mkv|mp4|avi|mov|wmv|flv|webm)\b/gi, ''); // Remove format tags
-        
-        // Remove audio channel tags
-        name = name.replace(/\b(AAC5\.1|AAC51|DDP5\.1|DDP51|DD5\.1|DD51)\b/gi, '');
-        
-        // Remove quality tags
-        name = name.replace(/\b(480p|720p|1080p|2160p|4k|8k|bluray|brrip|webrip|web-dl|hdrip|dvdrip)\b/gi, '');
-        
-        // Remove release group tags
-        name = name.replace(/\b(YTS|RARBG|YIFY)\b/gi, '');
+        // Remove episode codes like S01e05, S1E5, etc. (before other cleaning)
+        name = name.replace(/\b[Ss]\d{1,2}[Ee]\d{1,2}\b/g, ""); // Remove S01e05, S1E5, etc.
+        name = name.replace(/\b[Ss]\d{1,2}\s*[Ee]\d{1,2}\b/g, ""); // Remove S01 E05, S1 E5, etc.
+        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]pisode\s*\d{1,2}\b/gi, ""); // Remove Season 01 Episode 05, etc.
+        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]p\s*\d{1,2}\b/gi, ""); // Remove Season 01 Ep 05, etc.
+        name = name.replace(/\b[Ee]pisode\s*\d{1,2}\b/gi, ""); // Remove Episode 05, etc.
+        name = name.replace(/\b[Ee]p\s*\d{1,2}\b/gi, ""); // Remove Ep 05, etc.
         
         // Keep (year) but remove [quality] info for display
         name = name.replace(/\[\d{3,4}p\]/gi, "");    // Remove [1080p], [720p], etc.
+        
+        // Remove common video file tags (only as whole words or after separators)
+        name = name.replace(/(?:^|[ ._\-])(?:mkv|mp4|avi|mov|wmv|flv|m4v|webm|ogv|3gp|ts|mts|m2ts)(?=$|[ ._\-])/gi, "");
+        
+        // Remove audio channel tags like AAC5 1, AAC51, DDP5 1, DDP51, etc.
+        name = name.replace(/\b(aac|ddp|dd|dts|ac3)[ ._\-]*5[ ._\-]*1\b/gi, "");
+        name = name.replace(/\b(aac|ddp|dd|dts|ac3)[ ._\-]*7[ ._\-]*1\b/gi, "");
+        
+        // Remove other common tags (only as whole words or after separators)
+        name = name.replace(/(?:^|[ ._\-])(?:480p|720p|1080p|2160p|4k|8k|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|aac|dts|yify|rarbg|repack|extended|unrated|directors cut|remux|hdtv|amzn|nf|web|ddp|dd5[ ._\-]?1|5[ ._\-]?1|7[ ._\-]?1|mp3|flac|truehd|atmos|hevc|h265|h264|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion-collection|criterion)(?=$|[ ._\-])/gi, "");
+        
+        // Remove trailing group tags (e.g., -YTS, -RARBG, etc.)
+        name = name.replace(/[-_. ]+(yts( mx| am)?|rarbg|jyk|kogi|web|amzn|nf|ddp|dd5[ ._\-]?1|aac|dts|hdtv|remux|bluray|brrip|webrip|web-dl|hdrip|dvdrip|xvid|x264|x265|ac3|eac3|subs|dubbed|eng|ita|spa|fre|ger|rus|multi|proper|limited|internal|cam|tc|ts|scr|r5|dvdscr|dvdr|pal|ntsc|hdr|dv|remastered|criterion|criterion collection|criterion-collection|criterion-collection|criterion)\b.*$/i, "");
         
         // Replace dots, underscores, dashes with spaces
         name = name.replace(/[._-]+/g, " ");
@@ -2199,17 +2300,22 @@ class VideoPlayer {
         this.removeSkipToNextButton();
         this.removeNextShowButton();
 
-        // Add Skip Intro button using configurable timing
-        this.addSkipIntroButton(SKIP_INTRO_SECONDS);
-
-        // Add Next Show button for TV shows (appears after intro)
-        this.addNextShowButton();
-
-        // Listen for timeupdate to show Up Next overlay and Skip to Next button
+        // Listen for timeupdate to show Skip Intro, Up Next overlay, and Skip to Next button
         this.vjsPlayer.off('timeupdate'); // Remove previous listeners
         this.vjsPlayer.on('timeupdate', () => {
             const duration = this.vjsPlayer.duration();
             const current = this.vjsPlayer.currentTime();
+            
+            // Show Skip Intro button only during the first SKIP_INTRO_SECONDS (for TV shows only)
+            if (current <= SKIP_INTRO_SECONDS && !this.skipIntroShown) {
+                this.addSkipIntroButton(SKIP_INTRO_SECONDS);
+                this.skipIntroShown = true;
+            }
+            
+            // Hide Skip Intro button after SKIP_INTRO_SECONDS
+            if (current > SKIP_INTRO_SECONDS && this.skipIntroBtn) {
+                this.removeSkipIntroButton();
+            }
             
             // Show Skip to Next Episode button using configurable timing (for TV shows only)
             if (duration && current > duration - SKIP_TO_NEXT_BEFORE_END_SECONDS && !this.skipToNextShown) {
@@ -2274,13 +2380,9 @@ class VideoPlayer {
             if (this.vjsPlayer) {
                 this.vjsPlayer.currentTime(skipSeconds);
             }
-            this.skipIntroBtn.style.display = 'none';
+            this.removeSkipIntroButton();
         };
         this.container.appendChild(this.skipIntroBtn);
-        // Hide after skipSeconds or when user clicks
-        setTimeout(() => {
-            if (this.skipIntroBtn) this.skipIntroBtn.style.display = 'none';
-        }, Math.max(1000, skipSeconds * 1000));
     }
 
     removeSkipIntroButton() {
@@ -3515,14 +3617,13 @@ class VideoPlayer {
         this.currentMediaItem = mediaItem;
         this.currentFile = { name: src, absPath: src };
         
-        // Store TV show info if this is a TV show episode
-        if (mediaItem) {
-            console.log('[DEBUG - VIDEO-PLAYER] About to store TV show info for mediaItem:', mediaItem.name);
-            this.storeCurrentTVShowInfo(mediaItem);
-            console.log('[DEBUG - VIDEO-PLAYER] Finished storing TV show info for mediaItem');
-        } else {
-            console.log('[DEBUG - VIDEO-PLAYER] No mediaItem provided, not storing TV show info');
+        // Sync with MediaLibraryManager
+        if (window.mediaLibraryManager) {
+            window.mediaLibraryManager.currentMediaItem = mediaItem;
+            window.mediaLibraryManager.currentFile = mediaItem;
+            console.log('[DEBUG - VIDEO-PLAYER] Synced mediaItem with MediaLibraryManager');
         }
+        
         try {
             // --- Remove any existing subtitle track and button ---
             const oldTrack = this.video.querySelector('track[data-autosub]');
@@ -3575,22 +3676,42 @@ class VideoPlayer {
                     }
                 }
             });
-            // --- Robust resume logic with debug logging ---
+            // --- Improved resume logic with better error handling ---
             let didResume = false;
             console.log('[RESUME DEBUG] Requested startTime:', startTime);
+            
             const setAndPlay = (evt) => {
                 if (didResume) return;
                 didResume = true;
                 console.log('[RESUME DEBUG] Event fired:', evt ? evt.type : 'manual');
-                this.vjsPlayer.currentTime(startTime);
-                console.log('[RESUME DEBUG] Set currentTime to:', startTime, '| Player currentTime after set:', this.vjsPlayer.currentTime());
-                this.vjsPlayer.play();
-                setTimeout(() => {
-                    console.log('[RESUME DEBUG] After play() | readyState:', this.vjsPlayer.readyState(), '| currentTime:', this.vjsPlayer.currentTime());
-                }, 500);
+                
+                try {
+                    // Set the time first
+                    this.vjsPlayer.currentTime(startTime);
+                    console.log('[RESUME DEBUG] Set currentTime to:', startTime, '| Player currentTime after set:', this.vjsPlayer.currentTime());
+                    
+                    // Wait a moment before trying to play
+                    setTimeout(() => {
+                        this.vjsPlayer.play().then(() => {
+                            console.log('[RESUME DEBUG] Play successful after resume');
+                        }).catch(error => {
+                            console.warn('[RESUME DEBUG] Play failed after resume:', error);
+                            // Show big play button if auto-play fails
+                            const bigPlayButton = this.vjsPlayer.el().querySelector('.vjs-big-play-button');
+                            if (bigPlayButton) {
+                                bigPlayButton.style.display = 'block';
+                            }
+                        });
+                    }, 100);
+                    
+                } catch (error) {
+                    console.error('[RESUME DEBUG] Error in setAndPlay:', error);
+                }
+                
                 this.vjsPlayer.off('loadedmetadata', setAndPlay);
                 this.vjsPlayer.off('canplay', setAndPlay);
             };
+            
             if (startTime > 0) {
                 this.vjsPlayer.on('loadedmetadata', setAndPlay);
                 this.vjsPlayer.on('canplay', setAndPlay);
@@ -3612,24 +3733,29 @@ class VideoPlayer {
                     console.log('[DEBUG - VIDEO-PLAYER] Big play button shown');
                 }
                 
-                // Try to start playing
-                this.vjsPlayer.play().then(() => {
-                    console.log('[DEBUG - VIDEO-PLAYER] Auto-play successful');
-                    // Hide the big play button only after successful auto-play
-                    if (bigPlayButton) {
-                        bigPlayButton.style.display = 'none';
-                        console.log('[DEBUG - VIDEO-PLAYER] Big play button hidden after successful auto-play');
-                    }
-                }).catch(error => {
-                    console.warn('🎬 [VIDEO-PLAYER] Auto-play failed:', error);
-                    // Keep the big play button visible when auto-play fails
-                    if (bigPlayButton) {
-                        bigPlayButton.style.display = 'block';
-                        console.log('[DEBUG - VIDEO-PLAYER] Big play button kept visible due to auto-play failure');
-                    }
-                    // Show a more helpful message
-                    this.showMessage('Click the play button to start video (auto-play blocked by browser)');
-                });
+                // Only attempt auto-play if no resume time is set (resume logic handles its own play)
+                if (startTime === 0) {
+                    // Try to start playing
+                    this.vjsPlayer.play().then(() => {
+                        console.log('[DEBUG - VIDEO-PLAYER] Auto-play successful');
+                        // Hide the big play button only after successful auto-play
+                        if (bigPlayButton) {
+                            bigPlayButton.style.display = 'none';
+                            console.log('[DEBUG - VIDEO-PLAYER] Big play button hidden after successful auto-play');
+                        }
+                    }).catch(error => {
+                        console.warn('🎬 [VIDEO-PLAYER] Auto-play failed:', error);
+                        // Keep the big play button visible when auto-play fails
+                        if (bigPlayButton) {
+                            bigPlayButton.style.display = 'block';
+                            console.log('[DEBUG - VIDEO-PLAYER] Big play button kept visible due to auto-play failure');
+                        }
+                        // Show a more helpful message
+                        this.showMessage('Click the play button to start video (auto-play blocked by browser)');
+                    });
+                } else {
+                    console.log('[DEBUG - VIDEO-PLAYER] Skipping auto-play due to resume time:', startTime);
+                }
             });
             
             // Add error handling for video loading

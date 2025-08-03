@@ -63,9 +63,44 @@
 
 /* Hide button when already clickable */
 
-/* Restored State */
-.restored-dashboard {
-    width: 240px;
+.quota-content-restored { padding: 8px 12px; }
+.quota-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; margin-bottom: 8px; font-size: 11px; }
+.quota-count { font-weight: bold; }
+.quota-percentage { 
+    margin-right:2px;
+ }
+.quota-remaining { 
+    grid-column: span 2;
+    text-align: center;
+    opacity: 0.8;
+    position: relative;
+    left: -112px;
+}
+
+/* New <progress> element styling */
+progress.quota-progress-bar {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 78%;
+    height: 8px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.4);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+progress.quota-progress-bar::-webkit-progress-bar {
+    background: rgba(0,0,0,0.4);
+    border-radius: 4px;
+}
+progress.quota-progress-bar::-webkit-progress-value {
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+progress.quota-progress-bar::-moz-progress-bar {
+    border-radius: 4px;
+    border: none;
+    transition: background-color 0.3s ease;
 }
 
 .restored-dashboard:not(.custom-position) {

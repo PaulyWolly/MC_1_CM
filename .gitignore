@@ -40,6 +40,9 @@ __REF_REPO-BEFORE-RESTORE__
 /scripts/logs/
 /server/data/bkup/
 /localStorage*.json
+watch_later.json
+watch_later_backup.json
+watch_later_raw.json
 
 # Log and backup files
 *.log

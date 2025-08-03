@@ -181,6 +181,14 @@
     opacity: 1;
 }
 
+.save-later-icon {
+  font-size: 1.5em;
+    vertical-align: middle;
+    margin-right: 2px;
+    margin-left: 2px;
+    pointer-events: none;
+} 
+
 /* Responsive design */
 @media (max-width: 768px) {
     .video-player-container {
