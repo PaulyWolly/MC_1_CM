@@ -2300,6 +2300,9 @@ class VideoPlayer {
         this.removeSkipToNextButton();
         this.removeNextShowButton();
 
+        // Add Next Show button for TV shows (appears after intro)
+        this.addNextShowButton();
+
         // Listen for timeupdate to show Skip Intro, Up Next overlay, and Skip to Next button
         this.vjsPlayer.off('timeupdate'); // Remove previous listeners
         this.vjsPlayer.on('timeupdate', () => {
