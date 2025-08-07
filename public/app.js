@@ -1,8 +1,8 @@
 /*
   APP.JS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -19,6 +19,9 @@ import myJokesManager from './components/MyJokesManager/MyJokesManager.js';
 import recipeManager from './components/RecipeManager/RecipeManager.js';
 import VideoPlayer from './components/VideoPlayer/VideoPlayer.js';
 import MediaLibraryManager from './components/MediaLibrary/MediaLibraryManager.js';
+
+// Load NormalizationService for consistent key generation
+import './components/NormalizationService.js';
 
 // =====================================================
 // MANAGER INITIALIZATION
@@ -44,7 +47,7 @@ await window.youtubeSearchManager.init();
 console.log('YouTubeSearchManager initialized.');
 
 // mediaLibraryBtn test for click
-console.log('[DEBUG] At script load, mediaLibraryBtn:', document.getElementById('mediaLibraryBtn'));
+
 
 // mutationObserver for button click
 const observer = new MutationObserver(() => {
@@ -52,9 +55,9 @@ const observer = new MutationObserver(() => {
     if (btn && !btn._debugClickAttached) {
         btn._debugClickAttached = true;
         btn.addEventListener('click', function() {
-            console.log('[DEBUG] Media Library button clicked via MutationObserver');
+    
         });
-        console.log('[DEBUG] Media Library button found and click handler attached via MutationObserver');
+
     }
 });
 observer.observe(document.body, { childList: true, subtree: true });
@@ -532,6 +535,7 @@ const state = {
     sseRetryCount: 0,
     sseMaxRetries: 5,
     sseRetryDelay: 1000,
+    reconnectAttempts: 0, // Add reconnect attempts counter
     savingJoke: false,
     pendingNameChange: null,
     lastRequestTime: Date.now(),
@@ -1067,17 +1071,14 @@ function isAIGreetingResponse(text) {
 // FIXED: Search and display images
 async function searchAndDisplayImages(query, messageElement) {
     try {
-        console.log('IMAGE DEBUG: Fetching images for:', query);
         const response = await fetch(window.appConfig.getApiUrl('/api/google-image-search') + '?q=' + encodeURIComponent(query));
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
         }
         const data = await response.json();
-        console.log('IMAGE DEBUG: Raw API response:', data);
 
         if (data.images && data.images.length > 0) {
-            console.log('IMAGE DEBUG: Found', data.images.length, 'images');
             
             // Remove duplicates by URL and filter out invalid entries
             const uniqueImages = [];
@@ -1090,14 +1091,12 @@ async function searchAndDisplayImages(query, messageElement) {
                 }
             }
             
-            console.log('IMAGE DEBUG: After deduplication:', uniqueImages.length, 'unique images');
-            
             if (uniqueImages.length > 0) {
                 insertAndStyleImages(uniqueImages, messageElement, '', query);
         }
         }
     } catch (error) {
-        console.error('IMAGE DEBUG: Error in searchAndDisplayImages:', error);
+        console.error('Error in searchAndDisplayImages:', error);
     }
 }
 
@@ -1116,7 +1115,6 @@ function cleanImageSubject(subject) {
 }
 
 function insertAndStyleImages(images, messageElement, headingText, originalQuery) {
-    console.log('[IMAGE DEBUG] insertAndStyleImages called', { images, messageElement, headingText, originalQuery });
     // Add null check to prevent errors
     if (!messageElement) {
         console.warn('insertAndStyleImages: messageElement is null, cannot insert images');
@@ -1125,7 +1123,6 @@ function insertAndStyleImages(images, messageElement, headingText, originalQuery
     // Stronger guard: check for any existing .image-section in the messageElement
     const existingImageSection = messageElement.querySelector('.image-section');
     if (existingImageSection) {
-        console.log('[IMAGE DEBUG] image-section already exists, skipping duplicate insert.');
         return;
     }
     
@@ -1197,7 +1194,7 @@ function insertAndStyleImages(images, messageElement, headingText, originalQuery
         robustScrollToParentMessage(messageElement);
     }
     // After inserting images
-    console.log('[IMAGE DEBUG] Images inserted into DOM. messageElement:', messageElement);
+
 }
 
 function robustScrollToParentMessage(messageElement) {
@@ -1523,17 +1520,13 @@ const handleMyJokes = {
         }
 
         if (messageText.toLowerCase() === 'yes' && sessionStorage.getItem('pendingJoke')) {
-            console.log('🎭 [YES DEBUG] Processing YES response for pending joke');
-            console.log('🎭 [YES DEBUG] pendingJoke in sessionStorage:', sessionStorage.getItem('pendingJoke'));
+            
             
             try {
                 let jokeData;
                 try {
                     jokeData = JSON.parse(sessionStorage.getItem('pendingJoke'));
-                    console.log('🎭 [JOKE DEBUG] Raw joke data:', jokeData);
-                    console.log('🎭 [JOKE DEBUG] Joke content type:', typeof jokeData.content);
-                    console.log('🎭 [JOKE DEBUG] Joke content length:', jokeData.content ? jokeData.content.length : 'null/undefined');
-                    console.log('🎭 [JOKE DEBUG] Joke content:', JSON.stringify(jokeData.content));
+                    
                 } catch (error) {
                     console.error('Error parsing stored joke:', error);
                     throw new Error('Invalid stored joke data');
@@ -1576,8 +1569,7 @@ const handleMyJokes = {
                     .replace(/\bpants\b/gi, '👖 pants')
                     .replace(/^/, '🎭 ');
 
-                console.log('🎭 [JOKE DEBUG] Final processed content:', JSON.stringify(jokeContent));
-                console.log('🎭 [JOKE DEBUG] Calling addMessageToChat...');
+
                 
                 // 1. Show the joke in the chat bubble
                 addMessageToChat('assistant', formatStoryParagraphs(enhancedJokeContent), { renderAsHTML: true });
@@ -1587,16 +1579,14 @@ const handleMyJokes = {
                 updateStopAudioButton();  // Show button
                 
                 // 3. Play the joke audio
-                console.log('🎭 [JOKE DEBUG] addMessageToChat completed, now queuing audio...');
+
                 if (window.myJokesManager && typeof window.myJokesManager.speakJokeContent === 'function') {
                     await window.myJokesManager.speakJokeContent(jokeContent);
                 } else {
                 await queueAudioChunk(jokeContent);
                 }
                 
-                console.log('🎭 [JOKE DEBUG] Audio queued, removing from sessionStorage...');
                 sessionStorage.removeItem('pendingJoke');
-                console.log('🎭 [JOKE DEBUG] Joke display process completed successfully');
             } catch (error) {
                 console.error('🎭 [JOKE ERROR] Error playing joke:', error);
                 const errorMessage = "Sorry, there was an error displaying your joke.";
@@ -6441,7 +6431,7 @@ function setupSSEConnection() {
 
         state.eventSource.onerror = (error) => {
             console.error('SSE Connection error:', error);
-                state.eventSource.close();
+            state.eventSource.close();
             
             // Implement exponential backoff for reconnection
             const reconnectDelay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 30000);
@@ -6450,7 +6440,7 @@ function setupSSEConnection() {
             console.log(`Reconnecting in ${reconnectDelay}ms (attempt ${state.reconnectAttempts})`);
             setTimeout(() => {
                 if (state.reconnectAttempts < 5) {
-                setupSSEConnection();
+                    setupSSEConnection();
                 }
             }, reconnectDelay);
         };

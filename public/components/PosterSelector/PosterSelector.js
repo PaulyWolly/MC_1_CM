@@ -1,8 +1,8 @@
 /*
   POSTERSELECTOR.JS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -11,12 +11,19 @@
 
 // Use shared normalization service
 // Note: window.normalizeKey should be available from NormalizationService.js
-// If not available, this will cause an error - which is what we want!
-const normalizeKey = window.normalizeKey;
-if (!normalizeKey) {
-    console.error('[POSTER SELECTOR] NormalizationService not loaded - this should not happen!');
+// We'll check for it when needed rather than at load time
+let normalizeKey = null;
+
+function getNormalizeKey() {
+    if (!normalizeKey && window.normalizeKey) {
+        normalizeKey = window.normalizeKey;
+    }
+    if (!normalizeKey) {
+        console.error('[POSTER SELECTOR] NormalizationService not loaded - this should not happen!');
+        return null;
+    }
+    return normalizeKey;
 }
-// Use normalizeKey for all mapping key normalization in this file.
 
 class PosterSelector {
     constructor(mode = 'tv', options = {}) {

@@ -1,3 +1,11 @@
+/*
+  WATCHLATER.JS
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
+  Created by Paul Welby
+*/
+
 const mongoose = require('mongoose');
 
 const WatchLaterItemSchema = new mongoose.Schema({

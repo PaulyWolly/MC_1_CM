@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -60,13 +60,14 @@
 /* Media Grid Styles */
 .media-library-movie-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-    gap: 28px 20px;
-    justify-items: center;
-    align-items: start;
-    max-width: 1370px;
-    margin: 0 auto;
-    margin-left: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
 }
 
 .media-library-movie-card {
@@ -77,14 +78,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 135px;
+    width: 150px !important;
     height: 32.0vh;
-    min-width: 120px;
-    max-width: 150px;
+    min-width: 140px !important;
+    max-width: 160px !important;
     padding: 10px 6px 12px 6px;
     transition: box-shadow 0.2s;
     cursor: pointer;
     font-size: 0.97em;
+    margin: 0 !important;
 }
 
 .media-library-movie-card img {
@@ -904,13 +906,14 @@
 
 /* TV Show Grid Styles (copied from movie grid) */
 .media-library-tvshow-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 24px 18px;
-    padding: 24px 18px;
-    width: 100%;
-    box-sizing: border-box;
-    padding-right: 40px;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    gap: 15px !important;
+    padding: 0 15px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: none !important;
+    margin: 0 !important;
 }
 
 .media-library-tvshow-card {
@@ -921,9 +924,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 160px;
-    max-width: 180px;
-    margin: 0 auto;
+    width: 135px !important;
+    min-width: 120px !important;
+    max-width: 150px !important;
+    margin: 0 !important;
     transition: box-shadow 0.2s;
     cursor: pointer;
 }
@@ -985,11 +989,27 @@
     word-break: break-word;
 }
 
+.media-library-grid-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
 .media-library-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: flex-start;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
 }
 
 .media-library-card {
@@ -1164,16 +1184,6 @@
     overflow: hidden;
 }
 
-/* Remove duplicate A-Z sidebar rule that conflicts with the main one */
-
-.media-library-movie-grid-scroll {
-    flex: 1;
-    overflow-y: auto;
-    min-width: 0;
-    min-height: 0;
-    padding-left: 12px;
-}
-
 .media-library-content-wrapper {
     /* max-width: 1027px; */
     margin: 0px auto;
@@ -1190,9 +1200,13 @@
     display: flex;
     height: 60vh;
     min-height: 0;
-    overflow-y: auto;
     width: 85.5vw;
     box-sizing: border-box;
+}
+
+/* Movies-specific flex row with scrollbar */
+.media-library-modal-content.movies .media-library-flex-row {
+    overflow-y: auto !important;
 }
 
 .media-library-movie-grid-scroll {
@@ -1262,14 +1276,23 @@
 }
 
 .favorites-movies-section {
-    width: 50%;
-    height: 100%;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 10px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    margin-right: 10px;
+  width: 50%;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.favorites-tvshows-section {
+  width: 50%;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .collection-btn {
@@ -1409,8 +1432,8 @@
     gap: 24px;
     justify-content: space-between;
     width: 82vw;
-    margin-left: 100px;
-    height: 525px;
+    margin-left: 70px;
+    height: 550px;
     flex-direction: row;
   }
   .watch-later-column {
@@ -1427,15 +1450,252 @@
   .watch-later-section-divider {
     margin: 0 0 12px 0;
   }
+  /* WATCH LATER SPECIFIC STYLES */
   .watch-later-scroll {
     flex: 1;
     overflow-y: auto;
-    max-height: 480px;
+    max-height: 490px;
+    /* Add scrollbar styling to match other sections */
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+  }
+
+  .watch-later-scroll-tv-shows {
+    flex: 1;
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    max-height: 490px !important;
+    height: 505px !important; /* Force specific height */
+    /* Add scrollbar styling to match other sections */
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    padding-right: 8px !important; /* Add padding to prevent content from being hidden behind scrollbar */
+    position: relative !important;
+    display: block !important;
+  }
+
+  /* MAIN MOVIES AND TV-SHOWS TABS SPECIFIC STYLES */
+  .media-library-modal-content.movies .media-library-movie-grid {
+    max-height: 60vh !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+  }
+  
+  .media-library-modal-content.tvshows .media-library-tvshow-grid {
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    max-height: 60vh !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+  }
+
+  .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar,
+  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar {
+    width: 8px !important;
+  }
+
+  .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-track,
+  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+
+  .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+  }
+
+  .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+  }
+
+  /* Force TV-Shows main tab to have scrollbars */
+  .media-library-modal-content.tvshows .media-library-tvshow-grid {
+    overflow-y: scroll !important;
+    max-height: 60vh !important;
+    min-height: 400px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+  }
+
+  /* TV-Shows grid specific styles */
+  .media-library-tvshow-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    overflow-x: visible !important;
+  }
+
+  /* FAVORITES SECTION SPECIFIC STYLES */
+  .favorites-movies-section .media-library-movie-grid {
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    max-height: 48vh !important; /* Reduce height to force scrolling */
+    padding-bottom: 20px !important; /* Add padding to ensure content is visible */
+    min-height: 300px !important; /* Ensure minimum height for content */
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+
+  .favorites-tvshows-section .media-library-movie-grid {
+    overflow-y: scroll !important;
+    max-height: 48vh !important;
+    padding-bottom: 20px !important;
+    min-height: 300px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+
+  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar,
+  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+  }
+
+  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-track,
+  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+
+  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+    min-height: 40px !important; /* Ensure thumb has minimum height */
+    display: block !important;
+  }
+
+  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+  }
+
+  /* Force Favorites TV-Shows to have proper scrollbars */
+  .favorites-tvshows-section .media-library-tvshow-grid {
+    overflow-y: scroll !important;
+    max-height: 48vh !important;
+    min-height: 300px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+  
+  /* Webkit scrollbar styling for Watch Later sections */
+  .watch-later-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .watch-later-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .watch-later-scroll::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  .watch-later-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  /* Specific webkit scrollbar styling for TV-Shows section */
+  .watch-later-scroll-tv-shows::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+  }
+  
+  .watch-later-scroll-tv-shows::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+    display: block !important;
+  }
+  
+  .watch-later-scroll-tv-shows::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+    display: block !important;
+    min-height: 40px !important; /* Ensure thumb has minimum height */
+  }
+  
+  .watch-later-scroll-tv-shows::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+  }
+  
+  /* Force scrollbar visibility for TV-Shows section */
+  .watch-later-column:nth-child(2) .watch-later-scroll-tv-shows {
+    overflow-y: scroll !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    width: 38.5vw !important;
+  }
+  
+  .watch-later-column:nth-child(2) .watch-later-scroll-tv-shows::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+  }
+  
+  /* Ensure TV-Shows section in Watch Later has proper scrollbars */
+  .watch-later-column:nth-child(2) .watch-later-scroll {
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    max-height: 505px !important; /* Reduce height to force scrolling */
+    /* Force scrollbars to be visible */
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    width: 750px !important;
+  }
+  
+  /* Ensure TV-Shows grid in Watch Later has proper height */
+  .watch-later-column:nth-child(2) .watch-later-grid {
+    min-height: 500px !important; /* Increase minimum height to ensure content overflows */
+    padding-bottom: 20px !important;
+  }
+  
+  /* Webkit scrollbar styling specifically for TV-Shows section */
+  .watch-later-column:nth-child(2) .watch-later-scroll::-webkit-scrollbar {
+    width: 8px !important;
+  }
+  
+  .watch-later-column:nth-child(2) .watch-later-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+  
+  .watch-later-column:nth-child(2) .watch-later-scroll::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+  }
+  
+  .watch-later-column:nth-child(2) .watch-later-scroll::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
   }
   .watch-later-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 8px; /* Reduce gap further to make content more compact */
   }
   .watch-later-card {
     position: relative;
@@ -1620,8 +1880,10 @@
     box-shadow: rgba(57, 57, 57, 0.35) 0px 5px 15px;
     min-width: 340px;
     max-width: 1300px;
-    width: 100%;
+    margin-left: 90px;
+    width: 80vw;
     max-height: 90vh;
+    height: 48vh;
     overflow-y: auto;
     position: relative;
     display: flex;
@@ -1709,7 +1971,7 @@
 }
 
 .media-library-details-cast-list {
-    margin-top: 70px;
+    margin-top: 110px;
 }
 
 @media print {
@@ -1805,7 +2067,7 @@
 }
 
 .media-library-details-poster img {
-    width: 300px !important;
+    width: 295px !important;
 }
 
 /* --- TV Show Seasons Page Flex Layout --- */
@@ -1878,6 +2140,7 @@
   overflow-wrap: break-word;
   hyphens: auto;
   max-width: 100%;
+  text-align: center;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -2200,9 +2463,11 @@
     margin-bottom: 12px;
     font-size: 1.0em;
     color: #6c757d;
+    width: 100%;
     background: none;
     padding-left: 0px;
     position: static;
+    z-index: 1000000000;
 }
 
 /* Header row: title and description side by side on desktop, stacked on mobile */
@@ -2229,7 +2494,7 @@
 }
 
 .media-library-details-description {
-    max-width: 620px;
+    max-width: 690px;
     font-size: 1.08rem;
     color: #222;
     text-align: justify;
@@ -2239,8 +2504,8 @@
     padding: 12px 18px;
     background: #fafbfc;
     position: absolute;
-    right: 74px;
-    top: 80px;
+    right: 30px;
+    top: 116px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -2519,7 +2784,7 @@
 /* A-Z Sidebar for Movies */
 .media-library-az-sidebar-movies {
   width: 24px !important;
-  height: 55.5vh;
+  height: 53.0vh;
   font-size: .85em !important;
   border-radius: 8px;
   background: #f5f5f5;
@@ -2539,7 +2804,7 @@
 /* A-Z Sidebar for TV Shows */
 .media-library-az-sidebar-tvshows {
   width: 24px !important;
-  height: 55.5vh;
+  height: 53.0vh;
   font-size: .85em !important;
   border-radius: 8px;
   background: #f5f5f5;
@@ -2622,12 +2887,12 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  text-align: left; /* Center the title text */
 }
 
 .favorites-section-title-tvshows {
     flex: 0 0 auto;
     margin-bottom: 8px;
-    margin-top: 27px;
     position: sticky;
     top: 0;
     background: inherit;
@@ -2638,39 +2903,113 @@
     font-size: 1.1em;
     color: #333;
     position: sticky;
-    top: 0px;
+    top: 0;
     z-index: 1000;
+    text-align: left; /* Center the title text */
   }
 
-.favorites-movies-section .media-library-movie-grid,
-.favorites-tvshows-section .media-library-movie-grid {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden; /* NO horizontal scrolling */
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  margin-top: 0; /* Remove any top margin that might interfere with sticky */
-  /* Ensure only content scrolls, not titles */
-  max-height: calc(100vh - 200px); /* Leave room for header and titles */
-}
+/* REMOVED OLD CONFLICTING FAVORITES STYLES - REPLACED WITH SPECIFIC STYLES ABOVE */
 
 /* Ensure no horizontal scrollbars anywhere in favorites */
 .favorites-container {
   overflow-x: hidden;
-  width: 100%;
+  width: 100%; /* Use full width */
   display: flex;
   gap: 20px;
   height: 100%;
+  position: relative;
+  left: 16px;
+  justify-content: space-between; /* Force sections to fill space */
+  align-items: flex-start;
+  box-sizing: border-box;
+  max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
 }
 
 .favorites-container .media-library-movie-grid {
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
     max-width: 100%;
     position: relative;
-    right: 20px;
+    /* Removed right: 20px to center the content */
+}
+
+/* Ensure main Movies page grid is not affected by Favorites CSS */
+.media-library-modal-content.movies .media-library-movie-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    overflow-x: visible !important;
+}
+
+/* Ensure main TV Shows page grid is not affected by Favorites CSS */
+.media-library-modal-content.tvshows .media-library-tvshow-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    gap: 26px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    overflow-x: visible !important;
+}
+
+/* Ensure poster selector buttons work on main Movies page */
+.media-library-modal-content.movies .poster-selector-btn {
+    border: 1px solid #3a7bd5 !important;
+    padding: 10px 0px 8px 0 !important;
+    margin-bottom: 4px !important;
+    font-size: 1.4em !important;
+    cursor: pointer !important;
+    line-height: .5 !important;
+    z-index: 9999999  !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 4px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    user-select: none !important;
+}
+
+/* Force poster selector buttons to be clickable */
+.poster-selector-btn {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
+    position: relative !important;
+    user-select: none !important;
+}
+
+/* Responsive grid for favorites */
+@media (max-width: 1200px) {
+  .favorites-movies-section .media-library-movie-grid,
+  .favorites-tvshows-section .media-library-movie-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on medium screens */
+  }
+}
+
+@media (max-width: 900px) {
+  .favorites-movies-section .media-library-movie-grid,
+  .favorites-tvshows-section .media-library-movie-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
+  }
+}
+
+@media (max-width: 600px) {
+  .favorites-movies-section .media-library-movie-grid,
+  .favorites-tvshows-section .media-library-movie-grid {
+    grid-template-columns: repeat(1, 1fr); /* 1 column on mobile */
+  }
 }
 
 /* HEART ICON FIXES - Improved z-index and positioning */
@@ -2742,9 +3081,9 @@
     flex-direction: row;
     gap: 8px;
     align-items: center;
-    width: 84%;
+    width: 88%;
     text-align: center;
-    margin-left: 6px;
+    margin-left: 2px;
     padding: 4px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 6px;

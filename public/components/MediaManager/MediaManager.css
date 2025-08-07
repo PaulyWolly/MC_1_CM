@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.CSS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -24,8 +24,8 @@
     max-width: 95vw;
     width: 1290px;
     min-height: 520px;
-    max-height: 90vh;
-    height: 86vh;
+    max-height: 95vh;
+    height: 90vh;
     padding: 32px 36px 28px 36px;
     color: #f5f5f5;
     display: flex;
@@ -118,6 +118,8 @@
 
 .media-manager-content-tv.active {
   display: block;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .media-manager-content-all.active {
@@ -529,11 +531,16 @@
 
 /* Submit Buttons - TV-SHOW */
 .media-manager-submit-buttons-tv {
-  display: flex;
+  display: flex !important;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #444a56;
+  margin-top: 15px;
+  padding: 12px;
+  border-top: 2px solid #4a90e2;
+  background: #1e2127;
+  border-radius: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 /* Poster Container - TV-SHOW */
@@ -2192,6 +2199,7 @@
   padding: 10px 20px;
   font-size: 0.9em;
   cursor: pointer;
+  
   transition: background 0.2s;
   font-weight: 500;
 }
@@ -4181,7 +4189,7 @@
   margin-top: -24px;
   width: 100%;
   box-sizing: border-box;
-  height: 81.5vh;
+  height: 85.5vh;
 }
 
 /* LEFT COLUMN (60%) - Main Details & Description */
@@ -4304,12 +4312,30 @@
   flex-wrap: wrap;
 }
 
+/* Step Sections */
+.media-manager-step-section {
+  margin: 10px 0;
+  padding: 10px;
+  background: #2a2e36;
+  border-radius: 8px;
+  border-left: 4px solid #4a90e2;
+}
+
+.media-manager-step-title {
+  margin: 0 0 8px 0;
+  color: #4a90e2;
+  font-size: 1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* TV Action Buttons */
 .media-manager-tv-action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 /* Submit Buttons */
@@ -4364,7 +4390,7 @@
   gap: 6px;
   flex-wrap: wrap;
   position: relative;
-  bottom: -168px;
+  bottom: -15px;
 }
 
 /* Year/TMDB Row for TV Shows */
