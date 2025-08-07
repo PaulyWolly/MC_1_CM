@@ -91,22 +91,17 @@ const checks = [
                     return 'File is completely empty (no data structure)';
                 }
                 
-                // Check if folders property exists (standardized structure)
-                if (!data.folders) {
-                    return 'Missing "folders" property in TV shows data structure (expected: { path: "", folders: [...] })';
-                }
+                // TV shows use numbered keys structure, not folders array
+                const showKeys = Object.keys(data).filter(key => !isNaN(parseInt(key)));
                 
-                // Check if folders array is empty
-                if (!Array.isArray(data.folders)) {
-                    return 'TV shows "folders" property is not an array';
-                }
-                
-                if (data.folders.length === 0) {
-                    return `TV shows folders array is empty (0 shows found, expected > 0)`;
+                if (showKeys.length === 0) {
+                    return 'No TV show entries found (expected numbered keys like "0", "1", etc.)';
                 }
                 
                 // Check if first show has proper structure
-                const firstShow = data.folders[0];
+                const firstShowKey = showKeys[0];
+                const firstShow = data[firstShowKey];
+                
                 if (!firstShow) {
                     return 'First TV show entry is undefined or null';
                 }
