@@ -1,8 +1,8 @@
 /*
   VIDEO-JS.CSS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -912,11 +912,21 @@ body.vjs-pip-window .video-js {
   width: 100%;
   position: absolute;
   bottom: 62px !important;
+  margin-bottom: 15px;
   left: 0;
   right: 0;
-  height: 6.8em;
+  height: 7.5em;
   background-color: #2B333F;
   background-color: rgba(43, 51, 63, 0.7);
+}
+
+.vjs-control-bar .vjs-control {
+  font-size: 1.3em !important;
+  min-width: 62px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  width: 48px !important;
+  margin-bottom: 3px !important;
 }
 
 .video-js:not(.vjs-controls-disabled, .vjs-using-native-controls, .vjs-error) .vjs-control-bar.vjs-lock-showing {
@@ -954,6 +964,7 @@ body.vjs-pip-window .video-js {
 .video-js .vjs-control {
   position: relative;
   text-align: center;
+  min-width: 65px !important;
   margin: 0;
   padding: 0;
   height: 100%;

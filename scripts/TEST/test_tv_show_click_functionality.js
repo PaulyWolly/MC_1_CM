@@ -1,8 +1,8 @@
 /*
   TEST_TV_SHOW_CLICK_FUNCTIONALITY.JS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 

@@ -1,8 +1,8 @@
 /*
   EPISODEMODAL.JS
-  Version: 1.0
-  AppName: MultiChat_Chatty [v10]
-  Created: 8/3/2025
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -135,17 +135,21 @@ class EpisodeModal {
                        showName.toLowerCase().includes(showTitle.toLowerCase());
             });
             
-            if (tvShow && tvShow.folders) {
+            if (tvShow) {
                 console.log('[EPISODE-MODAL] Found TV show:', tvShow.path);
-                console.log('[EPISODE-MODAL] Seasons found:', tvShow.folders.length);
                 
-                // Collect all episodes from all seasons
-                tvShow.folders.forEach(season => {
-                    if (season.files && season.files.length > 0) {
-                        console.log('[EPISODE-MODAL] Season', season.name, 'has', season.files.length, 'episodes');
-                        episodes.push(...season.files);
-                    }
-                });
+                // Check if episodes are in folders structure
+                if (tvShow.folders && tvShow.folders.length > 0) {
+                    console.log('[EPISODE-MODAL] Seasons found:', tvShow.folders.length);
+                    
+                    // Collect all episodes from all seasons
+                    tvShow.folders.forEach(season => {
+                        if (season.files && season.files.length > 0) {
+                            console.log('[EPISODE-MODAL] Season', season.name, 'has', season.files.length, 'episodes');
+                            episodes.push(...season.files);
+                        }
+                    });
+                }
             }
         }
 
@@ -182,28 +186,62 @@ class EpisodeModal {
         const currentEpisodeInfo = this.getCurrentEpisodeInfo();
         console.log('[EPISODE-MODAL] Current episode info for comparison:', currentEpisodeInfo);
 
-        // Create episode buttons
-        let episodeButtons = '';
+        // Group episodes by season
+        const episodesBySeason = {};
         sortedEpisodes.forEach((episode, index) => {
             const epInfo = this.extractEpisodeInfo(episode.name || episode.path);
-            const episodeLabel = `S${epInfo.seasonNumber.toString().padStart(2, '0')}E${epInfo.episodeNumber.toString().padStart(2, '0')}`;
+            const seasonKey = epInfo.seasonNumber;
             
-            const isCurrentEpisode = currentEpisodeInfo && 
-                currentEpisodeInfo.seasonNumber === epInfo.seasonNumber && 
-                currentEpisodeInfo.episodeNumber === epInfo.episodeNumber;
+            if (!episodesBySeason[seasonKey]) {
+                episodesBySeason[seasonKey] = [];
+            }
+            episodesBySeason[seasonKey].push({ episode, index });
+        });
+
+        // Create episode buttons with season headers
+        let episodeButtons = '';
+        Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNumber => {
+            const seasonEpisodes = episodesBySeason[seasonNumber];
             
-            console.log('[EPISODE-MODAL] Episode', episodeLabel, 'isCurrentEpisode:', isCurrentEpisode);
-            
-            const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
-            const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
-            
+            // Add season header
             episodeButtons += `
-                <button class="${buttonClass}" data-index="${index}" ${isCurrentEpisode ? 'disabled' : ''}>
-                    <div class="episode-label">${episodeLabel}${statusText}</div>
-                    <div class="episode-name">${episode.name}</div>
-                    ${isCurrentEpisode ? '<div class="currently-playing-overlay">Currently Playing</div>' : ''}
-                </button>
+                <div class="season-header" style="
+                    background: #2a2a2a;
+                    color: #007bff;
+                    font-weight: bold;
+                    font-size: 1.1em;
+                    padding: 12px 16px;
+                    margin: 8px 0 4px 0;
+                    border-radius: 6px;
+                    border-left: 4px solid #007bff;
+                    grid-column: 1 / -1;
+                ">
+                    Season ${seasonNumber}
+                </div>
             `;
+            
+            // Add episodes for this season
+            seasonEpisodes.forEach(({ episode, index }) => {
+                const epInfo = this.extractEpisodeInfo(episode.name || episode.path);
+                const episodeLabel = `S${epInfo.seasonNumber.toString().padStart(2, '0')}E${epInfo.episodeNumber.toString().padStart(2, '0')}`;
+                
+                const isCurrentEpisode = currentEpisodeInfo && 
+                    currentEpisodeInfo.seasonNumber === epInfo.seasonNumber && 
+                    currentEpisodeInfo.episodeNumber === epInfo.episodeNumber;
+                
+                console.log('[EPISODE-MODAL] Episode', episodeLabel, 'isCurrentEpisode:', isCurrentEpisode);
+                
+                const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
+                const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
+                
+                episodeButtons += `
+                    <button class="${buttonClass}" data-index="${index}" ${isCurrentEpisode ? 'disabled' : ''}>
+                        <div class="episode-label">${episodeLabel}${statusText}</div>
+                        <div class="episode-name">${episode.name}</div>
+                        ${isCurrentEpisode ? '<div class="currently-playing-overlay">Currently Playing</div>' : ''}
+                    </button>
+                `;
+            });
         });
 
         const episodeList = document.getElementById('episode-list');

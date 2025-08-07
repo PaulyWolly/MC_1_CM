@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -63,6 +63,55 @@ router.get('/unconfigured', (req, res) => {
     return res.json({ success: true, items: folders });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/scan-movies
+router.post('/scan-movies', async (req, res) => {
+  try {
+    console.log('[SCAN-MOVIES] Starting movie scan...');
+    
+    // Run the scan script
+    const scriptPath = path.join(__dirname, '../../scripts/SCAN/SCAN_media_library_movies.js');
+    
+    if (!fs.existsSync(scriptPath)) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Scan script not found at: ' + scriptPath 
+      });
+    }
+    
+    // Execute the scan script
+    const result = execSync(`node "${scriptPath}"`, { 
+      encoding: 'utf8',
+      cwd: path.join(__dirname, '../../')
+    });
+    
+    console.log('[SCAN-MOVIES] Scan result:', result);
+    
+    // Try to parse the result for new movies count
+    let newMovies = 0;
+    if (result.includes('new movies found') || result.includes('movies added')) {
+      const match = result.match(/(\d+)\s+(?:new movies found|movies added)/i);
+      if (match) {
+        newMovies = parseInt(match[1]);
+      }
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: 'Movie scan completed successfully',
+      newMovies: newMovies,
+      output: result
+    });
+    
+  } catch (error) {
+    console.error('[SCAN-MOVIES] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      output: error.stdout || error.stderr || error.toString()
+    });
   }
 });
 
@@ -273,18 +322,17 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid or missing type (movie|tv)' });
     }
     if (type === 'tv') {
-      // --- TV SHOW SAVE LOGIC ---
-      const { tmdbId, title, year, description, cast, poster, seasons, showPath } = req.body;
+      // --- SIMPLIFIED TV SHOW SAVE LOGIC ---
+      const { tmdbId, title, year, description, cast, poster, showPath } = req.body;
       
       // Add debug logging
-      console.log('[DEBUG - TV SAVE] Received data:');
-      console.log('[DEBUG - TV SAVE] tmdbId:', tmdbId);
-      console.log('[DEBUG - TV SAVE] title:', title);
-      console.log('[DEBUG - TV SAVE] year:', year);
-      console.log('[DEBUG - TV SAVE] description length:', description ? description.length : 0);
-      console.log('[DEBUG - TV SAVE] cast length:', cast ? cast.length : 0);
-      console.log('[DEBUG - TV SAVE] seasons count:', seasons ? seasons.length : 0);
-      console.log('[DEBUG - TV SAVE] showPath:', showPath);
+      console.log('[TV SAVE] Received data:');
+      console.log('[TV SAVE] tmdbId:', tmdbId);
+      console.log('[TV SAVE] title:', title);
+      console.log('[TV SAVE] year:', year);
+      console.log('[TV SAVE] description length:', description ? description.length : 0);
+      console.log('[TV SAVE] cast length:', cast ? cast.length : 0);
+      console.log('[TV SAVE] showPath:', showPath);
       
       if (!title) {
         return res.status(400).json({ success: false, error: 'Missing required TV show field: title' });
@@ -300,6 +348,25 @@ router.post('/save', async (req, res) => {
       if (!Array.isArray(tvData)) {
         tvData = [];
       }
+      
+      // Clean up duplicate entries (remove old format entries that have new format equivalents)
+      const cleanedTvData = [];
+      const seenTitles = new Set();
+      
+      for (const show of tvData) {
+        const showTitle = show.title || (show.path ? show.path.replace(/\s*\(\d{4}\)\s*$/, '') : '');
+        const showYear = show.year || (show.path ? show.path.match(/\((\d{4})\)/)?.[1] : '');
+        const titleKey = `${showTitle.toLowerCase()}_${showYear}`;
+        
+        if (!seenTitles.has(titleKey)) {
+          seenTitles.add(titleKey);
+          cleanedTvData.push(show);
+        } else {
+          console.log('[DEBUG - TV SAVE] Removing duplicate entry for:', showTitle, showYear);
+        }
+      }
+      
+      tvData = cleanedTvData;
       
       // Debug: Log existing shows with same title
       const existingShows = tvData.filter(show => show.title && show.title.toLowerCase() === title.toLowerCase());
@@ -327,7 +394,20 @@ router.post('/save', async (req, res) => {
         console.log('[DEBUG - TV SAVE] Found by title only (fallback):', idx !== -1 ? 'YES' : 'NO');
       }
       
-      // Create standardized show object that works with ALL TV show structures
+      // Also check for old format entries (with path and normalizedKey but no title)
+      if (idx === -1) {
+        const titleWithYear = year ? `${title} (${year})` : title;
+        idx = tvData.findIndex(show => {
+          // Check if this is an old format entry with path field
+          if (show.path && !show.title) {
+            return show.path.toLowerCase() === titleWithYear.toLowerCase();
+          }
+          return false;
+        });
+        console.log('[DEBUG - TV SAVE] Found by old format path:', idx !== -1 ? 'YES' : 'NO');
+      }
+      
+      // SIMPLIFIED: Create show object with basic info only
       const showObj = { 
         tmdbId, 
         title, 
@@ -335,47 +415,34 @@ router.post('/save', async (req, res) => {
         description, 
         cast, 
         poster, 
-        seasons, 
         showPath,
         path: showPath,
-        // Add standardized folders structure for MediaLibrary compatibility
-        folders: seasons.map(season => ({
-          path: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
-          relPath: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
-          files: season.episodes.map(episode => ({
-            name: episode.filename || episode.name,
-            filename: episode.filename || episode.name,
-            absPath: episode.filePath || episode.absPath,
-            relPath: episode.relPath || episode.filePath,
-            filePath: episode.filePath || episode.absPath
-          }))
-        }))
+        folders: [], // Empty folders - will be populated by scan later
+        files: []    // Empty files - will be populated by scan later
       };
       
-      console.log('[DEBUG - TV SAVE] Saving show object with tmdbId:', showObj.tmdbId, 'year:', showObj.year);
+      console.log('[TV SAVE] Created show object with basic info only');
+      
+      console.log('[TV SAVE] Saving show object with tmdbId:', showObj.tmdbId, 'year:', showObj.year);
       
       if (idx !== -1) {
-        console.log('[DEBUG - TV SAVE] Updating existing show at index:', idx);
+        console.log('[TV SAVE] Updating existing show at index:', idx);
         tvData[idx] = showObj;
       } else {
-        console.log('[DEBUG - TV SAVE] Adding new show');
+        console.log('[TV SAVE] Adding new show');
         tvData.push(showObj);
       }
       fs.writeFileSync(TV_NORMALIZED_JSON, JSON.stringify(tvData, null, 2));
       // --- ALWAYS SAVE TO NORMALIZED FILES ---
-      const normalizeKey = (name) => {
-        return name
-          .replace(/\\/g, '/')
-          .replace(/\s*&\s*/g, '.&.')
-          .replace(/\s+/g, '.')
-          .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '')
-          .replace(/\.+/g, '.')
-          .replace(/^\.|\.$/g, '');
-      };
+      // Use the shared normalization service for consistency
+      const { normalizeKey } = require('../../shared/NormalizationService.js');
       
       // For TV shows, include the year in the normalized key to match MediaLibrary expectations
       const titleWithYear = year ? `${title} (${year})` : title;
       const dotKey = normalizeKey(titleWithYear);
+      
+      // Add normalizedKey to the show object for consistency with existing format
+      showObj.normalizedKey = dotKey;
       
       // Save cast to normalized file
       const castPath = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json');
@@ -734,6 +801,180 @@ router.post('/scan-tv-structure', (req, res) => {
     });
   } catch (err) {
     console.error('[TV STRUCTURE SCAN] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/media/scan-tv-folders - NEW ENDPOINT that returns folder structure directly
+router.post('/scan-tv-folders', (req, res) => {
+  try {
+    if (!req.body || !req.body.showPath) {
+      return res.status(400).json({ success: false, error: 'Missing showPath in request body' });
+    }
+    const { showPath } = req.body;
+    if (!showPath) {
+      return res.status(400).json({ success: false, error: 'Missing showPath parameter' });
+    }
+    if (!fs.existsSync(showPath)) {
+      return res.status(404).json({ success: false, error: `Path not found: ${showPath}` });
+    }
+    
+    // Scan for season folders and return folder structure directly
+    const folders = [];
+    const files = [];
+    const showDir = fs.readdirSync(showPath, { withFileTypes: true });
+    const seasonFolders = showDir
+      .filter(dirent => dirent.isDirectory())
+      .filter(dirent => {
+        // Support both "Season 01" and "S01" formats
+        return /season\s*\d+/i.test(dirent.name) || /^s\d+/i.test(dirent.name);
+      });
+    
+    // If we have season folders, create folder structure
+    if (seasonFolders.length > 0) {
+      seasonFolders.forEach(seasonFolder => {
+        const seasonPath = path.join(showPath, seasonFolder.name);
+        const seasonFiles = [];
+        
+        const files = fs.readdirSync(seasonPath, { withFileTypes: true })
+          .filter(dirent => dirent.isFile())
+          .filter(dirent => /\.(mp4|mkv|avi|mov)$/i.test(dirent.name));
+          
+        files.forEach(file => {
+          const filePath = path.join(seasonPath, file.name);
+          const relPath = path.relative(showPath, filePath).replace(/\\/g, '/');
+          
+          // Extract episode number from filename
+          const epMatch = file.name.match(/E(\d{1,2})/i);
+          const episodeNumber = epMatch ? parseInt(epMatch[1], 10) : undefined;
+          
+          seasonFiles.push({
+            filename: file.name,
+            name: file.name,
+            filePath: filePath,
+            absPath: filePath,
+            relPath: relPath,
+            episodeNumber: episodeNumber
+          });
+        });
+        
+        // Sort episodes by episode number
+        seasonFiles.sort((a, b) => {
+          if (!a.episodeNumber && !b.episodeNumber) return 0;
+          if (!a.episodeNumber) return 1;
+          if (!b.episodeNumber) return -1;
+          return a.episodeNumber - b.episodeNumber;
+        });
+        
+        folders.push({
+          path: seasonFolder.name,
+          files: seasonFiles
+        });
+      });
+    } else {
+      // No season folders found, check for files in root
+      const rootFiles = showDir
+        .filter(dirent => dirent.isFile())
+        .filter(dirent => /\.(mp4|mkv|avi|mov)$/i.test(dirent.name));
+        
+      if (rootFiles.length > 0) {
+        // Group episodes by season number from filename
+        const episodesBySeason = {};
+        
+        rootFiles.forEach(file => {
+          const filePath = path.join(showPath, file.name);
+          const relPath = path.relative(showPath, filePath).replace(/\\/g, '/');
+          
+          // Extract season and episode numbers from filename
+          const seasonMatch = file.name.match(/S(\d{1,2})/i);
+          const epMatch = file.name.match(/E(\d{1,2})/i);
+          const seasonNumber = seasonMatch ? parseInt(seasonMatch[1], 10) : 1;
+          const episodeNumber = epMatch ? parseInt(epMatch[1], 10) : undefined;
+          
+          if (!episodesBySeason[seasonNumber]) {
+            episodesBySeason[seasonNumber] = [];
+          }
+          
+          episodesBySeason[seasonNumber].push({
+            filename: file.name,
+            name: file.name,
+            filePath: filePath,
+            absPath: filePath,
+            relPath: relPath,
+            episodeNumber: episodeNumber
+          });
+        });
+        
+        // Create virtual season folders for each season found
+        Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
+          const seasonEpisodes = episodesBySeason[seasonNum];
+          
+          // Sort episodes by episode number
+          seasonEpisodes.sort((a, b) => {
+            if (!a.episodeNumber && !b.episodeNumber) return 0;
+            if (!a.episodeNumber) return 1;
+            if (!b.episodeNumber) return -1;
+            return a.episodeNumber - b.episodeNumber;
+          });
+          
+          folders.push({
+            path: `Season ${seasonNum.padStart(2, '0')}`,
+            files: seasonEpisodes
+          });
+        });
+      }
+    }
+    
+    // ALWAYS return a proper folder structure - never flat files
+    // If we have files in root, they should be organized into seasons
+    const finalFolders = [...folders];
+    
+    // If we have any files in the root, organize them into seasons
+    if (files.length > 0) {
+      // Group files by season number
+      const episodesBySeason = {};
+      
+      files.forEach(file => {
+        const seasonMatch = file.name.match(/S(\d{1,2})/i);
+        const seasonNumber = seasonMatch ? parseInt(seasonMatch[1], 10) : 1;
+        
+        if (!episodesBySeason[seasonNumber]) {
+          episodesBySeason[seasonNumber] = [];
+        }
+        episodesBySeason[seasonNumber].push(file);
+      });
+      
+      // Create season folders for any remaining files
+      Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
+        const seasonEpisodes = episodesBySeason[seasonNum];
+        
+        // Sort episodes by episode number
+        seasonEpisodes.sort((a, b) => {
+          if (!a.episodeNumber && !b.episodeNumber) return 0;
+          if (!a.episodeNumber) return 1;
+          if (!b.episodeNumber) return -1;
+          return a.episodeNumber - b.episodeNumber;
+        });
+        
+        finalFolders.push({
+          path: `Season ${seasonNum.padStart(2, '0')}`,
+          files: seasonEpisodes
+        });
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: {
+        showPath,
+        folders: finalFolders,
+        files: [], // NEVER return files in root - always organize into folders
+        totalSeasons: finalFolders.length,
+        totalEpisodes: finalFolders.reduce((sum, f) => sum + f.files.length, 0)
+      }
+    });
+  } catch (err) {
+    console.error('[TV FOLDERS SCAN] Error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

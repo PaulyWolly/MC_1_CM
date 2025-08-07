@@ -58,11 +58,17 @@ function getInternalKey(displayName, year) {
   }
 }
 
-// Browser compatibility
+// Browser compatibility - only set if not already defined to prevent re-declaration errors
 if (typeof window !== 'undefined') {
-  window.normalizeKey = normalizeKey;
-  window.getDisplayName = getDisplayName;
-  window.getInternalKey = getInternalKey;
+  if (!window.normalizeKey) {
+    window.normalizeKey = normalizeKey;
+  }
+  if (!window.getDisplayName) {
+    window.getDisplayName = getDisplayName;
+  }
+  if (!window.getInternalKey) {
+    window.getInternalKey = getInternalKey;
+  }
 }
 
 module.exports = { 

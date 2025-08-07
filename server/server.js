@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
+  Version: 14
+  AppName: MultiChat_Chatty [v14]
+  Updated: 8/7/2025 @7:00AM
   Created by Paul Welby
 */
 
@@ -203,6 +203,86 @@ app.use('/api/media', mediaManagerRoutes);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Subtitle file serving endpoint
+app.get('/api/subtitles', (req, res) => {
+    try {
+        const subtitlePath = req.query.path;
+        if (!subtitlePath) {
+            return res.status(400).json({ error: 'Subtitle path is required' });
+        }
+
+        // Decode the path and construct the full file path
+        const decodedPath = decodeURIComponent(subtitlePath);
+        console.log('[SERVER] Subtitle request - Original path:', subtitlePath);
+        console.log('[SERVER] Subtitle request - Decoded path:', decodedPath);
+        
+        // Security check: ensure the path is within allowed directories
+        const allowedDirs = [
+            path.resolve(__dirname, '../public/assets'),
+            path.resolve(__dirname, '../uploads'),
+            path.resolve(__dirname, '../public/assets/video'),
+            path.resolve('S:/MEDIA') // Allow access to your media drive
+        ];
+        
+        const fullPath = path.resolve(decodedPath);
+        console.log('[SERVER] Subtitle request - Full path:', fullPath);
+        console.log('[SERVER] Subtitle request - Allowed dirs:', allowedDirs);
+        
+        const isAllowed = allowedDirs.some(allowedDir => 
+            fullPath.startsWith(allowedDir)
+        );
+        
+        console.log('[SERVER] Subtitle request - Is allowed:', isAllowed);
+        
+        if (!isAllowed) {
+            console.log('[SERVER] Blocked subtitle access to:', fullPath);
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Check if file exists
+        const fileExists = fs.existsSync(fullPath);
+        console.log('[SERVER] Subtitle request - File exists:', fileExists);
+        
+        if (!fileExists) {
+            console.log('[SERVER] Subtitle file not found at:', fullPath);
+            return res.status(404).json({ error: 'Subtitle file not found' });
+        }
+
+        // Get file extension to set correct content type
+        const ext = path.extname(fullPath).toLowerCase();
+        let contentType = 'text/plain';
+        
+        if (ext === '.vtt') {
+            contentType = 'text/vtt';
+        } else if (ext === '.srt') {
+            contentType = 'text/plain';
+        } else if (ext === '.sub') {
+            contentType = 'text/plain';
+        }
+
+        // Set CORS headers for subtitle files
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Content-Type', contentType);
+
+        // For HEAD requests (used to check if file exists)
+        if (req.method === 'HEAD') {
+            return res.status(200).end();
+        }
+
+        // Stream the subtitle file
+        const fileStream = fs.createReadStream(fullPath);
+        fileStream.pipe(res);
+
+        console.log('[SERVER] Serving subtitle file:', fullPath);
+
+    } catch (error) {
+        console.error('[SERVER] Error serving subtitle file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // YouTube Search Route
 app.get('/api/youtube/search', async (req, res) => {
