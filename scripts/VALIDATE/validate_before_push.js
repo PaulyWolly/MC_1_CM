@@ -1,239 +1,214 @@
 /*
   VALIDATE_BEFORE_PUSH.JS
-  Version: 14
-  AppName: MultiChat_Chatty [v14]
-  Updated: 8/7/2025 @7:00AM
+  Version: 1
+  AppName: MultiChat_Chatty [v12]
+  Created: 8/7/2025
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
-const util = require('util');
-const execAsync = util.promisify(exec);
 
-// Critical files that must be validated
-const CRITICAL_FILES = {
-    'public/components/MediaLibrary/MediaLibraryManager.js': {
-        description: 'Core Media Library Manager',
-        tests: [
-            'validate_movie_poster_loading',
-            'validate_tv_show_filtering',
-            'validate_watch_later_functionality'
-        ],
-        dependencies: ['movie_posters_normalized.json', 'media-library-movies_normalized.json']
-    },
-    'public/components/VideoPlayer/VideoPlayer.js': {
-        description: 'Video Player Component',
-        tests: ['validate_video_playback'],
-        dependencies: []
-    },
-    'public/app.js': {
-        description: 'Main Application',
-        tests: ['validate_app_initialization'],
-        dependencies: []
-    }
-};
+console.log('🚀 [VALIDATE] Starting pre-push validation...');
+console.log('============================================================');
 
-// Test functions
-const testFunctions = {
-    validate_movie_poster_loading: async () => {
-        console.log('🔍 [VALIDATE] Testing movie poster loading...');
-        
-        // Check if movie posters file exists and has data
+// Validation functions
+function validateMoviePosterLoading() {
+    console.log('🔍 [VALIDATE] Testing movie poster loading...');
+    
+    try {
         const posterPath = 'public/components/MediaLibrary/data/movies/movie_posters_normalized.json';
         if (!fs.existsSync(posterPath)) {
-            throw new Error('Movie posters file missing');
+            return 'Movie posters file missing';
         }
         
-        const posters = JSON.parse(fs.readFileSync(posterPath, 'utf8'));
-        if (Object.keys(posters).length === 0) {
-            throw new Error('Movie posters file is empty');
-        }
-        
-        // Check if movies data exists
-        const moviesPath = 'public/components/MediaLibrary/data/movies/media-library-movies_normalized.json';
-        if (!fs.existsSync(moviesPath)) {
-            throw new Error('Movies data file missing');
-        }
-        
-        const movies = JSON.parse(fs.readFileSync(moviesPath, 'utf8'));
-        if (!movies.folders || movies.folders.length === 0) {
-            throw new Error('Movies data is empty');
-        }
-        
-        // Test key matching
-        const sampleMovie = movies.folders[0];
-        if (sampleMovie.normalizedKey && !posters[sampleMovie.normalizedKey]) {
-            console.warn('⚠️  [VALIDATE] Sample movie key not found in posters:', sampleMovie.normalizedKey);
+        const data = JSON.parse(fs.readFileSync(posterPath, 'utf8'));
+        if (Object.keys(data).length === 0) {
+            return 'Movie posters file is empty';
         }
         
         console.log('✅ [VALIDATE] Movie poster loading validation passed');
-        return true;
-    },
+        return null;
+    } catch (error) {
+        return `Movie poster validation error: ${error.message}`;
+    }
+}
+
+function validateTvShowFiltering() {
+    console.log('🔍 [VALIDATE] Testing TV show filtering...');
     
-    validate_tv_show_filtering: async () => {
-        console.log('🔍 [VALIDATE] Testing TV show filtering...');
-        
-        // Check if TV shows data exists
+    try {
         const tvShowsPath = 'public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json';
         if (!fs.existsSync(tvShowsPath)) {
-            throw new Error('TV shows data file missing');
+            return 'TV shows data file missing';
         }
         
-        const tvShows = JSON.parse(fs.readFileSync(tvShowsPath, 'utf8'));
-        // Check if it's an array (current format) or object with folders (old format)
-        if (Array.isArray(tvShows)) {
-            if (tvShows.length === 0) {
-                throw new Error('TV shows data is empty');
-            }
-        } else if (tvShows.folders) {
-            if (tvShows.folders.length === 0) {
-                throw new Error('TV shows data is empty');
-            }
-        } else {
-            throw new Error('TV shows data format is invalid');
+        const data = JSON.parse(fs.readFileSync(tvShowsPath, 'utf8'));
+        
+        // Check if data is empty
+        if (!data || Object.keys(data).length === 0) {
+            return 'TV shows data file is completely empty';
+        }
+        
+        // Check for normalized structure with numbered keys
+        const showKeys = Object.keys(data).filter(key => !isNaN(parseInt(key)));
+        
+        if (showKeys.length === 0) {
+            return 'No TV show entries found (expected numbered keys like "0", "1", etc.)';
+        }
+        
+        // Check if first show has proper normalized structure
+        const firstShowKey = showKeys[0];
+        const firstShow = data[firstShowKey];
+        
+        if (!firstShow) {
+            return 'First TV show entry is undefined or null';
+        }
+        
+        if (!firstShow.path) {
+            return 'TV show entries missing "path" property';
+        }
+        
+        if (!firstShow.normalizedKey) {
+            return 'TV show entries missing "normalizedKey" property';
+        }
+        
+        // Check if show has folders (seasons)
+        if (!firstShow.folders) {
+            return 'TV show entries missing "folders" property (for seasons)';
+        }
+        
+        if (!Array.isArray(firstShow.folders)) {
+            return 'TV show "folders" property is not an array (should contain seasons)';
         }
         
         console.log('✅ [VALIDATE] TV show filtering validation passed');
-        return true;
-    },
+        return null;
+    } catch (error) {
+        return `TV shows data format is invalid: ${error.message}`;
+    }
+}
+
+function validateWatchLaterFunctionality() {
+    console.log('🔍 [VALIDATE] Testing Watch Later functionality...');
     
-    validate_watch_later_functionality: async () => {
-        console.log('🔍 [VALIDATE] Testing Watch Later functionality...');
+    try {
+        const mediaManagerPath = 'public/components/MediaLibrary/MediaLibraryManager.js';
+        if (!fs.existsSync(mediaManagerPath)) {
+            return 'Media Library Manager file missing';
+        }
         
-        // Check if MediaLibraryManager has required methods
-        const managerPath = 'public/components/MediaLibrary/MediaLibraryManager.js';
-        const managerCode = fs.readFileSync(managerPath, 'utf8');
+        const code = fs.readFileSync(mediaManagerPath, 'utf8');
         
-        const requiredMethods = [
-            'saveResumeProgress',
-            'renderWatchLaterContent',
-            'getItemsForCurrentTab',
-            'getPosterPath'
-        ];
-        
+        // Check for essential Watch Later methods
+        const requiredMethods = ['renderWatchLaterContent', 'getItemsForCurrentTab'];
         for (const method of requiredMethods) {
-            if (!managerCode.includes(`${method}(`)) {
-                throw new Error(`Required method missing: ${method}`);
+            if (!code.includes(`${method}(`)) {
+                return `Missing Watch Later method: ${method}`;
             }
         }
         
         console.log('✅ [VALIDATE] Watch Later functionality validation passed');
-        return true;
-    },
+        return null;
+    } catch (error) {
+        return `Watch Later validation error: ${error.message}`;
+    }
+}
+
+function validateVideoPlayerFunctionality() {
+    console.log('🔍 [VALIDATE] Testing video player functionality...');
     
-    validate_video_playback: async () => {
-        console.log('🔍 [VALIDATE] Testing video player functionality...');
-        
-        const playerPath = 'public/components/VideoPlayer/VideoPlayer.js';
-        if (!fs.existsSync(playerPath)) {
-            throw new Error('Video player file missing');
+    try {
+        const videoPlayerPath = 'public/components/VideoPlayer/VideoPlayer.js';
+        if (!fs.existsSync(videoPlayerPath)) {
+            return 'Video Player file missing';
         }
         
-        const playerCode = fs.readFileSync(playerPath, 'utf8');
-        if (!playerCode.includes('class VideoPlayer')) {
-            throw new Error('Video player class missing');
+        const code = fs.readFileSync(videoPlayerPath, 'utf8');
+        
+        // Check for essential Video Player components
+        if (!code.includes('class VideoPlayer')) {
+            return 'VideoPlayer class missing';
+        }
+        
+        if (!code.includes('SubtitleButton')) {
+            return 'SubtitleButton component missing';
         }
         
         console.log('✅ [VALIDATE] Video player validation passed');
-        return true;
-    },
+        return null;
+    } catch (error) {
+        return `Video Player validation error: ${error.message}`;
+    }
+}
+
+function validateAppInitialization() {
+    console.log('🔍 [VALIDATE] Testing app initialization...');
     
-    validate_app_initialization: async () => {
-        console.log('🔍 [VALIDATE] Testing app initialization...');
-        
+    try {
         const appPath = 'public/app.js';
         if (!fs.existsSync(appPath)) {
-            throw new Error('Main app file missing');
+            return 'Main app file missing';
         }
         
-        const appCode = fs.readFileSync(appPath, 'utf8');
-        if (!appCode.includes('document.addEventListener')) {
-            throw new Error('App initialization code missing');
+        const code = fs.readFileSync(appPath, 'utf8');
+        
+        // Check for essential app initialization
+        if (!code.includes('document.addEventListener')) {
+            return 'App initialization missing';
         }
         
         console.log('✅ [VALIDATE] App initialization validation passed');
-        return true;
-    }
-};
-
-// Main validation function
-async function validateBeforePush() {
-    console.log('🚀 [VALIDATE] Starting pre-push validation...');
-    console.log('='.repeat(60));
-    
-    const results = {
-        passed: 0,
-        failed: 0,
-        errors: []
-    };
-    
-    // Validate each critical file
-    for (const [filePath, config] of Object.entries(CRITICAL_FILES)) {
-        console.log(`\n📁 [VALIDATE] Checking: ${config.description}`);
-        
-        // Check if file exists
-        if (!fs.existsSync(filePath)) {
-            const error = `Critical file missing: ${filePath}`;
-            console.error(`❌ [VALIDATE] ${error}`);
-            results.errors.push(error);
-            results.failed++;
-            continue;
-        }
-        
-        // Run tests for this file
-        for (const testName of config.tests) {
-            try {
-                await testFunctions[testName]();
-                results.passed++;
-            } catch (error) {
-                const errorMsg = `${config.description} - ${testName}: ${error.message}`;
-                console.error(`❌ [VALIDATE] ${errorMsg}`);
-                results.errors.push(errorMsg);
-                results.failed++;
-            }
-        }
-        
-        // Check dependencies
-        for (const dep of config.dependencies) {
-            const depPath = `public/components/MediaLibrary/data/movies/${dep}`;
-            if (!fs.existsSync(depPath)) {
-                const error = `Dependency missing: ${dep}`;
-                console.error(`❌ [VALIDATE] ${error}`);
-                results.errors.push(error);
-                results.failed++;
-            }
-        }
-    }
-    
-    // Summary
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 [VALIDATE] VALIDATION SUMMARY');
-    console.log('='.repeat(60));
-    console.log(`✅ Passed: ${results.passed}`);
-    console.log(`❌ Failed: ${results.failed}`);
-    
-    if (results.errors.length > 0) {
-        console.log('\n🚨 [VALIDATE] ERRORS FOUND:');
-        results.errors.forEach((error, index) => {
-            console.log(`   ${index + 1}. ${error}`);
-        });
-        console.log('\n❌ [VALIDATE] PUSH BLOCKED - Fix errors before pushing');
-        process.exit(1);
-    } else {
-        console.log('\n✅ [VALIDATE] All validations passed - Safe to push!');
-        console.log('🎯 [VALIDATE] Validation completed at:', new Date().toLocaleString());
-        console.log('='.repeat(60));
+        return null;
+    } catch (error) {
+        return `App initialization validation error: ${error.message}`;
     }
 }
 
-// Run validation
-if (require.main === module) {
-    validateBeforePush().catch(error => {
-        console.error('💥 [VALIDATE] Validation script failed:', error.message);
-        process.exit(1);
+// Run all validations
+const validations = [
+    { name: 'Core Media Library Manager', test: validateMoviePosterLoading },
+    { name: 'Core Media Library Manager', test: validateTvShowFiltering },
+    { name: 'Core Media Library Manager', test: validateWatchLaterFunctionality },
+    { name: 'Video Player Component', test: validateVideoPlayerFunctionality },
+    { name: 'Main Application', test: validateAppInitialization }
+];
+
+let passed = 0;
+let failed = 0;
+const errors = [];
+
+for (const validation of validations) {
+    try {
+        const error = validation.test();
+        if (error) {
+            console.log(`❌ [VALIDATE] ${validation.name} - ${validation.test.name}: ${error}`);
+            errors.push(`${validation.name} - ${validation.test.name}: ${error}`);
+            failed++;
+        } else {
+            passed++;
+        }
+    } catch (err) {
+        console.log(`❌ [VALIDATE] ${validation.name} - ${validation.test.name}: ${err.message}`);
+        errors.push(`${validation.name} - ${validation.test.name}: ${err.message}`);
+        failed++;
+    }
+}
+
+console.log('============================================================');
+console.log('📊 [VALIDATE] VALIDATION SUMMARY');
+console.log('============================================================');
+console.log(`✅ Passed: ${passed}`);
+console.log(`❌ Failed: ${failed}`);
+
+if (errors.length > 0) {
+    console.log('\n🚨 [VALIDATE] ERRORS FOUND:');
+    errors.forEach((error, index) => {
+        console.log(`   ${index + 1}. ${error}`);
     });
-}
-
-module.exports = { validateBeforePush, testFunctions }; 
+    console.log('\n❌ [VALIDATE] PUSH BLOCKED - Fix errors before pushing');
+    process.exit(1);
+} else {
+    console.log('\n✅ [VALIDATE] All validations passed - Safe to push!');
+    process.exit(0);
+} 

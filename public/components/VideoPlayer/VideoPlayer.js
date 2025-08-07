@@ -556,7 +556,31 @@ class VideoPlayer {
                                 if (overlay) {
                                     overlay.style.display = 'block';
                                     window.videoPlayer.subtitlesEnabled = true;
-                                    window.videoPlayer.loadAndDisplaySubtitles(overlay);
+                                    
+                                    // Get the actual file path (not blob URL) for subtitle loading
+                                    let videoPath = null;
+                                    
+                                    // First try to get the stored file path
+                                    if (window.videoPlayer.currentFile && window.videoPlayer.currentFile.absPath) {
+                                        videoPath = window.videoPlayer.currentFile.absPath;
+                                        console.log('[SUBTITLE] Using stored file path:', videoPath);
+                                    } else if (window.videoPlayer.currentMediaItem && window.videoPlayer.currentMediaItem.path) {
+                                        videoPath = window.videoPlayer.currentMediaItem.path;
+                                        console.log('[SUBTITLE] Using media item path:', videoPath);
+                                    } else {
+                                        // Fallback: try to get from MediaLibraryManager
+                                        if (window.mediaLibraryManager && window.mediaLibraryManager.currentMediaItem) {
+                                            videoPath = window.mediaLibraryManager.currentMediaItem.path;
+                                            console.log('[SUBTITLE] Using MediaLibraryManager path:', videoPath);
+                                        }
+                                    }
+                                    
+                                    if (videoPath) {
+                                        window.videoPlayer.loadSubtitles(videoPath);
+                                    } else {
+                                        overlay.textContent = '🎬 No file path found for subtitles';
+                                        console.log('[SUBTITLE] No file path found for subtitle loading');
+                                    }
                                 }
                             } else {
                                 // Turn OFF subtitles
@@ -4075,6 +4099,31 @@ class VideoPlayer {
         this.loadSubtitles('S:/MEDIA/MOVIES/The Forbidden Kingdom (2008) [1080p]/The.Forbidden.Kingdom.(2008).[1080p].mp4');
     };
     
+    window.testLoadSubtitlesForCurrentVideo = () => {
+        if (window.videoPlayer) {
+            window.videoPlayer.testLoadSubtitlesForCurrentVideo();
+        } else {
+            console.log('[TEST] Video player not available');
+        }
+    };
+    
+    window.purgeAllSubtitles = () => {
+        if (window.videoPlayer) {
+            window.videoPlayer.purgeExistingSubtitles();
+            console.log('[TEST] Manual subtitle purge completed');
+        } else {
+            console.log('[TEST] Video player not available');
+        }
+    };
+    
+    window.testSubtitleCues = () => {
+        if (window.videoPlayer) {
+            window.videoPlayer.testSubtitleCues();
+        } else {
+            console.log('[TEST] Video player not available');
+        }
+    };
+    
     // Add simple test function
     window.testSubtitleButton = () => {
         console.log('[TEST] Testing subtitle button click...');
@@ -4180,21 +4229,59 @@ class VideoPlayer {
             }
         }
         
-        // Clear any subtitle overlay content
-        const overlay = this.container.querySelector('.simple-subtitle-overlay');
-        if (overlay) {
-            const subtitleText = overlay.querySelector('.video-subtitle-text');
-            if (subtitleText) {
-                subtitleText.textContent = '';
-                subtitleText.style.display = 'none';
-            }
+        // Clear ALL possible subtitle overlay content
+        const overlays = [
+            '.simple-subtitle-overlay',
+            '.custom-subtitle-overlay',
+            '.test-subtitle-overlay',
+            '.video-subtitle-text',
+            '.subtitle-text',
+            '.subtitle-test-text'
+        ];
+        
+        overlays.forEach(selector => {
+            const elements = this.container.querySelectorAll(selector);
+            elements.forEach(element => {
+                if (element) {
+                    element.textContent = '';
+                    element.style.display = 'none';
+                    console.log('[VIDEO-PLAYER] Cleared overlay element:', selector);
+                }
+            });
+        });
+        
+        // Also clear any subtitle text that might be in the main overlay
+        const mainOverlay = this.container.querySelector('.simple-subtitle-overlay');
+        if (mainOverlay) {
+            mainOverlay.textContent = '';
+            mainOverlay.style.display = 'none';
+            console.log('[VIDEO-PLAYER] Cleared main subtitle overlay');
+        }
+        
+        // Clear any cached subtitle data
+        if (this.subtitleOverlay) {
+            this.subtitleOverlay = null;
+        }
+        
+        // Remove any timeupdate handlers for subtitles
+        if (this.subtitleTimeUpdateHandler && this.vjsPlayer) {
+            this.vjsPlayer.off('timeupdate', this.subtitleTimeUpdateHandler);
+            console.log('[VIDEO-PLAYER] Removed subtitle timeupdate handler');
         }
         
         // Reset subtitle state
         this.subtitlesEnabled = false;
         this.subtitleTimeUpdateHandler = null;
         
-        console.log('[VIDEO-PLAYER] Subtitle purge complete');
+        // Clear any subtitle button state
+        const subtitleButton = this.vjsPlayer ? this.vjsPlayer.controlBar.getChild('SubtitleButton') : null;
+        if (subtitleButton) {
+            subtitleButton.subtitleEnabled = false;
+            subtitleButton.updateIcon();
+            console.log('[VIDEO-PLAYER] Reset subtitle button state');
+        }
+        
+        console.log('[VIDEO-PLAYER] Complete subtitle purge finished');
     }
 
     // Find subtitle files in the same folder as the movie
@@ -4265,14 +4352,40 @@ class VideoPlayer {
                                 videojsTrack.mode = 'showing';
                                 console.log('[VIDEO-PLAYER] Enabled subtitle track in Video.js');
                                 
-                                // Update subtitle button
+                                // Update subtitle button state and icon
                                 const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
                                 if (subtitleButton) {
+                                    subtitleButton.subtitleEnabled = true;
                                     subtitleButton.updateIcon();
+                                    console.log('[VIDEO-PLAYER] Updated subtitle button to ACTIVE state');
                                 }
                                 
                                 // Apply default subtitle styling
                                 this.applySubtitleStyling('small bold outline');
+                                
+                                // Set up the subtitle display system
+                                this.subtitlesEnabled = true;
+                                
+                                // Create or get the subtitle overlay
+                                let overlay = this.container.querySelector('.simple-subtitle-overlay');
+                                if (!overlay) {
+                                    overlay = this.createSimpleSubtitleOverlay();
+                                }
+                                this.subtitleOverlay = overlay;
+                                
+                                // Load the actual subtitle content and set up sync
+                                this.loadSubtitleContentAndSync(subtitleUrl);
+                                
+                                // Show success message
+                                if (overlay) {
+                                    overlay.textContent = '🎬 Subtitles Loaded Successfully!';
+                                    overlay.style.display = 'block';
+                                    
+                                    // Hide the message after 3 seconds
+                                    setTimeout(() => {
+                                        overlay.style.display = 'none';
+                                    }, 3000);
+                                }
                     });
                 } else {
                             // If Video.js isn't ready, wait for it
@@ -4294,10 +4407,12 @@ class VideoPlayer {
                                         videojsTrack.mode = 'showing';
                                         console.log('[VIDEO-PLAYER] Enabled subtitle track in Video.js');
                                         
-                                        // Update subtitle button
+                                        // Update subtitle button state and icon
                                         const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
                                         if (subtitleButton) {
+                                            subtitleButton.subtitleEnabled = true;
                                             subtitleButton.updateIcon();
+                                            console.log('[VIDEO-PLAYER] Updated subtitle button to ACTIVE state (fallback)');
                                         }
                                         
                                         // Apply default subtitle styling
@@ -4361,7 +4476,9 @@ class VideoPlayer {
                                 this.vjsPlayer.ready(() => {
                                     const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
                                     if (subtitleButton) {
+                                        subtitleButton.subtitleEnabled = true;
                                         subtitleButton.updateIcon();
+                                        console.log('[VIDEO-PLAYER] Updated subtitle button to ACTIVE state (alternative pattern)');
                                     }
                                     
                                     // Add track to Video.js player
@@ -4915,6 +5032,63 @@ class VideoPlayer {
             console.log('[TEST] Set test subtitle text');
         } else {
             console.log('[TEST] No subtitle overlay found');
+        }
+    }
+    
+    // Test function to manually load subtitles for current video
+    testLoadSubtitlesForCurrentVideo() {
+        console.log('[TEST] Testing subtitle loading for current video...');
+        
+        // Get the actual file path (not blob URL) for subtitle loading
+        let videoPath = null;
+        
+        // First try to get the stored file path
+        if (this.currentFile && this.currentFile.absPath) {
+            videoPath = this.currentFile.absPath;
+            console.log('[TEST] Using stored file path:', videoPath);
+        } else if (this.currentMediaItem && this.currentMediaItem.path) {
+            videoPath = this.currentMediaItem.path;
+            console.log('[TEST] Using media item path:', videoPath);
+        } else {
+            // Fallback: try to get from MediaLibraryManager
+            if (window.mediaLibraryManager && window.mediaLibraryManager.currentMediaItem) {
+                videoPath = window.mediaLibraryManager.currentMediaItem.path;
+                console.log('[TEST] Using MediaLibraryManager path:', videoPath);
+            }
+        }
+        
+        if (videoPath) {
+            this.loadSubtitles(videoPath);
+        } else {
+            console.log('[TEST] No file path found for subtitle loading');
+        }
+    }
+    
+    // Load subtitle content and set up synchronization
+    async loadSubtitleContentAndSync(subtitleUrl) {
+        console.log('[VIDEO-PLAYER] Loading subtitle content and setting up sync...');
+        
+        try {
+            // Fetch the subtitle content
+            const response = await fetch(subtitleUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch subtitle: ${response.status}`);
+            }
+            
+            const srtContent = await response.text();
+            console.log('[VIDEO-PLAYER] Fetched subtitle content, length:', srtContent.length);
+            
+            // Parse the SRT content into cues
+            this.subtitleCues = this.parseSrtContent(srtContent);
+            console.log('[VIDEO-PLAYER] Parsed', this.subtitleCues.length, 'subtitle cues');
+            
+            // Set up subtitle synchronization
+            this.setupSubtitleSync();
+            
+            console.log('[VIDEO-PLAYER] Subtitle content loaded and sync set up');
+            
+        } catch (error) {
+            console.error('[VIDEO-PLAYER] Error loading subtitle content:', error);
         }
     }
     
