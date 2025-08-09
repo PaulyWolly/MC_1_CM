@@ -2919,7 +2919,7 @@ class MediaLibraryManager {
                         e.stopPropagation();
                         await this.removeResumeProgress(item.path);
                         this.updateWatchLaterGrid().then(() => {
-                            this.showToast('Removed from Watch Later');
+                        this.showToast('Removed from Watch Later');
                         });
                     });
                     
@@ -3237,7 +3237,7 @@ class MediaLibraryManager {
         const mediaGrid = document.getElementById('mediaGrid');
         if (mediaGrid) {
             mediaGrid.innerHTML = html;
-            
+
             // Attach handlers for movies and delete buttons after DOM update
             setTimeout(() => {
                 // Delete handlers for both movies and TV shows
@@ -6307,133 +6307,133 @@ class MediaLibraryManager {
         
         try {
             // Get current resume list from localStorage
-            let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
+        let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
+        
+        // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
+        const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
+        const isTVShow = pathToCheck.includes('tv-shows') || 
+                        pathToCheck.includes('tv_shows') ||
+                        pathToCheck.includes('season') ||
+                        (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
+        
+        // Remove any existing entry for this path (deduplication)
+        resumeList = resumeList.filter(item => {
+            const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+            const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
             
-            // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
-            const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
-            const isTVShow = pathToCheck.includes('tv-shows') || 
-                            pathToCheck.includes('tv_shows') ||
-                            pathToCheck.includes('season') ||
-                            (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
+            // Remove exact path matches
+            if (itemPath === mediaPath && itemPath !== '') {
+                return false; // Remove duplicate
+            }
             
-            // Remove any existing entry for this path (deduplication)
-            resumeList = resumeList.filter(item => {
-                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-                const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
-                
-                // Remove exact path matches
-                if (itemPath === mediaPath && itemPath !== '') {
-                    return false; // Remove duplicate
+            // For TV shows, also check by title to catch different path formats
+            if (isTVShow && mediaItem.title && item.title) {
+                const itemTitle = item.title.toLowerCase().trim();
+                const mediaTitle = mediaItem.title.toLowerCase().trim();
+                if (itemTitle === mediaTitle) {
+                    return false; // Remove duplicate by title
                 }
-                
-                // For TV shows, also check by title to catch different path formats
-                if (isTVShow && mediaItem.title && item.title) {
-                    const itemTitle = item.title.toLowerCase().trim();
-                    const mediaTitle = mediaItem.title.toLowerCase().trim();
-                    if (itemTitle === mediaTitle) {
-                        return false; // Remove duplicate by title
-                    }
-                }
-                
-                return true; // Keep this item
-            });
+            }
+            
+            return true; // Keep this item
+        });
 
-            let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
-            
-            // For TV-Shows, ensure we have the correct path format
-            if (isTVShow && savePath) {
-                // If it's an absolute path, convert to relative
-                if (savePath.startsWith('/media/')) {
-                    savePath = savePath.replace(/^\/media\//, '');
-                }
-                
-                // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
-                if (savePath.includes('\\')) {
-                    savePath = savePath.replace(/\\/g, '/');
-                }
+        let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
+        
+        // For TV-Shows, ensure we have the correct path format
+        if (isTVShow && savePath) {
+            // If it's an absolute path, convert to relative
+            if (savePath.startsWith('/media/')) {
+                savePath = savePath.replace(/^\/media\//, '');
             }
             
-            // If path is missing, try to look up from main media library by filename or title
-            if (!savePath && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
-                const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
-                const found = this.mediaLibrary.find(item => {
-                    return (
-                        (item.path && item.path.split(/[\\/]/).pop() === filename) ||
-                        (item.title && item.title === mediaItem.title) ||
-                        (item.name && item.name === mediaItem.name)
-                    );
-                });
-                if (found && found.path) {
-                    savePath = found.path;
-                }
+            // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
+            if (savePath.includes('\\')) {
+                savePath = savePath.replace(/\\/g, '/');
             }
-            
-            // Always decode before saving to avoid double-encoding
-            try {
-                savePath = decodeURIComponent(savePath);
-            } catch (e) {}
-            
-            // For manual saves (Save for Later button), always save regardless of position
-            // For automatic saves (pause events), only save if not near the end
-            if (isManualSave || (duration - currentTime > 60)) {
-                // Check if this item already exists to preserve its original timestamp
-                const existingItem = resumeList.find(item => {
-                    const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-                    const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
-                    return itemPath === mediaPath && itemPath !== '';
-                });
+        }
+        
+        // If path is missing, try to look up from main media library by filename or title
+        if (!savePath && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
+            const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
+            const found = this.mediaLibrary.find(item => {
+                return (
+                    (item.path && item.path.split(/[\\/]/).pop() === filename) ||
+                    (item.title && item.title === mediaItem.title) ||
+                    (item.name && item.name === mediaItem.name)
+                );
+            });
+            if (found && found.path) {
+                savePath = found.path;
+            }
+        }
+        
+        // Always decode before saving to avoid double-encoding
+        try {
+            savePath = decodeURIComponent(savePath);
+        } catch (e) {}
+        
+        // For manual saves (Save for Later button), always save regardless of position
+        // For automatic saves (pause events), only save if not near the end
+        if (isManualSave || (duration - currentTime > 60)) {
+            // Check if this item already exists to preserve its original timestamp
+            const existingItem = resumeList.find(item => {
+                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
+                return itemPath === mediaPath && itemPath !== '';
+            });
                 
                 let savedItem;
-                
-                // For movies, save the COMPLETE movie object (just like main Movies section)
-                if (!isTVShow) {
+            
+                    // For movies, save the COMPLETE movie object (just like main Movies section)
+            if (!isTVShow) {
                     savedItem = {
-                        // Save the COMPLETE movie object with all properties
-                        ...mediaItem,
-                        
-                        // Override/add Watch Later specific properties
-                        currentTime,
-                        duration,
-                        lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
-                        type: 'movie',
+                    // Save the COMPLETE movie object with all properties
+                    ...mediaItem,
+                    
+                    // Override/add Watch Later specific properties
+                    currentTime,
+                    duration,
+                    lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
+                    type: 'movie',
                         mediaType: 'movie', // For MongoDB compatibility
                         
                         // Generate mediaId for MongoDB
                         mediaId: this.generateMediaId(mediaItem, 'movie'),
-                        
-                        // Ensure path is present
-                        path: savePath,
+                    
+                    // Ensure path is present
+                    path: savePath,
                         filePath: savePath, // For MongoDB compatibility
                         fileName: savePath ? savePath.split(/[\\/]/).pop() : (mediaItem.title || 'Unknown'),
-                        
-                        // Ensure we have the complete files array
-                        files: mediaItem.files || [],
-                        
+                    
+                    // Ensure we have the complete files array
+                    files: mediaItem.files || [],
+                    
                         // Ensure absPath is present for movies
                         absPath: mediaItem.absPath || 
                                (mediaItem.files && mediaItem.files.length > 0 ? mediaItem.files[0].absPath : null) || 
                                (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/MOVIES/${savePath}`)
                     };
-                } else {
-                    // For TV shows, save the complete episode object
+            } else {
+                // For TV shows, save the complete episode object
                     savedItem = {
-                        // Save the COMPLETE episode object with all properties
-                        ...mediaItem,
-                        
-                        // Override/add Watch Later specific properties
-                        currentTime,
-                        duration,
-                        lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
-                        type: 'tv-show',
+                    // Save the COMPLETE episode object with all properties
+                    ...mediaItem,
+                    
+                    // Override/add Watch Later specific properties
+                    currentTime,
+                    duration,
+                    lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
+                    type: 'tv-show',
                         mediaType: 'tv-show', // For MongoDB compatibility
                         
                         // Generate mediaId for MongoDB
                         mediaId: this.generateMediaId(mediaItem, 'tv-show'),
-                        
-                        // Ensure path is present
-                        path: savePath,
-                        
-                        // Ensure filePath is present for TV shows
+                    
+                    // Ensure path is present
+                    path: savePath,
+                    
+                    // Ensure filePath is present for TV shows
                         filePath: mediaItem.filePath || mediaItem.absPath || (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/TV-SHOWS/${savePath}`),
                         fileName: savePath ? savePath.split(/[\\/]/).pop() : (mediaItem.title || 'Unknown'),
                         
@@ -6450,14 +6450,14 @@ class MediaLibraryManager {
                 resumeList.push(savedItem);
                 
                 // Save to localStorage
-                localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
-                
+        localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
+        
                 // Also save to MongoDB
                 await this.saveToMongoDB(savedItem);
             }
             
             this.updateWatchLaterGrid();
-            if (isManualSave) {
+        if (isManualSave) {
                 this.showToast('Saved to Watch Later!', 'info'); // 'info' style gives blue background with yellow border
             }
             
