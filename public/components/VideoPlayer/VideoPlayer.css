@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.CSS
-  Version: 14
-  AppName: MultiChat_Chatty [v14]
-  Updated: 8/7/2025 @7:00AM
+  Version: 15
+  AppName: MultiChat_Chatty [v15]
+  Updated: 8/9/2025 @12:15AM
   Created by Paul Welby
 */
 
@@ -49,15 +49,29 @@
     z-index: 10020 !important;
 }
 
-/* Show controls on hover over the video player container */
+/* Show main controls on hover over the video player container */
 .video-player-container:hover .video-player-controls {
     opacity: 1;
 }
 
-/* Show AMPLIFY controls on hover over the video player container */
-.video-player-container:hover .video-player-amplify-controls {
+/* AMPLIFY Controls Container */
+.amplify-controls-container {
+    position: absolute;
+    bottom: 84px; /* Position above main control bar */
+    left: 35px; /* Position to the right of progress controls */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000000001;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s; /* Same transition as main controls for synchronized behavior */
+    pointer-events: none; /* Disable pointer events when hidden */
+}
+
+/* Show AMPLIFY controls container ONLY when main controls are also showing */
+.video-player-container:hover .amplify-controls-container {
     opacity: 1;
-    transition: opacity 0.2s ease-in; /* Smooth transition when showing */
+    pointer-events: auto; /* Enable pointer events when visible */
 }
 
 /* Also show controls when they're focused or active */
@@ -66,67 +80,17 @@
     opacity: 1;
 }
 
-/* Also show AMPLIFY controls when they're focused or active */
-.video-player-amplify-controls:hover,
-.video-player-amplify-controls:focus-within {
-    opacity: 1;
-    transition: opacity 0.2s ease-in; /* Smooth transition when showing */
-}
+/* AMPLIFY controls should ONLY be visible when main controls are visible - no independent hover rules */
 
 /* Controls will show/hide based on hover state */
 
-.video-player-play-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-    display: none;
-    border-radius: 50%;
-    transition: background 0.3s;
-}
+/* Removed .video-player-play-btn - not part of AMPLIFY feature */
 
-.video-player-play-btn:hover {
-    background: rgba(255,255,255,0.2);
-}
+/* Removed .video-player-progress - not part of AMPLIFY feature */
 
-.video-player-progress {
-    flex: 0 0 30px; /* Even shorter to make more room */
-    max-width: 30px;
-    height: 6px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 3px;
-    display: none;
-    cursor: pointer;
-    position: relative;
-}
+/* Removed .video-player-time - not part of AMPLIFY feature */
 
-.video-player-progress:hover {
-    background: rgba(255,255,255,0.4);
-}
-
-.video-player-time {
-    color: white;
-    font-size: 14px;
-    font-family: monospace;
-    min-width: 120px;
-    display: none;
-}
-
-.video-player-volume {
-    width: 8px; /* Even shorter to make more room */
-    height: 6px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 3px;
-    outline: none;
-    display: none;
-    cursor: pointer;
-}
-
-.video-player-volume:hover {
-    background: rgba(255,255,255,0.4);
-}
+/* Removed .video-player-volume - not part of AMPLIFY feature */
 
 /* Audio Amplification Controls */
 .video-player-amplify-btn {
@@ -135,7 +99,7 @@
     border: none;
     padding: 8px 12px;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: pointer !important; /* Force pointer cursor */
     font-size: 11px;
     font-weight: bold;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
@@ -143,14 +107,16 @@
     transition: all 0.2s ease;
     margin: 0 4px;
     min-width: 80px;
-    z-index: 10015 !important;
+    z-index: 1000000001 !important; /* Higher than all overlays to ensure it's clickable */
     position: relative;
+    pointer-events: auto !important; /* Ensure button is clickable */
 }
 
 .video-player-amplify-btn:hover {
     background: linear-gradient(145deg, #34495e, #3c5f7a);
     box-shadow: 0 3px 6px rgba(0,0,0,0.4);
     transform: translateY(-1px);
+    cursor: pointer !important; /* Force pointer cursor on hover too */
 }
 
 .video-player-amplify-btn.active {
@@ -170,17 +136,9 @@
     padding: 8px 12px;
     background: rgba(0, 0, 0, 0.8);
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    z-index: 10000000015 !important;
-    position: absolute;
-    bottom: 84px;
-    left: 130px;
-    width: 120px;
-    max-width: 140px;
-    flex-shrink: 0;
+    border: 1px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    opacity: 0;
-    transition: none; /* No transition for instant hiding like main controls */
+    /* No positioning or opacity needed - handled by parent container */
 }
 
 .video-player-amplify-level {
@@ -193,14 +151,7 @@
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
-.video-player-watch-later-btn {
-    background: none;
-    border: none;
-    display: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-}
+/* Removed .video-player-watch-later-btn - not part of AMPLIFY feature */
 .video-player-amplify-slider {
     width: 80px; /* Comfortable width in the reserved space */
     height: 6px;
@@ -252,21 +203,7 @@
     box-shadow: 0 3px 8px rgba(0,0,0,0.6);
 }
 
-.video-player-fullscreen-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 8px;
-    display: none;
-    border-radius: 50%;
-    transition: background 0.3s;
-}
-
-.video-player-fullscreen-btn:hover {
-    background: rgba(255,255,255,0.2);
-}
+/* Removed .video-player-fullscreen-btn - not part of AMPLIFY feature */
 
 .video-player-file-btn {
     position: absolute;
@@ -409,13 +346,14 @@
         min-width: 35px; /* Adjusted for mobile */
     }
     
-    .video-player-amplify-controls {
-        width: 100px; /* Adjusted for mobile */
-        max-width: 100px;
+    .amplify-controls-container {
         bottom: 50px; /* Float above control bar on mobile */
-        right: 15px; /* Positioned on the right for mobile */
-        opacity: 0; /* Hidden by default on mobile too */
-        transition: none; /* No transition for instant hiding like main controls */
+        left: 80px; /* Adjusted position for mobile */
+        gap: 6px; /* Smaller gap for mobile */
+    }
+    
+    .video-player-amplify-controls {
+        padding: 6px 8px; /* Smaller padding for mobile */
     }
     
     .vjs-control-bar {
@@ -462,6 +400,21 @@
     border-radius: 0;
     width: 100vw;
     height: 100vh;
+}
+
+
+
+/* Force AMPLIFY controls container to be visible in fullscreen mode */
+.video-player-container:fullscreen .amplify-controls-container,
+.video-player-container:-webkit-full-screen .amplify-controls-container,
+.video-player-container:-moz-full-screen .amplify-controls-container {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    position: fixed !important;
+    bottom: 120px !important;
+    left: 50px !important;
+    z-index: 10000000020 !important;
 }
 
 /* Animation for showing/hiding */
@@ -571,7 +524,7 @@
     max-width: 120px !important;
     flex: 0 1 100px !important;
     margin: 0 6px !important;
-    margin-left: 165px !important;
+  margin-left: 165px !important;
 }
 
 .vjs-play-progress, .vjs-load-progress {

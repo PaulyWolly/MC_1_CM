@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 14
-  AppName: MultiChat_Chatty [v14]
-  Updated: 8/7/2025 @7:00AM
+  Version: 15
+  AppName: MultiChat_Chatty [v15]
+  Updated: 8/9/2025 @12:15AM
   Created by Paul Welby
 */
 
@@ -282,6 +282,8 @@ class VideoPlayer {
         closeButton.onmouseover = () => closeButton.style.background = 'rgba(255,0,0,1)';
         closeButton.onmouseout = () => closeButton.style.background = 'rgba(255,0,0,0.8)';
         closeButton.onclick = () => this.hide();
+
+
 
         // Create episode info header
         this.episodeInfoHeader = document.createElement('div');
@@ -872,42 +874,18 @@ class VideoPlayer {
         this.controls.className = 'video-player-controls';
         this.controls.removeAttribute('style');
 
-        // Play/Pause button
-        this.playButton = document.createElement('button');
-        this.playButton.innerHTML = '▶️';
-        this.playButton.className = 'video-player-play-btn';
-        this.playButton.removeAttribute('style');
-        this.playButton.onclick = () => this.togglePlay();
-        this.playButton.onmouseover = () => this.playButton.style.background = 'rgba(255,255,255,0.2)';
-        this.playButton.onmouseout = () => this.playButton.style.background = 'transparent';
+        // Removed playButton - not part of AMPLIFY feature
 
-        // Progress bar
-        this.progressBar = document.createElement('div');
-        this.progressBar.className = 'video-player-progress';
-        this.progressBar.removeAttribute('style');
+        // Removed progressBar - not part of AMPLIFY feature
 
-        this.progressFill = document.createElement('div');
-        this.progressFill.className = 'video-player-progress-fill';
-        this.progressFill.removeAttribute('style');
+        // Removed timeDisplay - not part of AMPLIFY feature
 
-        this.progressBar.appendChild(this.progressFill);
-        this.progressBar.onclick = (e) => this.seek(e);
+        // Removed volumeControl - not part of AMPLIFY feature
 
-        // Time display
-        this.timeDisplay = document.createElement('div');
-        this.timeDisplay.className = 'video-player-time';
-        this.timeDisplay.innerHTML = '0:00 / 0:00';
-        this.timeDisplay.removeAttribute('style');
-
-        // Volume control
-        this.volumeControl = document.createElement('input');
-        this.volumeControl.type = 'range';
-        this.volumeControl.min = '0';
-        this.volumeControl.max = '100';
-        this.volumeControl.value = '100';
-        this.volumeControl.className = 'video-player-volume';
-        this.volumeControl.removeAttribute('style');
-        this.volumeControl.oninput = (e) => this.setVolume(e.target.value / 100);
+        // Create main amplify controls container
+        this.amplifyControlsContainer = document.createElement('div');
+        this.amplifyControlsContainer.className = 'amplify-controls-container';
+        this.amplifyControlsContainer.removeAttribute('style');
 
         // Amplify button
         this.amplifyButton = document.createElement('button');
@@ -920,10 +898,10 @@ class VideoPlayer {
             this.toggleAmplification();
         };
 
-        // Amplify controls container (initially hidden)
-        this.amplifyControls = document.createElement('div');
-        this.amplifyControls.className = 'video-player-amplify-controls';
-        this.amplifyControls.style.display = 'none';
+        // Amplify slider container (initially hidden)
+        this.amplifySliderContainer = document.createElement('div');
+        this.amplifySliderContainer.className = 'video-player-amplify-controls';
+        this.amplifySliderContainer.style.display = 'none';
 
         // Amplify level display
         this.amplifyLevelDisplay = document.createElement('span');
@@ -954,109 +932,33 @@ class VideoPlayer {
             this.setAmplificationLevel(e.target.value / 100);
         };
 
-        // Prevent clicks on the amplify controls container from affecting video playback
-        this.amplifyControls.onclick = (e) => e.stopPropagation();
-        this.amplifyControls.onmousedown = (e) => e.stopPropagation();
-        this.amplifyControls.onmouseup = (e) => e.stopPropagation();
+        // Prevent clicks on the amplify slider container from affecting video playback
+        this.amplifySliderContainer.onclick = (e) => e.stopPropagation();
+        this.amplifySliderContainer.onmousedown = (e) => e.stopPropagation();
+        this.amplifySliderContainer.onmouseup = (e) => e.stopPropagation();
 
-        // Add components to amplify controls
-        this.amplifyControls.appendChild(this.amplifyLevelDisplay);
-        this.amplifyControls.appendChild(this.amplifySlider);
+        // Prevent clicks on the main amplify container from affecting video playback
+        this.amplifyControlsContainer.onclick = (e) => e.stopPropagation();
+        this.amplifyControlsContainer.onmousedown = (e) => e.stopPropagation();
+        this.amplifyControlsContainer.onmouseup = (e) => e.stopPropagation();
 
-        // Fullscreen button
-        this.fullscreenButton = document.createElement('button');
-        this.fullscreenButton.innerHTML = '⛶';
-        this.fullscreenButton.className = 'video-player-fullscreen-btn';
-        this.fullscreenButton.removeAttribute('style');
-        this.fullscreenButton.onclick = () => this.toggleFullscreen();
-        this.fullscreenButton.onmouseover = () => this.fullscreenButton.style.background = 'rgba(255,255,255,0.2)';
-        this.fullscreenButton.onmouseout = () => this.fullscreenButton.style.background = 'transparent';
+        // Add components to amplify slider container
+        this.amplifySliderContainer.appendChild(this.amplifyLevelDisplay);
+        this.amplifySliderContainer.appendChild(this.amplifySlider);
 
-        // Watch Later (Bookmark) button
-        this.watchLaterButton = document.createElement('button');
-        this.watchLaterButton.className = 'video-player-watch-later-btn';
-        this.watchLaterButton.innerHTML = '<span style="font-size:1.3em;">&#128278;</span>';
-        this.watchLaterButton.title = 'Watch Later';
-        this.watchLaterButton.removeAttribute('style');
-        this.watchLaterButton.onclick = () => {
-            let movie = this.currentMediaItem || this.currentFile;
-            let currentTime = 0, duration = 0;
-            if (this.vjsPlayer) {
-                currentTime = this.vjsPlayer.currentTime();
-                duration = this.vjsPlayer.duration();
-            } else if (this.video) {
-                currentTime = this.video.currentTime;
-                duration = this.video.duration;
-            }
-            
-            console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
-            
-            // Try to find the media item in the library by path or name if not already a full object
-            if ((!movie.path || !movie.title) && window.mediaLibraryManager) {
-                let found = null;
-                
-                // First try to find in movie library
-                if (window.mediaLibraryManager.mediaLibrary) {
-                    found = window.mediaLibraryManager.mediaLibrary.find(item =>
-                        (movie.path && item.path === movie.path) ||
-                        (movie.title && item.title === movie.title) ||
-                        (movie.name && item.name === movie.name)
-                    );
-                }
-                
-                // If not found in movie library, try TV shows library
-                if (!found && window.mediaLibraryManager.tvShowsData) {
-                    console.log('[VIDEO-PLAYER] Searching TV shows data for media item');
-                    // Search through TV shows data to find matching episode
-                    for (const show of window.mediaLibraryManager.tvShowsData) {
-                        if (show.seasons) {
-                            for (const season of show.seasons) {
-                                if (season.episodes) {
-                                    for (const episode of season.episodes) {
-                                        if ((movie.path && episode.filePath === movie.path) ||
-                                            (movie.title && episode.title === movie.title) ||
-                                            (movie.name && episode.name === movie.name)) {
-                                            found = episode;
-                                            console.log('[VIDEO-PLAYER] Found episode in TV shows data:', episode);
-                                            break;
-                                        }
-                                    }
-                                    if (found) break;
-                                }
-                            }
-                            if (found) break;
-                        }
-                    }
-                }
-                
-                if (found) movie = found;
-            }
-            
-            // Ensure title and path are set
-            if (!movie.title) movie.title = movie.name || movie.filename || movie.path || 'Untitled';
-            if (!movie.path && movie.absPath) movie.path = movie.absPath;
+        // Add amplify button and slider container to the main container
+        this.amplifyControlsContainer.appendChild(this.amplifyButton);
+        this.amplifyControlsContainer.appendChild(this.amplifySliderContainer);
 
-            // Save to Watch Later using MediaLibraryManager
-            if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie) {
-                window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
-                // Alert is handled by MediaLibraryManager.saveResumeProgress
-            } else {
-                console.warn('[VIDEO-PLAYER] Cannot save to Watch Later - missing data or MediaLibraryManager');
-                this.showOverlayAlert('Cannot save - no media data available');
-            }
-        };
+        // Removed fullscreenButton - not part of AMPLIFY feature
+
+        // Removed watchLaterButton - not part of AMPLIFY feature
 
         // Add controls to container
-        this.controls.appendChild(this.playButton);
-        this.controls.appendChild(this.progressBar);
-        this.controls.appendChild(this.timeDisplay);
-        this.controls.appendChild(this.volumeControl);
-        this.controls.appendChild(this.amplifyButton);
-        this.controls.appendChild(this.fullscreenButton);
-        this.controls.appendChild(this.watchLaterButton);
+        // Removed all appendChild calls - these controls are not part of AMPLIFY feature
         
-        // Add amplify controls directly to the video container (positioned absolutely)
-        this.container.appendChild(this.amplifyControls);
+        // Add amplify controls container directly to the video container (positioned absolutely)
+        this.container.appendChild(this.amplifyControlsContainer);
     }
 
     setupEventListeners() {
@@ -1075,13 +977,19 @@ class VideoPlayer {
                 e.target.closest('.video-player-file-btn') ||
                 e.target.closest('.video-player-skip-intro-btn') ||
                 e.target.closest('.video-player-up-next-overlay') ||
-                e.target.closest('.video-player-amplify-controls') || // Exclude AMPLIFY controls
+                e.target.closest('.amplify-controls-container') || // Exclude AMPLIFY controls container
                 e.target.closest('.vjs-control-bar')) {
                 return;
             }
             console.log('🎬 [VIDEO-PLAYER] Container clicked - toggling play/pause');
             this.togglePlay();
         });
+
+        // Fullscreen event listeners
+        document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('mozfullscreenchange', () => this.handleFullscreenChange());
+        document.addEventListener('MSFullscreenChange', () => this.handleFullscreenChange());
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
@@ -2236,13 +2144,13 @@ class VideoPlayer {
             }
         }
         
-        // Show/hide amplify controls based on enabled state
-        if (this.amplifyControls) {
-            if (this.amplifyEnabled) {
-                this.amplifyControls.style.display = 'flex';
+        // Show/hide amplify slider container based on enabled state or fullscreen mode
+        if (this.amplifySliderContainer) {
+            if (this.amplifyEnabled || this.isFullscreen) {
+                this.amplifySliderContainer.style.display = 'flex';
                 // CSS will handle opacity based on hover state
             } else {
-                this.amplifyControls.style.display = 'none';
+                this.amplifySliderContainer.style.display = 'none';
             }
         }
     }
@@ -2255,6 +2163,114 @@ class VideoPlayer {
             document.exitFullscreen();
             this.isFullscreen = false;
         }
+    }
+
+    handleFullscreenChange() {
+        // Check if we're currently in fullscreen
+        const isCurrentlyFullscreen = !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement
+        );
+
+        this.isFullscreen = isCurrentlyFullscreen;
+
+        if (isCurrentlyFullscreen) {
+            // Entering fullscreen
+            console.log('[DEBUG - VIDEO-PLAYER] Entered fullscreen mode');
+            
+            // Force show AMPLIFY controls in fullscreen
+            if (this.amplifySliderContainer) {
+                this.amplifySliderContainer.style.display = 'flex';
+                this.amplifySliderContainer.style.opacity = '1';
+                this.amplifySliderContainer.style.pointerEvents = 'auto';
+                this.amplifySliderContainer.style.position = 'fixed';
+                this.amplifySliderContainer.style.bottom = '120px';
+                this.amplifySliderContainer.style.left = '50px';
+                this.amplifySliderContainer.style.zIndex = '10000000020';
+                this.amplifySliderContainer.style.background = 'rgba(255, 0, 0, 0.9)'; // Bright red for testing
+                this.amplifySliderContainer.style.border = '3px solid yellow'; // Yellow border
+                this.amplifySliderContainer.style.padding = '15px';
+                console.log('[DEBUG - AMPLIFY] Forced AMPLIFY controls visible in fullscreen');
+                console.log('[DEBUG - AMPLIFY] AMPLIFY controls element:', this.amplifySliderContainer);
+                console.log('[DEBUG - AMPLIFY] AMPLIFY controls computed style:', window.getComputedStyle(this.amplifySliderContainer));
+            } else {
+                console.log('[DEBUG - AMPLIFY] ERROR: amplifySliderContainer is null/undefined!');
+            }
+            
+            // Force show close button in fullscreen
+            const closeButton = this.container.querySelector('.video-player-close-btn');
+            if (closeButton) {
+                closeButton.style.display = 'flex';
+                closeButton.style.opacity = '1';
+                closeButton.style.pointerEvents = 'auto';
+                closeButton.style.position = 'fixed';
+                closeButton.style.top = '20px';
+                closeButton.style.right = '20px';
+                closeButton.style.zIndex = '10000000025';
+                closeButton.style.background = 'rgba(255, 0, 0, 0.9)'; // Bright red
+                closeButton.style.border = '3px solid yellow'; // Yellow border
+                console.log('[DEBUG - CLOSE] Forced close button visible in fullscreen');
+                console.log('[DEBUG - CLOSE] Close button element:', closeButton);
+                console.log('[DEBUG - CLOSE] Close button computed style:', window.getComputedStyle(closeButton));
+            } else {
+                console.log('[DEBUG - CLOSE] ERROR: Close button not found!');
+            }
+            
+            // Ensure subtitles remain visible in fullscreen
+            if (this.vjsPlayer) {
+                // Force subtitle display to be visible
+                const textTrackDisplay = this.container.querySelector('.vjs-text-track-display');
+                if (textTrackDisplay) {
+                    textTrackDisplay.style.display = 'block';
+                    textTrackDisplay.style.zIndex = '10000000025';
+                    textTrackDisplay.style.position = 'fixed';
+                    textTrackDisplay.style.bottom = '80px';
+                    textTrackDisplay.style.left = '50%';
+                    textTrackDisplay.style.transform = 'translateX(-50%)';
+                    textTrackDisplay.style.width = '80%';
+                    console.log('[DEBUG - SUBTITLES] Forced subtitles visible in fullscreen');
+                }
+            }
+            
+        } else {
+            // Exiting fullscreen
+            console.log('[DEBUG - VIDEO-PLAYER] Exited fullscreen mode');
+            
+            // Reset AMPLIFY controls to normal behavior
+            if (this.amplifySliderContainer) {
+                this.amplifySliderContainer.style.position = '';
+                this.amplifySliderContainer.style.bottom = '';
+                this.amplifySliderContainer.style.left = '';
+                this.amplifySliderContainer.style.zIndex = '';
+                console.log('[DEBUG - AMPLIFY] Reset AMPLIFY controls to normal');
+            }
+            
+            // Reset close button to normal behavior
+            const closeButton = this.container.querySelector('.video-player-close-btn');
+            if (closeButton) {
+                closeButton.style.display = '';
+                closeButton.style.opacity = '';
+                closeButton.style.pointerEvents = '';
+                console.log('[DEBUG - CLOSE] Reset close button to normal');
+            }
+            
+            // Reset subtitles to normal behavior
+            const textTrackDisplay = this.container.querySelector('.vjs-text-track-display');
+            if (textTrackDisplay) {
+                textTrackDisplay.style.position = '';
+                textTrackDisplay.style.bottom = '';
+                textTrackDisplay.style.left = '';
+                textTrackDisplay.style.transform = '';
+                textTrackDisplay.style.width = '';
+                textTrackDisplay.style.zIndex = '';
+                console.log('[DEBUG - SUBTITLES] Reset subtitles to normal');
+            }
+        }
+
+        // Update amplify controls visibility for fullscreen mode
+        this.updateAmplifyButton();
     }
 
     updateProgress() {
