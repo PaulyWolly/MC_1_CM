@@ -27,6 +27,7 @@ class VideoPlayer {
         this.amplifyEnabled = false;
         this.amplifyLevel = 1.0; // 1.0 = 100%, 2.0 = 200%, etc.
         this.maxAmplifyLevel = 3.0; // Maximum 300% amplification
+        this.sourceCreated = false; // Track if we've created a MediaElementSource
         
         // Voice command patterns
         this.voiceCommands = [
@@ -262,8 +263,7 @@ class VideoPlayer {
         this.video.removeAttribute('style');
 
         // Create custom controls
-        // REMOVE the old custom controls bar
-        // (Do NOT call this.createControls() or append this.controls)
+        this.createControls();
 
         // Create file browser button
         const fileButton = document.createElement('button');
@@ -322,8 +322,7 @@ class VideoPlayer {
 
         // Assemble the player
         this.container.appendChild(this.video);
-        // REMOVE the old custom controls bar
-        // (Do NOT append this.controls)
+        this.container.appendChild(this.controls);
         this.container.appendChild(fileButton);
         this.container.appendChild(closeButton);
         this.container.appendChild(this.episodeInfoHeader);
@@ -796,7 +795,10 @@ class VideoPlayer {
             this.vjsPlayer.on('click', (e) => {
                 console.log('[VIDEO-PLAYER] Video.js click event fired');
                 // Only toggle if not clicking on controls
-                if (e && (e.target.closest('.vjs-control-bar') || e.target.closest('.vjs-big-play-button') || e.target.closest('.vjs-loading-spinner'))) return;
+                if (e && (e.target.closest('.vjs-control-bar') || 
+                         e.target.closest('.vjs-big-play-button') || 
+                         e.target.closest('.vjs-loading-spinner') ||
+                         e.target.closest('.video-player-amplify-controls'))) return; // Exclude AMPLIFY controls
                 console.log('[VIDEO-PLAYER] Video clicked - toggling play/pause');
                 e.preventDefault();
                 e.stopPropagation();
@@ -818,8 +820,11 @@ class VideoPlayer {
             // Add direct click handler to the video element for reliable click-to-pause
             this.video.addEventListener('click', (e) => {
                 console.log('[VIDEO-PLAYER] Direct video element clicked');
-                // Don't trigger if clicking on Video.js controls
-                if (e.target.closest('.vjs-control-bar') || e.target.closest('.vjs-big-play-button') || e.target.closest('.vjs-loading-spinner')) {
+                // Don't trigger if clicking on Video.js controls or AMPLIFY controls
+                if (e.target.closest('.vjs-control-bar') || 
+                    e.target.closest('.vjs-big-play-button') || 
+                    e.target.closest('.vjs-loading-spinner') ||
+                    e.target.closest('.video-player-amplify-controls')) {
                     return;
                 }
                 console.log('[VIDEO-PLAYER] Video element clicked - toggling play/pause');
@@ -910,7 +915,10 @@ class VideoPlayer {
         this.amplifyButton.className = 'video-player-amplify-btn';
         this.amplifyButton.title = 'Audio Amplification: OFF (Click to enable)';
         this.amplifyButton.removeAttribute('style');
-        this.amplifyButton.onclick = () => this.toggleAmplification();
+        this.amplifyButton.onclick = (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up to video player
+            this.toggleAmplification();
+        };
 
         // Amplify controls container (initially hidden)
         this.amplifyControls = document.createElement('div');
@@ -931,7 +939,25 @@ class VideoPlayer {
         this.amplifySlider.value = '100'; // 100% default
         this.amplifySlider.className = 'video-player-amplify-slider';
         this.amplifySlider.removeAttribute('style');
-        this.amplifySlider.oninput = (e) => this.setAmplificationLevel(e.target.value / 100);
+        this.amplifySlider.oninput = (e) => {
+            e.stopPropagation(); // Prevent event from bubbling up to video player
+            e.preventDefault(); // Prevent any default behavior
+            this.setAmplificationLevel(e.target.value / 100);
+        };
+        
+        // Prevent all mouse events on slider from affecting video playback
+        this.amplifySlider.onmousedown = (e) => e.stopPropagation();
+        this.amplifySlider.onmouseup = (e) => e.stopPropagation();
+        this.amplifySlider.onclick = (e) => e.stopPropagation();
+        this.amplifySlider.onchange = (e) => {
+            e.stopPropagation();
+            this.setAmplificationLevel(e.target.value / 100);
+        };
+
+        // Prevent clicks on the amplify controls container from affecting video playback
+        this.amplifyControls.onclick = (e) => e.stopPropagation();
+        this.amplifyControls.onmousedown = (e) => e.stopPropagation();
+        this.amplifyControls.onmouseup = (e) => e.stopPropagation();
 
         // Add components to amplify controls
         this.amplifyControls.appendChild(this.amplifyLevelDisplay);
@@ -1026,9 +1052,11 @@ class VideoPlayer {
         this.controls.appendChild(this.timeDisplay);
         this.controls.appendChild(this.volumeControl);
         this.controls.appendChild(this.amplifyButton);
-        this.controls.appendChild(this.amplifyControls);
         this.controls.appendChild(this.fullscreenButton);
         this.controls.appendChild(this.watchLaterButton);
+        
+        // Add amplify controls directly to the video container (positioned absolutely)
+        this.container.appendChild(this.amplifyControls);
     }
 
     setupEventListeners() {
@@ -1047,6 +1075,7 @@ class VideoPlayer {
                 e.target.closest('.video-player-file-btn') ||
                 e.target.closest('.video-player-skip-intro-btn') ||
                 e.target.closest('.video-player-up-next-overlay') ||
+                e.target.closest('.video-player-amplify-controls') || // Exclude AMPLIFY controls
                 e.target.closest('.vjs-control-bar')) {
                 return;
             }
@@ -1073,6 +1102,10 @@ class VideoPlayer {
             // console.log('[DEBUG - VIDEO-PLAYER] No file provided to loadVideo');
             return;
         }
+        
+        // Reset audio amplification for new video
+        this.sourceCreated = false;
+        this.sourceNode = null;
         if (!this.vjsPlayer) {
             // console.error('🎬 [VIDEO-PLAYER] Video.js player not initialized');
             return;
@@ -2100,14 +2133,20 @@ class VideoPlayer {
             const videoElement = this.vjsPlayer ? this.vjsPlayer.el().querySelector('video') : this.video;
             if (!videoElement) return;
 
-            // Disconnect existing source if any
-            if (this.sourceNode) {
-                this.sourceNode.disconnect();
-            }
-
+            // Only create MediaElementSource once per video element
+            if (!this.sourceCreated) {
             // Create new media element source
             this.sourceNode = this.audioContext.createMediaElementSource(videoElement);
+                this.sourceCreated = true;
+                console.log('[DEBUG - AMPLIFY] MediaElementSource created');
+            }
+
+            // Connect the audio chain: source -> gain -> destination
+            if (this.sourceNode) {
+                this.sourceNode.disconnect(); // Disconnect from any previous connections
             this.sourceNode.connect(this.gainNode);
+                this.gainNode.connect(this.audioContext.destination);
+            }
             
             // Set initial gain
             this.gainNode.gain.value = this.amplifyLevel;
@@ -2115,6 +2154,9 @@ class VideoPlayer {
             console.log('[DEBUG - AMPLIFY] Audio amplification connected, level:', this.amplifyLevel);
         } catch (error) {
             console.error('[DEBUG - AMPLIFY] Failed to connect audio amplification:', error);
+            // If we can't connect amplification, disable it
+            this.amplifyEnabled = false;
+            this.updateAmplifyButton();
         }
     }
 
@@ -2123,6 +2165,10 @@ class VideoPlayer {
         if (!this.amplifyEnabled) {
             this.initializeAudioContext();
             if (this.audioContext) {
+                // Resume audio context if suspended (required by some browsers)
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
                 this.connectAudioAmplification();
                 this.amplifyEnabled = true;
                 this.updateAmplifyButton();
@@ -2130,9 +2176,15 @@ class VideoPlayer {
             }
         } else {
             this.amplifyEnabled = false;
-            if (this.sourceNode) {
+            // Don't destroy the source node, just disconnect the gain
+            if (this.sourceNode && this.gainNode) {
                 this.sourceNode.disconnect();
-                this.sourceNode = null;
+                // Connect directly to destination (bypass gain)
+                this.sourceNode.connect(this.audioContext.destination);
+            }
+            // Reset gain to normal when disabling
+            if (this.gainNode) {
+                this.gainNode.gain.value = 1.0;
             }
             this.updateAmplifyButton();
             console.log('[DEBUG - AMPLIFY] Amplification disabled');
@@ -2184,9 +2236,14 @@ class VideoPlayer {
             }
         }
         
-        // Show/hide amplify controls
+        // Show/hide amplify controls based on enabled state
         if (this.amplifyControls) {
-            this.amplifyControls.style.display = this.amplifyEnabled ? 'flex' : 'none';
+            if (this.amplifyEnabled) {
+                this.amplifyControls.style.display = 'flex';
+                // CSS will handle opacity based on hover state
+            } else {
+                this.amplifyControls.style.display = 'none';
+            }
         }
     }
 
@@ -2364,6 +2421,11 @@ class VideoPlayer {
     hide() {
         // Set cleanup flag to prevent auto-saving during video player closure
         this.isCleaningUp = true;
+        
+        // Reset audio amplification
+        this.sourceCreated = false;
+        this.sourceNode = null;
+        this.amplifyEnabled = false;
         
         // Always pause and reset the native video element
         if (this.video) {

@@ -33,17 +33,47 @@
 
 .video-player-controls {
     position: absolute;
-    bottom: 0;
+    bottom: 70px;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    padding: 20px;
+    background: linear-gradient(transparent, rgb(0 0 0 / 0%));
+    padding: 15px;
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 8px;
+    width: 24%;
+    flex-wrap: nowrap;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 0.3s;
+    z-index: 10020 !important;
 }
+
+/* Show controls on hover over the video player container */
+.video-player-container:hover .video-player-controls {
+    opacity: 1;
+}
+
+/* Show AMPLIFY controls on hover over the video player container */
+.video-player-container:hover .video-player-amplify-controls {
+    opacity: 1;
+    transition: opacity 0.2s ease-in; /* Smooth transition when showing */
+}
+
+/* Also show controls when they're focused or active */
+.video-player-controls:hover,
+.video-player-controls:focus-within {
+    opacity: 1;
+}
+
+/* Also show AMPLIFY controls when they're focused or active */
+.video-player-amplify-controls:hover,
+.video-player-amplify-controls:focus-within {
+    opacity: 1;
+    transition: opacity 0.2s ease-in; /* Smooth transition when showing */
+}
+
+/* Controls will show/hide based on hover state */
 
 .video-player-play-btn {
     background: none;
@@ -52,6 +82,7 @@
     font-size: 24px;
     cursor: pointer;
     padding: 8px;
+    display: none;
     border-radius: 50%;
     transition: background 0.3s;
 }
@@ -61,10 +92,12 @@
 }
 
 .video-player-progress {
-    flex: 1;
+    flex: 0 0 30px; /* Even shorter to make more room */
+    max-width: 30px;
     height: 6px;
     background: rgba(255,255,255,0.3);
     border-radius: 3px;
+    display: none;
     cursor: pointer;
     position: relative;
 }
@@ -78,14 +111,16 @@
     font-size: 14px;
     font-family: monospace;
     min-width: 120px;
+    display: none;
 }
 
 .video-player-volume {
-    width: 80px;
+    width: 8px; /* Even shorter to make more room */
     height: 6px;
     background: rgba(255,255,255,0.3);
     border-radius: 3px;
     outline: none;
+    display: none;
     cursor: pointer;
 }
 
@@ -108,6 +143,8 @@
     transition: all 0.2s ease;
     margin: 0 4px;
     min-width: 80px;
+    z-index: 10015 !important;
+    position: relative;
 }
 
 .video-player-amplify-btn:hover {
@@ -130,25 +167,42 @@
 .video-player-amplify-controls {
     display: flex;
     align-items: center;
-    margin: 0 8px;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.8);
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 10000000015 !important;
+    position: absolute;
+    bottom: 84px;
+    left: 130px;
+    width: 120px;
+    max-width: 140px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: none; /* No transition for instant hiding like main controls */
 }
 
 .video-player-amplify-level {
     color: #4CAF50;
-    font-size: 12px;
+    font-size: 12px; /* Comfortable size in the reserved space */
     font-weight: bold;
-    min-width: 40px;
+    min-width: 35px; /* Comfortable width in the reserved space */
     text-align: center;
-    margin-right: 8px;
+    margin-right: 6px; /* Comfortable spacing in the reserved space */
     text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
+.video-player-watch-later-btn {
+    background: none;
+    border: none;
+    display: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
 .video-player-amplify-slider {
-    width: 100px;
+    width: 80px; /* Comfortable width in the reserved space */
     height: 6px;
     border-radius: 3px;
     outline: none;
@@ -205,6 +259,7 @@
     font-size: 20px;
     cursor: pointer;
     padding: 8px;
+    display: none;
     border-radius: 50%;
     transition: background 0.3s;
 }
@@ -321,8 +376,8 @@
     }
     
     .video-player-controls {
-        padding: 15px;
-        gap: 10px;
+        padding: 10px;
+        gap: 6px;
     }
     
     .video-player-play-btn {
@@ -336,7 +391,7 @@
     }
     
     .video-player-volume {
-        width: 60px;
+        width: 6px; /* Even shorter for mobile */
     }
     
     .video-player-amplify-btn {
@@ -346,12 +401,30 @@
     }
     
     .video-player-amplify-slider {
-        width: 80px;
+        width: 60px; /* Adjusted for mobile */
     }
     
     .video-player-amplify-level {
-        font-size: 11px;
-        min-width: 35px;
+        font-size: 11px; /* Adjusted for mobile */
+        min-width: 35px; /* Adjusted for mobile */
+    }
+    
+    .video-player-amplify-controls {
+        width: 100px; /* Adjusted for mobile */
+        max-width: 100px;
+        bottom: 50px; /* Float above control bar on mobile */
+        right: 15px; /* Positioned on the right for mobile */
+        opacity: 0; /* Hidden by default on mobile too */
+        transition: none; /* No transition for instant hiding like main controls */
+    }
+    
+    .vjs-control-bar {
+        padding: 6px 4px; /* Normal padding for mobile */
+    }
+    
+    .video-player-progress {
+        flex: 0 0 25px; /* Even shorter for mobile */
+        max-width: 25px;
     }
     
     .video-player-file-btn {
@@ -471,7 +544,7 @@
 
 .vjs-control-bar {
   background: linear-gradient(transparent, rgba(0,0,0,0.85));
-  padding: 8px 16px;
+  padding: 8px 16px; /* Removed extra right padding */
   border-radius: 0 0 10px 10px;
   min-height: 48px;
   display: flex;
@@ -494,11 +567,11 @@
 }
 
 .vjs-progress-control {
-  min-width: 500px !important;
-  max-width: 900px !important;
-  flex: 0 1 600px !important;
-  margin: 0 12px !important;
-  margin-left: 165px !important;
+    min-width: 80px !important;
+    max-width: 120px !important;
+    flex: 0 1 100px !important;
+    margin: 0 6px !important;
+    margin-left: 165px !important;
 }
 
 .vjs-play-progress, .vjs-load-progress {
@@ -522,7 +595,7 @@
 }
 
 .vjs-volume-panel {
-  min-width: 80px;
+  min-width: 20px;
 }
 
 .vjs-fullscreen-control {
@@ -532,8 +605,8 @@
 /* Responsive: allow timeline to grow a bit on small screens */
 @media (max-width: 600px) {
   .vjs-progress-control {
-    max-width: 60vw !important;
-    min-width: 80px;
+    max-width: 30vw !important;
+    min-width: 50px !important;
   }
   .vjs-control-bar {
     padding: 6px 4px;
