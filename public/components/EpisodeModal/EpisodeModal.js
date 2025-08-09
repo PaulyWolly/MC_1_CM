@@ -101,6 +101,10 @@ class EpisodeModal {
     // Load episodes for the show
     async loadEpisodes(showName) {
         console.log('[EPISODE-MODAL] Loading episodes for:', showName);
+        console.log('[EPISODE-MODAL] Show name type:', typeof showName);
+        console.log('[EPISODE-MODAL] Show name length:', showName ? showName.length : 'null');
+        console.log('[EPISODE-MODAL] Show name contains "V":', showName ? showName.includes('V') : 'null');
+        console.log('[EPISODE-MODAL] Show name contains "2009":', showName ? showName.includes('2009') : 'null');
 
         // Set initial content
         this.content.innerHTML = `
@@ -128,9 +132,30 @@ class EpisodeModal {
         if (window.mediaLibraryManager && window.mediaLibraryManager.tvShowsData) {
             console.log('[EPISODE-MODAL] Using MediaLibraryManager data');
             
+            // Handle both array and object formats for TV shows data
+            let showsArray = [];
+            if (Array.isArray(window.mediaLibraryManager.tvShowsData)) {
+                showsArray = window.mediaLibraryManager.tvShowsData;
+            } else if (typeof window.mediaLibraryManager.tvShowsData === 'object' && window.mediaLibraryManager.tvShowsData) {
+                showsArray = Object.values(window.mediaLibraryManager.tvShowsData);
+            }
+            
+            console.log('[EPISODE-MODAL] TV shows data type:', Array.isArray(window.mediaLibraryManager.tvShowsData) ? 'array' : 'object');
+            console.log('[EPISODE-MODAL] Shows array length:', showsArray.length);
+            console.log('[EPISODE-MODAL] First 10 shows in data:');
+            showsArray.slice(0, 10).forEach((show, index) => {
+                const showTitle = show.TMDBTitle || show.name || show.path || 'unknown';
+                console.log(`[EPISODE-MODAL] ${index + 1}. "${showTitle}"`);
+            });
+            
             // Find the TV show in the data
-            const tvShow = window.mediaLibraryManager.tvShowsData.find(show => {
+            const tvShow = showsArray.find(show => {
                 const showTitle = show.TMDBTitle || show.name || show.path || '';
+                console.log('[EPISODE-MODAL] Checking show:', showTitle, 'against:', showName);
+                console.log('[EPISODE-MODAL] Show title lowercase:', showTitle.toLowerCase());
+                console.log('[EPISODE-MODAL] Show name lowercase:', showName.toLowerCase());
+                console.log('[EPISODE-MODAL] Includes check 1:', showTitle.toLowerCase().includes(showName.toLowerCase()));
+                console.log('[EPISODE-MODAL] Includes check 2:', showName.toLowerCase().includes(showTitle.toLowerCase()));
                 return showTitle.toLowerCase().includes(showName.toLowerCase()) || 
                        showName.toLowerCase().includes(showTitle.toLowerCase());
             });
@@ -150,6 +175,11 @@ class EpisodeModal {
                         }
                     });
                 }
+            } else {
+                console.log('[EPISODE-MODAL] TV show not found. Available shows:');
+                showsArray.slice(0, 5).forEach(show => {
+                    console.log('[EPISODE-MODAL] -', show.TMDBTitle || show.name || show.path || 'unknown');
+                });
             }
         }
 

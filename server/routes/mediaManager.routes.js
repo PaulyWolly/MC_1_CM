@@ -71,6 +71,20 @@ router.post('/scan-movies', async (req, res) => {
   try {
     console.log('[SCAN-MOVIES] Starting movie scan...');
     
+    // Get the current state before scanning
+    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
+    let beforeCount = 0;
+    
+    try {
+      if (fs.existsSync(outputFile)) {
+        const beforeData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+        beforeCount = beforeData.folders ? beforeData.folders.length : 0;
+        console.log(`[SCAN-MOVIES] Before scan: ${beforeCount} movies in database`);
+      }
+    } catch (e) {
+      console.log('[SCAN-MOVIES] Could not read existing file, assuming 0 movies');
+    }
+    
     // Run the scan script
     const scriptPath = path.join(__dirname, '../../scripts/SCAN/SCAN_media_library_movies.js');
     
@@ -82,26 +96,47 @@ router.post('/scan-movies', async (req, res) => {
     }
     
     // Execute the scan script
-    const result = execSync(`node "${scriptPath}"`, { 
+    let result;
+    try {
+      result = execSync(`node "${scriptPath}"`, { 
       encoding: 'utf8',
-      cwd: path.join(__dirname, '../../')
-    });
+        cwd: path.join(__dirname, '../../'),
+        stdio: 'pipe'
+      });
+    } catch (execError) {
+      console.error('[SCAN-MOVIES] Script execution failed:', execError.message);
+      console.error('[SCAN-MOVIES] Script stderr:', execError.stderr);
+      console.error('[SCAN-MOVIES] Script stdout:', execError.stdout);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Script execution failed: ' + execError.message,
+        details: execError.stderr || execError.stdout
+      });
+    }
     
     console.log('[SCAN-MOVIES] Scan result:', result);
     
-    // Try to parse the result for new movies count
-    let newMovies = 0;
-    if (result.includes('new movies found') || result.includes('movies added')) {
-      const match = result.match(/(\d+)\s+(?:new movies found|movies added)/i);
-      if (match) {
-        newMovies = parseInt(match[1]);
+    // Get the state after scanning
+    let afterCount = 0;
+    try {
+      if (fs.existsSync(outputFile)) {
+        const afterData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+        afterCount = afterData.folders ? afterData.folders.length : 0;
+        console.log(`[SCAN-MOVIES] After scan: ${afterCount} movies in database`);
       }
+    } catch (e) {
+      console.log('[SCAN-MOVIES] Could not read updated file');
     }
+    
+    // Calculate new movies
+    const newMovies = Math.max(0, afterCount - beforeCount);
+    console.log(`[SCAN-MOVIES] New movies detected: ${newMovies} (${afterCount} - ${beforeCount})`);
     
     return res.json({ 
       success: true, 
       message: 'Movie scan completed successfully',
       newMovies: newMovies,
+      totalMovies: afterCount,
       output: result
     });
     
@@ -473,10 +508,11 @@ router.post('/save', async (req, res) => {
       return res.json({ success: true, saved: showObj });
     }
     // --- MOVIE SAVE LOGIC (normalized) ---
-    const { normalizedKey, poster, description, cast, title, year } = req.body;
+    const { normalizedKey, poster, description, cast, title, year, tmdbId, absPath } = req.body;
     if (!normalizedKey) {
       return res.status(400).json({ success: false, error: 'Missing normalizedKey' });
     }
+    
     // Load or initialize movies data
     let moviesData = {};
     if (fs.existsSync(MOVIES_JSON)) {
@@ -489,13 +525,39 @@ router.post('/save', async (req, res) => {
     // Remove any existing folder entry for this normalizedKey
     moviesData.folders = moviesData.folders.filter(m => m.normalizedKey !== normalizedKey);
     
+    // Find the correct folder name from the file system
+    let folderName = title; // Default to title
+    let videoFiles = [];
+    
+    if (absPath) {
+      // Extract folder name from the full path
+      const movieDir = path.dirname(absPath);
+      folderName = path.basename(movieDir);
+      
+      // Get video files from the folder
+      try {
+        const files = fs.readdirSync(movieDir, { withFileTypes: true })
+          .filter(dirent => dirent.isFile())
+          .filter(dirent => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(dirent.name))
+          .map(dirent => ({
+            name: dirent.name,
+            absPath: path.join(movieDir, dirent.name),
+            relPath: path.join(folderName, dirent.name)
+          }));
+        videoFiles = files;
+        console.log(`[SAVE] Found ${videoFiles.length} video files for ${folderName}`);
+      } catch (e) {
+        console.warn(`[SAVE] Could not read video files for ${folderName}:`, e.message);
+      }
+    }
+    
     // Create the new movie folder structure
     const newMovie = {
-      path: title || '',
+      path: folderName,
       normalizedKey: normalizedKey,
-      tmdbId: null, // Will be set when TMDB data is fetched
+      tmdbId: tmdbId || null,
       folders: [],
-      files: []
+      files: videoFiles
     };
     moviesData.folders.push(newMovie);
     fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
@@ -979,180 +1041,167 @@ router.post('/scan-tv-folders', (req, res) => {
   }
 });
 
-// POST /api/media/scan-movies - NEW ENDPOINT
-router.post('/scan-movies', (req, res) => {
+// POST /api/media/ensure-movie - Ensure a specific movie exists in JSON without overwriting
+router.post('/ensure-movie', async (req, res) => {
   try {
-    console.log('[MOVIE SCAN] Scanning movies directory...');
+    const { moviePath, title } = req.body;
+    console.log(`[ENSURE-MOVIE] Ensuring movie exists: ${title} at ${moviePath}`);
     
-    // Get movies directory from config
-    const moviesDir = config.MOVIES_DIR || 'S:/MEDIA/MOVIES';
-    
-    if (!fs.existsSync(moviesDir)) {
-      return res.status(404).json({ success: false, error: `Movies directory not found: ${moviesDir}` });
-    }
-    
-    // Read all JSON files to check which movies already have data
-    let existingPosters = {};
-    let existingCast = {};
-    let existingDescriptions = {};
-    
-    const POSTER_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
-    const CAST_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_cast_normalized.json');
-    const DESC_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_descriptions_normalized.json');
-    
-    try {
-      if (fs.existsSync(POSTER_FILE)) {
-        existingPosters = JSON.parse(fs.readFileSync(POSTER_FILE, 'utf8'));
-        console.log(`[MOVIE SCAN] Loaded ${Object.keys(existingPosters).length} existing posters`);
-      }
-    } catch (err) {
-      console.warn('[MOVIE SCAN] Could not read movie_posters_normalized.json:', err.message);
-    }
-    
-    try {
-      if (fs.existsSync(CAST_FILE)) {
-        existingCast = JSON.parse(fs.readFileSync(CAST_FILE, 'utf8'));
-        console.log(`[MOVIE SCAN] Loaded ${Object.keys(existingCast).length} existing cast entries`);
-      }
-    } catch (err) {
-      console.warn('[MOVIE SCAN] Could not read movie_cast_normalized.json:', err.message);
-    }
-    
-    try {
-      if (fs.existsSync(DESC_FILE)) {
-        existingDescriptions = JSON.parse(fs.readFileSync(DESC_FILE, 'utf8'));
-        console.log(`[MOVIE SCAN] Loaded ${Object.keys(existingDescriptions).length} existing descriptions`);
-      }
-    } catch (err) {
-      console.warn('[MOVIE SCAN] Could not read movie_descriptions_normalized.json:', err.message);
-    }
-    
-    // Scan directory for movie folders
-    const movieFolders = fs.readdirSync(moviesDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .filter(dirent => /\([12]\d{3}\)/.test(dirent.name)) // Has year in parentheses
-      .map(dirent => dirent.name);
-    
-    console.log(`[MOVIE SCAN] Found ${movieFolders.length} total movie folders`);
-    
-    // Find truly NEW movies (missing from ALL JSON files)
-    const newMovies = movieFolders
-      .filter(folderName => {
-        // Normalize folder name to dot notation (all files now use same format)
-        const normalizedName = folderName.replace(/\s+/g, '.').replace(/\.+/g, '.');
-        
-        // Check if movie has data in any of the three files
-        const hasPoster = existingPosters.hasOwnProperty(normalizedName);
-        const hasCast = existingCast.hasOwnProperty(normalizedName);
-        const hasDescription = existingDescriptions.hasOwnProperty(normalizedName);
-        
-        // Movie is NEW if it's missing from ALL three files
-        const isNew = !hasPoster && !hasCast && !hasDescription;
-        
-        console.log(`[MOVIE SCAN] ${folderName}: Poster=${hasPoster}, Cast=${hasCast}, Desc=${hasDescription} -> ${isNew ? 'NEW' : 'EXISTS'}`);
-        
-        return isNew;
-      })
-      .map(folderName => {
-        // Extract title and year from folder name
-        const titleMatch = folderName.match(/^(.+?)\s*\(([12]\d{3})\)/);
-        const title = titleMatch ? titleMatch[1].trim() : folderName;
-        const year = titleMatch ? titleMatch[2] : '';
-        const absPath = path.join(moviesDir, folderName);
-        
-        return {
-          title,
-          year,
-          absPath,
-          folderName
-        };
+    if (!moviePath || !title) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'moviePath and title are required' 
       });
+    }
     
-    console.log(`[MOVIE SCAN] Found ${newMovies.length} TRULY NEW movies that need processing`);
-    console.log(`[MOVIE SCAN] New movies:`, newMovies.map(m => m.title));
+    // Handle both full paths and just titles
+    let folderName;
+    if (moviePath.includes('S:/MEDIA/MOVIES') || moviePath.includes('S:\\MEDIA\\MOVIES')) {
+      // Full path provided - extract folder name
+      folderName = moviePath.split(/[\\/]/).slice(-2, -1)[0] || moviePath.split(/[\\/]/).pop();
+    } else {
+      // Just title provided - need to find the matching folder
+      console.log(`[ENSURE-MOVIE] Searching for folder matching title: ${title}`);
+      
+      // Read the movies directory to find matching folder
+      const moviesRoot = 'S:/MEDIA/MOVIES';
+      try {
+        const allFolders = fs.readdirSync(moviesRoot, { withFileTypes: true })
+          .filter(dirent => dirent.isDirectory())
+          .map(dirent => dirent.name);
+        
+        // Look for folder that contains the title
+        const matchingFolder = allFolders.find(folder => 
+          folder.toLowerCase().includes(title.toLowerCase()) ||
+          title.toLowerCase().includes(folder.toLowerCase())
+        );
+        
+        if (matchingFolder) {
+          folderName = matchingFolder;
+          console.log(`[ENSURE-MOVIE] Found matching folder: ${folderName}`);
+        } else {
+          console.log(`[ENSURE-MOVIE] No matching folder found for title: ${title}`);
+          console.log(`[ENSURE-MOVIE] Available folders (first 10):`, allFolders.slice(0, 10));
+          return res.status(404).json({ 
+            success: false, 
+            error: `No folder found matching title: ${title}` 
+          });
+        }
+      } catch (e) {
+        console.error('[ENSURE-MOVIE] Error reading movies directory:', e.message);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Could not read movies directory' 
+        });
+      }
+    }
     
-    // NEW: Update existing movies with new files (like colorized versions)
-    console.log(`[MOVIE SCAN] Checking existing movies for new files...`);
-    const updatedMovies = [];
+    const movieDir = path.join('S:/MEDIA/MOVIES', folderName);
     
-    // Load the main movies JSON file to update existing entries
-    const MOVIES_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
+    console.log(`[ENSURE-MOVIE] Looking for folder: ${folderName}`);
+    console.log(`[ENSURE-MOVIE] Full directory path: ${movieDir}`);
+    
+    // Check if the movie folder exists
+    if (!fs.existsSync(movieDir)) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `Movie folder not found: ${folderName}` 
+      });
+    }
+    
+    // Get video files in the folder
+    const videoFiles = fs.readdirSync(movieDir, { withFileTypes: true })
+      .filter(dirent => dirent.isFile())
+      .filter(dirent => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(dirent.name))
+      .map(dirent => ({
+        name: dirent.name,
+        absPath: path.join(movieDir, dirent.name),
+        relPath: path.join(folderName, dirent.name)
+      }));
+    
+    if (videoFiles.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `No video files found in folder: ${folderName}` 
+      });
+    }
+    
+    console.log(`[ENSURE-MOVIE] Found ${videoFiles.length} video files`);
+    
+    // Load the movies JSON file
+    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
     let moviesData = { folders: [] };
     
     try {
-      if (fs.existsSync(MOVIES_JSON)) {
-        moviesData = JSON.parse(fs.readFileSync(MOVIES_JSON, 'utf8'));
-        console.log(`[MOVIE SCAN] Loaded ${moviesData.folders.length} existing movies from JSON`);
+      if (fs.existsSync(outputFile)) {
+        moviesData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
       }
-    } catch (err) {
-      console.warn('[MOVIE SCAN] Could not read media-library-movies_normalized.json:', err.message);
+    } catch (e) {
+      console.error('[ENSURE-MOVIE] Could not read movies JSON:', e.message);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Could not read movies database' 
+      });
     }
     
-    // Check each existing movie for new files
-    for (const movie of moviesData.folders) {
-      const movieFolderPath = path.join(moviesDir, movie.path);
+    // Create normalized key
+    const normalizedKey = normalizeKey(folderName);
+    
+    // Check if movie already exists
+    const existingMovie = moviesData.folders.find(movie => 
+      movie.normalizedKey === normalizedKey || movie.path === folderName
+    );
+    
+    if (existingMovie) {
+      // Movie exists, ensure it has video files and correct path
+      if (!existingMovie.files || existingMovie.files.length === 0) {
+        existingMovie.files = videoFiles;
+        console.log('[ENSURE-MOVIE] Updated existing movie with video files');
+      }
+      // Also ensure the path is correct (full folder name)
+      if (existingMovie.path !== folderName) {
+        existingMovie.path = folderName;
+        console.log(`[ENSURE-MOVIE] Updated movie path from "${existingMovie.path}" to "${folderName}"`);
+      }
+    } else {
+      // Movie doesn't exist, add it
+      const newMovie = {
+        path: folderName,
+        normalizedKey: normalizedKey,
+        tmdbId: null, // Will be set when metadata is added
+        folders: [],
+        files: videoFiles
+      };
       
-      if (fs.existsSync(movieFolderPath)) {
-        // Get all video files in the movie folder
-        const videoFiles = fs.readdirSync(movieFolderPath, { withFileTypes: true })
-          .filter(dirent => dirent.isFile())
-          .filter(dirent => /\.(mp4|mkv|avi|mov)$/i.test(dirent.name))
-          .map(dirent => ({
-            name: dirent.name,
-            absPath: path.join(movieFolderPath, dirent.name),
-            relPath: path.relative(moviesDir, path.join(movieFolderPath, dirent.name)).replace(/\\/g, '/')
-          }));
-        
-        // Check if there are new files not in the current JSON
-        const currentFileNames = movie.files.map(f => f.name);
-        const newFiles = videoFiles.filter(file => !currentFileNames.includes(file.name));
-        
-        if (newFiles.length > 0) {
-          console.log(`[MOVIE SCAN] Found ${newFiles.length} new files in "${movie.path}":`, newFiles.map(f => f.name));
-          
-          // Add new files to the movie entry
-          movie.files.push(...newFiles);
-          
-          updatedMovies.push({
-            title: movie.path,
-            newFiles: newFiles.map(f => f.name),
-            totalFiles: movie.files.length
-          });
-        }
-      }
+      moviesData.folders.push(newMovie);
+      console.log('[ENSURE-MOVIE] Added new movie entry');
     }
     
-    // Save updated movies data back to JSON
-    if (updatedMovies.length > 0) {
-      try {
-        fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
-        console.log(`[MOVIE SCAN] Updated ${updatedMovies.length} existing movies with new files`);
-        console.log(`[MOVIE SCAN] Updated movies:`, updatedMovies.map(m => `${m.title} (+${m.newFiles.length} files)`));
-      } catch (err) {
-        console.error('[MOVIE SCAN] Failed to save updated movies JSON:', err.message);
-      }
+    // Save the updated JSON
+    try {
+      fs.writeFileSync(outputFile, JSON.stringify(moviesData, null, 2));
+      console.log('[ENSURE-MOVIE] Successfully updated movies JSON');
+    } catch (e) {
+      console.error('[ENSURE-MOVIE] Failed to save movies JSON:', e.message);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to save movies database' 
+      });
     }
     
     return res.json({
       success: true,
-      data: {
-        newMovies,
-        updatedMovies,
-        totalScanned: movieFolders.length,
-        totalNew: newMovies.length,
-        totalUpdated: updatedMovies.length,
-        totalExisting: Object.keys(existingPosters).length,
-        breakdown: {
-          posters: Object.keys(existingPosters).length,
-          cast: Object.keys(existingCast).length,
-          descriptions: Object.keys(existingDescriptions).length
-        }
-      }
+      message: 'Movie entry ensured successfully',
+      moviePath: folderName,
+      videoFiles: videoFiles.length
     });
     
-  } catch (err) {
-    console.error('[MOVIE SCAN] Error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+  } catch (error) {
+    console.error('[ENSURE-MOVIE] Error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 

@@ -20,6 +20,14 @@ class VideoPlayer {
         this.isCleaningUp = false;
         this.returnLocation = null; // Store where to return when closing
         
+        // Audio amplification properties
+        this.audioContext = null;
+        this.gainNode = null;
+        this.sourceNode = null;
+        this.amplifyEnabled = false;
+        this.amplifyLevel = 1.0; // 1.0 = 100%, 2.0 = 200%, etc.
+        this.maxAmplifyLevel = 3.0; // Maximum 300% amplification
+        
         // Voice command patterns
         this.voiceCommands = [
             'video player open',
@@ -412,116 +420,133 @@ class VideoPlayer {
                         this.el().setAttribute('title', 'Save for Later');
                     }
                     handleClick() {
-                        let movie = window.mediaLibraryManager?.currentMediaItem || window.mediaLibraryManager?.currentFile;
+                        // Prefer the richest current media context available
+                        let movie = 
+                            window.mediaLibraryManager?.currentMediaItem ||
+                            window.videoPlayer?.currentMediaItem ||
+                            window.videoPlayer?.currentFile ||
+                            window.mediaLibraryManager?.currentFile;
+
                         let currentTime = 0, duration = 0;
                         if (this.player()) {
                             currentTime = this.player().currentTime();
                             duration = this.player().duration();
                         }
-                        console.log('[VIDEO-PLAYER] Save for Later clicked: movie=', movie, 'currentTime=', currentTime, 'duration=', duration);
+
+                        console.log('[VIDEO-PLAYER] Save for Later clicked:', { movie, currentTime, duration });
                         console.log('[VIDEO-PLAYER] MediaLibraryManager available:', !!window.mediaLibraryManager);
                         console.log('[VIDEO-PLAYER] saveResumeProgress function available:', typeof window.mediaLibraryManager?.saveResumeProgress);
-                        
-                        // Handle TV show episodes that have filePath instead of path
-                        if (movie && movie.filePath && !movie.path) {
-                            movie.path = movie.filePath;
-                            console.log('[VIDEO-PLAYER] Set movie.path to filePath:', movie.path);
-                        }
-                        
-                        // Try to find the media item in the library by path or name if not already a full object
-                        if ((!movie?.path || !movie?.title) && window.mediaLibraryManager) {
-                            let found = null;
-                            
-                            // First try to find in movie library
-                            if (window.mediaLibraryManager.mediaLibraryRaw) {
-                                console.log('[VIDEO-PLAYER] Searching for media item in movie library...');
-                                found = window.mediaLibraryManager.mediaLibraryRaw.find(item =>
-                                    (movie?.path && item.path === movie.path) ||
-                                    (movie?.title && item.title === movie.title) ||
-                                    (movie?.name && item.name === movie.name)
-                                );
-                                if (found) {
-                                    movie = found;
-                                    console.log('[VIDEO-PLAYER] Found media item in movie library:', found);
-                                } else {
-                                    console.log('[VIDEO-PLAYER] No matching item found in movie library');
-                                }
+
+                        // Normalize episode paths commonly used for TV shows
+                        if (movie && !movie.path) {
+                            if (movie.filePath) {
+                                movie.path = movie.filePath;
+                            } else if (movie.absPath) {
+                                movie.path = movie.absPath;
+                            } else if (movie.relPath) {
+                                movie.path = movie.relPath;
                             }
-                            
-                            // If not found in movie library, try TV shows library
-                            if (!found && window.mediaLibraryManager.tvShowsData) {
-                                console.log('[VIDEO-PLAYER] Searching TV shows data for media item');
-                                // Search through TV shows data to find matching episode
-                                for (const show of window.mediaLibraryManager.tvShowsData) {
-                                    if (show.seasons) {
+                        }
+
+                        // Attempt to enrich the media object by looking up in TV shows data if needed
+                        if (window.mediaLibraryManager?.tvShowsData && (!movie || !movie.title || !movie.path)) {
+                            try {
+                                const tvData = window.mediaLibraryManager.tvShowsData;
+                                const showsArray = Array.isArray(tvData) ? tvData : (tvData && typeof tvData === 'object' ? Object.values(tvData) : []);
+
+                                const normalize = (p) => (p || '').replace(/\\/g, '/').toLowerCase().trim();
+                                const targetPath = normalize(movie?.path || movie?.filePath || movie?.absPath || movie?.relPath);
+
+                                let found = null;
+                                for (const show of showsArray) {
+                                    // Structure A: { seasons: [{ episodes: [...] }] }
+                                    if (!found && Array.isArray(show?.seasons)) {
                                         for (const season of show.seasons) {
-                                            if (season.episodes) {
-                                                for (const episode of season.episodes) {
-                                                    if ((movie?.path && episode.filePath === movie.path) ||
-                                                        (movie?.title && episode.title === movie.title) ||
-                                                        (movie?.name && episode.name === movie.name)) {
-                                                        found = episode;
-                                                        console.log('[VIDEO-PLAYER] Found episode in TV shows data:', episode);
+                                            if (Array.isArray(season?.episodes)) {
+                                                for (const ep of season.episodes) {
+                                                    const epPaths = [ep.path, ep.absPath, ep.filePath, ep.relPath].map(normalize);
+                                                    if (epPaths.some(p => p && p === targetPath)) {
+                                                        found = ep;
                                                         break;
                                                     }
                                                 }
-                                                if (found) break;
                                             }
+                                            if (found) break;
                                         }
-                                        if (found) break;
+                                    }
+
+                                    // Structure B: { folders: [{ files: [...] }] }
+                                    if (!found && Array.isArray(show?.folders)) {
+                                        for (const season of show.folders) {
+                                            if (Array.isArray(season?.files)) {
+                                                for (const ep of season.files) {
+                                                    const epPaths = [ep.path, ep.absPath, ep.filePath, ep.relPath].map(normalize);
+                                                    if (epPaths.some(p => p && p === targetPath)) {
+                                                        found = ep;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            if (found) break;
+                                        }
+                                    }
+
+                                    if (found) {
+                                        break;
                                     }
                                 }
+
                                 if (found) {
-                                    movie = found;
-                                    console.log('[VIDEO-PLAYER] Found media item in TV shows data:', found);
-                                } else {
-                                    console.log('[VIDEO-PLAYER] No matching item found in TV shows data');
+                                    movie = { ...found, path: found.path || found.filePath || found.absPath || found.relPath };
+                                    console.log('[VIDEO-PLAYER] Enriched TV episode from tvShowsData:', movie);
                                 }
+                            } catch (err) {
+                                console.warn('[VIDEO-PLAYER] TV shows lookup failed:', err);
                             }
                         }
-                        
-                        // Ensure title and path are set
+
+                        // Ensure we have a title for display and saving
                         if (movie && !movie.title) {
                             movie.title = movie.name || movie.filename || movie.path || 'Untitled';
-                            console.log('[VIDEO-PLAYER] Set movie.title to:', movie.title);
+                            console.log('[VIDEO-PLAYER] Filled movie.title:', movie.title);
                         }
-                        if (movie && !movie.path && movie.absPath) {
-                            movie.path = movie.absPath;
-                            console.log('[VIDEO-PLAYER] Set movie.path to absPath:', movie.path);
+
+                        // Final fallback: if still no usable object, build one from the currently playing file
+                        if ((!movie || !movie.path) && window.videoPlayer?.currentFile) {
+                            const f = window.videoPlayer.currentFile;
+                            movie = {
+                                ...f,
+                                title: f.name || f.filename || f.absPath || 'Untitled',
+                                path: f.absPath || f.filePath || f.relPath || f.path,
+                                type: 'tv-show'
+                            };
+                            console.log('[VIDEO-PLAYER] Built fallback media object from currentFile:', movie);
                         }
-                        if (movie && !movie.path && movie.filePath) {
-                            movie.path = movie.filePath;
-                            console.log('[VIDEO-PLAYER] Set movie.path to filePath:', movie.path);
-                        }
-                        
-                        console.log('[VIDEO-PLAYER] Final movie object:', movie);
-                        console.log('[VIDEO-PLAYER] Has path:', !!movie?.path);
-                        console.log('[VIDEO-PLAYER] Has title:', !!movie?.title);
-                        
+
                         // Save to Watch Later using MediaLibraryManager
                         if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && movie.path) {
-                            console.log('[VIDEO-PLAYER] Calling saveResumeProgress...');
+                            console.log('[VIDEO-PLAYER] Calling saveResumeProgress with media:', movie);
                             window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
-                            
-                            // Show success toast using global showToast function
-                            if (typeof window.showToast === 'function') {
-                                window.showToast('Saved to Watch Later!', 'success');
-                            }
-                            this.player().showOverlayAlert?.('Saved to Watch Later!');
-                            console.log('[VIDEO-PLAYER] Saved to Watch Later:', movie, currentTime, duration);
+
+                            // if (typeof window.showToast === 'function') {
+                            //     window.showToast('Saved to Watch Later section!', 'success');
+                            // }
+                            // Alert is handled by MediaLibraryManager.saveResumeProgress
+                            console.log('[VIDEO-PLAYER] Saved to Watch Later at time/duration:', currentTime, duration);
                         } else {
-                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later:');
-                            console.warn('- MediaLibraryManager available:', !!window.mediaLibraryManager);
-                            console.warn('- saveResumeProgress function:', typeof window.mediaLibraryManager?.saveResumeProgress);
-                            console.warn('- movie object:', !!movie);
-                            console.warn('- movie.path:', !!movie?.path);
-                            
-                            // Show error toast using global showToast function
+                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later:', {
+                                hasManager: !!window.mediaLibraryManager,
+                                hasSave: typeof window.mediaLibraryManager?.saveResumeProgress,
+                                hasMovie: !!movie,
+                                hasPath: !!movie?.path
+                            });
+
                             if (typeof window.showToast === 'function') {
                                 window.showToast('Cannot save - no media data available', 'error');
                             }
-                            this.player().showOverlayAlert?.('Cannot save - no media data available');
-                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later - missing data or MediaLibraryManager');
+                            if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
+                                window.videoPlayer.showOverlayAlert('Cannot save - no media data available');
+                            }
                         }
                     }
                 }
@@ -751,6 +776,11 @@ class VideoPlayer {
                 this.vjsPlayer.controlBar.show();
                 this.vjsPlayer.controlBar.el().style.display = 'flex';
                 
+                // Connect audio amplification if enabled
+                if (this.amplifyEnabled) {
+                    this.connectAudioAmplification();
+                }
+                
                 // Initialize subtitle button with closed book icon
                 const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
                 if (subtitleButton) {
@@ -874,6 +904,39 @@ class VideoPlayer {
         this.volumeControl.removeAttribute('style');
         this.volumeControl.oninput = (e) => this.setVolume(e.target.value / 100);
 
+        // Amplify button
+        this.amplifyButton = document.createElement('button');
+        this.amplifyButton.innerHTML = '🔊 AMPLIFY';
+        this.amplifyButton.className = 'video-player-amplify-btn';
+        this.amplifyButton.title = 'Audio Amplification: OFF (Click to enable)';
+        this.amplifyButton.removeAttribute('style');
+        this.amplifyButton.onclick = () => this.toggleAmplification();
+
+        // Amplify controls container (initially hidden)
+        this.amplifyControls = document.createElement('div');
+        this.amplifyControls.className = 'video-player-amplify-controls';
+        this.amplifyControls.style.display = 'none';
+
+        // Amplify level display
+        this.amplifyLevelDisplay = document.createElement('span');
+        this.amplifyLevelDisplay.className = 'video-player-amplify-level';
+        this.amplifyLevelDisplay.textContent = '100%';
+        this.amplifyLevelDisplay.removeAttribute('style');
+
+        // Amplify slider
+        this.amplifySlider = document.createElement('input');
+        this.amplifySlider.type = 'range';
+        this.amplifySlider.min = '50';  // 50% minimum
+        this.amplifySlider.max = '300'; // 300% maximum
+        this.amplifySlider.value = '100'; // 100% default
+        this.amplifySlider.className = 'video-player-amplify-slider';
+        this.amplifySlider.removeAttribute('style');
+        this.amplifySlider.oninput = (e) => this.setAmplificationLevel(e.target.value / 100);
+
+        // Add components to amplify controls
+        this.amplifyControls.appendChild(this.amplifyLevelDisplay);
+        this.amplifyControls.appendChild(this.amplifySlider);
+
         // Fullscreen button
         this.fullscreenButton = document.createElement('button');
         this.fullscreenButton.innerHTML = '⛶';
@@ -950,7 +1013,7 @@ class VideoPlayer {
             // Save to Watch Later using MediaLibraryManager
             if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie) {
                 window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
-                this.showOverlayAlert('Saved to Watch Later!');
+                // Alert is handled by MediaLibraryManager.saveResumeProgress
             } else {
                 console.warn('[VIDEO-PLAYER] Cannot save to Watch Later - missing data or MediaLibraryManager');
                 this.showOverlayAlert('Cannot save - no media data available');
@@ -962,6 +1025,8 @@ class VideoPlayer {
         this.controls.appendChild(this.progressBar);
         this.controls.appendChild(this.timeDisplay);
         this.controls.appendChild(this.volumeControl);
+        this.controls.appendChild(this.amplifyButton);
+        this.controls.appendChild(this.amplifyControls);
         this.controls.appendChild(this.fullscreenButton);
         this.controls.appendChild(this.watchLaterButton);
     }
@@ -2013,6 +2078,118 @@ class VideoPlayer {
         }
     }
 
+    // Initialize Web Audio API for amplification
+    initializeAudioContext() {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.gainNode = this.audioContext.createGain();
+                this.gainNode.connect(this.audioContext.destination);
+                console.log('[DEBUG - AMPLIFY] Audio context initialized');
+            }
+        } catch (error) {
+            console.error('[DEBUG - AMPLIFY] Failed to initialize audio context:', error);
+        }
+    }
+
+    // Connect video element to Web Audio API
+    connectAudioAmplification() {
+        if (!this.audioContext || !this.gainNode) return;
+        
+        try {
+            const videoElement = this.vjsPlayer ? this.vjsPlayer.el().querySelector('video') : this.video;
+            if (!videoElement) return;
+
+            // Disconnect existing source if any
+            if (this.sourceNode) {
+                this.sourceNode.disconnect();
+            }
+
+            // Create new media element source
+            this.sourceNode = this.audioContext.createMediaElementSource(videoElement);
+            this.sourceNode.connect(this.gainNode);
+            
+            // Set initial gain
+            this.gainNode.gain.value = this.amplifyLevel;
+            
+            console.log('[DEBUG - AMPLIFY] Audio amplification connected, level:', this.amplifyLevel);
+        } catch (error) {
+            console.error('[DEBUG - AMPLIFY] Failed to connect audio amplification:', error);
+        }
+    }
+
+    // Toggle amplification on/off
+    toggleAmplification() {
+        if (!this.amplifyEnabled) {
+            this.initializeAudioContext();
+            if (this.audioContext) {
+                this.connectAudioAmplification();
+                this.amplifyEnabled = true;
+                this.updateAmplifyButton();
+                console.log('[DEBUG - AMPLIFY] Amplification enabled');
+            }
+        } else {
+            this.amplifyEnabled = false;
+            if (this.sourceNode) {
+                this.sourceNode.disconnect();
+                this.sourceNode = null;
+            }
+            this.updateAmplifyButton();
+            console.log('[DEBUG - AMPLIFY] Amplification disabled');
+        }
+    }
+
+    // Set amplification level (1.0 = 100%, 2.0 = 200%, etc.)
+    setAmplificationLevel(level) {
+        this.amplifyLevel = Math.max(0.1, Math.min(this.maxAmplifyLevel, level));
+        
+        if (this.gainNode && this.amplifyEnabled) {
+            this.gainNode.gain.value = this.amplifyLevel;
+        }
+        
+        // Update slider value
+        if (this.amplifySlider) {
+            this.amplifySlider.value = (this.amplifyLevel * 100).toFixed(0);
+        }
+        
+        // Update level display
+        if (this.amplifyLevelDisplay) {
+            const percentage = (this.amplifyLevel * 100).toFixed(0);
+            this.amplifyLevelDisplay.textContent = `${percentage}%`;
+            
+            // Color coding: green (100-150%), yellow (150-200%), red (200%+)
+            if (this.amplifyLevel <= 1.5) {
+                this.amplifyLevelDisplay.style.color = '#4CAF50'; // Green
+            } else if (this.amplifyLevel <= 2.0) {
+                this.amplifyLevelDisplay.style.color = '#FF9800'; // Orange
+            } else {
+                this.amplifyLevelDisplay.style.color = '#F44336'; // Red
+            }
+        }
+        
+        console.log('[DEBUG - AMPLIFY] Amplification level set to:', this.amplifyLevel);
+    }
+
+    // Update amplify button appearance
+    updateAmplifyButton() {
+        if (this.amplifyButton) {
+            if (this.amplifyEnabled) {
+                this.amplifyButton.classList.add('active');
+                this.amplifyButton.innerHTML = '🔊 AMPLIFY';
+                this.amplifyButton.title = 'Audio Amplification: ON (Click to disable)';
+            } else {
+                this.amplifyButton.classList.remove('active');
+                this.amplifyButton.innerHTML = '🔊 AMPLIFY';
+                this.amplifyButton.title = 'Audio Amplification: OFF (Click to enable)';
+            }
+        }
+        
+        // Show/hide amplify controls
+        if (this.amplifyControls) {
+            this.amplifyControls.style.display = this.amplifyEnabled ? 'flex' : 'none';
+        }
+    }
+
     toggleFullscreen() {
         if (!this.isFullscreen) {
             this.container.requestFullscreen();
@@ -2129,6 +2306,22 @@ class VideoPlayer {
             case 'KeyF':
                 event.preventDefault();
                 this.toggleFullscreen();
+                break;
+            case 'KeyA':
+                event.preventDefault();
+                this.toggleAmplification();
+                break;
+            case 'Equal': // + key
+                if (this.amplifyEnabled) {
+                    event.preventDefault();
+                    this.setAmplificationLevel(this.amplifyLevel + 0.1);
+                }
+                break;
+            case 'Minus': // - key
+                if (this.amplifyEnabled) {
+                    event.preventDefault();
+                    this.setAmplificationLevel(this.amplifyLevel - 0.1);
+                }
                 break;
             case 'Escape':
                 if (this.isFullscreen) {
@@ -3630,9 +3823,21 @@ class VideoPlayer {
         if (window.mediaLibraryManager && window.mediaLibraryManager.tvShowsData) {
             console.log('[EPISODE-SELECTION] Using MediaLibraryManager data');
             
+            // Handle both array and object formats for TV shows data
+            let showsArray = [];
+            if (Array.isArray(window.mediaLibraryManager.tvShowsData)) {
+                showsArray = window.mediaLibraryManager.tvShowsData;
+            } else if (typeof window.mediaLibraryManager.tvShowsData === 'object' && window.mediaLibraryManager.tvShowsData) {
+                showsArray = Object.values(window.mediaLibraryManager.tvShowsData);
+            }
+            
+            console.log('[EPISODE-SELECTION] TV shows data type:', Array.isArray(window.mediaLibraryManager.tvShowsData) ? 'array' : 'object');
+            console.log('[EPISODE-SELECTION] Shows array length:', showsArray.length);
+            
             // Find the TV show in the data
-            const tvShow = window.mediaLibraryManager.tvShowsData.find(show => {
+            const tvShow = showsArray.find(show => {
                 const showTitle = show.TMDBTitle || show.name || show.path || '';
+                console.log('[EPISODE-SELECTION] Checking show:', showTitle, 'against:', showName);
                 return showTitle.toLowerCase().includes(showName.toLowerCase()) || 
                        showName.toLowerCase().includes(showTitle.toLowerCase());
             });
@@ -3647,6 +3852,11 @@ class VideoPlayer {
                         console.log('[EPISODE-SELECTION] Season', season.name, 'has', season.files.length, 'episodes');
                         episodes.push(...season.files);
                     }
+                });
+            } else {
+                console.log('[EPISODE-SELECTION] TV show not found. Available shows:');
+                showsArray.slice(0, 5).forEach(show => {
+                    console.log('[EPISODE-SELECTION] -', show.TMDBTitle || show.name || show.path || 'unknown');
                 });
             }
         }
@@ -5011,12 +5221,12 @@ class VideoPlayer {
         
         if (currentCue) {
             // console.log('[DEBUG] updateSubtitleDisplay - Found cue:', currentCue.text);
-            this.subtitleOverlay.textContent = currentCue.text;
+            this.subtitleOverlay.innerHTML = currentCue.text;
             this.subtitleOverlay.style.display = 'block';
         } else {
             // console.log('[DEBUG] updateSubtitleDisplay - No cue found for current time');
             // Don't hide the overlay, just clear the text
-            this.subtitleOverlay.textContent = '';
+            this.subtitleOverlay.innerHTML = '';
             // Keep the overlay visible but empty
         }
     }

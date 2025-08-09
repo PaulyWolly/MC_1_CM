@@ -34,6 +34,10 @@ const WatchLaterItemSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    absPath: {
+        type: String,
+        required: false
+    },
     
     // Playback state
     currentTime: {

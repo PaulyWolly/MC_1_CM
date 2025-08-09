@@ -9,6 +9,8 @@
 const express = require('express');
 const router = express.Router();
 const WatchLater = require('../models/WatchLater');
+const fs = require('fs');
+const path = require('path');
 
 // =========================
 // WATCH LATER API ROUTES
@@ -97,6 +99,52 @@ router.post('/add', async (req, res) => {
     } catch (error) {
         console.error('[WATCH-LATER-API] Add error:', error);
         res.status(500).json({ error: 'Failed to add item to watch later' });
+    }
+});
+
+// PUT - Update entire item by ID
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updateData = req.body;
+        
+        if (!id) {
+            return res.status(400).json({ error: 'Item ID is required' });
+        }
+        
+        console.log('[WATCH-LATER-API] Updating item:', id);
+        
+        const collection = await WatchLater.getDefaultCollection();
+        const itemIndex = collection.items.findIndex(item => item._id && item._id.toString() === id);
+        
+        if (itemIndex === -1) {
+            return res.status(404).json({ error: 'Item not found in watch later' });
+        }
+        
+        // Update the item with new data, preserving _id and timestamps
+        const existingItem = collection.items[itemIndex];
+        const updatedItem = {
+            ...existingItem,
+            ...updateData,
+            _id: existingItem._id, // Preserve original ID
+            createdAt: existingItem.createdAt, // Preserve creation timestamp
+            lastUpdated: new Date() // Update the lastUpdated timestamp
+        };
+        
+        collection.items[itemIndex] = updatedItem;
+        await collection.save();
+        
+        console.log('[WATCH-LATER-API] Item updated successfully:', updatedItem.title);
+        
+        res.json({
+            success: true,
+            message: 'Item updated successfully',
+            item: updatedItem
+        });
+        
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Update item error:', error);
+        res.status(500).json({ error: 'Failed to update item' });
     }
 });
 
@@ -265,6 +313,28 @@ router.post('/bulk-import', async (req, res) => {
     } catch (error) {
         console.error('[WATCH-LATER-API] Bulk import error:', error);
         res.status(500).json({ error: 'Failed to bulk import items' });
+    }
+});
+
+// GET - Get backup data from file
+router.get('/backup', async (req, res) => {
+    try {
+        console.log('[WATCH-LATER-API] Getting backup data from file');
+        
+        const backupPath = path.join(__dirname, '../WATCH_LATER/current_watch_later.json');
+        
+        if (!fs.existsSync(backupPath)) {
+            return res.status(404).json({ error: 'Backup file not found' });
+        }
+        
+        const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+        console.log('[WATCH-LATER-API] Retrieved backup with', backupData.itemCount || 0, 'items');
+        
+        res.json(backupData);
+        
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Backup error:', error);
+        res.status(500).json({ error: 'Failed to get backup data' });
     }
 });
 

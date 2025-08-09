@@ -6576,6 +6576,11 @@ function isLoggedIn() {
     return !!localStorage.getItem('jwtToken');
 }
 
+function showLoginModal() {
+    const loginModal = document.getElementById('login-manager-modal');
+    if (loginModal) loginModal.style.display = 'flex';
+}
+
 function showLoginModalWithIntent(intent) {
     window._postLoginIntent = intent;
     const loginModal = document.getElementById('login-manager-modal');

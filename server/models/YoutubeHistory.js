@@ -12,8 +12,7 @@ const YoutubeHistorySchema = new mongoose.Schema({
     query: {
         type: String,
         required: true,
-        unique: true,
-        index: true
+        unique: true
     },
     timestamp: {
         type: Date,
