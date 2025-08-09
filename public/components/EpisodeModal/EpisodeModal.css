@@ -25,6 +25,7 @@
     border: 2px solid #43a047;
     border-radius: 12px;
     max-width: 600px;
+    width: 60vw;
     max-height: 80vh;
     color: white;
     display: flex;

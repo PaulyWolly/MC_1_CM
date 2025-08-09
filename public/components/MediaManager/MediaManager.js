@@ -381,10 +381,15 @@ class MediaManager {
       };
     }
     if (this.confirmBtn) {
+      console.log('[DEBUG] Confirm button found:', this.confirmBtn);
       this.confirmBtn.onclick = () => {
         console.log('[DEBUG] MOVIE Confirm button clicked');
+        console.log('[DEBUG] Confirm button disabled state:', this.confirmBtn.disabled);
+        console.log('[DEBUG] Form validation result:', this.validateForm());
         this.handleConfirm();
       };
+    } else {
+      console.error('[DEBUG] Confirm button NOT found!');
     }
     if (this.viewJsonBtn) {
       this.viewJsonBtn.onclick = () => {
@@ -1092,19 +1097,52 @@ class MediaManager {
 
 
   async handleConfirm() {
+    console.log('[DEBUG - CONFIRM] handleConfirm called');
     // Gather all modal data
     const type = this.tabMovie && this.tabMovie.classList.contains('active') ? 'movie' : 'tv';
-    let title, absPath, description, year;
+    let title, absPath, description, year, tmdbId;
     
     if (type === 'movie') {
       title = this.inputTitle ? this.inputTitle.value.trim() : '';
       absPath = this.inputPath ? this.inputPath.value.trim() : '';
       description = this.descInput ? this.descInput.value.trim() : '';
+      tmdbId = this.inputTMDBId ? this.inputTMDBId.value.trim() : '';
+      console.log('[DEBUG - CONFIRM] Movie data:', { title, absPath, description, tmdbId });
     } else {
       title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
       absPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
       description = this.inputTVDescription ? this.inputTVDescription.value.trim() : '';
       year = this.inputTVYear ? this.inputTVYear.value.trim() : '';
+    }
+
+    // NEW: For movies, ensure the specific movie entry exists with video files
+    if (type === 'movie') {
+      console.log('[DEBUG - CONFIRM] Ensuring movie has proper video file entry...');
+      this.showModalToast('Step 1: Checking movie files...', 'info');
+      
+      try {
+        // Call a new endpoint that ensures THIS specific movie exists in the JSON
+        const ensureResponse = await fetch('/api/media/ensure-movie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            moviePath: absPath,
+            title: title
+          })
+        });
+        
+        const ensureData = await ensureResponse.json();
+        if (!ensureData.success) {
+          throw new Error(ensureData.error || 'Failed to ensure movie exists');
+        }
+        
+        console.log('[DEBUG - CONFIRM] Movie file entry ensured successfully');
+        this.showModalToast('Step 2: Adding movie metadata...', 'info');
+      } catch (err) {
+        console.error('[DEBUG - CONFIRM] Ensure movie failed:', err);
+        this.showModalToast('Failed to ensure movie files: ' + err.message, 'error');
+        return;
+      }
     }
     // --- NORMALIZE KEY LOGIC ---
     let folderName = absPath ? absPath.split(/[\\/]/).slice(-2, -1)[0] || absPath.split(/[\\/]/).pop() : '';
@@ -1123,7 +1161,7 @@ class MediaManager {
       console.error('[MediaManager] Error saving: Missing normalizedKey');
       return;
     }
-    // ... existing code ...
+    // Get poster and cast data
     const poster = this.posterImg ? this.posterImg.src : '';
     let cast = [];
     if (type === 'movie') {
@@ -1165,10 +1203,12 @@ class MediaManager {
     if (yearMatch) year = yearMatch[0];
     }
     // Validate form before proceeding
+    console.log('[DEBUG - CONFIRM] Validating form...');
     if (!this.validateForm()) {
       console.error('[MediaManager] Form validation failed.');
       return;
     }
+    console.log('[DEBUG - CONFIRM] Form validation passed');
     // --- Spinner logic ---
     if (this.confirmBtn) {
       this.confirmBtn.disabled = true;
@@ -1178,12 +1218,13 @@ class MediaManager {
       const res = await fetch('/api/media/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, absPath, poster, description, cast, title, year, normalizedKey })
+        body: JSON.stringify({ type, absPath, poster, description, cast, title, year, normalizedKey, tmdbId })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to save info');
       if (window.showToast) {
-        window.showToast('Saved info successfully.', 'success');
+        const successMsg = type === 'movie' ? 'Movie added successfully! Video files scanned and metadata saved.' : 'Saved info successfully.';
+        window.showToast(successMsg, 'success');
         console.info('[MediaManager] Saved info successfully.');
         console.info('[MediaManager] Key saved:', data.keySaved || '');
       }
@@ -1556,9 +1597,14 @@ class MediaManager {
       if (field) field.classList.add('error');
       return false;
     }
-    // For path, require a full file path ending in .mp4, .mkv, .avi, or .mov
+    // For path, accept either a file path ending in video extension OR a folder path
     if (fieldName === 'path') {
-      if (!/\.(mp4|mkv|avi|mov)$/i.test(value)) {
+      // Check if it's a video file path
+      const isVideoFile = /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(value);
+      // Check if it's a folder path (contains folder structure but no file extension)
+      const isFolderPath = value.includes('/') || value.includes('\\');
+      
+      if (!isVideoFile && !isFolderPath) {
         if (field) field.classList.add('error');
         return false;
       }
@@ -3356,7 +3402,7 @@ MediaManager.prototype.handleFetchAllInfo = async function() {
         if (progressText) progressText.textContent = 'Scanning for new movies...';
         
         // Call the new backend API to scan for movies
-        const response = await fetch('/api/media/scan-movies', {
+        const response = await fetch('/api/scan-movies', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -3367,39 +3413,42 @@ MediaManager.prototype.handleFetchAllInfo = async function() {
             throw new Error(data.error || 'Failed to scan movies');
         }
         
-        const movies = data.data.newMovies || [];
-        const totalScanned = data.data.totalScanned || 0;
-        const totalExisting = data.data.totalExisting || 0;
+        const newMoviesCount = data.newMovies || 0;
+        const totalMovies = data.totalMovies || 0;
+        
+        // The /api/scan-movies endpoint only returns counts, not movie details
+        // So we can't populate a grid with movie objects
+        const movies = [];
         
         // Update progress
         if (progressBar) progressBar.style.width = '100%';
-        if (progressText) progressText.textContent = `Scan complete: ${movies.length} new movies found out of ${totalScanned} total`;
+        if (progressText) progressText.textContent = `Scan complete: ${newMoviesCount} new movies found out of ${totalMovies} total`;
         
         // Update counter
-        console.log(`[MediaManager] Updating counter: ${movies.length} movies`);
+        console.log(`[MediaManager] Updating counter: ${newMoviesCount} movies`);
         if (counterValue) {
-            counterValue.textContent = movies.length;
+            counterValue.textContent = newMoviesCount;
             console.log(`[MediaManager] Counter updated to: ${counterValue.textContent}`);
         } else {
             console.error('[MediaManager] Counter element not found!');
         }
         
-    if (!movies.length) {
+        if (newMoviesCount === 0) {
             if (window.showToast) window.showToast('No new movies found.', 'info');
             // Hide progress after a delay
             setTimeout(() => {
                 if (progressContainer) progressContainer.style.display = 'none';
             }, 2000);
-        return;
-    }
+            return;
+        }
         
-        console.log(`[MediaManager] Found ${movies.length} new movies out of ${totalScanned} total (${totalExisting} already have posters)`);
+        console.log(`[MediaManager] Found ${newMoviesCount} new movies out of ${totalMovies} total`);
         
-        // Populate the movie grid with new movies
-        this.populateMovieGrid(movies);
+        // Since we don't have movie details, we can't populate a grid
+        // The user will need to add movies manually using the form
         
         if (window.showToast) {
-            window.showToast(`Found ${movies.length} new movies`, 'success');
+            window.showToast(`Found ${newMoviesCount} new movies. Use the form above to add them.`, 'success');
         }
         
         // Hide progress after a delay
@@ -3419,47 +3468,7 @@ MediaManager.prototype.handleFetchAllInfo = async function() {
     }
 };
 
-// NEW: Function to handle scan movies button
-MediaManager.prototype.handleScanMovies = async function() {
-    console.log('[DEBUG] handleScanMovies called');
-    try {
-        // Show loading state
-        const scanMoviesBtn = document.querySelector('.media-manager-scan-movies-btn');
-        if (scanMoviesBtn) {
-            scanMoviesBtn.textContent = 'Scanning...';
-            scanMoviesBtn.disabled = true;
-        }
-        
-        // Call the scan script endpoint
-        const response = await fetch('/api/scan-movies', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('[DEBUG] Scan result:', result);
-        
-        // Show success message
-        this.showModalToast('Movie scan completed successfully! Found ' + (result.newMovies || 0) + ' new movies.', 'success');
-        
-    } catch (error) {
-        console.error('[DEBUG] Error scanning movies:', error);
-        this.showModalToast('Error scanning movies: ' + error.message, 'error');
-    } finally {
-        // Reset button state
-        const scanMoviesBtn = document.querySelector('.media-manager-scan-movies-btn');
-        if (scanMoviesBtn) {
-            scanMoviesBtn.textContent = 'SCAN Movie folders for NEW Movies';
-            scanMoviesBtn.disabled = false;
-        }
-    }
-};
+// REMOVED: Duplicate handleScanMovies function - using the correct one below
 
 // NEW: Function to populate the movie grid
 MediaManager.prototype.populateMovieGrid = function(movies) {
@@ -3645,13 +3654,19 @@ MediaManager.prototype.handleScanMovies = async function() {
     });
     
     const data = await response.json();
+    console.log('[DEBUG - SCAN_MOVIES] Full server response:', data);
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to scan movies');
     }
     
-    const newMovies = data.data.newMovies || [];
-    console.log(`[DEBUG - SCAN_MOVIES] Found ${newMovies.length} new movies`);
+    // Handle the response structure from /api/scan-movies (not /api/media/scan-movies)
+    // The response structure is: {success, message, newMovies, output}
+    const newMoviesCount = data.newMovies || 0;
+    
+    // For compatibility, create a movies array structure
+    const newMovies = []; // The /api/scan-movies endpoint only returns a count, not movie details
+    console.log(`[DEBUG - SCAN_MOVIES] Found ${newMoviesCount} new movies`);
     
     // Re-enable the button
     if (this.scanMoviesBtn) {
@@ -3660,10 +3675,8 @@ MediaManager.prototype.handleScanMovies = async function() {
     }
     
     // Show completion message as toast
-    if (newMovies.length > 0) {
-      const movieList = newMovies.slice(0, 5).map(m => `${m.title} (${m.year})`).join('\n');
-      const moreText = newMovies.length > 5 ? `\n... and ${newMovies.length - 5} more` : '';
-      const successMsg = `Scan complete! Found ${newMovies.length} new movies:\n\n${movieList}${moreText}\n\nYou can now add details for any of these movies using the form above.`;
+    if (newMoviesCount > 0) {
+      const successMsg = `Scan complete! Found ${newMoviesCount} new movies.\n\nYou can now add details for any of these movies using the form above.`;
       this.showModalToast(successMsg, 'success');
       console.log('[DEBUG - SCAN_MOVIES] Scan completed successfully');
     } else {
@@ -4220,7 +4233,7 @@ window.scanMoviesDirectory = async function() {
             throw new Error(data.error || 'Failed to scan movies');
         }
         
-        return data.data.newMovies || [];
+        return data.newMovies || 0;
     } catch (err) {
         console.error('[scanMoviesDirectory] Error:', err);
         return [];

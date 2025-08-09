@@ -15,13 +15,17 @@ router.get('/:sessionId', async (req, res) => {
     try {
         // Query the correct collection directly (youtube_searches instead of youtubehistories)
         const mongoose = require('mongoose');
+        
+        // Check if MongoDB is connected
+        if (mongoose.connection.readyState !== 1) {
+            console.log('📚 [API] MongoDB not connected, returning empty array');
+            return res.json({ queries: [] });
+        }
+        
         const collection = mongoose.connection.collection('youtube_searches');
         
         // Get all queries from the youtube_searches collection
-        const history = await collection.find({})
-            .sort({ lastSearched: -1 })
-            .limit(100)  // Increased limit to get more queries
-            .toArray();
+        const history = await collection.find({}).sort({ lastSearched: -1 }).limit(100).toArray();
             
         // Return complete search information including type
         const queries = history.map(item => ({

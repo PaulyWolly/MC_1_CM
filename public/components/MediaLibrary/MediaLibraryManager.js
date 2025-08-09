@@ -66,6 +66,17 @@ class MediaLibraryManager {
         // Add at the top of the class
         this.movieGenres = {};
         this.tvGenres = {};
+        
+        // Make restore methods available globally for debugging
+        window.restoreWatchLaterData = () => this.restoreWatchLaterFromBackup();
+        window.loadLocalBackup = async () => {
+            const response = await fetch('/components/MediaLibrary/data/watch_later/watch_later.json');
+            const data = await response.json();
+            console.log('Local watch later data:', data);
+            localStorage.setItem('mediaLibraryResumeList', JSON.stringify(data.items));
+            this.updateWatchLaterGrid();
+            this.showToast(`Loaded ${data.items.length} items from watch later data`, 'green');
+        };
     }
 
     async init() {
@@ -129,7 +140,9 @@ class MediaLibraryManager {
             }
             
             this.moviesData = moviesRaw;
+            this.mediaLibraryRaw = moviesRaw; // Set for backward compatibility
             console.log('🎬 [MEDIA-LIBRARY] Movies data loaded:', this.moviesData ? this.moviesData.length : 'undefined', 'movies');
+            console.log('🎬 [MEDIA-LIBRARY] Sample movie data:', this.moviesData ? this.moviesData.slice(0, 2) : 'none');
             
             // Load TV shows data
             console.log('🎬 [MEDIA-LIBRARY] Loading TV shows data...');
@@ -657,8 +670,7 @@ class MediaLibraryManager {
         this.updateCount();
         this.restoreSearchSortUI();
         if (this.currentTab === 'watchlater') {
-            const grid = document.getElementById('mediaGrid');
-            if (grid) grid.innerHTML = this.renderWatchLaterContent();
+            this.updateWatchLaterGrid();
         }
         // Defer collections rendering until grid exists
         if (this.currentTab === 'collections') {
@@ -1036,8 +1048,9 @@ class MediaLibraryManager {
             this.attachCollectionHandlers();
             this.hideGridSpinner();
         } else if (this.currentTab === 'watchlater') {
-            // For Watch Later tab, content is already rendered by renderWatchLaterContent()
-            // console.log('[DEBUG - UPDATE MODAL] Watch Later tab - content already rendered');
+            // For Watch Later tab, render the content
+            console.log('[DEBUG - UPDATE MODAL] Rendering Watch Later tab content');
+            this.updateWatchLaterGrid();
             this.hideGridSpinner();
         } else {
             // For other tabs (suggestions, etc.), use the general renderMediaGrid
@@ -1239,14 +1252,14 @@ class MediaLibraryManager {
 
     getItemsForCurrentTab() {
         let items = [];
-        // console.log('[DEBUG] getItemsForCurrentTab called, currentTab:', this.currentTab);
-        // console.log('[DEBUG] moviesData length:', this.moviesData ? this.moviesData.length : 'undefined');
-        // console.log('[DEBUG] tvShowsData length:', this.tvShowsData ? this.tvShowsData.length : 'undefined');
+        console.log('[DEBUG] getItemsForCurrentTab called, currentTab:', this.currentTab);
+        console.log('[DEBUG] moviesData length:', this.moviesData ? this.moviesData.length : 'undefined');
+        console.log('[DEBUG] tvShowsData length:', this.tvShowsData ? this.tvShowsData.length : 'undefined');
         
         if (this.currentTab === 'movies') {
             items = this.moviesData || [];
-            // console.log('[MOVIE DEBUG] Raw movies array:', items.slice(0, 5));
-            // console.log('[MOVIE DEBUG] Total movies found:', items.length);
+            console.log('[MOVIE DEBUG] Raw movies array:', items.slice(0, 2));
+            console.log('[MOVIE DEBUG] Total movies found:', items.length);
         } else if (this.currentTab === 'tvshows') {
             items = this.getTVShows();
         } else if (this.currentTab === 'favorites') {
@@ -1700,53 +1713,57 @@ class MediaLibraryManager {
         
         // console.log('[MEDIA-LIBRARY] Final movie object with complete information:', fullMediaItem);
         
-        // Always use absolute path for playback
+        // STANDARDIZED PATH RESOLUTION - USE NORMALIZED FIELDS FIRST!
         let pathParam = '';
-        console.log('[MEDIA-LIBRARY] Constructing video URL from fullMediaItem:', {
+        console.log('[MEDIA-LIBRARY] STANDARDIZED: Resolving video path from normalized fields:', {
             absPath: fullMediaItem.absPath,
+            filePath: fullMediaItem.filePath,
             path: fullMediaItem.path,
-            files: fullMediaItem.files ? fullMediaItem.files.length : 'no files',
-            hasFiles: !!fullMediaItem.files,
-            firstFile: fullMediaItem.files && fullMediaItem.files[0] ? fullMediaItem.files[0] : 'no first file'
+            mediaType: fullMediaItem.mediaType || fullMediaItem.type,
+            title: fullMediaItem.title
         });
         
-        // PRIORITY 1: Use absPath from files array (this is the correct structure)
-        if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
-            pathParam = fullMediaItem.files[0].absPath;
-            console.log('[MEDIA-LIBRARY] Using first file absPath:', pathParam);
-        } 
-        // PRIORITY 2: Use root level absPath (if it exists)
-        else if (fullMediaItem.absPath) {
+        // PRIORITY 1: Use standardized absPath field (THIS IS THE STANDARD!)
+        if (fullMediaItem.absPath) {
             pathParam = fullMediaItem.absPath;
-            console.log('[MEDIA-LIBRARY] Using root absPath:', pathParam);
+            console.log('[MEDIA-LIBRARY] ✅ USING STANDARDIZED absPath:', pathParam);
         } 
-        // PRIORITY 3: Construct path from files array
-        else if (fullMediaItem.path && fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].name) {
-            // Construct the full path
-            pathParam = `S:/MEDIA/MOVIES/${fullMediaItem.path}/${fullMediaItem.files[0].name}`;
-            console.log('[MEDIA-LIBRARY] Constructed path from files:', pathParam);
+        // PRIORITY 2: Use absPath from files array (legacy structure)
+        else if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
+            pathParam = fullMediaItem.files[0].absPath;
+            console.log('[MEDIA-LIBRARY] ✅ Using legacy files[0].absPath:', pathParam);
         } 
-        // PRIORITY 4: Handle Watch Later items that only have folder path
-        else if (fullMediaItem.path && !fullMediaItem.path.includes('.mp4') && !fullMediaItem.path.includes('.mkv')) {
-            // This is likely a Watch Later item with just the folder path
-            // Construct the video filename from the folder path
-            const folderPath = fullMediaItem.path;
-            // Convert spaces to dots but preserve parentheses and brackets
+        // PRIORITY 3: Construct from standardized filePath for movies
+        else if (fullMediaItem.filePath && (fullMediaItem.mediaType === 'movie' || fullMediaItem.type === 'movie')) {
+            // For movies: filePath is folder name, construct full path
+            const folderPath = fullMediaItem.filePath;
             const videoFilename = folderPath.replace(/\s+/g, '.') + '.mp4';
             pathParam = `S:/MEDIA/MOVIES/${folderPath}/${videoFilename}`;
-            console.log('[MEDIA-LIBRARY] Constructed video path for Watch Later item:', pathParam);
-            
-            // For "The Forbidden Kingdom" specifically, try the correct path format
-            if (folderPath.includes('Forbidden Kingdom')) {
-                const correctPath = `S:/MEDIA/MOVIES/${folderPath}/The.Forbidden.Kingdom.(2008).[1080p].mp4`;
-                console.log('[MEDIA-LIBRARY] Trying correct path for Forbidden Kingdom:', correctPath);
-                pathParam = correctPath;
-            }
+            console.log('[MEDIA-LIBRARY] ⚠️ CONSTRUCTED from movie filePath:', pathParam);
         }
-        // PRIORITY 5: Fallback to path or relPath
+        // PRIORITY 4: Use filePath directly for TV shows
+        else if (fullMediaItem.filePath && (fullMediaItem.mediaType === 'tv-show' || fullMediaItem.type === 'tv-show')) {
+            pathParam = `S:/MEDIA/TV-SHOWS/${fullMediaItem.filePath}`;
+            console.log('[MEDIA-LIBRARY] ⚠️ CONSTRUCTED from TV show filePath:', pathParam);
+        }
+        // PRIORITY 5: Legacy fallback - construct from files array
+        else if (fullMediaItem.path && fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].name) {
+            pathParam = `S:/MEDIA/MOVIES/${fullMediaItem.path}/${fullMediaItem.files[0].name}`;
+            console.log('[MEDIA-LIBRARY] ⚠️ LEGACY: Constructed from files array:', pathParam);
+        } 
+        // PRIORITY 6: Last resort fallback
         else {
             pathParam = fullMediaItem.path || fullMediaItem.relPath || '';
-            console.log('[MEDIA-LIBRARY] Using fallback path:', pathParam);
+            console.log('[MEDIA-LIBRARY] ❌ FALLBACK: Using raw path (may fail):', pathParam);
+            
+            // If this happens, we have a data quality issue
+            console.error('[MEDIA-LIBRARY] ❌ DATA QUALITY ISSUE: Item missing standardized fields:', {
+                title: fullMediaItem.title,
+                availableFields: Object.keys(fullMediaItem),
+                absPath: fullMediaItem.absPath,
+                filePath: fullMediaItem.filePath,
+                path: fullMediaItem.path
+            });
         }
         
         console.log('[MEDIA-LIBRARY] Path before encoding:', pathParam);
@@ -2516,7 +2533,7 @@ class MediaLibraryManager {
     watchLaterSearchQuery = '';
     suggestionsSearchQuery = '';
 
-    handleSearchInput(event) {
+    async handleSearchInput(event) {
         const searchValue = event.target.value;
         console.log('[DEBUG - SEARCH-INPUT] handleSearchInput called with value:', searchValue);
         console.log('[DEBUG - SEARCH-INPUT] Current tab:', this.currentTab);
@@ -2554,14 +2571,14 @@ class MediaLibraryManager {
         }
         
         // Use updateModalContent to handle all tabs including TV-Shows
-        this.updateModalContent();
+        await this.updateModalContent();
         this.updateCount();
     }
 
-    handleSortChange(event) {
+    async handleSortChange(event) {
         this.sortBy = event.target.value;
         // Use updateModalContent to handle all tabs including TV-Shows
-        this.updateModalContent();
+        await this.updateModalContent();
         this.updateCount();
     }
 
@@ -2898,11 +2915,12 @@ class MediaLibraryManager {
                     });
                     
                     // Delete button click handler
-                    deleteBtn.addEventListener('click', (e) => {
+                    deleteBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
-                        this.removeResumeProgress(item.path);
-                        this.renderWatchLaterContent();
-                        this.showToast('Removed from Watch Later');
+                        await this.removeResumeProgress(item.path);
+                        this.updateWatchLaterGrid().then(() => {
+                            this.showToast('Removed from Watch Later');
+                        });
                     });
                     
                     // Card click handler (resume from saved position)
@@ -2923,6 +2941,8 @@ class MediaLibraryManager {
         
         // Get the resume list sorted by lastWatched (newest first)
         const resumeList = this.getResumeList();
+        console.log('[WATCH-LATER DEBUG] Resume list loaded:', resumeList.length, 'items');
+        console.log('[WATCH-LATER DEBUG] Sample resume items:', resumeList.slice(0, 3));
         
         // Improved TV-Show detection: check for episode patterns, TV show paths, and type
         const tvshows = resumeList.filter(item => {
@@ -2954,6 +2974,11 @@ class MediaLibraryManager {
         });
         
         const movies = resumeList.filter(item => !tvshows.includes(item));
+        
+        console.log('[WATCH-LATER DEBUG] TV shows filtered:', tvshows.length, 'items');
+        console.log('[WATCH-LATER DEBUG] Movies filtered:', movies.length, 'items');
+        console.log('[WATCH-LATER DEBUG] Sample TV show items:', tvshows.slice(0, 2));
+        console.log('[WATCH-LATER DEBUG] Sample movie items:', movies.slice(0, 2));
         // Helper for TV show label and screenshot
         const getTvShowLabel = (item) => {
             let path = decodeURIComponent(item.path || '');
@@ -3178,7 +3203,9 @@ class MediaLibraryManager {
                                         ${tvshows.map(item => {
                     // Use the EXACT SAME method as main TV-SHOWS tab - get episode object directly
                     const episodeObj = this.getEpisodeObjectFromPath(item.path);
+                    console.log('[DEBUG - TV-RENDER] Processing TV item:', item.title, 'path:', item.path, 'episodeObj found:', !!episodeObj);
                     if (!episodeObj) {
+                        console.log('[DEBUG - TV-RENDER] Skipping TV item due to missing episodeObj:', item.title);
                         return ''; // Skip this item entirely - no fallback
                     }
                     
@@ -3205,17 +3232,17 @@ class MediaLibraryManager {
             </div>
         </div>
         `;
+        
         // Update the modal content if the modal is open
         const mediaGrid = document.getElementById('mediaGrid');
         if (mediaGrid) {
             mediaGrid.innerHTML = html;
-            // Attach handlers for movies and delete buttons
+            
+            // Attach handlers for movies and delete buttons after DOM update
             setTimeout(() => {
-
-                
                 // Delete handlers for both movies and TV shows
                 document.querySelectorAll('.watch-later-delete-btn').forEach(btn => {
-                    btn.onclick = (e) => {
+                    btn.onclick = async (e) => {
                         e.stopPropagation();
                         // Use .watch-later-card to match both movie and tvshow cards
                         const card = btn.closest('.watch-later-card');
@@ -3241,8 +3268,8 @@ class MediaLibraryManager {
                         }
                         
                         if (path) {
-                            this.removeResumeProgress(path);
-                            this.renderWatchLaterContent();
+                            await this.removeResumeProgress(path);
+                            this.updateWatchLaterGrid();
                             this.showToast('Removed from Watch Later');
                         } else {
                             this.showToast('Error: Could not remove item', 'error');
@@ -3304,33 +3331,102 @@ class MediaLibraryManager {
                     };
                 });
                 
-                // Add manual cleanup button
-                const cleanupBtn = document.createElement('button');
-                cleanupBtn.innerHTML = '🧹 Clean Duplicates';
-                cleanupBtn.className = 'cleanup-btn';
-                cleanupBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;';
-                cleanupBtn.onclick = () => {
-                    this.renderWatchLaterContent();
-                    this.showToast('Content refreshed!');
-                };
-                document.body.appendChild(cleanupBtn);
 
-                // Add clear and rebuild button
-                const clearBtn = document.createElement('button');
-                clearBtn.innerHTML = '🗑️ Clear All';
-                clearBtn.className = 'clear-watch-later-btn';
-                clearBtn.style.cssText = 'position: fixed; top: 40px; right: 10px; z-index: 1000; background: #ff8800; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;';
-                clearBtn.onclick = () => {
-                    if (confirm('Clear all Watch Later items? This will fix playback issues but you\'ll need to re-add items.')) {
-                        this.clearAndRebuildWatchLater();
-                    }
-                };
-                document.body.appendChild(clearBtn);
                 
 
             }, 0);
         }
         return html;
+    }
+
+    // Helper method to update Watch Later grid content
+    updateWatchLaterGrid() {
+        if (this.currentTab === 'watchlater') {
+            const grid = document.getElementById('mediaGrid');
+            if (grid) {
+                const html = this.renderWatchLaterContent();
+                grid.innerHTML = html;
+                this.attachWatchLaterHandlers();
+            }
+        }
+    }
+
+    // Helper method to attach Watch Later event handlers
+    attachWatchLaterHandlers() {
+        setTimeout(() => {
+            // Delete handlers for both movies and TV shows
+            document.querySelectorAll('.watch-later-delete-btn').forEach(btn => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    // Use .watch-later-card to match both movie and tvshow cards
+                    const card = btn.closest('.watch-later-card');
+                    let path = null;
+                    
+                    if (card) {
+                        // For movies, get path from data-path attribute
+                        path = card.getAttribute('data-path');
+                        
+                        // For TV shows, extract path from episode data
+                        if (!path) {
+                            const episodeData = card.getAttribute('data-episode');
+                            if (episodeData) {
+                                try {
+                                    const episodeObj = JSON.parse(episodeData);
+                                    path = episodeObj.path;
+                                } catch (error) {
+                                    console.error('[WATCH-LATER] Error parsing episode data:', error);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (path) {
+                        await this.removeResumeProgress(path);
+                        this.updateWatchLaterGrid();
+                        this.showToast('Removed from Watch Later');
+                    } else {
+                        this.showToast('Error: Could not remove item', 'error');
+                    }
+                };
+            });
+            
+            // Resume handlers for movies
+            document.querySelectorAll('.media-library-movie-card-movies .watch-later-resume-btn').forEach(btn => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.watch-later-card');
+                    const path = card ? card.getAttribute('data-path') : null;
+                    
+                    if (path) {
+                        // Get the resume list to find the item
+                        let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
+                        const item = resumeList.find(i => (i.path || '').replace(/\\/g, '/').toLowerCase().trim() === (path || '').replace(/\\/g, '/').toLowerCase().trim());
+                        if (item) {
+                            this.playMedia(item, item.currentTime || 0);
+                        }
+                    }
+                };
+            });
+            
+            // Resume handlers for TV shows
+            document.querySelectorAll('.media-library-card.episode .watch-later-resume-btn').forEach(btn => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
+                    const card = btn.closest('.watch-later-card');
+                    const episodeData = card ? card.getAttribute('data-episode') : null;
+                    
+                    if (episodeData) {
+                        try {
+                            const episode = JSON.parse(episodeData);
+                            this.playEpisode(episode, episode.currentTime || 0);
+                        } catch (error) {
+                            console.error('[WATCH-LATER] Error parsing episode data:', error);
+                            this.showToast('Error loading episode data', 'error');
+                        }
+                    }
+                };
+            });
+        }, 0);
     }
 
     // --- UTILITY METHODS ---
@@ -3464,7 +3560,7 @@ class MediaLibraryManager {
         // console.log('[DEBUG - FAVORITES] isFavorite check for path:', path, 'result:', isFav);
         return isFav;
     }
-    toggleFavorite(path, type) {
+    async toggleFavorite(path, type) {
         // console.log('[DEBUG - FAVORITES] toggleFavorite called with path:', path, 'type:', type);
         
         // Initialize favorites storage if needed
@@ -3502,7 +3598,7 @@ class MediaLibraryManager {
         
         // If on favorites tab, refresh the content
         if (this.currentTab === 'favorites') {
-            this.updateModalContent();
+            await this.updateModalContent();
         }
     }
     getFavoritesList() {
@@ -4508,13 +4604,38 @@ class MediaLibraryManager {
     findShowByPath(showPath) {
         if (!showPath) return null;
         const target = (showPath || '').replace(/\\/g, '/').toLowerCase();
-        // console.log('[FIND SHOW DEBUG] Searching for showPath:', showPath, 'normalized:', target);
-        // 1. Search top-level TV show objects
+        console.log('[FIND SHOW DEBUG] Searching for showPath:', showPath, 'normalized:', target);
+        
+        // 1. Search top-level TV show objects with multiple matching strategies
         const tvShows = this.getTVShows();
         for (const show of tvShows) {
             const showObjPath = (show.path || '').replace(/\\/g, '/').toLowerCase();
+            
+            // Strategy 1: Exact match
             if (showObjPath === target) {
-                // console.log('[FIND SHOW DEBUG] Found top-level show:', show);
+                console.log('[FIND SHOW DEBUG] Found exact match:', show);
+                return show;
+            }
+            
+            // Strategy 2: Match without year (e.g., "bored to death" matches "bored to death (2009)")
+            const targetWithoutYear = target.replace(/\s*\(\d{4}\)$/, '');
+            const showPathWithoutYear = showObjPath.replace(/\s*\(\d{4}\)$/, '');
+            if (targetWithoutYear === showPathWithoutYear && targetWithoutYear.length > 0) {
+                console.log('[FIND SHOW DEBUG] Found year-flexible match:', show);
+                return show;
+            }
+            
+            // Strategy 3: Normalized match (handle special characters)
+            const normalize = (str) => str.toLowerCase()
+                .replace(/[^\w\s]/g, ' ')  // Replace special chars with spaces
+                .replace(/\s+/g, ' ')      // Normalize spaces
+                .replace(/\s*\d{4}\s*$/, '') // Remove year
+                .trim();
+            
+            const normalizedTarget = normalize(target);
+            const normalizedShowPath = normalize(showObjPath);
+            if (normalizedTarget === normalizedShowPath && normalizedTarget.length > 0) {
+                console.log('[FIND SHOW DEBUG] Found normalized match:', show);
                 return show;
             }
         }
@@ -5246,10 +5367,24 @@ class MediaLibraryManager {
             return null;
         }
         
+        // Handle both absolute and relative paths
+        let workingPath = episodePath;
+        
+        // If it's an absolute path, extract the relative part after TV-SHOWS
+        if (workingPath.includes('TV-SHOWS') || workingPath.includes('tv-shows')) {
+            const pathParts = workingPath.split(/[\\/]/);
+            const tvShowsIndex = pathParts.findIndex(part => part.toLowerCase().includes('tv-shows'));
+            if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
+                // Get everything after TV-SHOWS: ["Show Name", "Season 01", "episode.mkv"]
+                workingPath = pathParts.slice(tvShowsIndex + 1).join('/');
+                console.log('[DEBUG - PATH-PROCESSING] Converted absolute path:', episodePath, 'to relative:', workingPath);
+            }
+        }
+        
         // Parse the path to extract show, season, and episode info
-        const pathParts = episodePath.split('/');
+        const pathParts = workingPath.split('/');
         if (pathParts.length < 3) {
-            // console.log('[DEBUG - REAL-METHOD] Invalid path format:', episodePath);
+            console.log('[DEBUG - REAL-METHOD] Invalid path format after processing:', workingPath, 'from original:', episodePath);
             return null;
         }
         
@@ -6167,149 +6302,409 @@ class MediaLibraryManager {
     }
     
     // --- WATCH LATER / RESUME LOGIC ---
-    saveResumeProgress(mediaItem, currentTime, duration, isManualSave = false) {
+    async saveResumeProgress(mediaItem, currentTime, duration, isManualSave = false) {
         console.log('[MEDIA-LIBRARY] saveResumeProgress called:', {mediaItem, currentTime, duration, isManualSave});
-        let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
         
-        // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
-        const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
-        const isTVShow = pathToCheck.includes('tv-shows') || 
-                        pathToCheck.includes('tv_shows') ||
-                        pathToCheck.includes('season') ||
-                        (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
-        
-        // Remove any existing entry for this path (deduplication)
-        resumeList = resumeList.filter(item => {
-            const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-            const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+        try {
+            // Get current resume list from localStorage
+            let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
             
-            // Remove exact path matches
-            if (itemPath === mediaPath && itemPath !== '') {
-                return false; // Remove duplicate
-            }
+            // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
+            const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
+            const isTVShow = pathToCheck.includes('tv-shows') || 
+                            pathToCheck.includes('tv_shows') ||
+                            pathToCheck.includes('season') ||
+                            (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
             
-            // For TV shows, also check by title to catch different path formats
-            if (isTVShow && mediaItem.title && item.title) {
-                const itemTitle = item.title.toLowerCase().trim();
-                const mediaTitle = mediaItem.title.toLowerCase().trim();
-                if (itemTitle === mediaTitle) {
-                    return false; // Remove duplicate by title
+            // Remove any existing entry for this path (deduplication)
+            resumeList = resumeList.filter(item => {
+                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                
+                // Remove exact path matches
+                if (itemPath === mediaPath && itemPath !== '') {
+                    return false; // Remove duplicate
+                }
+                
+                // For TV shows, also check by title to catch different path formats
+                if (isTVShow && mediaItem.title && item.title) {
+                    const itemTitle = item.title.toLowerCase().trim();
+                    const mediaTitle = mediaItem.title.toLowerCase().trim();
+                    if (itemTitle === mediaTitle) {
+                        return false; // Remove duplicate by title
+                    }
+                }
+                
+                return true; // Keep this item
+            });
+
+            let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
+            
+            // For TV-Shows, ensure we have the correct path format
+            if (isTVShow && savePath) {
+                // If it's an absolute path, convert to relative
+                if (savePath.startsWith('/media/')) {
+                    savePath = savePath.replace(/^\/media\//, '');
+                }
+                
+                // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
+                if (savePath.includes('\\')) {
+                    savePath = savePath.replace(/\\/g, '/');
                 }
             }
             
-            return true; // Keep this item
-        });
-
-        let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
-        
-        // For TV-Shows, ensure we have the correct path format
-        if (isTVShow && savePath) {
-            // If it's an absolute path, convert to relative
-            if (savePath.startsWith('/media/')) {
-                savePath = savePath.replace(/^\/media\//, '');
+            // If path is missing, try to look up from main media library by filename or title
+            if (!savePath && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
+                const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
+                const found = this.mediaLibrary.find(item => {
+                    return (
+                        (item.path && item.path.split(/[\\/]/).pop() === filename) ||
+                        (item.title && item.title === mediaItem.title) ||
+                        (item.name && item.name === mediaItem.name)
+                    );
+                });
+                if (found && found.path) {
+                    savePath = found.path;
+                }
             }
             
-            // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
-            if (savePath.includes('\\')) {
-                savePath = savePath.replace(/\\/g, '/');
-            }
-        }
-        
-        // If path is missing, try to look up from main media library by filename or title
-        if (!savePath && this.mediaLibrary && (mediaItem.title || mediaItem.name)) {
-            const filename = (mediaItem.title || mediaItem.name).split(/[\\/]/).pop();
-            const found = this.mediaLibrary.find(item => {
-                return (
-                    (item.path && item.path.split(/[\\/]/).pop() === filename) ||
-                    (item.title && item.title === mediaItem.title) ||
-                    (item.name && item.name === mediaItem.name)
-                );
-            });
-            if (found && found.path) {
-                savePath = found.path;
-            }
-        }
-        
-        // Always decode before saving to avoid double-encoding
-        try {
-            savePath = decodeURIComponent(savePath);
-        } catch (e) {}
-        
-        // For manual saves (Save for Later button), always save regardless of position
-        // For automatic saves (pause events), only save if not near the end
-        if (isManualSave || (duration - currentTime > 60)) {
-            // Check if this item already exists to preserve its original timestamp
-            const existingItem = resumeList.find(item => {
-                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-                const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
-                return itemPath === mediaPath && itemPath !== '';
-            });
+            // Always decode before saving to avoid double-encoding
+            try {
+                savePath = decodeURIComponent(savePath);
+            } catch (e) {}
             
-                    // For movies, save the COMPLETE movie object (just like main Movies section)
-            if (!isTVShow) {
-                const savedItem = {
-                    // Save the COMPLETE movie object with all properties
-                    ...mediaItem,
-                    
-                    // Override/add Watch Later specific properties
-                    currentTime,
-                    duration,
-                    lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
-                    type: 'movie',
-                    
-                    // Ensure path is present
-                    path: savePath,
-                    
-                    // Ensure we have the complete files array
-                    files: mediaItem.files || [],
-                    
-                    // Ensure absPath is present
-                    absPath: mediaItem.absPath || (mediaItem.files && mediaItem.files.length > 0 ? mediaItem.files[0].absPath : null) || (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/${savePath}`)
-                };
+            // For manual saves (Save for Later button), always save regardless of position
+            // For automatic saves (pause events), only save if not near the end
+            if (isManualSave || (duration - currentTime > 60)) {
+                // Check if this item already exists to preserve its original timestamp
+                const existingItem = resumeList.find(item => {
+                    const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                    const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
+                    return itemPath === mediaPath && itemPath !== '';
+                });
                 
-
+                let savedItem;
+                
+                // For movies, save the COMPLETE movie object (just like main Movies section)
+                if (!isTVShow) {
+                    savedItem = {
+                        // Save the COMPLETE movie object with all properties
+                        ...mediaItem,
+                        
+                        // Override/add Watch Later specific properties
+                        currentTime,
+                        duration,
+                        lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
+                        type: 'movie',
+                        mediaType: 'movie', // For MongoDB compatibility
+                        
+                        // Generate mediaId for MongoDB
+                        mediaId: this.generateMediaId(mediaItem, 'movie'),
+                        
+                        // Ensure path is present
+                        path: savePath,
+                        filePath: savePath, // For MongoDB compatibility
+                        fileName: savePath ? savePath.split(/[\\/]/).pop() : (mediaItem.title || 'Unknown'),
+                        
+                        // Ensure we have the complete files array
+                        files: mediaItem.files || [],
+                        
+                        // Ensure absPath is present for movies
+                        absPath: mediaItem.absPath || 
+                               (mediaItem.files && mediaItem.files.length > 0 ? mediaItem.files[0].absPath : null) || 
+                               (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/MOVIES/${savePath}`)
+                    };
+                } else {
+                    // For TV shows, save the complete episode object
+                    savedItem = {
+                        // Save the COMPLETE episode object with all properties
+                        ...mediaItem,
+                        
+                        // Override/add Watch Later specific properties
+                        currentTime,
+                        duration,
+                        lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
+                        type: 'tv-show',
+                        mediaType: 'tv-show', // For MongoDB compatibility
+                        
+                        // Generate mediaId for MongoDB
+                        mediaId: this.generateMediaId(mediaItem, 'tv-show'),
+                        
+                        // Ensure path is present
+                        path: savePath,
+                        
+                        // Ensure filePath is present for TV shows
+                        filePath: mediaItem.filePath || mediaItem.absPath || (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/TV-SHOWS/${savePath}`),
+                        fileName: savePath ? savePath.split(/[\\/]/).pop() : (mediaItem.title || 'Unknown'),
+                        
+                        // Ensure absPath is present for TV shows
+                        absPath: mediaItem.absPath || mediaItem.filePath || (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/TV-SHOWS/${savePath}`),
+                        
+                        // Extract season/episode info for MongoDB
+                        season: this.extractSeasonNumber(mediaItem),
+                        episode: this.extractEpisodeNumber(mediaItem),
+                        episodeTitle: mediaItem.episodeTitle || mediaItem.title
+                    };
+                }
                 
                 resumeList.push(savedItem);
-            } else {
-                // For TV shows, save the complete episode object
-                const savedItem = {
-                    // Save the COMPLETE episode object with all properties
-                    ...mediaItem,
-                    
-                    // Override/add Watch Later specific properties
-                    currentTime,
-                    duration,
-                    lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
-                    type: 'tv-show',
-                    
-                    // Ensure path is present
-                    path: savePath,
-                    
-                    // Ensure filePath is present for TV shows
-                    filePath: mediaItem.filePath || mediaItem.absPath || (savePath.startsWith('S:/') ? savePath : `S:/MEDIA/TV-SHOWS/${savePath}`)
-                };
                 
-
-                resumeList.push(savedItem);
+                // Save to localStorage
+                localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
+                
+                // Also save to MongoDB
+                await this.saveToMongoDB(savedItem);
             }
             
-            // Note: We no longer need the old TV show and movie handling code
-            // because we're now saving the COMPLETE objects with all properties
-        }
-        
-        localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
-        
-        this.renderWatchLaterContent();
-        if (isManualSave) {
-            this.showToast('Saved to Watch Later!');
+            this.updateWatchLaterGrid();
+            if (isManualSave) {
+                this.showToast('Saved to Watch Later!', 'info'); // 'info' style gives blue background with yellow border
+            }
+            
+        } catch (error) {
+            console.error('[MEDIA-LIBRARY] Error saving resume progress:', error);
+            console.error('[MEDIA-LIBRARY] Error details:', {
+                message: error.message,
+                stack: error.stack,
+                mediaItem: mediaItem?.title,
+                currentTime,
+                duration
+            });
+            this.showToast(`Error saving to Watch Later: ${error.message}`, 'error');
         }
     }
 
-    removeResumeProgress(path) {
+    // Helper method to generate consistent mediaId for MongoDB
+    generateMediaId(mediaItem, mediaType) {
+        // Use path as primary identifier, fallback to title
+        const identifier = mediaItem.path || mediaItem.filePath || mediaItem.title || 'unknown';
+        return `${mediaType}_${identifier.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`;
+    }
+
+    // Helper method to extract season number from media item
+    extractSeasonNumber(mediaItem) {
+        if (mediaItem.season !== undefined) return mediaItem.season;
+        
+        // Try to extract from title or path
+        const text = (mediaItem.title || mediaItem.path || '').toLowerCase();
+        const seasonMatch = text.match(/s(\d+)e\d+|season[\s\-_]*(\d+)/i);
+        return seasonMatch ? parseInt(seasonMatch[1] || seasonMatch[2]) : null;
+    }
+
+    // Helper method to extract episode number from media item
+    extractEpisodeNumber(mediaItem) {
+        if (mediaItem.episode !== undefined) return mediaItem.episode;
+        
+        // Try to extract from title or path
+        const text = (mediaItem.title || mediaItem.path || '').toLowerCase();
+        const episodeMatch = text.match(/s\d+e(\d+)|episode[\s\-_]*(\d+)/i);
+        return episodeMatch ? parseInt(episodeMatch[1] || episodeMatch[2]) : null;
+    }
+
+    // Helper method to save item to MongoDB
+    async saveToMongoDB(item) {
+        try {
+            console.log('[MEDIA-LIBRARY] Saving to MongoDB:', item.title);
+            console.log('[MEDIA-LIBRARY] Item data being sent:', {
+                title: item.title,
+                mediaType: item.mediaType,
+                absPath: item.absPath,
+                filePath: item.filePath,
+                currentTime: item.currentTime
+            });
+            
+            const response = await fetch('/api/watch-later/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(item)
+            });
+
+            console.log('[MEDIA-LIBRARY] MongoDB API response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[MEDIA-LIBRARY] MongoDB API error response:', errorText);
+                throw new Error(`MongoDB save failed: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('[MEDIA-LIBRARY] Successfully saved to MongoDB:', result.message);
+            
+        } catch (error) {
+            console.error('[MEDIA-LIBRARY] MongoDB save error:', error);
+            throw error; // Re-throw so the parent catch block can handle it
+            // Don't throw - we want localStorage to still work if MongoDB fails
+        }
+    }
+
+    // Method to restore Watch Later data from backup file
+    async restoreWatchLaterFromBackup() {
+        try {
+            console.log('[WATCH-LATER DEBUG] Attempting to restore from backup file...');
+            
+            // Try the local backup file first (with actual progress data)
+            try {
+                const localResponse = await fetch('/components/MediaLibrary/data/watch_later/watch_later.json');
+                if (localResponse.ok) {
+                    const localWatchLaterData = await localResponse.json();
+                    console.log('[WATCH-LATER DEBUG] Local watch later data received:', localWatchLaterData);
+                    
+                    if (localWatchLaterData.items && Array.isArray(localWatchLaterData.items)) {
+                        // Data is already in the correct localStorage format
+                        const items = localWatchLaterData.items;
+                        console.log('[WATCH-LATER DEBUG] Using local watch later items:', items.length, 'items');
+                        
+                        // Update localStorage
+                        localStorage.setItem('mediaLibraryResumeList', JSON.stringify(items));
+                        
+                        this.updateWatchLaterGrid();
+                        this.showToast(`Watch Later restored from local backup (${items.length} items with progress)`, 'green');
+                        return;
+                    }
+                }
+            } catch (localError) {
+                console.log('[WATCH-LATER DEBUG] Local backup failed, trying server backup:', localError.message);
+            }
+            
+            // Fallback to server backup
+            const response = await fetch('/api/watch-later/backup');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch backup: ${response.status}`);
+            }
+            
+            const backupData = await response.json();
+            console.log('[WATCH-LATER DEBUG] Retrieved server backup data:', backupData);
+            
+            if (backupData.items && Array.isArray(backupData.items)) {
+                // Convert MongoDB format to localStorage format
+                const localStorageItems = backupData.items.map(item => ({
+                    ...item,
+                    type: item.mediaType || item.type,
+                    path: item.filePath || item.path,
+                    lastWatched: new Date(item.lastWatched).getTime()
+                }));
+                
+                localStorage.setItem('mediaLibraryResumeList', JSON.stringify(localStorageItems));
+                console.log('[WATCH-LATER DEBUG] Restored', localStorageItems.length, 'items to localStorage');
+                
+                this.updateWatchLaterGrid();
+                this.showToast(`Restored ${localStorageItems.length} items from server backup`, 'success');
+            } else {
+                throw new Error('Invalid backup data format');
+            }
+            
+        } catch (error) {
+            console.error('[WATCH-LATER DEBUG] Error restoring from backup:', error);
+            this.showToast('Error restoring from backup', 'error');
+            
+            // Fallback to test data
+            this.populateTestWatchLaterData();
+        }
+    }
+
+    // Method to manually populate Watch Later with test data (for debugging)
+    populateTestWatchLaterData() {
+        const testData = [
+            {
+                title: "Test Movie 1",
+                path: "movies/Test.Movie.1.(2023).[1080p].mp4",
+                currentTime: 1800, // 30 minutes
+                duration: 7200, // 2 hours
+                lastWatched: Date.now() - 86400000, // 1 day ago
+                type: "movie",
+                mediaType: "movie"
+            },
+            {
+                title: "Test TV Show S01E01",
+                path: "tv-shows/Test Show (2023)/Season 1/Test.Show.S01E01.[1080p].mp4",
+                currentTime: 900, // 15 minutes
+                duration: 2700, // 45 minutes
+                lastWatched: Date.now() - 3600000, // 1 hour ago
+                type: "tv-show",
+                mediaType: "tv-show"
+            }
+        ];
+        
+        localStorage.setItem('mediaLibraryResumeList', JSON.stringify(testData));
+        console.log('[WATCH-LATER DEBUG] Populated test data:', testData);
+        this.updateWatchLaterGrid();
+        this.showToast('Test Watch Later data populated', 'success');
+    }
+
+    // Method to refresh Watch Later from MongoDB
+    async refreshWatchLaterFromMongoDB() {
+        try {
+            console.log('[MEDIA-LIBRARY] Refreshing Watch Later from MongoDB...');
+            
+            const response = await fetch('/api/watch-later');
+            if (!response.ok) {
+                console.error('[MEDIA-LIBRARY] MongoDB API failed:', response.status);
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[MEDIA-LIBRARY] MongoDB error details:', errorData);
+                return false; // Indicate failure
+            }
+
+            const data = await response.json();
+            console.log('[MEDIA-LIBRARY] Retrieved', data.itemCount, 'items from MongoDB');
+
+            if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+                // Convert MongoDB format back to localStorage format
+                const localStorageItems = data.items.map(item => ({
+                    ...item,
+                    // Ensure compatibility with existing localStorage format
+                    type: item.mediaType || item.type,
+                    // PRESERVE ALL PATH FIELDS - don't overwrite!
+                    path: item.path || item.filePath, // Keep original path if available
+                    filePath: item.filePath, // Keep filePath for reference
+                    absPath: item.absPath,   // CRITICAL: Preserve the absPath field!
+                    lastWatched: item.lastWatched ? new Date(item.lastWatched).getTime() : Date.now()
+                }));
+
+                // Debug: Check the converted data
+                console.log('[MEDIA-LIBRARY] Sample converted item:', localStorageItems[0]);
+                console.log('[MEDIA-LIBRARY] John Carter absPath check:', localStorageItems.find(item => 
+                    item.title && item.title.includes('John Carter'))?.absPath);
+
+                // Update localStorage with MongoDB data
+                localStorage.setItem('mediaLibraryResumeList', JSON.stringify(localStorageItems));
+                
+                // Re-render the Watch Later content
+                this.updateWatchLaterGrid();
+                
+                this.showToast(`Refreshed ${data.itemCount} items from MongoDB`, 'success');
+                console.log('[MEDIA-LIBRARY] Watch Later refreshed from MongoDB successfully');
+                
+                return true; // Indicate success
+            } else {
+                console.log('[MEDIA-LIBRARY] MongoDB returned no items');
+                return false; // No data found
+            }
+            
+        } catch (error) {
+            console.error('[MEDIA-LIBRARY] Error refreshing from MongoDB:', error);
+            return false; // Indicate failure
+        }
+    }
+
+    async removeResumeProgress(path) {
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
         
         // Normalize the target path
         const normalizedPath = path.replace(/\\/g, '/').toLowerCase().trim();
+        
+        // Find the item to remove (for MongoDB removal)
+        const itemToRemove = resumeList.find(item => {
+            const itemPaths = [
+                item.path,
+                item.relPath,
+                item.filePath,
+                item.absPath
+            ].filter(p => p).map(p => p.replace(/\\/g, '/').toLowerCase().trim());
+            
+            return itemPaths.some(itemPath => itemPath === normalizedPath);
+        });
         
         // Remove items that match the path (check all possible path properties)
         const originalCount = resumeList.length;
@@ -6324,11 +6719,43 @@ class MediaLibraryManager {
             return !itemPaths.some(itemPath => itemPath === normalizedPath);
         });
         
+        // Update localStorage
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
+        
+        // Also remove from MongoDB if we found the item
+        if (itemToRemove && itemToRemove.mediaId && itemToRemove.mediaType) {
+            await this.removeFromMongoDB(itemToRemove.mediaId, itemToRemove.mediaType);
+        }
         
         // Refresh the Watch Later content if we're currently on that tab
         if (this.currentTab === 'watchlater') {
-            this.renderWatchLaterContent();
+            this.updateWatchLaterGrid();
+        }
+    }
+
+    // Helper method to remove item from MongoDB
+    async removeFromMongoDB(mediaId, mediaType) {
+        try {
+            console.log('[MEDIA-LIBRARY] Removing from MongoDB:', mediaId);
+            
+            const response = await fetch('/api/watch-later/remove', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ mediaId, mediaType })
+            });
+
+            if (!response.ok) {
+                throw new Error(`MongoDB remove failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[MEDIA-LIBRARY] Successfully removed from MongoDB:', result.message);
+            
+        } catch (error) {
+            console.error('[MEDIA-LIBRARY] MongoDB remove error:', error);
+            // Don't throw - we want localStorage removal to still work if MongoDB fails
         }
     }
 
@@ -6341,6 +6768,7 @@ class MediaLibraryManager {
     cleanupWatchLaterDuplicates() {
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
         const originalCount = resumeList.length;
+        console.log('[WATCH-LATER DEBUG] Cleanup starting with', originalCount, 'items');
         
         // Group items by normalized path and title
         const groups = {};
@@ -6372,16 +6800,37 @@ class MediaLibraryManager {
         cleanedList.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
         
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(cleanedList));
+        console.log('[WATCH-LATER DEBUG] Cleanup finished with', cleanedList.length, 'items');
         
         return cleanedList;
     }
 
+    // Try to restore Watch Later data from backup file
+    async tryRestoreFromBackup() {
+        try {
+            console.log('[WATCH-LATER DEBUG] Attempting to restore from backup file...');
+            const response = await fetch('/components/MediaLibrary/data/watch_later/watch_later.json');
+            if (response.ok) {
+                const backupData = await response.json();
+                if (backupData.items && Array.isArray(backupData.items) && backupData.items.length > 0) {
+                    console.log('[WATCH-LATER DEBUG] Found backup data with', backupData.items.length, 'items');
+                    localStorage.setItem('mediaLibraryResumeList', JSON.stringify(backupData.items));
+                    this.showToast(`Restored ${backupData.items.length} items from backup!`, 'blue');
+                    return backupData.items;
+                }
+            }
+        } catch (error) {
+            console.log('[WATCH-LATER DEBUG] Could not restore from backup:', error);
+        }
+        return [];
+    }
+
     // Clear and rebuild Watch Later data with complete file information
-    clearAndRebuildWatchLater() {
+    async clearAndRebuildWatchLater() {
         console.log('[MEDIA-LIBRARY] Clearing and rebuilding Watch Later data...');
         localStorage.removeItem('mediaLibraryResumeList');
         this.showToast('Watch Later data cleared. Re-add items to get complete file information.');
-        this.renderWatchLaterContent();
+        this.updateWatchLaterGrid();
     }
 
     showToast(msg, type) {
@@ -6575,6 +7024,24 @@ class MediaLibraryManager {
             // Small delay to show the refreshing message
             await new Promise(resolve => setTimeout(resolve, 100));
             console.log('[DEBUG - REFRESH] ⏱️ 100ms delay completed');
+            
+            // For Watch Later tab, refresh from MongoDB first, then fallback to backup
+            if (currentTab === 'watchlater') {
+                console.log('[DEBUG - REFRESH] 🔄 Refreshing Watch Later content...');
+                
+                // Always try MongoDB first when refreshing
+                console.log('[DEBUG - REFRESH] Attempting to refresh from MongoDB...');
+                const mongoResult = await this.refreshWatchLaterFromMongoDB();
+                
+                if (!mongoResult) {
+                    // MongoDB failed, check if localStorage is empty
+                    const currentData = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
+                    console.log('[DEBUG - REFRESH] MongoDB failed, localStorage has', currentData.length, 'items - attempting to restore from backup file...');
+                    await this.restoreWatchLaterFromBackup();
+                } else {
+                    console.log('[DEBUG - REFRESH] Successfully refreshed from MongoDB');
+                }
+            }
             
             // Force reload the current tab
             console.log('[DEBUG - REFRESH] 🔄 Calling switchTab(' + currentTab + ')...');
@@ -6829,7 +7296,7 @@ class MediaLibraryManager {
 
     // Add methods to get total counts
     getTotalMovieCount() {
-        return this.mediaLibraryRaw ? this.mediaLibraryRaw.length : 0;
+        return this.moviesData ? this.moviesData.length : 0;
     }
 
     getTotalTVShowCount() {

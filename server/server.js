@@ -335,7 +335,7 @@ app.get('/api/youtube/search', async (req, res) => {
             thumbnail: item.snippet.thumbnails.high.url,
             channel: item.snippet.channelTitle,
             views: item.statistics.viewCount,
-            duration: item.contentDetails.duration,
+            duration: item. image.pngcontentDetails.duration,
             publishedAt: item.snippet.publishedAt
         }));
 
@@ -2553,14 +2553,20 @@ const maxRetries = 3;
 
 async function connectWithRetry() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 30000, // 30 seconds
+            socketTimeoutMS: 45000, // 45 seconds
+            maxPoolSize: 10,
+            minPoolSize: 2,
+            maxIdleTimeMS: 30000
+        });
         console.log('\x1b[32m%s\x1b[0m', 'MongoDB connect with Retry on HOST and PORT successful:');
         console.log('\x1b[32m%s\x1b[0m', JSON.stringify({
             host: mongoose.connection.host || 'Atlas Cluster',
             port: mongoose.connection.port || 'SRV',
-            name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown',
-            collections: await mongoose.connection.db.listCollections().toArray()
+            name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown'
         }, null, 4));
+        retryCount = 0; // Reset retry count on successful connection
     } catch (err) {
         console.error('MongoDB connection error:', {
             error: err.message,
@@ -2579,26 +2585,15 @@ async function connectWithRetry() {
 // Initial connection
 connectWithRetry();
 
-// Single MongoDB connection
-mongoose.connect(process.env.MONGODB_URI).then(() => {
-    console.log('\x1b[32m%s\x1b[0m', 'MongoDB connected HOST and PORT successfully:');
-    console.log('\x1b[32m%s\x1b[0m', JSON.stringify({
-        host: mongoose.connection.host || 'Atlas Cluster',
-        port: mongoose.connection.port || 'SRV',
-        name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown'
-    }, null, 4));
+// Set up conversation collection reference after connection
+mongoose.connection.once('open', () => {
     conversationCollection = mongoose.connection.collection('conversation_history');
-}).catch(err => {
-    console.error('MongoDB connection error:', {
-        error: err.message,
-        code: err.code,
-        uri: process.env.MONGODB_URI?.replace(/\/\/.*@/, '//***:***@')
-    });
+    console.log('[DEBUG - MONGO] Conversation collection reference set');
 });
 
 // Handle disconnection
 mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB connected successfully:', {
+    console.log('MongoDB disconnected:', {
         status: 'disconnected',
         time: new Date().toISOString()
     });

@@ -1880,10 +1880,10 @@
     box-shadow: rgba(57, 57, 57, 0.35) 0px 5px 15px;
     min-width: 340px;
     max-width: 1300px;
-    margin-left: 90px;
+    margin-left: 60px;
     width: 80vw;
     max-height: 90vh;
-    height: 48vh;
+    height: 52vh;
     overflow-y: auto;
     position: relative;
     display: flex;
@@ -2837,21 +2837,21 @@
 
 /* Toast alert styles */
 .media-library-toast {
-    position: fixed;
-    bottom: 67px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #fff;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 1.1em;
-    z-index: 1000000000 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    opacity: 0.95;
-    transition: opacity 0.3s;
-    display: flex;
-    border: 3px solid yellow; /* For debugging, remove when done */
-    background: #1976d2;
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 1.1em;
+  z-index: 1000000000 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  opacity: 0.95;
+  transition: opacity 0.3s;
+  display: flex;
+  border: 3px solid yellow;
+  background: #1976d2;
 }
 .media-library-toast.success {
     background: #1976d2;

@@ -2742,6 +2742,25 @@ export default class YouTubeSearchManager {
         });
     }
 
+    // Format YouTube ISO 8601 duration (PT4M13S) to readable format (4:13)
+    formatDuration(duration) {
+        if (!duration) return 'N/A';
+        
+        // Handle ISO 8601 duration format (PT4M13S, PT1H23M45S, etc.)
+        const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+        if (!match) return duration; // Return original if can't parse
+        
+        const hours = parseInt(match[1] || 0);
+        const minutes = parseInt(match[2] || 0);
+        const seconds = parseInt(match[3] || 0);
+        
+        if (hours > 0) {
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
     renderRealYoutubeResults(videos, page, totalPages, query, type, isPagination, messageText, isOverwrite) {
         console.log('🎯 [YOUTUBE] Rendering', videos?.length || 0, 'videos for page', page, 'of', totalPages);
         console.log('🎯 [YOUTUBE] Videos array:', videos);
@@ -2804,6 +2823,13 @@ export default class YouTubeSearchManager {
                 thumbnail: video.thumbnail,
                 duration: video.duration || ''
             }));
+            
+            // Format duration if available
+            let durationDisplay = '';
+            if (video.duration) {
+                durationDisplay = this.formatDuration(video.duration);
+            }
+            
             html += `
                 <li class="video-item">
                     <div class="button-thumb-group-MULTI top-buttons">
@@ -2821,6 +2847,7 @@ export default class YouTubeSearchManager {
                         </button>
                     </div>
                     <div class="video-channel">${video.channelTitle || 'N/A'}</div>
+                    ${durationDisplay ? `<div class="youtube-video-duration">⏱️ ${durationDisplay}</div>` : ''}
                 </li>
             `;
         });

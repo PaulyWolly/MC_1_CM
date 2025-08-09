@@ -1206,6 +1206,15 @@
     text-align: center;
 }
 
+.youtube-video-duration {
+    color: #888;
+    font-size: 0.7em;
+    margin: 2px 0;
+    text-align: center;
+    font-family: monospace;
+    font-weight: 500;
+}
+
 .youtube-thumb-link img {
     width: 100%;
     height: auto;
