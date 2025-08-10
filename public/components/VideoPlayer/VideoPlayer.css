@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.CSS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -58,7 +58,7 @@
 .amplify-controls-container {
     position: absolute;
     bottom: 84px; /* Position above main control bar */
-    left: 35px; /* Position to the right of progress controls */
+    left: 20px; /* Position to the right of progress controls */
     display: flex;
     align-items: center;
     gap: 8px;
@@ -96,20 +96,19 @@
 .video-player-amplify-btn {
     background: linear-gradient(145deg, #2c3e50, #34495e);
     color: white;
-    border: none;
+    border: blue;
     padding: 8px 12px;
     border-radius: 6px;
-    cursor: pointer !important; /* Force pointer cursor */
+    cursor: pointer !important;
     font-size: 11px;
     font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    transition: all 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     margin: 0 4px;
     min-width: 80px;
-    z-index: 1000000001 !important; /* Higher than all overlays to ensure it's clickable */
+    z-index: 1000000001 !important;
     position: relative;
-    pointer-events: auto !important; /* Ensure button is clickable */
+    pointer-events: auto !important;
 }
 
 .video-player-amplify-btn:hover {

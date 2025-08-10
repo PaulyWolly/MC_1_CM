@@ -1,44 +1,87 @@
 /*
   YOUTUBEHISTORY.ROUTES.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
 const express = require('express');
 const router = express.Router();
-const YoutubeHistory = require('../models/YoutubeHistory');
+const YouTubeSearch = require('../models/YouTubeSearch');
 
-// GET history for a session
-router.get('/:sessionId', async (req, res) => {
+// GET all queries (for cache restoration)
+router.get('/all', async (req, res) => {
     try {
-        // Query the correct collection directly (youtube_searches instead of youtubehistories)
-        const mongoose = require('mongoose');
-        
         // Check if MongoDB is connected
+        const mongoose = require('mongoose');
         if (mongoose.connection.readyState !== 1) {
             console.log('📚 [API] MongoDB not connected, returning empty array');
-            return res.json({ queries: [] });
+            return res.json([]);
         }
         
-        const collection = mongoose.connection.collection('youtube_searches');
+        // Get all documents without requiring sessionId
+        const allQueries = await YouTubeSearch.find({}).sort({ lastSearched: -1 });
         
-        // Get all queries from the youtube_searches collection
-        const history = await collection.find({}).sort({ lastSearched: -1 }).limit(100).toArray();
-            
+        console.log(`📚 [API] Found ${allQueries.length} total documents in database`);
+        
         // Return complete search information including type
-        const queries = history.map(item => ({
+        const queries = allQueries.map(item => ({
             query: item.query,
             displayName: item.displayName,
             searchType: item.searchMetadata?.searchType || 'search',
             timestamp: item.lastSearched || item.dateCreated,
             totalPages: item.totalPages,
-            videoCount: item.videoCount
+            videoCount: item.videoCount,
+            cacheKeys: item.cacheKeys || [] // Include cache keys for debugging
         }));
         
-        console.log(`📚 [API] Found ${queries.length} queries in youtube_searches collection`);
-        console.log('📚 [API] Sample queries:', queries.slice(0, 5));
+        console.log(`📚 [API] Returning ${queries.length} queries from database`);
+        console.log('📚 [API] Sample queries:', queries.slice(0, 5).map(q => ({
+            query: q.query,
+            displayName: q.displayName,
+            cacheKeys: q.cacheKeys?.length || 0
+        })));
+        
+        res.json(queries);
+    } catch (error) {
+        console.error('📚 [API] Error loading queries:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// GET history for a session
+router.get('/:sessionId', async (req, res) => {
+    try {
+        // Check if MongoDB is connected
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            console.log('📚 [API] MongoDB not connected, returning empty array');
+            return res.json({ queries: [] });
+        }
+        
+        // FIXED: Get all documents without problematic aggregation that was hiding duplicates
+        const allQueries = await YouTubeSearch.find({}).sort({ lastSearched: -1 });
+        
+        console.log(`📚 [API] Found ${allQueries.length} total documents in database`);
+        
+        // Return complete search information including type
+        const queries = allQueries.map(item => ({
+            query: item.query,
+            displayName: item.displayName,
+            searchType: item.searchMetadata?.searchType || 'search',
+            timestamp: item.lastSearched || item.dateCreated,
+            totalPages: item.totalPages,
+            videoCount: item.videoCount,
+            cacheKeys: item.cacheKeys || [] // Include cache keys for debugging
+        }));
+        
+        console.log(`📚 [API] Returning ${queries.length} queries from database`);
+        console.log('📚 [API] Sample queries:', queries.slice(0, 5).map(q => ({
+            query: q.query,
+            displayName: q.displayName,
+            cacheKeys: q.cacheKeys?.length || 0
+        })));
         
         res.json(queries);
     } catch (error) {
@@ -55,10 +98,31 @@ router.post('/', async (req, res) => {
     }
 
     try {
+        // Normalize query for internal storage
+        const normalizeQuery = (q) => {
+            return q.toLowerCase()
+                .trim()
+                .replace(/^youtube\s+search\s+/i, '') // Remove youtube search prefix
+                .replace(/\s+/g, '.') // Replace spaces with dots
+                .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+        };
+        
+        const originalQuery = query;
+        const normalizedQuery = normalizeQuery(originalQuery);
+        const humanReadableDisplay = normalizedQuery.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
         // Use upsert to either create a new entry or update the timestamp of an existing one
-        const result = await YoutubeHistory.findOneAndUpdate(
-            { sessionId, query },
-            { $set: { timestamp: new Date() } },
+        const result = await YouTubeSearch.findOneAndUpdate(
+            { query: normalizedQuery }, // Search by normalized query
+            { 
+                $set: { 
+                    lastSearched: new Date(),
+                    userId: sessionId || 'default-user',
+                    displayName: humanReadableDisplay // Human-readable display name
+                } 
+            },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         res.status(201).json(result);
@@ -71,7 +135,7 @@ router.post('/', async (req, res) => {
 router.delete('/:sessionId/:query', async (req, res) => {
     try {
         const { sessionId, query } = req.params;
-        const result = await YoutubeHistory.deleteOne({ sessionId, query: decodeURIComponent(query) });
+        const result = await YouTubeSearch.deleteOne({ query: decodeURIComponent(query) });
         if (result.deletedCount === 0) {
             // It's not an error if we try to delete something that's not in the DB
             // (e.g., it only existed in local cache), so we send success.
