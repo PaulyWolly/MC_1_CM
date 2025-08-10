@@ -1,28 +1,52 @@
 /*
   YOUTUBESEARCH.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
 const mongoose = require('mongoose');
 
-// YouTube Search Query Schema - for saving user search queries and metadata
+// Video Schema for storing individual video results
+const VideoSchema = new mongoose.Schema({
+    id: { type: String, required: true },
+    title: { type: String, required: true },
+    description: { type: String, default: '' },
+    channelTitle: { type: String, required: true },
+    publishedAt: { type: String, required: true },
+    duration: { type: String, default: '' },
+    thumbnail: { type: String, required: true }
+});
+
+// Unified YouTube Search Schema - combines search queries, metadata, and results
 const youtubeSearchSchema = new mongoose.Schema({
     query: { type: String, required: true },
-    userId: { type: String, required: true },
+    userId: { type: String, required: true, default: 'default-user' },
     displayName: String, // Cleaned display name (without "youtube search" prefix)
     totalPages: { type: mongoose.Schema.Types.Mixed, default: 1 }, // Allow both Number and String (e.g., "many")
     lastSearched: { type: Date, default: Date.now, required: true }, // Last time this query was searched/saved
     dateCreated: { type: Date, default: Date.now, required: true }, // When this search was first saved
     cacheKeys: [String], // Array of localStorage cache keys for this query
-    videoCount: Number, // Number of videos found
+    videoCount: { type: Number, default: 0 }, // Number of videos found
     searchMetadata: {
-        searchType: String, // 'search' or 'play'
-        lastPageViewed: Number,
-        totalResults: mongoose.Schema.Types.Mixed // Allow both Number and String (e.g., "many")
-    }
+        searchType: { type: String, default: 'search' }, // 'search' or 'play'
+        lastPageViewed: { type: Number, default: 1 },
+        totalResults: { type: mongoose.Schema.Types.Mixed, default: 0 } // Allow both Number and String (e.g., "many")
+    },
+    // Store video results by page for caching
+    videoResults: [{
+        page: { type: Number, required: true, default: 1 },
+        videos: [VideoSchema],
+        resultType: { type: String, enum: ['SINGLE', 'MULTI', 'CHANNEL'], default: 'MULTI' },
+        nextPageToken: { type: String, default: null },
+        totalResults: { type: Number, default: 0 },
+        timestamp: { type: Date, default: Date.now },
+        apiQuotaUsed: { type: Number, default: 101 }
+    }],
+    // Legacy fields for backward compatibility
+    isSaved: { type: Boolean, default: true }, // From YoutubeHistory
+    timestamp: { type: Date } // From YoutubeHistory
 }, {
     collection: 'youtube_searches'
 });

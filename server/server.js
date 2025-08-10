@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -34,7 +34,7 @@ const bcrypt           = require('bcryptjs');
 const chalk = require('chalk');
 
 // Import MongoDB models
-const YouTubeSearchResult = require('./models/YouTubeSearchResult');
+// YouTubeSearchResult functionality now consolidated into YouTubeSearch model
 const PageToken = require('./models/PageToken');
 const User = require('./models/User');
 const Bug = require('./models/Bug');
@@ -143,12 +143,14 @@ const playlistRoutes = require('./routes/playlists.routes');
 const youtubeHistoryRoutes = require('./routes/youtubeHistory.routes.js');
 const clickedVideosRoutes = require('./routes/clickedVideos.routes.js');
 const watchLaterRoutes = require('./routes/watchLater.routes.js');
+const lyricsRoutes = require('./routes/lyrics.routes.js');
 
 // Mount the routes
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/youtube/history', youtubeHistoryRoutes);
 app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
 app.use('/api/watch-later', watchLaterRoutes);
+app.use('/api/lyrics', lyricsRoutes);
 
 // 1. Serve S:/MEDIA as /media (STATIC)
 app.use('/media', express.static('S:/MEDIA'));
@@ -162,15 +164,21 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
         const { query } = req.params;
         console.log(`🔍 [RESTORE] Looking for cached results for: "${query}"`);
         
-        // Find all pages for this query in MongoDB
-        const savedResults = await YouTubeSearchResult.find({ query }).sort({ page: 1 });
+        // First, let's see what queries we actually have in the database
+        const allQueries = await YouTubeSearch.find({}, { query: 1, videoResults: 1 }).limit(20);
+        console.log(`🔍 [RESTORE] Available queries in database:`, allQueries.map(q => `"${q.query}" (${q.videoResults?.length || 0} pages)`));
         
-        if (savedResults.length === 0) {
+        // Find saved search with video results for this query in MongoDB (case-insensitive)
+        const savedSearch = await YouTubeSearch.findOne({ 
+            query: { $regex: new RegExp(`^${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
+        
+        if (!savedSearch || !savedSearch.videoResults || savedSearch.videoResults.length === 0) {
             return res.json({ success: false, message: 'No cached results found for this query' });
         }
         
         // Restore to localStorage format and return
-        const restoredPages = savedResults.map(result => ({
+        const restoredPages = savedSearch.videoResults.map(result => ({
             page: result.page,
             videos: result.videos,
             resultType: result.resultType,
@@ -178,13 +186,18 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
             timestamp: result.timestamp
         }));
         
-        console.log(`✅ [RESTORE] Found ${savedResults.length} cached pages for "${query}"`);
+        console.log(`✅ [RESTORE] Found ${savedSearch.videoResults.length} cached pages for "${query}"`);
+        
+        // Return the first page of videos for immediate display
+        const firstPage = savedSearch.videoResults.find(result => result.page === 1);
+        const videos = firstPage ? firstPage.videos : savedSearch.videoResults[0]?.videos || [];
         
         res.json({
             success: true,
             query,
+            videos: videos,
             pages: restoredPages,
-            totalPages: savedResults.length
+            totalPages: savedSearch.videoResults.length
         });
         
     } catch (error) {
@@ -2691,7 +2704,25 @@ app.post('/api/debug/add-test-joke', async (req, res) => {
 app.post('/api/youtube/save-search', async (req, res) => {
     try {
         let { query, userId, displayName, totalPages, videoCount, cacheKeys, searchMetadata } = req.body;
-        query = (query || '').trim().toLowerCase();
+        
+        // Normalize query for internal storage
+        const normalizeQuery = (q) => {
+            return q.toLowerCase()
+                .trim()
+                .replace(/^youtube\s+search\s+/i, '') // Remove youtube search prefix
+                .replace(/\s+/g, '.') // Replace spaces with dots
+                .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+        };
+        
+        const originalQuery = (query || '').trim();
+        query = normalizeQuery(originalQuery);
+        
+        // If no displayName provided, create human-readable version from normalized query
+        if (!displayName) {
+            displayName = query.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
 
         console.log('💾 [YOUTUBE-DB] Saving search query:', { query, userId, displayName });
 
@@ -2964,9 +2995,8 @@ async function getNextPageToken(query, searchType, page) {
 
 async function saveSearchResultToMongoDB(query, page, videos, resultType, nextPageToken = null, quotaUsed = 101) {
     try {
-        // Create the update data without _id field to avoid MongoDB immutable field error
-        const updateData = {
-            query,
+        // Create the video result data
+        const videoResultData = {
             page,
             videos,
             resultType,
@@ -2976,14 +3006,56 @@ async function saveSearchResultToMongoDB(query, page, videos, resultType, nextPa
             timestamp: new Date()
         };
 
-        // Use upsert to replace existing results for same query+page
-        await YouTubeSearchResult.findOneAndUpdate(
-            { query, page },
-            { $set: updateData },
-            { upsert: true, new: true }
-        );
+        // Normalize the query for lookup
+        const normalizeQuery = (q) => {
+            return q.toLowerCase()
+                .trim()
+                .replace(/^youtube\s+search\s+/i, '') // Remove youtube search prefix
+                .replace(/\s+/g, '.') // Replace spaces with dots
+                .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+        };
+        
+        const normalizedQuery = normalizeQuery(query);
+        
+        // Find or create the YouTube search document
+        let searchDoc = await YouTubeSearch.findOne({ query: normalizedQuery });
+        
+        if (!searchDoc) {
+            const humanReadableDisplay = normalizedQuery.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Create new search document
+            searchDoc = new YouTubeSearch({
+                query: normalizedQuery, // Store normalized query
+                userId: 'default-user',
+                displayName: humanReadableDisplay, // Human-readable display name
+                videoCount: videos.length,
+                lastSearched: new Date(),
+                dateCreated: new Date(),
+                videoResults: [videoResultData]
+            });
+            await searchDoc.save();
+        } else {
+            // Update existing document - replace or add the page result
+            const existingPageIndex = searchDoc.videoResults.findIndex(result => result.page === page);
+            
+            if (existingPageIndex >= 0) {
+                // Update existing page
+                searchDoc.videoResults[existingPageIndex] = videoResultData;
+            } else {
+                // Add new page
+                searchDoc.videoResults.push(videoResultData);
+            }
+            
+            // Update metadata
+            searchDoc.lastSearched = new Date();
+            searchDoc.videoCount = searchDoc.videoResults.reduce((total, result) => total + result.videos.length, 0);
+            
+            await searchDoc.save();
+        }
 
-        console.log(`💾 [MONGODB] Saved ${videos.length} videos for "${query}" page ${page} to database`);
+        console.log(`💾 [MONGODB] Saved ${videos.length} videos for "${query}" page ${page} to consolidated youtube_searches collection`);
     } catch (error) {
         console.error('❌ [MONGODB] Error saving search result:', error);
     }
@@ -3572,6 +3644,68 @@ app.get('/api/youtube/quota-status', (req, res) => {
     };
     
     res.json(quotaInfo);
+});
+
+// Test YouTube API quota status with minimal API call
+app.post('/api/youtube/test-quota', async (req, res) => {
+    try {
+        console.log('🧪 [QUOTA-TEST] Testing YouTube API quota status...');
+        
+        // Make a minimal YouTube API call to test quota
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: process.env.YOUTUBE_API_KEY
+        });
+
+        const searchResponse = await youtube.search.list({
+            part: ['snippet'],
+            q: 'test',
+            maxResults: 1,
+            type: 'video'
+        });
+
+        if (searchResponse && searchResponse.data && searchResponse.data.items) {
+            console.log('✅ [QUOTA-TEST] YouTube API quota OK');
+            res.json({ 
+                success: true, 
+                quotaExceeded: false,
+                message: 'YouTube API quota is available'
+            });
+        } else {
+            console.log('⚠️ [QUOTA-TEST] Unexpected API response');
+            res.json({ 
+                success: false, 
+                quotaExceeded: false,
+                message: 'Unexpected API response'
+            });
+        }
+    } catch (error) {
+        console.error('❌ [QUOTA-TEST] YouTube API error:', error.message);
+        
+        // Check if error indicates quota exceeded
+        const isQuotaError = error.message.includes('quota') || 
+                            error.message.includes('Quota') ||
+                            error.code === 403 ||
+                            error.status === 403;
+        
+        if (isQuotaError) {
+            console.log('🚫 [QUOTA-TEST] YouTube API quota limit reached');
+            res.status(403).json({ 
+                success: false, 
+                quotaExceeded: true,
+                error: 'YouTube API quota limit reached',
+                message: error.message
+            });
+        } else {
+            console.log('❌ [QUOTA-TEST] Other API error:', error.message);
+            res.status(500).json({ 
+                success: false, 
+                quotaExceeded: false,
+                error: 'API test failed',
+                message: error.message
+            });
+        }
+    }
 });
 
 // Admin endpoint to manually set quota usage (for fixing quota tracking)

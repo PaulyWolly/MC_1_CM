@@ -1,8 +1,8 @@
 /*
   YOUTUBESEARCHMANAGER.CSS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -171,7 +171,7 @@
     align-items: center !important;
     width: 100% !important;
     margin-left: 30px !important;
-    margin-top: 210px !important;
+    margin-top: 192px !important;
 }
 
 /* Pagination Drag Tab */
@@ -456,7 +456,7 @@
     height: 20px;
     z-index: 1002 !important;
     position: relative;
-    top: 55px;
+    top: 50px;
     width: 98%;
 }
 
@@ -489,7 +489,7 @@
 .query-history-dropdown {
     display: none;
     position: absolute;
-    top: calc(100% + 208px);
+    top: calc(100% + 234px);
     left: 0;
     right: 0;
     background-color: white;
@@ -500,7 +500,7 @@
     max-height: 350px;
     height: 350px;
     overflow-y: hidden;
-    z-index: 10002;
+    z-index: 1000000002 !important; /* Higher than video player controls */
     color: #333;
     cursor: default !important;
 }
@@ -1047,6 +1047,309 @@
     background: rgba(255, 0, 0, 1);
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(255, 0, 0, 0.6);
+}
+
+/* ===== YOUTUBE LYRICS FEATURE ===== */
+.youtube-lyrics-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(145deg, #9b59b6, #8e44ad);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 999999999;
+    min-width: 100px;
+    opacity: 0.9;
+}
+
+.youtube-lyrics-button:hover {
+    background: linear-gradient(145deg, #a569c7, #9b59b6);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+    opacity: 1;
+}
+
+.youtube-lyrics-button.loading {
+    background: linear-gradient(145deg, #f39c12, #e67e22);
+    animation: pulse-lyrics 1.5s infinite;
+}
+
+@keyframes pulse-lyrics {
+    0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    50% { box-shadow: 0 4px 16px rgba(243, 156, 18, 0.6); }
+}
+
+/* Lyrics Modal */
+.lyrics-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000000000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.lyrics-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.lyrics-modal-content {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 600px;
+    max-height: 80vh;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: relative;
+    border: 2px solid #3498db;
+}
+
+.lyrics-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #3498db;
+}
+
+.lyrics-modal-title {
+    color: #3498db;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.lyrics-modal-close {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.lyrics-modal-close:hover {
+    background: #c0392b;
+    transform: scale(1.1);
+}
+
+.lyrics-content {
+    color: #ecf0f1;
+    font-size: 14px;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid #34495e;
+}
+
+.lyrics-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.lyrics-content::-webkit-scrollbar-track {
+    background: #2c3e50;
+    border-radius: 4px;
+}
+
+.lyrics-content::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 4px;
+}
+
+.lyrics-content::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+
+.lyrics-loading {
+    text-align: center;
+    color: #f39c12;
+    font-style: italic;
+}
+
+.lyrics-error {
+    text-align: center;
+    color: #e74c3c;
+    font-style: italic;
+}
+
+.lyrics-not-found {
+    text-align: center;
+    color: #95a5a6;
+    font-style: italic;
+}
+
+.song-info {
+    background: rgba(52, 73, 94, 0.5);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border-left: 4px solid #3498db;
+}
+
+.song-info .artist {
+    font-weight: bold;
+    color: #3498db;
+    font-size: 16px;
+}
+
+.song-info .title {
+    color: #ecf0f1;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+/* ===== YOUTUBE AMPLIFY CONTROLS ===== */
+.youtube-amplify-controls-container {
+    position: absolute;
+    bottom: 84px; /* Position above YouTube controls */
+    left: 35px; /* Position to the right of progress controls */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000000001;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s; /* Same transition as main controls for synchronized behavior */
+    pointer-events: none; /* Disable pointer events when hidden */
+}
+
+/* Show YouTube AMPLIFY controls container when hovering over YouTube container */
+.youtube-container:hover .youtube-amplify-controls-container {
+    opacity: 1;
+    pointer-events: auto; /* Enable pointer events when visible */
+}
+
+.youtube-amplify-btn {
+    background: linear-gradient(145deg, #2c3e50, #34495e);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer !important; /* Force pointer cursor */
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
+    margin: 0 4px;
+    min-width: 80px;
+    z-index: 1000000001 !important; /* Higher than all overlays to ensure it's clickable */
+    position: relative;
+    pointer-events: auto !important; /* Ensure button is clickable */
+}
+
+.youtube-amplify-btn:hover {
+    background: linear-gradient(145deg, #34495e, #3c5f7a);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+    transform: translateY(-1px);
+    cursor: pointer !important; /* Force pointer cursor on hover too */
+}
+
+.youtube-amplify-btn.active {
+    background: linear-gradient(145deg, #e74c3c, #c0392b);
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
+    animation: pulse-youtube-amplify 2s infinite;
+}
+
+@keyframes pulse-youtube-amplify {
+    0%, 100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8); }
+}
+
+.youtube-amplify-controls {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    border: 1px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    /* No positioning or opacity needed - handled by parent container */
+}
+
+.youtube-amplify-level {
+    color: #4CAF50;
+    font-size: 12px; /* Comfortable size in the reserved space */
+    font-weight: bold;
+    min-width: 35px; /* Comfortable width in the reserved space */
+    text-align: center;
+    margin-right: 6px; /* Comfortable spacing in the reserved space */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.youtube-amplify-slider {
+    width: 80px; /* Comfortable width in the reserved space */
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(to right, 
+        #4CAF50 0%, 
+        #4CAF50 33.33%, 
+        #FF9800 33.33%, 
+        #FF9800 66.66%, 
+        #F44336 66.66%, 
+        #F44336 100%);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.youtube-amplify-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.youtube-amplify-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+}
+
+.youtube-amplify-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.youtube-amplify-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6);
 }
 
 /* ===== YOUTUBE RESULTS LAYOUT ===== */

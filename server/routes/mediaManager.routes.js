@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -556,6 +556,7 @@ router.post('/save', async (req, res) => {
       path: folderName,
       normalizedKey: normalizedKey,
       tmdbId: tmdbId || null,
+      absPath: absPath, // Include the absolute path for the movie folder
       folders: [],
       files: videoFiles
     };
@@ -1169,6 +1170,7 @@ router.post('/ensure-movie', async (req, res) => {
         path: folderName,
         normalizedKey: normalizedKey,
         tmdbId: null, // Will be set when metadata is added
+        absPath: absPath, // Include the absolute path for the movie folder
         folders: [],
         files: videoFiles
       };

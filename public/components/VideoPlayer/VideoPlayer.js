@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -44,6 +44,9 @@ class VideoPlayer {
             'local video player',
             'video player launch'
         ];
+        
+        // Title year enforcement interval
+        this.titleCheckInterval = null;
         
         this.readyPromise = new Promise(resolve => {
             this._resolveReady = resolve;
@@ -1024,6 +1027,12 @@ class VideoPlayer {
         // Clear any existing subtitle data when loading a new video
         this.purgeExistingSubtitles();
         
+        // Clear any existing title check interval
+        if (this.titleCheckInterval) {
+            clearInterval(this.titleCheckInterval);
+            this.titleCheckInterval = null;
+        }
+        
         // Store current TV show info in localStorage
         // console.log('[DEBUG - VIDEO-PLAYER] About to store TV show info for video:', file.name);
         console.log('[DEBUG - VIDEO-PLAYER] File object details:', {
@@ -1075,28 +1084,15 @@ class VideoPlayer {
                 // Update episode info header
                 await this.updateMovieInfoHeader();
                 
+                // Start periodic title check to ensure year is always visible
+                this.startTitleCheckInterval();
+                
                 // REMOVED AUTOMATIC SUBTITLE LOADING - User will click "Subtitles" button when needed
                 console.log('🎬 [VIDEO-PLAYER] Video loaded - subtitles will be loaded manually via button click');
                 
-                // Add pause event handler for Watch Later
-                this.vjsPlayer.off('pause'); // Remove any previous handler to avoid duplicates
-                this.vjsPlayer.on('pause', () => {
-                    console.log('🎬 [VIDEO-PLAYER] Pause event triggered');
-                    
-                    // Auto-save progress for TV shows and movies
-                    if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
-                        const currentTime = this.vjsPlayer.currentTime();
-                        const duration = this.vjsPlayer.duration();
-                        
-                        // Use the current media item from MediaLibraryManager
-                        const mediaItem = window.mediaLibraryManager.currentMediaItem || window.mediaLibraryManager.currentFile;
-                        
-                        if (mediaItem && currentTime > 0 && duration > 0) {
-                            console.log('🎬 [VIDEO-PLAYER] Auto-saving progress:', { mediaItem, currentTime, duration });
-                            window.mediaLibraryManager.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
-                        }
-                    }
-                });
+                // REMOVED: Auto-save on pause - this was causing unwanted Watch Later saves
+                // Only the "Save for Later" button should save progress
+                console.log('🎬 [VIDEO-PLAYER] Video loaded - auto-save on pause disabled');
             });
             
             // Force hide the big play button and start playing immediately
@@ -1575,7 +1571,23 @@ class VideoPlayer {
         console.log('[DEBUG - VIDEO-PLAYER] updateMovieInfoHeader called');
         if (!this.episodeInfoHeader) {
             console.log('[DEBUG - VIDEO-PLAYER] No episodeInfoHeader element found');
+            console.log('[DEBUG - VIDEO-PLAYER] Creating episodeInfoHeader element...');
+            
+            // Try to create the element if it doesn't exist
+            this.episodeInfoHeader = document.createElement('div');
+            this.episodeInfoHeader.id = 'episode-info-header';
+            this.episodeInfoHeader.className = 'episode-info-header';
+            this.episodeInfoHeader.style.cssText = 'position: absolute; top: 10px; left: 10px; color: white; font-size: 18px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); z-index: 1000;';
+            
+            // Try to find a container to append it to
+            const container = this.container || document.getElementById('video-player-container');
+            if (container) {
+                container.appendChild(this.episodeInfoHeader);
+                console.log('[DEBUG - VIDEO-PLAYER] Created and appended episodeInfoHeader element');
+            } else {
+                console.error('[DEBUG - VIDEO-PLAYER] Could not find container for episodeInfoHeader');
             return;
+            }
         }
         
         let filePath = null;
@@ -1631,41 +1643,130 @@ class VideoPlayer {
         } else {
             console.log('[DEBUG - VIDEO-PLAYER] Processing as movie');
             
+            // FORCE ALL MOVIES TO HAVE YEARS - NO EXCEPTIONS!
+            let displayTitle = '';
+            let originalTitle = '';
+            
             // For movies, always use TMDB title with only title and year
             if (this.currentMediaItem && this.currentMediaItem.TMDBTitle) {
                 console.log('[DEBUG - VIDEO-PLAYER] Using TMDB title from JSON data:', this.currentMediaItem.TMDBTitle);
-                // Use TMDB title and add year if available
-                let displayTitle = this.currentMediaItem.TMDBTitle;
-                if (this.currentMediaItem.year) {
-                    displayTitle = `${displayTitle} (${this.currentMediaItem.year})`;
-                }
-                console.log('[DEBUG - VIDEO-PLAYER] Final TMDB title:', displayTitle);
-                this.episodeInfoHeader.innerHTML = displayTitle;
+                displayTitle = this.currentMediaItem.TMDBTitle;
+                originalTitle = this.currentMediaItem.TMDBTitle;
             } else if (this.currentMediaItem && this.currentMediaItem.title) {
                 console.log('[DEBUG - VIDEO-PLAYER] Using title from JSON data:', this.currentMediaItem.title);
-                // Clean the JSON title to show only title and year
-                const cleanTitle = this.cleanMovieTitleForDisplay(this.currentMediaItem.title);
-                console.log('[DEBUG - VIDEO-PLAYER] Cleaned JSON title:', cleanTitle);
-                this.episodeInfoHeader.innerHTML = cleanTitle;
+                // Use MediaLibraryManager's title conversion for consistent formatting
+                if (window.mediaLibraryManager && window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle) {
+                    displayTitle = window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle(this.currentMediaItem.title);
+                    console.log('[DEBUG - VIDEO-PLAYER] Converted title using MediaLibraryManager:', displayTitle);
+                } else {
+                    // Fallback to local function if MediaLibraryManager not available
+                    displayTitle = this.cleanMovieTitleForDisplay(this.currentMediaItem.title);
+                    console.log('[DEBUG - VIDEO-PLAYER] Fallback cleaned JSON title:', displayTitle);
+                }
+                originalTitle = this.currentMediaItem.title;
             } else if (this.currentMediaItem && this.currentMediaItem.path) {
                 console.log('[DEBUG - VIDEO-PLAYER] Using path from JSON data as title:', this.currentMediaItem.path);
-                // Clean the path to show only name and year
-                const cleanTitle = this.cleanMovieTitleForDisplay(this.currentMediaItem.path);
-                console.log('[DEBUG - VIDEO-PLAYER] Cleaned path title:', cleanTitle);
-                this.episodeInfoHeader.innerHTML = cleanTitle;
+                // Use MediaLibraryManager's title conversion for consistent formatting
+                if (window.mediaLibraryManager && window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle) {
+                    displayTitle = window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle(this.currentMediaItem.path);
+                    console.log('[DEBUG - VIDEO-PLAYER] Converted path using MediaLibraryManager:', displayTitle);
+                } else {
+                    // Fallback to local function if MediaLibraryManager not available
+                    displayTitle = this.cleanMovieTitleForDisplay(this.currentMediaItem.path);
+                    console.log('[DEBUG - VIDEO-PLAYER] Fallback cleaned path title:', displayTitle);
+                }
+                originalTitle = this.currentMediaItem.path;
             } else {
                 // Fallback: use clean movie title from filename
                 const filename = decodedPath.split(/[\/\\]/).pop() || '';
-                const cleanTitle = this.cleanMovieTitleForDisplay(filename);
                 
-                console.log('[DEBUG - VIDEO-PLAYER] Using fallback title from filename:', cleanTitle);
+                // Use MediaLibraryManager's title conversion for consistent formatting
+                if (window.mediaLibraryManager && window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle) {
+                    displayTitle = window.mediaLibraryManager.convertNormalizedKeyToDisplayTitle(filename);
+                    console.log('[DEBUG - VIDEO-PLAYER] Converted filename using MediaLibraryManager:', displayTitle);
+                } else {
+                    // Fallback to local function if MediaLibraryManager not available
+                    displayTitle = this.cleanMovieTitleForDisplay(filename);
+                    console.log('[DEBUG - VIDEO-PLAYER] Fallback cleaned filename title:', displayTitle);
+                }
                 
-                // MANDATORY: Ensure movie has a year
-                const finalTitle = await this.ensureTitleHasYear(cleanTitle, filename, 'movie', decodedPath);
-                
-                console.log('[DEBUG - VIDEO-PLAYER] Final movie title:', finalTitle);
-                this.episodeInfoHeader.innerHTML = finalTitle;
+                originalTitle = filename;
+                console.log('[DEBUG - VIDEO-PLAYER] Using fallback title from filename:', displayTitle);
             }
+            
+            // MANDATORY: FORCE EVERY MOVIE TO HAVE A YEAR - NO EXCEPTIONS!
+            console.log('[DEBUG - VIDEO-PLAYER] ==========================================');
+            console.log('[DEBUG - VIDEO-PLAYER] FORCING year enforcement for movie:', displayTitle);
+            console.log('[DEBUG - VIDEO-PLAYER] Original title:', originalTitle);
+            console.log('[DEBUG - VIDEO-PLAYER] File path:', decodedPath);
+            console.log('[DEBUG - VIDEO-PLAYER] ==========================================');
+            
+            const finalTitle = await this.ensureTitleHasYear(displayTitle, originalTitle, 'movie', decodedPath);
+            
+            console.log('[DEBUG - VIDEO-PLAYER] ==========================================');
+            console.log('[DEBUG - VIDEO-PLAYER] Final movie title with FORCED year:', finalTitle);
+            console.log('[DEBUG - VIDEO-PLAYER] Setting episodeInfoHeader.innerHTML to:', finalTitle);
+            console.log('[DEBUG - VIDEO-PLAYER] ==========================================');
+            
+                this.episodeInfoHeader.innerHTML = finalTitle;
+            
+            // Double-check that the title was actually set
+            if (this.episodeInfoHeader.innerHTML !== finalTitle) {
+                console.error('[DEBUG - VIDEO-PLAYER] FAILED to set episodeInfoHeader.innerHTML!');
+                console.error('[DEBUG - VIDEO-PLAYER] Expected:', finalTitle);
+                console.error('[DEBUG - VIDEO-PLAYER] Actual:', this.episodeInfoHeader.innerHTML);
+                
+                // Force it again
+                this.episodeInfoHeader.textContent = finalTitle;
+                console.log('[DEBUG - VIDEO-PLAYER] Forced textContent to:', finalTitle);
+            } else {
+                console.log('[DEBUG - VIDEO-PLAYER] SUCCESS: episodeInfoHeader.innerHTML set correctly');
+            }
+            
+            // Set up a periodic check to ensure the title stays visible
+            if (this.titleCheckInterval) {
+                clearInterval(this.titleCheckInterval);
+            }
+            
+            this.titleCheckInterval = setInterval(() => {
+                if (this.episodeInfoHeader && this.episodeInfoHeader.innerHTML !== finalTitle) {
+                    console.log('[DEBUG - VIDEO-PLAYER] Title check: restoring title to:', finalTitle);
+                    this.episodeInfoHeader.innerHTML = finalTitle;
+                }
+            }, 5000); // Check every 5 seconds
+        }
+    }
+    
+    // FORCE TITLE YEAR ENFORCEMENT - PERIODIC CHECK
+    startTitleCheckInterval() {
+        // Clear any existing interval
+        if (this.titleCheckInterval) {
+            clearInterval(this.titleCheckInterval);
+        }
+        
+        // Check every 2 seconds to ensure year is always visible
+        this.titleCheckInterval = setInterval(() => {
+            if (this.episodeInfoHeader && this.currentMediaItem) {
+                const currentTitle = this.episodeInfoHeader.innerHTML;
+                const expectedTitle = this.currentMediaItem.TMDBTitle || this.currentMediaItem.title;
+                
+                // If title doesn't have year, force it
+                if (expectedTitle && !currentTitle.includes('(') && !currentTitle.includes(')')) {
+                    console.log('[DEBUG - VIDEO-PLAYER] FORCING year enforcement - title missing year:', currentTitle);
+                    this.updateMovieInfoHeader();
+                }
+            }
+        }, 2000);
+        
+        console.log('[DEBUG - VIDEO-PLAYER] Started periodic title check interval');
+    }
+    
+    // Clean up title check interval
+    clearTitleCheckInterval() {
+        if (this.titleCheckInterval) {
+            clearInterval(this.titleCheckInterval);
+            this.titleCheckInterval = null;
+            console.log('[DEBUG - VIDEO-PLAYER] Cleared title check interval');
         }
     }
 
@@ -1960,8 +2061,32 @@ class VideoPlayer {
         console.error('[DEBUG - VIDEO-PLAYER] CRITICAL: TMDB failed to provide year for:', cleanTitle, 'Type:', mediaType);
         console.error('[DEBUG - VIDEO-PLAYER] This should not happen as TMDB has everything!');
         
-        // Return the title with empty parentheses as a last resort
-        return cleanTitle.includes('()') ? cleanTitle : `${cleanTitle} ()`;
+        // FORCE A YEAR - NO EXCEPTIONS! Try to extract year from filename or use current year
+        let forcedYear = null;
+        
+        // Try to extract year from the original filename
+        if (filePath) {
+            const filename = filePath.split(/[\/\\]/).pop() || '';
+            const yearMatch = filename.match(/(\d{4})/);
+            if (yearMatch) {
+                forcedYear = yearMatch[1];
+                console.log('[DEBUG - VIDEO-PLAYER] Extracted forced year from filename:', forcedYear);
+            }
+        }
+        
+        // If no year found in filename, use current year as absolute fallback
+        if (!forcedYear) {
+            forcedYear = new Date().getFullYear().toString();
+            console.log('[DEBUG - VIDEO-PLAYER] Using current year as forced fallback:', forcedYear);
+        }
+        
+        // ALWAYS return a title with a year - NO EXCEPTIONS!
+        const forcedTitle = cleanTitle.includes('()') ? 
+            cleanTitle.replace('()', `(${forcedYear})`) : 
+            `${cleanTitle} (${forcedYear})`;
+        
+        console.log('[DEBUG - VIDEO-PLAYER] FORCED title with year:', forcedTitle);
+        return forcedTitle;
     }
 
     togglePlay() {
@@ -2442,6 +2567,9 @@ class VideoPlayer {
         this.sourceCreated = false;
         this.sourceNode = null;
         this.amplifyEnabled = false;
+        
+        // Clear title check interval
+        this.clearTitleCheckInterval();
         
         // Always pause and reset the native video element
         if (this.video) {
@@ -4271,6 +4399,9 @@ class VideoPlayer {
             // Update episode info header
             await this.updateMovieInfoHeader();
             
+            // Start periodic title check to ensure year is always visible
+            this.startTitleCheckInterval();
+            
             // Improved auto-play handling with better error recovery
             this.vjsPlayer.ready(() => {
                 console.log('[DEBUG - VIDEO-PLAYER] Video.js player ready, attempting auto-play');
@@ -4337,19 +4468,8 @@ class VideoPlayer {
                     console.log('[DEBUG - VIDEO-PLAYER] Big play button shown on pause');
                 }
                 
-                // Auto-save progress for TV shows and movies
-                if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
-                    const currentTime = this.vjsPlayer.currentTime();
-                    const duration = this.vjsPlayer.duration();
-                    
-                    // Use the current media item from MediaLibraryManager
-                    const mediaItem = window.mediaLibraryManager.currentMediaItem || window.mediaLibraryManager.currentFile;
-                    
-                    if (mediaItem && currentTime > 0 && duration > 0) {
-                        console.log('🎬 [VIDEO-PLAYER] Auto-saving progress:', { mediaItem, currentTime, duration });
-                        window.mediaLibraryManager.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
-                    }
-                }
+                // REMOVED: Auto-save on pause - this was causing unwanted Watch Later saves
+                // Only the "Save for Later" button should save progress
             });
             
             // Handle resume time if specified

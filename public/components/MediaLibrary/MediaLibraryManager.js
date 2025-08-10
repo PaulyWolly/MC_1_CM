@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -1495,9 +1495,21 @@ class MediaLibraryManager {
     }
 
     async playMedia(mediaItem, startTime = 0) {
+        console.log('[MEDIA-LIBRARY] playMedia called:', {mediaItem, startTime});
+        console.log('[MEDIA-LIBRARY] Current tab:', this.currentTab);
+        console.log('[MEDIA-LIBRARY] Media item properties:', {
+            path: mediaItem.path,
+            absPath: mediaItem.absPath,
+            filePath: mediaItem.filePath,
+            files: mediaItem.files,
+            type: mediaItem.type,
+            mediaType: mediaItem.mediaType,
+            title: mediaItem.title,
+            name: mediaItem.name
+        });
+        
         window.mediaLibraryManager.currentMediaItem = mediaItem;
         window.mediaLibraryManager.currentFile = mediaItem;
-        // console.log('[MEDIA-LIBRARY] playMedia called:', {mediaItem, startTime});
         
         // Check if this is a TV show episode (from Watch Later)
         const pathToCheck = (mediaItem.path || mediaItem.absPath || mediaItem.relPath || '').toLowerCase();
@@ -1590,8 +1602,13 @@ class MediaLibraryManager {
             // console.log('[MEDIA-LIBRARY] Movie object missing absPath, constructing it...');
             // console.log('[MEDIA-LIBRARY] Original mediaItem:', mediaItem);
             
-            if (fullMediaItem.path) {
-                // Convert relative path to absolute path
+            // PRIORITY 1: Extract absPath from files array (for normalized movies)
+            if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
+                fullMediaItem.absPath = fullMediaItem.files[0].absPath;
+                console.log('[MEDIA-LIBRARY] ✅ EXTRACTED absPath from files array:', fullMediaItem.absPath);
+            }
+            // PRIORITY 2: Convert relative path to absolute path
+            else if (fullMediaItem.path) {
                 if (fullMediaItem.path.startsWith('movies/') || fullMediaItem.path.startsWith('MOVIES/')) {
                     fullMediaItem.absPath = `S:/MEDIA/${fullMediaItem.path}`;
                     // console.log('[MEDIA-LIBRARY] Constructed absPath for movie:', fullMediaItem.absPath);
@@ -1713,57 +1730,46 @@ class MediaLibraryManager {
         
         // console.log('[MEDIA-LIBRARY] Final movie object with complete information:', fullMediaItem);
         
-        // STANDARDIZED PATH RESOLUTION - USE NORMALIZED FIELDS FIRST!
+                // SIMPLE PATH RESOLUTION - Get video path regardless of data structure
         let pathParam = '';
-        console.log('[MEDIA-LIBRARY] STANDARDIZED: Resolving video path from normalized fields:', {
+        console.log('[MEDIA-LIBRARY] Resolving video path for:', {
+            title: fullMediaItem.title,
             absPath: fullMediaItem.absPath,
             filePath: fullMediaItem.filePath,
             path: fullMediaItem.path,
-            mediaType: fullMediaItem.mediaType || fullMediaItem.type,
-            title: fullMediaItem.title
+            hasFiles: fullMediaItem.files && fullMediaItem.files.length > 0
         });
         
-        // PRIORITY 1: Use standardized absPath field (THIS IS THE STANDARD!)
+        // Get the video path - simple and direct
         if (fullMediaItem.absPath) {
+            // Use the standardized absPath field
             pathParam = fullMediaItem.absPath;
-            console.log('[MEDIA-LIBRARY] ✅ USING STANDARDIZED absPath:', pathParam);
-        } 
-        // PRIORITY 2: Use absPath from files array (legacy structure)
-        else if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
+            console.log('[MEDIA-LIBRARY] ✅ Using absPath:', pathParam);
+        } else if (fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].absPath) {
+            // Extract from files array (for normalized movies)
             pathParam = fullMediaItem.files[0].absPath;
-            console.log('[MEDIA-LIBRARY] ✅ Using legacy files[0].absPath:', pathParam);
-        } 
-        // PRIORITY 3: Construct from standardized filePath for movies
-        else if (fullMediaItem.filePath && (fullMediaItem.mediaType === 'movie' || fullMediaItem.type === 'movie')) {
-            // For movies: filePath is folder name, construct full path
+            console.log('[MEDIA-LIBRARY] ✅ Extracted from files array:', pathParam);
+        } else if (fullMediaItem.filePath) {
+            // Use filePath (for TV shows or movies with filePath)
+            if (fullMediaItem.mediaType === 'tv-show' || fullMediaItem.type === 'tv-show') {
+                pathParam = `S:/MEDIA/TV-SHOWS/${fullMediaItem.filePath}`;
+            } else {
+                // For movies: construct from filePath
             const folderPath = fullMediaItem.filePath;
             const videoFilename = folderPath.replace(/\s+/g, '.') + '.mp4';
             pathParam = `S:/MEDIA/MOVIES/${folderPath}/${videoFilename}`;
-            console.log('[MEDIA-LIBRARY] ⚠️ CONSTRUCTED from movie filePath:', pathParam);
-        }
-        // PRIORITY 4: Use filePath directly for TV shows
-        else if (fullMediaItem.filePath && (fullMediaItem.mediaType === 'tv-show' || fullMediaItem.type === 'tv-show')) {
-            pathParam = `S:/MEDIA/TV-SHOWS/${fullMediaItem.filePath}`;
-            console.log('[MEDIA-LIBRARY] ⚠️ CONSTRUCTED from TV show filePath:', pathParam);
-        }
-        // PRIORITY 5: Legacy fallback - construct from files array
-        else if (fullMediaItem.path && fullMediaItem.files && fullMediaItem.files.length > 0 && fullMediaItem.files[0].name) {
-            pathParam = `S:/MEDIA/MOVIES/${fullMediaItem.path}/${fullMediaItem.files[0].name}`;
-            console.log('[MEDIA-LIBRARY] ⚠️ LEGACY: Constructed from files array:', pathParam);
-        } 
-        // PRIORITY 6: Last resort fallback
-        else {
+            }
+            console.log('[MEDIA-LIBRARY] 🔧 Constructed from filePath:', pathParam);
+        } else if (fullMediaItem.path && this.currentTab === 'movies') {
+            // For movies from main tab: construct from path
+            const folderPath = fullMediaItem.path;
+            const videoFilename = folderPath.replace(/\s+/g, '.') + '.mp4';
+            pathParam = `S:/MEDIA/MOVIES/${folderPath}/${videoFilename}`;
+            console.log('[MEDIA-LIBRARY] 🔧 Constructed from path (main tab):', pathParam);
+        } else {
+            // Last resort - this shouldn't happen with proper data
             pathParam = fullMediaItem.path || fullMediaItem.relPath || '';
-            console.log('[MEDIA-LIBRARY] ❌ FALLBACK: Using raw path (may fail):', pathParam);
-            
-            // If this happens, we have a data quality issue
-            console.error('[MEDIA-LIBRARY] ❌ DATA QUALITY ISSUE: Item missing standardized fields:', {
-                title: fullMediaItem.title,
-                availableFields: Object.keys(fullMediaItem),
-                absPath: fullMediaItem.absPath,
-                filePath: fullMediaItem.filePath,
-                path: fullMediaItem.path
-            });
+            console.error('[MEDIA-LIBRARY] ❌ No valid path found for:', fullMediaItem.title);
         }
         
         console.log('[MEDIA-LIBRARY] Path before encoding:', pathParam);
@@ -1960,18 +1966,8 @@ class MediaLibraryManager {
             }
         });
         
-        // Auto-save resume progress on pause
-        player.on('pause', () => {
-            const currentTime = player.currentTime();
-            const duration = player.duration();
-            
-            // Use the current media item that's being played
-            const mediaItem = this.currentMediaItem || this.currentFile;
-            
-            if (mediaItem && currentTime > 0 && duration > 0) {
-                this.saveResumeProgress(mediaItem, currentTime, duration, false); // false = auto-save
-            }
-        });
+        // REMOVED: Auto-save on pause - this was causing unwanted Watch Later saves
+        // Only the "Save for Later" button should save progress
         
         player.on('ended', () => {
             // Always reopen MediaLibrary modal when video ends with last active tab
@@ -2326,11 +2322,15 @@ class MediaLibraryManager {
         
         // console.log('[DEBUG - TITLE] convertNormalizedKeyToDisplayTitle input:', normalizedKey);
         
+        // Extract year before removing other elements
+        const yearMatch = normalizedKey.match(/\((\d{4})\)/);
+        const year = yearMatch ? yearMatch[1] : null;
+        
         // Remove quality tags first
         let cleanKey = normalizedKey.replace(/\[\d{3,4}p\]/gi, ''); // Remove [1080p], [720p], etc.
         cleanKey = cleanKey.replace(/\[.*?\]/g, ''); // Remove any other brackets
         
-        // Remove year in parentheses
+        // Remove year in parentheses (we already extracted it above)
         cleanKey = cleanKey.replace(/\(\d{4}\)/g, '');
         
         // Remove extra spaces and trim
@@ -2415,6 +2415,11 @@ class MediaLibraryManager {
             return word;
         });
         displayTitle = correctedWords.join(' ');
+        
+        // Add year back to the display title if it exists
+        if (year) {
+            displayTitle = `${displayTitle} (${year})`;
+        }
         
         // console.log('[DEBUG - TITLE] Final display title:', displayTitle);
         return displayTitle;
@@ -3976,6 +3981,17 @@ class MediaLibraryManager {
         document.getElementById('backToGridBtn').onclick = () => this.renderMediaGrid();
         document.getElementById('playMovieBtn').onclick = () => {
             console.log('[DEBUG - PLAY-BUTTON] Play button clicked for movie:', movie);
+            console.log('[DEBUG - PLAY-BUTTON] Movie properties:', {
+                path: movie.path,
+                absPath: movie.absPath,
+                filePath: movie.filePath,
+                files: movie.files,
+                type: movie.type,
+                mediaType: movie.mediaType,
+                title: movie.title,
+                name: movie.name,
+                normalizedKey: movie.normalizedKey
+            });
             this.closeModal();
             this.playMedia(movie);
         };
@@ -5894,6 +5910,17 @@ class MediaLibraryManager {
                 }
                 console.log('[DEBUG - MOVIE-CARD] Movie card clicked:', item.path);
                 console.log('[DEBUG - MOVIE-CARD] Item object:', item);
+                console.log('[DEBUG - MOVIE-CARD] Item properties:', {
+                    path: item.path,
+                    absPath: item.absPath,
+                    filePath: item.filePath,
+                    files: item.files,
+                    type: item.type,
+                    mediaType: item.mediaType,
+                    title: item.title,
+                    name: item.name,
+                    normalizedKey: item.normalizedKey
+                });
                 await this.showMovieDetailsModal(item);
             });
         });
@@ -6316,27 +6343,79 @@ class MediaLibraryManager {
                         pathToCheck.includes('season') ||
                         (mediaItem.title && (mediaItem.title.includes('S00E') || mediaItem.title.includes('S01E') || mediaItem.title.includes('S02E')));
         
-        // Remove any existing entry for this path (deduplication)
-        resumeList = resumeList.filter(item => {
-            const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-            const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+        // For TV shows, find and remove any existing entry to ensure we always overwrite
+        // This ensures there's only ONE entry per TV show with the most up-to-date resume time
+        // For movies, we'll handle duplicates differently
+        let existingItem = null;
+        
+        if (isTVShow) {
+            // For TV shows, find existing entry by multiple criteria to ensure we catch all variations
+            existingItem = resumeList.find(item => {
+                // Check by path first
+                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                if (itemPath === mediaPath && itemPath !== '') {
+                    return true;
+                }
+                
+                // Check by title for TV shows
+                if (mediaItem.title && item.title) {
+                    const itemTitle = item.title.toLowerCase().trim();
+                    const mediaTitle = mediaItem.title.toLowerCase().trim();
+                    if (itemTitle === mediaTitle) {
+                        return true;
+                    }
+                }
+                
+                // Check by show name and season/episode for TV shows
+                if (mediaItem.title && item.title) {
+                    const mediaShowName = this.extractShowName(mediaItem.title);
+                    const itemShowName = this.extractShowName(item.title);
+                    const mediaSeason = this.extractSeasonNumber(mediaItem);
+                    const itemSeason = this.extractSeasonNumber(item);
+                    const mediaEpisode = this.extractEpisodeNumber(mediaItem);
+                    const itemEpisode = this.extractEpisodeNumber(item);
+                    
+                    if (mediaShowName && itemShowName && 
+                        mediaShowName.toLowerCase() === itemShowName.toLowerCase() &&
+                        mediaSeason === itemSeason && 
+                        mediaEpisode === itemEpisode) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            });
             
-            // Remove exact path matches
-            if (itemPath === mediaPath && itemPath !== '') {
-                return false; // Remove duplicate
-            }
-            
-            // For TV shows, also check by title to catch different path formats
-            if (isTVShow && mediaItem.title && item.title) {
-                const itemTitle = item.title.toLowerCase().trim();
-                const mediaTitle = mediaItem.title.toLowerCase().trim();
-                if (itemTitle === mediaTitle) {
-                    return false; // Remove duplicate by title
+            // Remove the existing TV show entry if found
+            if (existingItem) {
+                resumeList = resumeList.filter(item => item !== existingItem);
+                console.log('[MEDIA-LIBRARY] Removed existing TV show entry for overwrite:', existingItem.title);
+                
+                // Also remove from MongoDB to ensure complete cleanup
+                if (existingItem.mediaId && existingItem.mediaType) {
+                    try {
+                        await this.removeFromMongoDB(existingItem.mediaId, existingItem.mediaType);
+                        console.log('[MEDIA-LIBRARY] Removed existing TV show from MongoDB:', existingItem.mediaId);
+                    } catch (error) {
+                        console.warn('[MEDIA-LIBRARY] Could not remove from MongoDB (this is okay):', error.message);
+                    }
                 }
             }
-            
-            return true; // Keep this item
-        });
+        } else {
+            // For movies, use the existing deduplication logic
+            resumeList = resumeList.filter(item => {
+                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                const mediaPath = (mediaItem.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                
+                // Remove exact path matches
+                if (itemPath === mediaPath && itemPath !== '') {
+                    return false; // Remove duplicate
+                }
+                
+                return true; // Keep this item
+            });
+        }
 
         let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
         
@@ -6376,16 +6455,23 @@ class MediaLibraryManager {
         // For manual saves (Save for Later button), always save regardless of position
         // For automatic saves (pause events), only save if not near the end
         if (isManualSave || (duration - currentTime > 60)) {
-            // Check if this item already exists to preserve its original timestamp
-            const existingItem = resumeList.find(item => {
-                const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
-                const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
-                return itemPath === mediaPath && itemPath !== '';
-            });
+            // For TV shows, we already found and removed the existing item above
+            // For movies, we need to check if an item exists to preserve its timestamp
+            if (!isTVShow) {
+                const existingMovieItem = resumeList.find(item => {
+                    const itemPath = (item.path || '').replace(/\\/g, '/').toLowerCase().trim();
+                    const mediaPath = (savePath || '').replace(/\\/g, '/').toLowerCase().trim();
+                    return itemPath === mediaPath && itemPath !== '';
+                });
+                if (existingMovieItem) {
+                    existingItem = existingMovieItem;
+                }
+            }
                 
                 let savedItem;
             
                     // For movies, save the COMPLETE movie object (just like main Movies section)
+                    // Movies can have multiple entries if they're from different sources
             if (!isTVShow) {
                     savedItem = {
                     // Save the COMPLETE movie object with all properties
@@ -6416,6 +6502,7 @@ class MediaLibraryManager {
                     };
             } else {
                 // For TV shows, save the complete episode object
+                console.log('[MEDIA-LIBRARY] Saving TV show to Watch Later (overwriting any existing entry):', mediaItem.title);
                     savedItem = {
                     // Save the COMPLETE episode object with all properties
                     ...mediaItem,
@@ -6423,7 +6510,7 @@ class MediaLibraryManager {
                     // Override/add Watch Later specific properties
                     currentTime,
                     duration,
-                    lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
+                    lastWatched: Date.now(), // For TV shows, always use current time since we're overwriting
                     type: 'tv-show',
                         mediaType: 'tv-show', // For MongoDB compatibility
                         
@@ -6457,6 +6544,12 @@ class MediaLibraryManager {
             }
             
             this.updateWatchLaterGrid();
+            
+            // Log the result of the save operation
+            if (isTVShow) {
+                console.log('[MEDIA-LIBRARY] TV show saved to Watch Later with overwrite behavior - only one entry per show maintained');
+            }
+            
         if (isManualSave) {
                 this.showToast('Saved to Watch Later!', 'info'); // 'info' style gives blue background with yellow border
             }

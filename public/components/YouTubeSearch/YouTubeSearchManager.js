@@ -1,8 +1,8 @@
 /*
   YOUTUBESEARCHMANAGER.JS
-  Version: 15
-  AppName: MultiChat_Chatty [v15]
-  Updated: 8/9/2025 @12:15AM
+  Version: 16
+  AppName: MultiChat_Chatty [v16]
+  Updated: 8/10/2025 @1:15AM
   Created by Paul Welby
 */
 
@@ -662,6 +662,69 @@ export default class YouTubeSearchManager {
             console.log('🎯 [PAGINATION] First search detected, setting hasSearched flag to true');
         }
 
+        // 🔥 CACHE-FIRST POLICY: For new searches (not pagination), check cache first
+        if (!isPagination) {
+            const cleanQuery = subject.replace(/^youtube\s+search\s+/i, '').trim();
+            console.log(`🔥 [CACHE-FIRST] Checking cache for: "${cleanQuery}" (from: "${subject}")`);
+            console.log(`🔥 [CACHE-FIRST] isPagination: ${isPagination}, subject: "${subject}"`);
+            
+            // Check if we have cached results for this query
+            let foundCachedQuery = false;
+            let totalKeysChecked = 0;
+            let youtubeKeysFound = 0;
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                totalKeysChecked++;
+                
+                if (key && key.startsWith('yt_')) {
+                    youtubeKeysFound++;
+                    
+                    // Extra debugging for santana keys
+                    if (key.toLowerCase().includes('santana')) {
+                        console.log(`🎸 [SANTANA-DEBUG] Found Santana key: ${key}`);
+                    }
+                    
+                    const extracted = this.extractQueryFromCacheKey(key);
+                    if (extracted) {
+                        const normalizedExtracted = this.normalizeYouTubeQuery(extracted.query);
+                        const normalizedClean = this.normalizeYouTubeQuery(cleanQuery);
+                        
+                        // Extra debugging for potential matches
+                        if (normalizedExtracted === normalizedClean) {
+                            console.log(`✅ [CACHE-FIRST] MATCH FOUND!`);
+                            console.log(`   Key: ${key}`);
+                            console.log(`   Extracted: ${JSON.stringify(extracted)}`);
+                            console.log(`   Normalized extracted: "${normalizedExtracted}"`);
+                            console.log(`   Normalized clean: "${normalizedClean}"`);
+                            console.log(`   Loading from cache instead of API...`);
+                            
+                            foundCachedQuery = true;
+                            
+                            // Load from cache directly using navigateToQuery
+                            this.navigateToQuery(cleanQuery);
+                            
+                            // Update dropdown
+                            const allQueries = this.getAllQueriesForDropdown();
+                            await this.renderQueryDropdown(allQueries, subject);
+                            
+                            // STOP HERE - don't continue with API call
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            console.log(`🔥 [CACHE-FIRST] Search summary:`);
+            console.log(`   Total keys checked: ${totalKeysChecked}`);
+            console.log(`   YouTube keys found: ${youtubeKeysFound}`);
+            console.log(`   Cache match found: ${foundCachedQuery}`);
+            
+            if (!foundCachedQuery) {
+                console.log(`🔥 [CACHE-FIRST] No cached results found for "${cleanQuery}" - proceeding with fresh API search`);
+            }
+        }
+
         // --- BEGIN: Update dropdown helper ---
         const updateDropdownWithCurrentQuery = async () => {
             const allQueries = this.getAllQueriesForDropdown();
@@ -811,8 +874,8 @@ export default class YouTubeSearchManager {
 
         // Generate cache key - ALWAYS check cache first
         const actualPage = isPagination ? currentPage : 1;
-        // Use the correct cache key format: yt_query_type_page (e.g., yt_fender_search_1, yt_fender_channel_1)
-        // Build cache key for this search (use server format for consistency)
+        // Use the correct cache key format: yt_type_query_page (e.g., yt_search_animal.planet_p1_none)
+        // Build cache key for this search (preserve dots, only convert spaces to underscores)
         const normalizedSubject = this.cleanQueryForDisplay(subject);
         const cacheKey = `yt_${type}_${normalizedSubject.replace(/\s+/g, '_')}_p${actualPage}_none`;
 
@@ -864,7 +927,7 @@ export default class YouTubeSearchManager {
                 const cacheAge = Date.now() - cachedData.timestamp;
                 const ageMinutes = Math.round(cacheAge / 1000 / 60);
                 if (this.services.showToast) {
-                    this.services.showToast(`⚡ Loaded from cache (${ageMinutes}m old) - No API call needed!`, 'cache', 4000);
+                this.services.showToast(`⚡ Loaded from cache (${ageMinutes}m old) - No API call needed!`, 'cache', 10000);
                 }
                 
                 // Update timestamp for recently accessed queries (for chronological ordering)
@@ -899,7 +962,7 @@ export default class YouTubeSearchManager {
             if (fallbackVideos.length > 0) {
                 console.log('⚠️ [QUOTA] Using fallback cached results:', fallbackVideos.length, 'videos');
                 if (this.services.showToast) {
-                    this.services.showToast('⚠️ Using older cached results (YouTube API quota exceeded)', 'warning', 5000);
+                this.services.showToast('⚠️ Using older cached results (YouTube API quota exceeded)', 'warning', 10000);
                 }
                 this.renderRealYoutubeResults(fallbackVideos, 1, 'many', subject, type, isPagination, null, options.isOverwrite);
                 this.setPaginatorBar('restored');
@@ -1125,16 +1188,214 @@ export default class YouTubeSearchManager {
         return str.replace(/\b\w/g, (char) => char.toUpperCase());
     }
     
+    /**
+     * Check if a query has actual video data in localStorage cache
+     * @param {string} query - The search query to check
+     * @param {string} type - The search type (search, channel, movies, tv)
+     * @returns {boolean} - True if the query has video data, false otherwise
+     */
+    hasQueryVideoData(query, type = 'search') {
+        try {
+            console.log(`🔍 [VIDEO-CHECK] Checking video data for query: "${query}" (type: ${type})`);
+            
+            // Normalize the query for comparison (remove spaces, lowercase)
+            const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
+            console.log(`🔍 [VIDEO-CHECK] Normalized query: "${normalizedQuery}"`);
+            
+            // Look for cache keys that match this query and type
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key) continue;
+                
+                // Only check YouTube-related keys
+                if (!key.startsWith('yt_')) continue;
+                
+                let matchesQuery = false;
+                let matchesType = false;
+                let extractedQuery = '';
+                
+                // NEW FORMAT: yt_search_santanavevo_p1_none or yt_search_animal.planet_p1_none
+                if (key.startsWith('yt_search_') && type === 'search') {
+                    matchesType = true;
+                    extractedQuery = key.replace('yt_search_', '').split('_p')[0];
+                    // Handle both underscore and dot formats for comparison
+                    const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                    const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                    matchesQuery = normalizedExtracted === normalizedQueryClean;
+                    
+                    // Also try exact match for dot-preserved queries
+                    if (!matchesQuery) {
+                        matchesQuery = extractedQuery === query;
+                    }
+                    
+                    // Try normalized dot format match
+                    if (!matchesQuery) {
+                        const queryNormalized = this.normalizeYouTubeQuery(query);
+                        const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                        matchesQuery = queryNormalized === extractedNormalized;
+                    }
+                } else if (key.startsWith('yt_channel_') && type === 'channel') {
+                    matchesType = true;
+                    extractedQuery = key.replace('yt_channel_', '').split('_p')[0];
+                    // Handle both underscore and dot formats for comparison
+                    const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                    const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                    matchesQuery = normalizedExtracted === normalizedQueryClean;
+                    
+                    // Also try exact match for dot-preserved queries
+                    if (!matchesQuery) {
+                        matchesQuery = extractedQuery === query;
+                    }
+                    
+                    // Try normalized dot format match
+                    if (!matchesQuery) {
+                        const queryNormalized = this.normalizeYouTubeQuery(query);
+                        const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                        matchesQuery = queryNormalized === extractedNormalized;
+                    }
+                } else if (key.startsWith('yt_movies_') && type === 'movies') {
+                    matchesType = true;
+                    extractedQuery = key.replace('yt_movies_', '').split('_p')[0];
+                    // Handle both underscore and dot formats for comparison
+                    const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                    const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                    matchesQuery = normalizedExtracted === normalizedQueryClean;
+                    
+                    // Also try exact match for dot-preserved queries
+                    if (!matchesQuery) {
+                        matchesQuery = extractedQuery === query;
+                    }
+                    
+                    // Try normalized dot format match
+                    if (!matchesQuery) {
+                        const queryNormalized = this.normalizeYouTubeQuery(query);
+                        const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                        matchesQuery = queryNormalized === extractedNormalized;
+                    }
+                } else if (key.startsWith('yt_tv_') && type === 'tv') {
+                    matchesType = true;
+                    extractedQuery = key.replace('yt_tv_', '').split('_p')[0];
+                    // Handle both underscore and dot formats for comparison
+                    const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                    const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                    matchesQuery = normalizedExtracted === normalizedQueryClean;
+                    
+                    // Also try exact match for dot-preserved queries
+                    if (!matchesQuery) {
+                        matchesQuery = extractedQuery === query;
+                    }
+                    
+                    // Try normalized dot format match
+                    if (!matchesQuery) {
+                        const queryNormalized = this.normalizeYouTubeQuery(query);
+                        const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                        matchesQuery = queryNormalized === extractedNormalized;
+                    }
+                }
+                
+                // LEGACY FORMAT: yt_Youtube search privettricker_search_21
+                if (!matchesType && !matchesQuery) {
+                    if (key.includes('_search_') && type === 'search') {
+                        matchesType = true;
+                        extractedQuery = key.substring(3).split('_search_')[0]; // Remove 'yt_' prefix
+                        // Handle both underscore and dot formats for comparison
+                        const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                        const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                        matchesQuery = normalizedExtracted === normalizedQueryClean;
+                        
+                        // Also try exact match for dot-preserved queries
+                        if (!matchesQuery) {
+                            matchesQuery = extractedQuery === query;
+                        }
+                        
+                        // Try normalized dot format match
+                        if (!matchesQuery) {
+                            const queryNormalized = this.normalizeYouTubeQuery(query);
+                            const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                            matchesQuery = queryNormalized === extractedNormalized;
+                        }
+                    } else if (key.includes('_channel_') && type === 'channel') {
+                        matchesType = true;
+                        extractedQuery = key.substring(3).split('_channel_')[0]; // Remove 'yt_' prefix
+                        // Handle both underscore and dot formats for comparison
+                        const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                        const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                        matchesQuery = normalizedExtracted === normalizedQueryClean;
+                        
+                        // Also try exact match for dot-preserved queries
+                        if (!matchesQuery) {
+                            matchesQuery = extractedQuery === query;
+                        }
+                        
+                        // Try normalized dot format match
+                        if (!matchesQuery) {
+                            const queryNormalized = this.normalizeYouTubeQuery(query);
+                            const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                            matchesQuery = queryNormalized === extractedNormalized;
+                        }
+                    }
+                }
+                
+                // Debug logging for potential matches
+                if (key.includes(normalizedQuery) || key.includes(query.toLowerCase())) {
+                    console.log(`🔍 [VIDEO-CHECK] Potential match found - Key: "${key}" | Extracted: "${extractedQuery}" | Normalized: "${normalizedQuery}" | Matches: ${matchesQuery && matchesType}`);
+                }
+                
+                if (matchesQuery && matchesType) {
+                    console.log(`✅ [VIDEO-CHECK] Found matching cache key: "${key}" for query: "${query}"`);
+                    
+                    // Found a matching cache key, now check if it has video data
+                    try {
+                        const cachedData = JSON.parse(localStorage.getItem(key));
+                        if (cachedData && cachedData.data) {
+                            // Check if there are actual videos in the data
+                            if (cachedData.data.videos && Array.isArray(cachedData.data.videos) && cachedData.data.videos.length > 0) {
+                                console.log(`✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.data.videos.length} videos`);
+                                return true; // Found video data!
+                            }
+                            if (cachedData.data.video && cachedData.data.video.id) {
+                                console.log(`✅ [VIDEO-CHECK] Query "${query}" has single video data`);
+                                return true; // Found single video data!
+                            }
+                        }
+                        // Also check top-level structure for backward compatibility
+                        if (cachedData.videos && Array.isArray(cachedData.videos) && cachedData.videos.length > 0) {
+                            console.log(`✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.videos.length} videos (top-level)`);
+                            return true; // Found video data!
+                        }
+                        if (cachedData.video && cachedData.video.id) {
+                            console.log(`✅ [VIDEO-CHECK] Query "${query}" has single video data (top-level)`);
+                            return true; // Found single video data!
+                        }
+                        console.log(`⚠️ [VIDEO-CHECK] Cache key "${key}" found but no video data in cachedData.data`);
+                    } catch (parseError) {
+                        console.warn(`[VIDEO-CHECK] Error parsing cache for key ${key}:`, parseError);
+                    }
+                }
+            }
+            
+            console.log(`❌ [VIDEO-CHECK] No video data found for query: "${query}" (type: ${type})`);
+            return false; // No video data found for this query
+        } catch (error) {
+            console.error('[VIDEO-CHECK] Error checking video data for query:', query, error);
+            return false;
+        }
+    }
+    
     getAllQueriesForDropdown() {
         // Get database queries from the savedQueries Map (loaded from MongoDB)
-        const dbQueries = Array.from(this.savedQueries.values()).map(savedQuery => ({
-            query: savedQuery.query,
-            type: savedQuery.searchType || 'search', // Include the search type from database
-            timestamp: savedQuery.timestamp || Date.now(),
-            source: 'database',
-            hasDBRecord: true,
-            hasLocalCache: false
-        }));
+        const dbQueries = Array.from(this.savedQueries.values()).map(savedQuery => {
+            console.log(`🔍 [DEBUG] Saved query: "${savedQuery.query}" | displayName: "${savedQuery.displayName}" | has displayName: ${!!savedQuery.displayName}`);
+            return {
+                query: savedQuery.query,
+                displayName: savedQuery.displayName, // Include the human-readable displayName from database
+                type: savedQuery.searchType || 'search', // Include the search type from database
+                timestamp: savedQuery.timestamp || Date.now(),
+                source: 'database',
+                hasDBRecord: true,
+                hasLocalCache: false
+            };
+        });
         
         console.log('📊 [DROPDOWN] Database queries loaded:', dbQueries.length);
         
@@ -1148,8 +1409,19 @@ export default class YouTubeSearchManager {
         
         console.log('📊 [DROPDOWN] Total merged queries:', mergedQueries.length);
         
+        // FILTER: Only show queries that have actual video data
+        const queriesWithVideoData = mergedQueries.filter(query => {
+            const hasVideoData = this.hasQueryVideoData(query.query, query.type);
+            if (!hasVideoData) {
+                console.log(`🚫 [FILTER] Filtering out query "${query.query}" - no video data found`);
+            }
+            return hasVideoData;
+        });
+        
+        console.log(`📊 [DROPDOWN] Queries with video data: ${queriesWithVideoData.length} (filtered from ${mergedQueries.length} total)`);
+        
         // If no queries exist, add some sample queries for demonstration
-        if (mergedQueries.length === 0) {
+        if (queriesWithVideoData.length === 0) {
             const sampleQueries = [
                 { query: 'Tonkinese cats', timestamp: Date.now() - 3600000, source: 'sample', hasLocalCache: false, hasDBRecord: true },
                 { query: 'guitarlessons365', timestamp: Date.now() - 7200000, source: 'sample', hasLocalCache: false, hasDBRecord: false },
@@ -1161,7 +1433,7 @@ export default class YouTubeSearchManager {
             return sampleQueries;
         }
         
-        return mergedQueries;
+        return queriesWithVideoData;
     }
 
     /**
@@ -1200,8 +1472,10 @@ export default class YouTubeSearchManager {
                 const isOldFormat = key && key.startsWith('yt_') && (key.includes('_search_') || key.includes('_channel_'));
                 const isNewFormat = key && key.startsWith('yt_search_') && key.includes('_p') && key.includes('_none');
                 const isNewChannelFormat = key && key.startsWith('yt_channel_') && key.includes('_p') && key.includes('_none');
+                const isNewMoviesFormat = key && key.startsWith('yt_movies_') && key.includes('_p') && key.includes('_none');
+                const isNewTVFormat = key && key.startsWith('yt_tv_') && key.includes('_p') && key.includes('_none');
                 
-                if (isOldFormat || isNewFormat || isNewChannelFormat) {
+                if (isOldFormat || isNewFormat || isNewChannelFormat || isNewMoviesFormat || isNewTVFormat) {
                     try {
                         const item = JSON.parse(localStorage.getItem(key));
                         
@@ -1221,7 +1495,16 @@ export default class YouTubeSearchManager {
                         
                         if (query) {
                             // Check if we already have this query from access history
-                            const existingQuery = localQueries.find(q => this.cleanQueryForDisplay(q.query) === this.cleanQueryForDisplay(query));
+                            // Use improved matching that handles different formats
+                            const existingQuery = localQueries.find(q => {
+                                const qClean = this.cleanQueryForDisplay(q.query);
+                                const queryClean = this.cleanQueryForDisplay(query);
+                                const qNormalized = this.normalizeYouTubeQuery(q.query);
+                                const queryNormalized = this.normalizeYouTubeQuery(query);
+                                
+                                return qClean === queryClean || qNormalized === queryNormalized;
+                            });
+                            
                             if (existingQuery) {
                                 // IMPORTANT: Cache-based extraction is more reliable than access history
                                 // Update existing query with cache info AND correct query/type from cache
@@ -1328,20 +1611,34 @@ export default class YouTubeSearchManager {
      * Format query display name with type indicator (ch), (mv), (tv)
      */
     formatQueryDisplayName(query, type = 'search') {
-        const cleanQuery = this.cleanQueryForDisplay(query);
+        // CRITICAL: Use the ORIGINAL query format, NOT cleaned/normalized
+        const displayQuery = query; // Preserve original format exactly as typed
         
         // Add type indicators based on search type
         switch (type) {
             case 'channel':
-                return `${cleanQuery} (ch)`;
+                return `${displayQuery} (ch)`;
             case 'movies':
-                return `${cleanQuery} (mv)`;
+                return `${displayQuery} (mv)`;
             case 'tv':
-                return `${cleanQuery} (tv)`;
+                return `${displayQuery} (tv)`;
             case 'search':
             default:
-                return cleanQuery; // No indicator for regular searches
+                return displayQuery; // No indicator for regular searches
         }
+    }
+
+    /**
+     * Normalize YouTube query to lowercase dot notation for consistent cache keys
+     */
+    normalizeYouTubeQuery(query) {
+        if (!query) return '';
+        return query.toLowerCase()
+            .trim()
+            .replace(/\s+/g, '.') // Replace spaces with dots
+            .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+            .replace(/\.+/g, '.') // Replace multiple dots with single dot
+            .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
     }
 
     /**
@@ -1418,13 +1715,18 @@ export default class YouTubeSearchManager {
     getCachedPageCount(query) {
         // Handle both string queries and query objects
         let baseQuery;
+        let queryType = 'search';
+        
         if (typeof query === 'string') {
             baseQuery = query;
         } else if (query && query.query) {
             baseQuery = query.query;
+            queryType = query.type || 'search';
         } else {
             return 1;
         }
+        
+        console.log(`🔍 [PAGE-COUNT] Counting cached pages for query: "${baseQuery}" (type: ${queryType})`);
         
         // Try multiple cache key formats to handle both old and new formats
         let count = 0;
@@ -1432,23 +1734,36 @@ export default class YouTubeSearchManager {
         
         // Remove hard limit - check up to 200 pages to find all cached pages
         while (page <= 200) {
-            // Try multiple formats:
-            // 1. New format: yt_[cleanQuery]_search_[page]
-            // 2. Old format: yt_[fullQuery]_search_[page] 
-            // 3. Legacy format: yt_Youtube search [query]_search_[page]
-            
+            // Try multiple formats with improved detection
             const cleanedQuery = this.cleanQueryForDisplay(baseQuery);
+            const normalizedQuery = this.normalizeYouTubeQuery(baseQuery);
+            
             const possibleKeys = [
                 // NEW FORMAT (matches handleYoutubeRequest exactly): yt_search_avocado_tree_p1_none, yt_channel_mr_beast_p1_none
                 `yt_search_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_channel_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_movies_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_tv_${cleanedQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                // NEW FORMAT with dots preserved (for queries like "animal.planet")
+                `yt_search_${cleanedQuery}_p${page}_none`,
+                `yt_channel_${cleanedQuery}_p${page}_none`,
+                `yt_movies_${cleanedQuery}_p${page}_none`,
+                `yt_tv_${cleanedQuery}_p${page}_none`,
+                // NEW FORMAT with normalized dot notation
+                `yt_search_${normalizedQuery}_p${page}_none`,
+                `yt_channel_${normalizedQuery}_p${page}_none`,
+                `yt_movies_${normalizedQuery}_p${page}_none`,
+                `yt_tv_${normalizedQuery}_p${page}_none`,
                 // Fallback NEW FORMAT (in case baseQuery is used instead of cleanedQuery)
                 `yt_search_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_channel_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_movies_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
                 `yt_tv_${baseQuery.replace(/\s+/g, '_')}_p${page}_none`,
+                // Fallback NEW FORMAT with dots preserved
+                `yt_search_${baseQuery}_p${page}_none`,
+                `yt_channel_${baseQuery}_p${page}_none`,
+                `yt_movies_${baseQuery}_p${page}_none`,
+                `yt_tv_${baseQuery}_p${page}_none`,
                 // Legacy formats (fallback compatibility)
                 `yt_${baseQuery}_search_${page}`,             // Legacy format (fallback)
                 `yt_${cleanedQuery}_search_${page}`,          // Clean format (fallback)
@@ -1459,15 +1774,19 @@ export default class YouTubeSearchManager {
             ];
             
             let found = false;
+            let foundKey = null;
+            
             for (const cacheKey of possibleKeys) {
                 if (localStorage.getItem(cacheKey)) {
                     found = true;
+                    foundKey = cacheKey;
                     break;
                 }
             }
             
             if (found) {
                 count++;
+                console.log(`✅ [PAGE-COUNT] Found page ${page} with key: ${foundKey}`);
                 page++;
             } else {
                 // If we haven't found any pages yet, continue searching
@@ -1485,8 +1804,11 @@ export default class YouTubeSearchManager {
             }
         }
         
+        console.log(`📊 [PAGE-COUNT] Total cached pages found: ${count} for query: "${baseQuery}"`);
+        
         // If no cache found but query is in database, show "DB" instead of "1 pg"
         if (count === 0 && this.isQuerySaved(baseQuery)) {
+            console.log(`📊 [PAGE-COUNT] No cache found but query is saved in database - showing "DB"`);
             return 'DB'; // Special indicator for database queries without cache
         }
         
@@ -1706,9 +2028,10 @@ export default class YouTubeSearchManager {
             const normalizedQuery = this.cleanQueryForDisplay(queryText).toLowerCase().trim();
             
             if (!merged.has(normalizedQuery)) {
-                // Add DB entry if no cached version exists
+                // Add DB entry if no cached version exists - PRESERVE displayName
                 merged.set(normalizedQuery, {
                     query: queryText,
+                    displayName: query.displayName, // CRITICAL: Explicitly preserve displayName from database
                     timestamp: query.timestamp || query.createdAt || Date.now(),
                     source: 'database',
                     hasLocalCache: false,
@@ -1723,6 +2046,7 @@ export default class YouTubeSearchManager {
                 const existing = merged.get(normalizedQuery);
                 merged.set(normalizedQuery, {
                     ...existing,
+                    displayName: query.displayName || existing.displayName, // CRITICAL: Preserve displayName from database
                     hasDBRecord: true, // Ensure green LED always shows for merged queries
                     dbData: query,
                     priority: 'cache', // Keep cache priority
@@ -1733,6 +2057,11 @@ export default class YouTubeSearchManager {
         
         // Convert back to array - include ALL entries
         const result = Array.from(merged.values());
+        
+        // Debug: Check displayName preservation
+        result.forEach(query => {
+            console.log(`🔀 [MERGE-DEBUG] Query: "${query.query}" | displayName: "${query.displayName}" | source: ${query.source} | priority: ${query.priority}`);
+        });
         
         console.log('🔀 [MERGE] Merged queries:', {
             total: result.length,
@@ -2120,7 +2449,11 @@ export default class YouTubeSearchManager {
             item.className = 'query-history-item';
             
             // Store both the original full query and formatted display name with type indicator
-            const formattedDisplayName = this.formatQueryDisplayName(query.query, query.type);
+            // CRITICAL: Use the ORIGINAL query format for display, NOT normalized
+            const displayText = query.displayName || query.query; // Use original query, not cleaned
+            const formattedDisplayName = this.formatQueryDisplayName(displayText, query.type);
+            
+            console.log(`🔍 [DROPDOWN-RENDER] Query: "${query.query}" | displayName: "${query.displayName}" | displayText: "${displayText}" | formattedDisplayName: "${formattedDisplayName}"`);
             item.setAttribute('data-query', query.query); // Full original query
             item.setAttribute('data-display-name', formattedDisplayName); // Formatted display name with type indicator
             
@@ -2226,8 +2559,8 @@ export default class YouTubeSearchManager {
             // Query name
             const queryName = document.createElement('div');
             queryName.className = 'query-text';
-            // FINAL CAPITALIZATION INTERRUPT: Ensure proper case for display
-            const finalDisplayName = this.capitalizeWords(formattedDisplayName);
+            // CRITICAL: Use the ORIGINAL query format, NOT normalized or cleaned
+            const finalDisplayName = query.query; // Use original query exactly as typed
             queryName.textContent = finalDisplayName;
             queryName.title = `Run search for: "${finalDisplayName}"`;
             col2.appendChild(queryName);
@@ -2519,54 +2852,138 @@ export default class YouTubeSearchManager {
     async navigateToQuery(query) {
         console.log('🔍 [HISTORY] Navigating to query:', query);
 
-        // Try to find the actual cache key format by checking variations
-        const possibleQueries = [
-            query, // exact query
-            `youtube search ${query}`, // full format
-            `Youtube search ${query}`, // capital Y format
-            `youtube ${query}`, // youtube prefix
-            `Youtube ${query}`, // capital Y prefix
-        ];
-        
+                // Use the same logic as hasQueryVideoData to find the actual cache key
         let actualQuery = null;
-        let foundPages = 0;
+        let foundCacheKey = null;
         
-        // Find which query format has cached data by scanning all localStorage keys
-        // This is more robust than guessing format variations
+        // Normalize the query for comparison (remove spaces, lowercase)
+        const normalizedQuery = query.toLowerCase().replace(/\s+/g, '');
+        console.log(`🔍 [CACHE-MATCH] Looking for normalized query: "${normalizedQuery}"`);
+        
+        // Look for cache keys that match this query and type
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('yt_') && (key.includes('_search_') || key.includes('_channel_'))) {
-                const extracted = this.extractQueryFromCacheKey(key);
-                if (extracted) {
-                    const extractedQuery = extracted.query;
-                    const cleanedExtractedQuery = this.cleanQueryForDisplay(extractedQuery);
+            if (!key) continue;
+            
+            // Only check YouTube-related keys
+            if (!key.startsWith('yt_')) continue;
+            
+            let matchesQuery = false;
+            let matchesType = false;
+            let extractedQuery = '';
+            
+            // NEW FORMAT: yt_search_santanavevo_p1_none or yt_search_animal.planet_p1_none
+            if (key.startsWith('yt_search_') && 'search' === 'search') {
+                matchesType = true;
+                extractedQuery = key.replace('yt_search_', '').split('_p')[0];
+                
+                // Handle both underscore and dot formats for comparison
+                const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                matchesQuery = normalizedExtracted === normalizedQueryClean;
+                
+                // Also try exact match for dot-preserved queries
+                if (!matchesQuery) {
+                    matchesQuery = extractedQuery === query;
+                }
+                
+                // Try normalized dot format match
+                if (!matchesQuery) {
+                    const queryNormalized = this.normalizeYouTubeQuery(query);
+                    const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                    matchesQuery = queryNormalized === extractedNormalized;
+                }
+                
+                console.log(`🔍 [CACHE-MATCH] Checking NEW format - Key: "${key}" | Extracted: "${extractedQuery}" | Normalized extracted: "${normalizedExtracted}" | Normalized query: "${normalizedQueryClean}" | Matches: ${matchesQuery}`);
+            }
+            
+            // LEGACY FORMAT: yt_Youtube search privettricker_search_21
+            if (!matchesType && !matchesQuery) {
+                if (key.includes('_search_') && 'search' === 'search') {
+                    matchesType = true;
+                    extractedQuery = key.substring(3).split('_search_')[0]; // Remove 'yt_' prefix
                     
-                    // Check if this cache key matches our target query
-                    if (extractedQuery === query || cleanedExtractedQuery === query) {
-                        actualQuery = extractedQuery; // Use the exact format from the cache
-                break;
+                    // Handle both underscore and dot formats for comparison
+                    const normalizedExtracted = extractedQuery.replace(/_/g, '').toLowerCase();
+                    const normalizedQueryClean = normalizedQuery.replace(/\./g, '');
+                    matchesQuery = normalizedExtracted === normalizedQueryClean;
+                    
+                    // Also try exact match for dot-preserved queries
+                    if (!matchesQuery) {
+                        matchesQuery = extractedQuery === query;
                     }
+                    
+                    // Try normalized dot format match
+                    if (!matchesQuery) {
+                        const queryNormalized = this.normalizeYouTubeQuery(query);
+                        const extractedNormalized = this.normalizeYouTubeQuery(extractedQuery);
+                        matchesQuery = queryNormalized === extractedNormalized;
+                    }
+                    
+                    console.log(`🔍 [CACHE-MATCH] Checking LEGACY format - Key: "${key}" | Extracted: "${extractedQuery}" | Normalized extracted: "${normalizedExtracted}" | Normalized query: "${normalizedQueryClean}" | Matches: ${matchesQuery}`);
+                }
+            }
+            
+            if (matchesQuery && matchesType) {
+                console.log(`✅ [CACHE-MATCH] Found matching cache key: "${key}" for query: "${query}"`);
+                
+                // Found a matching cache key, now check if it has video data
+                try {
+                    const cachedData = JSON.parse(localStorage.getItem(key));
+                    if (cachedData) {
+                        // Check if there are actual videos in the data (direct structure, not nested)
+                        if (cachedData.videos && Array.isArray(cachedData.videos) && cachedData.videos.length > 0) {
+                            console.log(`✅ [CACHE-MATCH] Query "${query}" has ${cachedData.videos.length} videos`);
+                            actualQuery = extractedQuery;
+                            foundCacheKey = key;
+                            break;
+                        }
+                        if (cachedData.video && cachedData.video.id) {
+                            console.log(`✅ [CACHE-MATCH] Query "${query}" has single video data`);
+                            actualQuery = extractedQuery;
+                            foundCacheKey = key;
+                            break;
+                        }
+                        // Also check nested structure for backward compatibility
+                        if (cachedData.data && cachedData.data.videos && Array.isArray(cachedData.data.videos) && cachedData.data.videos.length > 0) {
+                            console.log(`✅ [CACHE-MATCH] Query "${query}" has ${cachedData.data.videos.length} videos (nested structure)`);
+                            actualQuery = extractedQuery;
+                            foundCacheKey = key;
+                            break;
+                        }
+                        if (cachedData.data && cachedData.data.video && cachedData.data.video.id) {
+                            console.log(`✅ [CACHE-MATCH] Query "${query}" has single video data (nested structure)`);
+                            actualQuery = extractedQuery;
+                            foundCacheKey = key;
+                            break;
+                        }
+                    }
+                } catch (parseError) {
+                    console.warn(`[CACHE-MATCH] Error parsing cache for key ${key}:`, parseError);
                 }
             }
         }
         
+        console.log(`🔍 [CACHE-MATCH] Final result - actualQuery: "${actualQuery}" | foundCacheKey: "${foundCacheKey}"`);
+        
         if (!actualQuery) {
+            console.log(`❌ [CACHE-MATCH] No cache found for query: "${query}" - this should not happen if hasQueryVideoData returned true`);
             
             // Check quota status before making API call
             const quotaMonitor = window.quotaMonitor;
             if (quotaMonitor && quotaMonitor.shouldBlockAPICall && quotaMonitor.shouldBlockAPICall()) {
                 console.log('🚫 [QUOTA] API call blocked due to quota limits');
             if (window.showToast) {
-                    window.showToast(`🚫 Cannot load "${this.cleanQueryForDisplay(query)}" - quota limit reached (${quotaMonitor.getCurrentUsage()}/10000). Please use cached queries only.`, 'error', 8000);
+                window.showToast(`🚫 Cannot load "${this.cleanQueryForDisplay(query)}" - quota limit reached (${quotaMonitor.getCurrentUsage()}/10000). Please use cached queries only.`, 'error', 10000);
                 }
                 return;
             }
             
-            // Check if quota usage is above 95% (9500) - emergency brake
+            // Check quota usage is above 95% (9500) - emergency brake
             const currentUsage = quotaMonitor ? quotaMonitor.getCurrentUsage() : 0;
             if (currentUsage > 9500) {
                 console.log('🚫 [QUOTA-EMERGENCY] API call blocked - usage above 95%:', currentUsage);
-                window.showToast(`🚫 Cannot load "${this.cleanQueryForDisplay(query)}" - quota critically high (${currentUsage}/10000). Server blocks API calls above 95%.`, 'error', 8000);
+                window.showToast(`🚫 Cannot load "${this.cleanQueryForDisplay(query)}" - quota critically high (${currentUsage}/10000). Server blocks API calls above 95%.`, 'error', 10000);
                 return;
             }
             
@@ -2575,16 +2992,26 @@ export default class YouTubeSearchManager {
             this.pagination.originalQuery = query;
             this.pagination.searchType = 'search';
             
-            // For DB-only queries that haven't been cached yet, trigger a fresh search
-            await this.handleYoutubeRequest(query, false, null, { isOverwrite: true });
+            // For DB-only queries that haven't been cached yet, show message instead of triggering recursion
+            console.log(`🔍 [CACHE-ONLY] No cached results found for "${query}" - cache-only mode`);
+            if (window.showToast) {
+                window.showToast(`⚠️ No cached results found for "${this.cleanQueryForDisplay(query)}". Try a fresh search if needed.`, 'warning', 10000);
+            }
             return;
         }
 
-        // 1. Find all cached pages for this query using the correct format
+        // 1. Find all cached pages for this query using the found cache key format
         const pages = [];
         let pageNum = 1;
+        
+        // Extract the base format from the found cache key
+        const baseCacheKey = foundCacheKey.replace(/_p\d+_none$/, '');
+        console.log(`🔍 [CACHE-MATCH] Using base cache key format: "${baseCacheKey}"`);
+        console.log(`🔍 [CACHE-MATCH] Found cache key: "${foundCacheKey}"`);
+        console.log(`🔍 [CACHE-MATCH] Actual query: "${actualQuery}"`);
+        
         while (pageNum <= 20) { // Don't run forever
-            const cacheKey = `yt_search_${actualQuery.replace(/\s+/g, '_')}_p${pageNum}_none`;
+            const cacheKey = `${baseCacheKey}_p${pageNum}_none`;
             const cached = localStorage.getItem(cacheKey);
             console.log(`🔍 [DEBUG] Checking cache key: ${cacheKey}, found: ${!!cached}`);
             
@@ -2598,13 +3025,25 @@ export default class YouTubeSearchManager {
                 console.log(`🔍 [DEBUG] Parsed data for page ${pageNum}:`, data);
                 
                 let videos = [];
-                if (data.video) {
-                    videos = [data.video];
+                
+                // Handle nested data structure: {data: {videos: [...]}}, {data: {items: [...]}}, etc.
+                const actualData = data.data || data;
+                
+                if (actualData.video) {
+                    videos = [actualData.video];
+                } else if (actualData.videos) {
+                    videos = actualData.videos;
+                } else if (actualData.items) {
+                    videos = actualData.items; // Some cache formats use 'items'
+                } else if (data.video) {
+                    videos = [data.video]; // Fallback to top-level
                 } else if (data.videos) {
-                    videos = data.videos;
+                    videos = data.videos; // Fallback to top-level
                 } else if (data.items) {
-                    videos = data.items; // Some cache formats use 'items'
+                    videos = data.items; // Fallback to top-level
                 }
+                
+                console.log(`🔍 [DEBUG] Extracted ${videos.length} videos from page ${pageNum} data structure`);
                 
                 if (videos.length > 0) {
                     pages.push({
@@ -2661,12 +3100,16 @@ export default class YouTubeSearchManager {
                 
                 if (currentUsage > 9500) {
                     console.log('🚫 [QUOTA-EMERGENCY] Cannot fetch page 1 - usage above 95%:', currentUsage);
-                    window.showToast(`🚫 Cannot load page 1 of "${this.cleanQueryForDisplay(actualQuery)}" - quota critically high (${currentUsage}/10000). Only cached pages available.`, 'error', 8000);
+                    window.showToast(`🚫 Cannot load page 1 of "${this.cleanQueryForDisplay(actualQuery)}" - quota critically high (${currentUsage}/10000). Only cached pages available.`, 'error', 10000);
                     return;
                 }
                 
-                await this.handleYoutubeRequest(actualQuery, false, null, { isOverwrite: true });
-                return; // Exit early since handleYoutubeRequest will handle the rest
+                // Don't make recursive call - we're already in cache-only mode
+                console.log(`🔍 [CACHE-ONLY] No cached results found for "${actualQuery}" - cache-only mode (no recursion)`);
+                if (window.showToast) {
+                window.showToast(`⚠️ No cached results found for "${this.cleanQueryForDisplay(actualQuery)}". Try a fresh search if needed.`, 'warning', 10000);
+                }
+                return;
             }
 
             // 4. Update button states
@@ -2701,7 +3144,7 @@ export default class YouTubeSearchManager {
             if (currentUsage > 9500) {
                 console.log('🚫 [QUOTA-EMERGENCY] Cannot search for DB query - usage above 95%:', currentUsage);
             if (window.showToast) {
-                    window.showToast(`🚫 Cannot search for "${this.cleanQueryForDisplay(query)}" - quota critically high (${currentUsage}/10000). This query has no cached results.`, 'error', 8000);
+                    window.showToast(`🚫 Cannot search for "${this.cleanQueryForDisplay(query)}" - quota critically high (${currentUsage}/10000). This query has no cached results.`, 'error', 10000);
                 }
                 return;
             }
@@ -2711,19 +3154,24 @@ export default class YouTubeSearchManager {
             this.pagination.originalQuery = query;
             this.pagination.searchType = 'search';
             
-            // Trigger a fresh search for this query
-            await this.handleYoutubeRequest(query, false, null, { isOverwrite: true });
+            // Don't trigger fresh search - we're in cache-only mode to prevent recursion
+            console.log(`🔍 [CACHE-ONLY] No cached results found for "${query}" - cache-only mode (no fresh search)`);
+            if (window.showToast) {
+                window.showToast(`⚠️ No cached results found for "${this.cleanQueryForDisplay(query)}". Try a fresh search if needed.`, 'warning', 10000);
+            }
         }
     }
 
     updateAllYouTubeHeaders(query) {
         console.log('🎯 [HEADER-UPDATE] Updating all YouTube headers to:', query);
         const cleanQuery = query.replace(/^youtube\s+search\s+/i, '').trim();
+        // Convert normalized query to human-readable format for headers too
+        const humanReadableQuery = cleanQuery.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         const headers = document.querySelectorAll('.youtube-header, .youtube-search-header');
-        console.log('🎯 [HEADER-UPDATE] Updated', headers.length, 'header(s) to show query:', cleanQuery);
+        console.log('🎯 [HEADER-UPDATE] Updated', headers.length, 'header(s) to show query:', humanReadableQuery);
         headers.forEach(header => {
             if (header.textContent.includes('YouTube')) {
-                header.textContent = `YouTube: ${cleanQuery}`;
+                header.textContent = `YouTube: ${humanReadableQuery}`;
             }
         });
     }
@@ -2795,14 +3243,16 @@ export default class YouTubeSearchManager {
         console.log('🎯 [LEGACY] Videos received:', videos);
         
         // Create the proper HTML structure matching the reference implementation
-        const cleanQuery = query.replace(/^youtube\s+search\s+/i, '').trim();
+        // CRITICAL: Use the ORIGINAL query format, NOT normalized or converted
+        const displayQuery = query; // Preserve original format exactly as typed
+        console.log('🎯 [HEADER] Query display:', { original: query, display: displayQuery });
         
         let html = `
             <div class="youtube-multi-bubble">
                 <div class="youtube-header-section">
                     <div class="youtube-header-container">
                         <div class="youtube-header-left">
-                            <h3 class="youtube-header-title">📺 YouTube Results: <span class="youtube-header-query">"${cleanQuery}"</span></h3>
+                            <h3 class="youtube-header-title">📺 YouTube Results: <span class="youtube-header-query">"${displayQuery}"</span></h3>
                         </div>
                         <div class="youtube-header-right">
                             <button class="view-playlists-btn" onclick="window.playlistManager?.show('${query}');">View Playlists</button>
