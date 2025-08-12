@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.CSS
-  Version: 16
-  AppName: MultiChat_Chatty [v16]
-  Updated: 8/10/2025 @1:15AM
+  Version: 17
+  AppName: MultiChat_Chatty [v17]
+  Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
 */
 
@@ -3761,6 +3761,10 @@
   background: #27ae60;
 }
 
+.media-manager-confirm-btn-movie:disabled {
+  background: #4caf508a !important;
+}
+
 .media-manager-edit-btn-movie {
   background: #f39c12;
   color: #fff;
@@ -3777,7 +3781,7 @@
 }
 
 .media-manager-cancel-btn-movie {
-  background: #95a5a6;
+  background: #cc0935 !important;
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -4135,7 +4139,7 @@
 .media-manager-confirm-btn-tv,
 .media-manager-cancel-btn-movie,
 .media-manager-cancel-btn-tv {
-  background: #6c757d !important;
+  background: #4caf50;
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -4150,7 +4154,7 @@
 .media-manager-confirm-btn-tv:hover,
 .media-manager-cancel-btn-movie:hover,
 .media-manager-cancel-btn-tv:hover {
-  background: #5a6268 !important;
+  background: #4caf50;
 }
 
 /* ==================== CAST BUTTON STYLES ==================== */

@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 16
-  AppName: MultiChat_Chatty [v16]
-  Updated: 8/10/2025 @1:15AM
+  Version: 17
+  AppName: MultiChat_Chatty [v17]
+  Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
 */
 
@@ -151,6 +151,7 @@ app.use('/api/youtube/history', youtubeHistoryRoutes);
 app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
 app.use('/api/watch-later', watchLaterRoutes);
 app.use('/api/lyrics', lyricsRoutes);
+app.use('/api/collections', require('./routes/collections.routes'));
 
 // 1. Serve S:/MEDIA as /media (STATIC)
 app.use('/media', express.static('S:/MEDIA'));
@@ -2563,8 +2564,22 @@ const YouTubeSearch = require('./models/YouTubeSearch');
 // Single MongoDB connection
 let retryCount = 0;
 const maxRetries = 3;
+let isConnecting = false; // Prevent multiple simultaneous connection attempts
 
 async function connectWithRetry() {
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+        console.log('MongoDB connection already in progress, skipping...');
+        return;
+    }
+    
+    if (retryCount >= maxRetries) {
+        console.error('MongoDB connection failed after maximum retries. Please check your connection and restart the server.');
+        return;
+    }
+    
+    isConnecting = true;
+    
     try {
         await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 30000, // 30 seconds
@@ -2580,6 +2595,7 @@ async function connectWithRetry() {
             name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown'
         }, null, 4));
         retryCount = 0; // Reset retry count on successful connection
+        isConnecting = false; // Reset connection flag
     } catch (err) {
         console.error('MongoDB connection error:', {
             error: err.message,
@@ -2590,12 +2606,30 @@ async function connectWithRetry() {
         if (retryCount < maxRetries) {
             retryCount++;
             console.log(`Retrying connection in 5 seconds... (Attempt ${retryCount}/${maxRetries})`);
-            setTimeout(connectWithRetry, 5000);
+            setTimeout(() => {
+                isConnecting = false; // Reset flag before retrying
+                connectWithRetry();
+            }, 5000);
+        } else {
+            console.error('MongoDB connection failed after maximum retries. Please check your connection and restart the server.');
+            isConnecting = false;
         }
     }
 }
 
 // Initial connection
+console.log('[MONGODB] Starting connection process...');
+console.log('[MONGODB] Environment check:', {
+    MONGODB_URI: process.env.MONGODB_URI ? 'Present' : 'Missing',
+    NODE_ENV: process.env.NODE_ENV || 'development'
+});
+
+if (!process.env.MONGODB_URI) {
+    console.error('[MONGODB] ERROR: MONGODB_URI environment variable is not set!');
+    console.error('[MONGODB] Please check your .env file or environment configuration.');
+    process.exit(1);
+}
+
 connectWithRetry();
 
 // Set up conversation collection reference after connection
@@ -2610,8 +2644,13 @@ mongoose.connection.on('disconnected', () => {
         status: 'disconnected',
         time: new Date().toISOString()
     });
-    if (retryCount < maxRetries) {
+    
+    // Only retry if we haven't exceeded max retries and we're not already connecting
+    if (retryCount < maxRetries && !isConnecting) {
+        console.log('Attempting to reconnect to MongoDB...');
         connectWithRetry();
+    } else if (retryCount >= maxRetries) {
+        console.error('MongoDB reconnection failed after maximum retries. Please check your connection and restart the server.');
     }
 });
 
@@ -3972,19 +4011,44 @@ app.post('/api/youtube/playlists-update-durations', async (req, res) => {
 
 
 // =====================================================
+// PROCESS ERROR HANDLING
+// =====================================================
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error(chalk.red('[PROCESS] Uncaught Exception:'), error);
+    console.error(chalk.red('[PROCESS] Error stack:'), error.stack);
+    process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(chalk.red('[PROCESS] Unhandled Rejection at:'), promise);
+    console.error(chalk.red('[PROCESS] Reason:'), reason);
+    process.exit(1);
+});
+
+// =====================================================
 // SERVER LISTENER
 // =====================================================
 
 // Call the server and port
+console.log('[SERVER] Attempting to start server on port:', port);
+
 app.listen(port, '0.0.0.0', () => {
     console.log(chalk.magenta(`[BACKEND] Listening at http://localhost:${port}`));
+    console.log(chalk.green('[SERVER] Server started successfully!'));
 }).on('error', (error) => {
-    console.error(chalk.magenta('[BACKEND] Error starting server:'), error);
+    console.error(chalk.red('[BACKEND] Error starting server:'), error);
     if (error.code === 'EACCES') {
-        console.error(chalk.magenta('[BACKEND] Permission denied. Try using a port number above 1024.'));
+        console.error(chalk.red('[BACKEND] Permission denied. Try using a port number above 1024.'));
     } else if (error.code === 'EADDRINUSE') {
-        console.error(chalk.magenta('[BACKEND] Port is already in use. Try a different port.'));
+        console.error(chalk.red('[BACKEND] Port is already in use. Try a different port.'));
+    } else {
+        console.error(chalk.red('[BACKEND] Unexpected error:'), error.message);
+        console.error(chalk.red('[BACKEND] Error stack:'), error.stack);
     }
+    process.exit(1);
 });
 
 
