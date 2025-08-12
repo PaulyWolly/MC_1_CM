@@ -1,8 +1,8 @@
 /*
   APP.JS
-  Version: 16
-  AppName: MultiChat_Chatty [v16]
-  Updated: 8/10/2025 @1:15AM
+  Version: 17
+  AppName: MultiChat_Chatty [v17]
+  Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
 */
 
@@ -4226,6 +4226,7 @@ async function initializeApp() {
 
         console.log('Initializing MediaLibraryManager...');
         const mediaLibraryManagerInstance = new MediaLibraryManager();
+        await mediaLibraryManagerInstance.init(); // Initialize the MediaLibraryManager
         window.mediaLibraryManager = mediaLibraryManagerInstance;
         console.log('MediaLibraryManager initialized:', window.mediaLibraryManager);
 
@@ -6668,14 +6669,6 @@ function extractSubjectFromPlaceholder(responseText) {
     return '';
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const mediaLibraryBtn = document.getElementById('mediaLibraryBtn');
-    if (mediaLibraryBtn) {
-        mediaLibraryBtn.addEventListener('click', function() {
-            console.log('[DEBUG] Media Library button clicked in app.js');
-        });
-    }
-});
-
+// MediaLibraryManager handles its own event listeners
 console.log('[DEBUG] MediaLibraryManager instance:', window.mediaLibraryManager);
 

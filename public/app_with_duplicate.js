@@ -1,8 +1,8 @@
 /*
   APP_WITH_DUPLICATE.JS
-  Version: 16
-  AppName: MultiChat_Chatty [v16]
-  Updated: 8/10/2025 @1:15AM
+  Version: 17
+  AppName: MultiChat_Chatty [v17]
+  Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
 */
 

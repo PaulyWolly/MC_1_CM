@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 16
-  AppName: MultiChat_Chatty [v16]
-  Updated: 8/10/2025 @1:15AM
+  Version: 17
+  AppName: MultiChat_Chatty [v17]
+  Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
 */
 
@@ -59,6 +59,18 @@
 
 /* Media Grid Styles */
 .media-library-movie-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+}
+
+.media-library-movie-grid-collections {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
     gap: 15px !important;
@@ -832,7 +844,7 @@
 .media-library-breadcrumbs {
     padding: 15px 20px;
     background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+    /* border-bottom: 1px solid #e9ecef; */
     font-size: 14px;
     color: #6c757d;
     /* width: 80vw; */
@@ -1249,11 +1261,22 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     padding: 6px 10px 0 10px;
     z-index: 9998 !important;
     pointer-events: auto !important;
     position: relative !important;
+}
+
+.media-card-actions-tvshows {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px 0 10px;
+  z-index: 9998 !important;
+  pointer-events: auto !important;
+  position: relative !important;
 }
 
 /* Action movie buttons (icons) */
@@ -1275,17 +1298,56 @@
     cursor: pointer !important;
 }
 
-.favorites-movies-section {
+.favorites-only-heart-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+/* FAVORITES SECTION SPECIFIC STYLES */
+.movies-section-favorites {
   width: 50%;
+  flex: none !important;
   height: 100%;
   background: #f5f5f5;
   border-radius: 8px;
   padding: 10px;
   box-sizing: border-box;
+  /* overflow-x: hidden; */
+}
+
+.tvshows-section-favorites {
+  width: 48%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0px 10px 10px 10px;
+  box-sizing: border-box;
+}
+
+.media-card-actions-favorites {
+  display: flex;
+  margin-left: 15px;
+}
+
+.tvshows-section-favorites h3 {
+  margin-top: 28px;
+}
+
+/* COLLECTIONS SECTION SPECIFIC STYLES */
+.movies-section-collections {
+  width: 70%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  box-sizing: border-box;
   overflow-x: hidden;
 }
 
-.favorites-tvshows-section {
+.tvshows-section-collections {
   width: 50%;
   height: 100%;
   background: #f5f5f5;
@@ -1302,6 +1364,47 @@
     position: relative !important;
     pointer-events: auto !important;
     cursor: pointer !important;
+}
+
+/* Collection button states */
+.collection-btn-add {
+    background: #7cbef5 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4em !important;
+    line-height: 1 !important;
+    color: white !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+
+.collection-btn-remove {
+    background: #7df081 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4em !important;
+    line-height: 1 !important;
+    color: white !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+
+/* Collection display buttons (for the collections tab) */
+.collection-btn-display {
+    padding: 28px 36px !important;
+    border-radius: 12px !important;
+    background: #f5f5f5 !important;
+    color: #1976d2 !important;
+    font-size: 1.1em !important;
+    font-weight: bold !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    transition: background 0.2s !important;
+}
+
+.collection-btn-display:hover {
+    background: #e0e0e0 !important;
 }
 
 .poster-selector-btn {
@@ -1539,8 +1642,10 @@
   }
 
   /* FAVORITES SECTION SPECIFIC STYLES */
-  .favorites-movies-section .media-library-movie-grid {
+  /* FAVORITES GRID STYLES */
+  .movies-section-favorites .media-library-movie-grid {
     overflow-y: scroll !important; /* Force scrollbars to always show */
+    overflow-x: hidden !important; /* Prevent horizontal scrollbars */
     max-height: 48vh !important; /* Reduce height to force scrolling */
     padding-bottom: 20px !important; /* Add padding to ensure content is visible */
     min-height: 300px !important; /* Ensure minimum height for content */
@@ -1552,7 +1657,23 @@
     padding: 15px !important;
   }
 
-  .favorites-tvshows-section .media-library-movie-grid {
+  /* COLLECTIONS GRID STYLES */
+  .movies-section-collections .media-library-movie-grid {
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    overflow-x: hidden !important; /* Prevent horizontal scrollbars */
+    max-height: 48vh !important; /* Reduce height to force scrolling */
+    padding-bottom: 20px !important; /* Add padding to ensure content is visible */
+    min-height: 300px !important; /* Ensure minimum height for content */
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+
+  /* FAVORITES TV SHOWS GRID STYLES */
+  .tvshows-section-favorites .media-library-movie-grid {
     overflow-y: scroll !important;
     max-height: 48vh !important;
     padding-bottom: 20px !important;
@@ -1565,33 +1686,85 @@
     padding: 15px !important;
   }
 
-  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar,
-  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar {
+  /* COLLECTIONS TV SHOWS GRID STYLES */
+  .tvshows-section-collections .media-library-movie-grid {
+    overflow-y: scroll !important;
+    max-height: 48vh !important;
+    padding-bottom: 20px !important;
+    min-height: 300px !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 15px !important;
+    padding: 15px !important;
+  }
+
+  /* FAVORITES WEBKIT SCROLLBAR STYLES */
+  .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar,
+  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar {
     width: 8px !important;
     display: block !important;
   }
 
-  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-track,
-  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-track {
+  /* COLLECTIONS WEBKIT SCROLLBAR STYLES */
+  .movies-section-collections .media-library-movie-grid::-webkit-scrollbar,
+  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar,
+  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar {
+    width: 8px !important;
+    display: block !important;
+  }
+
+  /* FAVORITES SCROLLBAR TRACK STYLES */
+  .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-track,
+  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-track {
     background: #f1f1f1 !important;
     border-radius: 4px !important;
   }
 
-  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-thumb,
-  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+  /* COLLECTIONS SCROLLBAR TRACK STYLES */
+  .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-track,
+  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-track,
+  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+  }
+
+  /* FAVORITES SCROLLBAR THUMB STYLES */
+  .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-thumb {
     background: #888 !important;
     border-radius: 4px !important;
     min-height: 40px !important; /* Ensure thumb has minimum height */
     display: block !important;
   }
 
-  .favorites-movies-section .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
-  .favorites-tvshows-section .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+  /* COLLECTIONS SCROLLBAR THUMB STYLES */
+  .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 4px !important;
+    min-height: 40px !important; /* Ensure thumb has minimum height */
+    display: block !important;
+  }
+
+  /* FAVORITES SCROLLBAR THUMB HOVER STYLES */
+  .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+  }
+
+  /* COLLECTIONS SCROLLBAR THUMB HOVER STYLES */
+  .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
     background: #555 !important;
   }
 
   /* Force Favorites TV-Shows to have proper scrollbars */
-  .favorites-tvshows-section .media-library-tvshow-grid {
+  .favorites-tvshows-section .media-library-tvshow-grid,
+  .collections-tvshows-section .media-library-tvshow-grid {
     overflow-y: scroll !important;
     max-height: 48vh !important;
     min-height: 300px !important;
@@ -1766,8 +1939,14 @@
     /* width: 200px; */
     padding: 10px;
   }
+  
+  .media-library-movie-card-movies-collections {
+    /* width: 200px; */
+    padding: 10px;
+  }
   .media-library-movie-card-tvshows {
     /* height: 35vh; */
+    margin-top: 12px;
   }
 
 .watch-later-img-movie {
@@ -1927,12 +2106,13 @@
 }
 
 .media-library-seasons-description {
-    margin-bottom: 0;
-    position: absolute;
-    width: 820px;
-    right: -150px;
-    text-align: justify;
-    top: 4px;
+  margin-bottom: 0;
+  position: relative;
+  top: 6px;
+  left: 120px;
+  width: 670px;
+  text-align: justify;
+  flex-shrink: 0;
 }
 
 .media-library-details-buttons {
@@ -1971,7 +2151,7 @@
 }
 
 .media-library-details-cast-list {
-    margin-top: 110px;
+    margin-top: 130px;
 }
 
 @media print {
@@ -2085,7 +2265,7 @@
     flex-direction: column;
     align-items: flex-start;
     padding-left: 0;
-    margin-top: 70px;
+    /* margin-top: 70px; */
     position: absolute;
     left: 6px;
 
@@ -2350,7 +2530,7 @@
     font-size: 24px;
     border-radius: 50%;
     position: absolute;
-    top: 160px;
+    top: 224px;
     right: -172px !important;
 }
 
@@ -2366,6 +2546,10 @@
     border-radius: 50%;
     position: relative;
     top: -35px;
+}
+
+.media-library-tvshows-hr {
+  margin-top: 10px;
 }
 
 /* .media-library-arrow-episode-btn.left {
@@ -2459,7 +2643,7 @@
 
 /* Breadcrumb flush left, with spacing */
 .media-library-breadcrumbs {
-    margin-top: 18px;
+    margin-top: 70px;
     margin-bottom: 12px;
     font-size: 1.0em;
     color: #6c757d;
@@ -2473,24 +2657,34 @@
 /* Header row: title and description side by side on desktop, stacked on mobile */
 .media-library-seasons-header-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0;
-  margin-bottom: 8px;
+  /* gap: 40px; */
+  margin-bottom: 20px;
   width: 100%;
   position: static;
 }
 
 .media-library-seasons-title {
   min-width: 0;
+  max-width: 500px;
   margin-bottom: 0;
   text-align: left;
 }
 
-.media-library-seasons-title h2,
+.media-library-seasons-title h2 {
+  text-align: left;
+  margin: 0 0 8px 0;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #333;
+}
+
 .media-library-seasons-title p {
   text-align: left;
-  margin-left: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  color: #666;
 }
 
 .media-library-details-description {
@@ -2516,7 +2710,7 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  margin-top: 20px;
+  margin-top: 45px;
   position: static;
 }
 
@@ -2871,7 +3065,8 @@
   max-width: 50%; /* Ensure each section takes exactly 50% width */
 }
 
-.favorites-section-title-movies {
+/* FAVORITES SECTION TITLE STYLES */
+.section-title-movies-favorites {
   flex: 0 0 auto;
   margin-bottom: 8px;
   position: sticky;
@@ -2890,7 +3085,29 @@
   text-align: left; /* Center the title text */
 }
 
-.favorites-section-title-tvshows {
+/* COLLECTIONS SECTION TITLE STYLES */
+.section-title-movies-collections 
+  {
+    flex: 0 0 auto;
+    margin-bottom: 24px;
+    margin-top: -20px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    text-align: left;
+}
+
+/* FAVORITES TV SHOWS SECTION TITLE STYLES */
+.section-title-tvshows-favorites {
     flex: 0 0 auto;
     margin-bottom: 8px;
     position: sticky;
@@ -2908,10 +3125,32 @@
     text-align: left; /* Center the title text */
   }
 
+/* COLLECTIONS TV SHOWS SECTION TITLE STYLES */
+.section-title-tvshows-collections {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0;
+    position: relative;
+    top: -5px;
+    z-index: 1000;
+    text-align: left; /* Center the title text */
+  }
+
 /* REMOVED OLD CONFLICTING FAVORITES STYLES - REPLACED WITH SPECIFIC STYLES ABOVE */
 
-/* Ensure no horizontal scrollbars anywhere in favorites */
-.favorites-container {
+/* Ensure no horizontal scrollbars anywhere in favorites and collections */
+/* FAVORITES CONTAINER STYLES */
+.container-favorites {
   overflow-x: hidden;
   width: 100%; /* Use full width */
   display: flex;
@@ -2925,7 +3164,23 @@
   max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
 }
 
-.favorites-container .media-library-movie-grid {
+/* COLLECTIONS CONTAINER STYLES */
+.container-collections {
+  overflow-x: hidden;
+  width: 100%; /* Use full width */
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  position: relative;
+  left: 16px;
+  justify-content: space-between; /* Force sections to fill space */
+  align-items: flex-start;
+  box-sizing: border-box;
+  max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
+}
+
+.favorites-container .media-library-movie-grid,
+.collections-container .media-library-movie-grid {
     /* overflow-x: hidden; */
     max-width: 100%;
     position: relative;
@@ -2993,214 +3248,1094 @@
 /* Responsive grid for favorites */
 @media (max-width: 1200px) {
   .favorites-movies-section .media-library-movie-grid,
-  .favorites-tvshows-section .media-library-movie-grid {
+  .favorites-tvshows-section .media-library-movie-grid,
+  .collections-movies-section .media-library-movie-grid,
+  .collections-tvshows-section .media-library-movie-grid {
     grid-template-columns: repeat(3, 1fr); /* 3 columns on medium screens */
   }
 }
 
 @media (max-width: 900px) {
   .favorites-movies-section .media-library-movie-grid,
-  .favorites-tvshows-section .media-library-movie-grid {
+  .favorites-tvshows-section .media-library-movie-grid,
+  .collections-movies-section .media-library-movie-grid,
+  .collections-tvshows-section .media-library-movie-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
   }
 }
 
-@media (max-width: 600px) {
-  .favorites-movies-section .media-library-movie-grid,
-  .favorites-tvshows-section .media-library-movie-grid {
-    grid-template-columns: repeat(1, 1fr); /* 1 column on mobile */
+/* Collections CSS - Mirror of favorites but with collections naming */
+
+.movies-section-collections h3 {
+  height: 35px;
+  padding: 20px 20px 0 20px;
+  position: sticky;
+}
+
+.collections-header-text {
+  height: 50px;
+}
+
+.collections-container {
+  overflow-x: hidden;
+  width: 100%; /* Use full width */
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  position: relative;
+  left: 16px;
+  justify-content: space-between; /* Force sections to fill space */
+  align-items: flex-start;
+  box-sizing: border-box;
+  max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
+}
+
+.collections-container .media-library-movie-grid {
+    /* overflow-x: hidden; */
+    max-width: 100%;
+    position: relative;
+    /* Removed right: 20px to center the content */
+}
+
+.collections-movies-section {
+  width: 70%;
+  flex: none !important;
+  overflow-y: auto !important;
+  max-height: 80vh !important;
+  padding-right: 10px;
+  padding-top: 20px !important; /* Add top padding to prevent content behind header */
+}
+
+.collections-tvshows-section {
+  width: 30%;
+  flex: none !important;
+  overflow-y: auto !important;
+  max-height: 80vh !important;
+  padding-left: 10px;
+  padding-top: 20px !important; /* Add top padding to prevent content behind header */
+}
+
+/* Collection Card Styles */
+.collection-card-poster {
+  background: #e3f2fd !important; /* Light blue background */
+  border-radius: 12px !important;
+  padding: 20px !important;
+  text-align: center !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #bbdefb !important;
+  min-height: 200px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.collection-card-poster-collections {
+  background: #e3f2fd !important; /* Light blue background */
+  border-radius: 12px !important;
+  padding: 20px !important;
+  text-align: center !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #bbdefb !important;
+  min-height: 200px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.collection-card-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.collection-card-content-collections {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.collection-icon {
+  font-size: 3em !important;
+  margin-bottom: 10px !important;
+}
+
+.collection-icon-collections {
+  font-size: 3em !important;
+  margin-bottom: 10px !important;
+}
+
+.collection-name {
+  font-size: 1.2em !important;
+  font-weight: bold !important;
+  color: #1976d2 !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+}
+
+.collection-name-collections {
+  font-size: 1.2em !important;
+  font-weight: bold !important;
+  color: #1976d2 !important;
+  text-align: center !important;
+  line-height: 1.2 !important;
+}
+
+.collection-counts {
+  font-size: 0.9em !important;
+  color: #666 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+}
+
+.collection-counts-collections {
+  font-size: 0.9em !important;
+  color: #666 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+}
+
+/* Collection Info Panel */
+.collection-info-panel {
+  background: #f8f9fa !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  border: 1px solid #dee2e6 !important;
+  height: fit-content !important;
+  max-width: 20vw !important;
+}
+
+.collection-total-count {
+  font-size: 1.3em !important;
+  font-weight: bold !important;
+  color: #1976d2 !important;
+  margin-bottom: 15px !important;
+  text-align: center !important;
+}
+
+.collection-count-number {
+  color: #0d47a1 !important;
+  font-size: 1.5em !important;
+}
+
+.collection-description {
+  color: #495057 !important;
+  line-height: 1.6 !important;
+  margin-bottom: 20px !important;
+  text-align: justify !important;
+}
+
+.collection-tip {
+  background: #fff3cd !important;
+  border: 1px solid #ffeaa7 !important;
+  border-radius: 8px !important;
+  padding: 15px !important;
+  margin-top: 15px !important;
+}
+
+.tip-label {
+  color: #856404 !important;
+  font-weight: bold !important;
+}
+
+.media-card-actions-movies {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
+}
+
+.media-card-actions-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
+}
+
+.media-card-actions-collections-movies-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
+}
+
+/* Collection Header */
+.collection-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 15px !important;
+  margin-bottom: 20px !important;
+  padding: 15px 0 !important;
+  border-bottom: 2px solid #e3f2fd !important;
+}
+
+.back-to-collections-btn {
+  background: #1976d2 !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 15px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 0.9em !important;
+  transition: background-color 0.2s !important;
+}
+
+.back-to-collections-btn:hover {
+  background: #1565c0 !important;
+}
+
+.collection-title {
+  color: #1976d2 !important;
+  font-size: 1.8em !important;
+  font-weight: bold !important;
+  margin: 0 !important;
+}
+
+/* Collection Messages */
+.collection-empty-message,
+.no-movies-message,
+.no-tvshows-message,
+.no-collections-message {
+  text-align: center !important;
+  color: #666 !important;
+  font-size: 1.1em !important;
+  padding: 40px 20px !important;
+  background: #f8f9fa !important;
+  border-radius: 8px !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+.collections-error {
+  color: #dc3545 !important;
+  background: #f8d7da !important;
+  border: 1px solid #f5c6cb !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
+  text-align: center !important;
+  font-weight: bold !important;
+}
+
+/* Scrollbar Styles for Collections */
+.collections-movies-section::-webkit-scrollbar,
+.collections-tvshows-section::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.collections-movies-section::-webkit-scrollbar-track,
+.collections-tvshows-section::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+  border-radius: 4px !important;
+}
+
+.collections-movies-section::-webkit-scrollbar-thumb,
+.collections-tvshows-section::-webkit-scrollbar-thumb {
+  background: #c1c1c1 !important;
+  border-radius: 4px !important;
+}
+
+.collections-movies-section::-webkit-scrollbar-thumb:hover,
+.collections-tvshows-section::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8 !important;
+}
+
+/* Collections Modal Styles */
+.modal-collections-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000a1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000000000 !important; /* Very high z-index to appear above everything */
+}
+
+.modal-collections {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000000000 !important; /* Very high z-index to appear above everything */
+}
+
+.collections-modal-content {
+  background: #333;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 90%;
+  width: 70vw !important;
+  height: 90%;
+  overflow-y: auto;
+  position: relative;
+  border: 2px solid #333;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.collection-modal-add-create-content {
+  background: #333;
+  border-radius: 12px;
+  padding: 15px;
+  max-width: 90%;
+  width: 40vw !important;
+  position: relative;
+  border: 2px solid #333;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.collections-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.collections-modal-header h2,
+.collections-modal-header h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.collections-modal-body {
+  margin-bottom: 15px;
+  height: 80vh;
+  min-height: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.collection-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #333;
+}
+
+.collection-modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.collection-modal-btn-cancel {
+  background: #666;
+  color: #fff;
+}
+
+.collection-modal-btn-cancel:hover {
+  background: #777;
+}
+
+.collection-modal-btn-primary {
+  background: #007bff;
+  color: #fff;
+}
+
+.collection-modal-btn-primary:hover {
+  background: #0056b3;
+}
+
+.collection-modal-btn-confirm {
+  background: #dc3545;
+  color: #fff;
+}
+
+.collection-modal-btn-confirm:hover {
+  background: #c82333;
+}
+
+.collection-modal-section {
+  margin-bottom: 30px;
+}
+
+/* Old collection-modal-grid removed - using specific grid classes now */
+
+/* Remove conflicting rules - sections are now handled by the main rules below */
+
+.collection-modal-tvshows-section {
+  flex: 0 0 45% !important;
+  height: 45% !important;
+  min-height: 350px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.collection-modal-movies-section h3,
+.collection-modal-tvshows-section h3 {
+  color: #fff;
+  margin: 0 0 8px 0;
+  font-size: 14px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.collections-modal-movies-grid {
+  flex: 1;
+  /* max-height: 32vh; */
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 0;
+  height: 35vh;
+  display: grid !important;
+  grid-template-columns: repeat(6, 175px) !important;
+  grid-auto-rows: 220px !important;
+  gap: 20px !important;
+  row-gap: 60px !important;
+  column-gap: 20px !important;
+  align-content: start !important;
+  justify-content: start !important;
+  min-width: 1160px !important;
+  width: fit-content !important;
+}
+
+.collections-modal-tvshows-grid {
+  flex: 1;
+  height: 100% !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 400px !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, 160px) !important;
+  grid-auto-rows: 245px !important;
+  /* gap: 20px !important; */
+  row-gap: 60px !important;
+  column-gap: 36px !important;
+  align-content: start !important;
+  justify-content: start !important;
+  min-width: 1160px !important;
+  width: fit-content !important;
+}
+
+/* Remove conflicting rules - grids are now handled directly */
+
+/* Force height distribution - Adjusted to prevent overlapping within modal constraints */
+.collections-modal-movies-section {
+  flex: 0 0 55% !important;
+  height: 55% !important;
+}
+
+.collections-modal-tvshows-section {
+  flex: 0 0 45% !important;
+  height: 45% !important;
+}
+
+/* Debug borders removed - layout is working properly now */
+
+/* Custom scrollbar styling for the separate grids */
+.collections-modal-movies-grid::-webkit-scrollbar,
+.collections-modal-tvshows-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.collections-modal-movies-grid::-webkit-scrollbar-track,
+.collections-modal-tvshows-grid::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+
+.collections-modal-movies-grid::-webkit-scrollbar-thumb,
+.collections-modal-tvshows-grid::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.collections-modal-movies-grid::-webkit-scrollbar-thumb:hover,
+.collections-modal-tvshows-grid::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+.collections-modal-item {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  position: relative;
+  border: 1px solid #444;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 160px !important;
+  height: 245px !important;
+  flex-shrink: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.collections-modal-item-actions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.collections-modal-remove-btn,
+.collections-modal-favorite-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.collections-modal-remove-btn:hover {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.collections-modal-favorite-btn:hover {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.collections-modal-favorite-btn.favorited {
+  background: rgba(220, 53, 69, 0.9);
+}
+
+.collections-modal-poster {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.collections-modal-item-title {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  word-wrap: break-word;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.collection-modal-empty-message {
+  color: #888;
+  text-align: center;
+  font-style: italic;
+  padding: 20px;
+  grid-column: 1 / -1;
+}
+
+.collection-modal-close-footer-btn {
+  background: #666;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.collection-modal-close-footer-btn:hover {
+  background: #777;
+}
+
+/* Collection button styles */
+.collection-btn {
+  background: rgb(0 123 255 / 41%);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.collection-btn:hover {
+  background: rgba(0, 123, 255, 1);
+  transform: scale(1.1);
+}
+
+.collection-btn.in-collection {
+  background: rgba(40, 167, 69, 0.8);
+}
+
+.collection-btn.in-collection:hover {
+  background: rgba(40, 167, 69, 1);
+}
+
+/* Collection button styles for collections page */
+.collection-btn-collections {
+  background: rgba(0, 123, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.collection-btn-collections:hover {
+  background: rgba(0, 123, 255, 1);
+  transform: scale(1.1);
+}
+
+.collection-btn-collections.in-collection {
+  background: rgba(40, 167, 69, 0.8);
+}
+
+.collection-btn-collections.in-collection:hover {
+  background: rgba(40, 167, 69, 1);
+}
+
+.collection-btn-add-collections {
+  background: rgba(0, 123, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.collection-btn-add-collections:hover {
+  background: rgba(0, 123, 255, 1);
+  transform: scale(1.1);
+}
+
+.collection-btn-remove-collections {
+  background: rgba(220, 53, 69, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.collection-btn-remove-collections:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.collection-input {
+  width: 38vw;
+  padding: 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* Make the collection dropdown more compact */
+#collectionDropdown {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* Style the dropdown options */
+#collectionDropdown option {
+  padding: 6px 10px;
+  background: #2a2a2a;
+  color: #fff;
+  border: none;
+  font-size: 13px;
+}
+
+#collectionDropdown option:hover {
+  background: #3a3a3a;
+}
+
+/* Style the first option (placeholder) differently */
+#collectionDropdown option[value=""] {
+  color: #888;
+  font-style: italic;
+}
+
+/* Add subtle separators between option groups for better readability */
+#collectionDropdown option:not([value=""]) {
+  border-bottom: 1px solid #444;
+}
+
+/* Make the dropdown more compact on smaller screens */
+@media (max-height: 800px) {
+  #collectionDropdown {
+    max-width: 150px;
+  }
+  
+  .collection-modal-add-create-content {
+    max-height: 60vh;
+  }
+  
+  .collection-modal-body {
+    max-height: 40vh;
+    min-height: 120px;
+  }
+  
+  .collection-modal-body {
+    height: 60vh;
+    min-height: 350px;
+  }
+  
+  .collection-modal-movies-section {
+    height: 55%;
+  }
+  
+  .collection-modal-tvshows-section {
+    height: 45%;
   }
 }
 
-/* HEART ICON FIXES - Improved z-index and positioning */
-.favorite-btn {
-    padding: 0 0 2px 0 !important;
-    z-index: 99999 !important; /* Much higher z-index */
-    position: relative !important;
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    background: rgba(255, 255, 255, 0.9) !important; /* Semi-transparent background */
-    border-radius: 4px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+/* Responsive design for smaller width screens */
+@media (max-width: 1200px) {
+  .collection-modal-movies-grid,
+  .collection-modal-tvshows-grid {
+    grid-template-columns: repeat(6, 140px);
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .collection-modal-body {
+    height: 55vh;
+  }
 }
 
-/* Heart overlay for improved clickability */
-.heart-overlay {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: transparent !important;
-    z-index: 999999 !important;
-    cursor: pointer !important;
-    pointer-events: auto !important;
-    border-radius: 4px !important;
+/* Responsive design for medium screens */
+@media (max-width: 1600px) {
+  .collection-modal-movies-grid,
+  .collection-modal-tvshows-grid {
+    grid-template-columns: repeat(6, 150px);
+    gap: 12px;
+  }
 }
 
-/* Transparent overlay for heart icon clicks */
-.media-card-actions-movies {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 84%;
-    text-align: center;
-    margin-left: 14px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
-}
-.media-card-actions-tvshows {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 70%;
-    text-align: center;
-    margin: 0 auto 0 auto;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
+/* Make labels more compact */
+.collection-modal-body label {
+  margin-bottom: 6px !important;
+  font-size: 13px;
 }
 
-.media-card-actions-favorites {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 88%;
-    text-align: center;
-    margin-left: 2px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
+/* Reduce spacing between form elements */
+.collection-modal-body > div {
+  margin-bottom: 12px !important;
 }
 
-/* Ensure heart icons are always clickable */
-.media-library-card .favorite-btn,
-.media-library-movie-card .favorite-btn,
-.media-library-movie-card-movies .favorite-btn,
-.media-library-movie-card-tvshows .favorite-btn {
-    position: relative !important;
-    z-index: 99999 !important;
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-radius: 4px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 1.2em !important;
-    transition: all 0.2s ease !important;
+.collection-modal-body > div:last-child {
+  margin-bottom: 0 !important;
 }
 
-/* Hover effects for heart icons */
-.media-library-card .favorite-btn:hover,
-.media-library-movie-card .favorite-btn:hover,
-.media-library-movie-card-movies .favorite-btn:hover,
-.media-library-movie-card-tvshows .favorite-btn:hover {
-    background: rgba(255, 255, 255, 1) !important;
-    transform: scale(1.1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+.media-card-actions-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
 }
 
-/* Ensure heart icons are above all other elements */
-.media-library-card,
-.media-library-movie-card,
-.media-library-movie-card-movies,
-.media-library-movie-card-tvshows {
-    position: relative;
-    overflow: visible !important; /* Allow heart icons to be visible outside card bounds */
+.media-card-actions-collections-movies-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
 }
 
-/* Additional z-index boost for TV show cards specifically */
-.media-library-card.poster .media-card-actions {
-    z-index: 999999 !important;
-    position: relative !important;
+/* Collection-specific media card actions */
+.media-card-actions-collections-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
 }
 
-/* No video overlay for episodes without video files */
-.media-library-no-video-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 0, 0, 0.7);
-    color: white;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
+.media-card-actions-collections-tvShows-collections {
+  display: flex;
+  width: 100%;
+  margin-left: 60px;
 }
 
-.media-library-card.no-video {
-    opacity: 0.6;
-    cursor: not-allowed;
+/* ===== Collections Modal: Clean, Segregated Implementation ===== */
+/* Following Paul's Wisdom: "USE IT, but add a SUFFIX" */
+
+/* Collections Modal Overlay */
+.modal-collections-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000000000 !important;
 }
 
-.media-library-card.no-video:hover {
-    opacity: 0.8;
-    transform: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+/* Collections Modal Content */
+.modal-collections-content {
+  background: #333;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 90%;
+  width: 70vw;
+  height: 90%;
+  overflow-y: auto;
+  position: relative;
+  border: 2px solid #333;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.tv-show-no-video-text {
-    color: #ff4444;
-    font-size: 0.8em;
-    font-weight: bold;
-    text-align: center;
-    margin-top: 4px;
+/* Collections Modal Header */
+.modal-collections-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
 }
 
-/* Media Library Error Display */
-.media-library-error-display {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #ff4444;
-    color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 10001;
-    max-width: 80%;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    display: none;
-    animation: slideUp 0.3s ease-out;
+.modal-collections-header h2,
+.modal-collections-header h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateX(-50%) translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
+/* Collections Modal Body */
+.modal-collections-body {
+  margin-bottom: 15px;
+  height: 80vh;
+  min-height: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Collections Modal Sections */
+.modal-collections-section {
+  margin-bottom: 30px;
+}
+
+.modal-collections-movies-section {
+  flex: 0 0 55% !important;
+  height: 55% !important;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-collections-tvshows-section {
+  flex: 0 0 45% !important;
+  height: 45% !important;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Collections Modal Grids */
+.modal-collections-movies-grid {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 0;
+  height: 35vh;
+  display: grid !important;
+  grid-template-columns: repeat(6, 175px) !important;
+  grid-auto-rows: 220px !important;
+  gap: 20px !important;
+  row-gap: 60px !important;
+  column-gap: 20px !important;
+  align-content: start !important;
+  justify-content: start !important;
+  min-width: 1160px !important;
+  width: fit-content !important;
+}
+
+.modal-collections-tvshows-grid {
+  flex: 1;
+  height: 100% !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 400px !important;
+  display: grid !important;
+  grid-template-columns: repeat(6, 160px) !important;
+  grid-auto-rows: 245px !important;
+  row-gap: 60px !important;
+  column-gap: 36px !important;
+  align-content: start !important;
+  justify-content: start !important;
+  min-width: 1160px !important;
+  width: fit-content !important;
+}
+
+/* Collections Modal Items */
+.modal-collections-item {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  position: relative;
+  border: 1px solid #444;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 160px !important;
+  height: 245px !important;
+  flex-shrink: 0 !important;
+  grid-column: auto !important;
+  grid-row: auto !important;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.modal-collections-item-actions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.modal-collections-remove-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-collections-remove-btn:hover {
+  background: rgba(220, 53, 69, 0.8);
+}
+
+.modal-collections-poster {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.modal-collections-item-title {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  word-wrap: break-word;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Collections Modal Scrollbars */
+.modal-collections-movies-grid::-webkit-scrollbar,
+.modal-collections-tvshows-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-collections-movies-grid::-webkit-scrollbar-track,
+.modal-collections-tvshows-grid::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+
+.modal-collections-movies-grid::-webkit-scrollbar-thumb,
+.modal-collections-tvshows-grid::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.modal-collections-movies-grid::-webkit-scrollbar-thumb:hover,
+.modal-collections-tvshows-grid::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* Collections Modal Empty States */
+.modal-collections-empty-message {
+  color: #888;
+  text-align: center;
+  font-style: italic;
+  padding: 20px;
+  grid-column: 1 / -1;
+}
+
