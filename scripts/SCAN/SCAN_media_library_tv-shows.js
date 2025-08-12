@@ -14,6 +14,57 @@ const { ProgressAnimation } = require('../animation-helper');
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
 const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
 
+// SCAN-SPECIFIC normalization that preserves "&" for display purposes
+function scanNormalizeKey(name) {
+  if (!name || typeof name !== 'string') {
+    return '';
+  }
+  
+  return name
+    .replace(/\\/g, '/')
+    // First, protect periods within words (like "vs.") by temporarily replacing them
+    .replace(/(\w+)\.(\w+)/g, '$1__PERIOD__$2')
+    // Handle common abbreviations and special cases
+    .replace(/\bMr\.\b/gi, 'mr')
+    .replace(/\bMrs\.\b/gi, 'mrs')
+    .replace(/\bMs\.\b/gi, 'ms')
+    .replace(/\bDr\.\b/gi, 'dr')
+    .replace(/\bProf\.\b/gi, 'prof')
+    .replace(/\bSt\.\b/gi, 'st')
+    .replace(/\bAve\.\b/gi, 'ave')
+    .replace(/\bBlvd\.\b/gi, 'blvd')
+    .replace(/\bRd\.\b/gi, 'rd')
+    .replace(/\bLn\.\b/gi, 'ln')
+    .replace(/\bCt\.\b/gi, 'ct')
+    .replace(/\bCo\.\b/gi, 'co')
+    .replace(/\bInc\.\b/gi, 'inc')
+    .replace(/\bLtd\.\b/gi, 'ltd')
+    .replace(/\bCorp\.\b/gi, 'corp')
+    .replace(/\bLLC\b/gi, 'llc')
+    .replace(/\bU\.S\.A\.\b/gi, 'usa')
+    .replace(/\bU\.S\.A\b/gi, 'usa')
+    .replace(/\bU\.S\.\b/gi, 'us')
+    .replace(/\bU\.S\b/gi, 'us')
+    .replace(/\bU\.K\.\b/gi, 'uk')
+    .replace(/\bU\.N\.\b/gi, 'un')
+    .replace(/\bII\b/gi, '2')
+    .replace(/\bIII\b/gi, '3')
+    .replace(/\bIV\b/gi, '4')
+    // IMPORTANT: DO NOT convert "&" to "and" for scan purposes - preserve original
+    // Convert all other spaces to dots
+    .replace(/\s+/g, '.')
+    // Remove special characters except dots, parentheses, brackets, and ampersands
+    .replace(/[^a-zA-Z0-9.\[\]()&]/g, '')
+    // Clean up multiple dots
+    .replace(/\.+/g, '.')
+    // Remove leading/trailing dots
+    .replace(/^\.|\.$/g, '')
+    // Restore protected periods within words
+    .replace(/__PERIOD__/g, '.')
+    // Convert to lowercase for consistency
+    .toLowerCase();
+}
+
 function isVideoFile(filename) {
     const exts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
     return exts.includes(path.extname(filename).toLowerCase());
@@ -79,7 +130,7 @@ function walkShows(dir, relPath = '', animation = null, totalFolders = 0, curren
         const { folders, files } = scanDirectory(absPath);
         const relParts = relPath.split(path.sep).filter(Boolean);
         let showTitle = relParts.length > 0 ? relParts[0] : '';
-        let normalizedKey = showTitle ? normalizeKey(showTitle) : '';
+        let normalizedKey = showTitle ? scanNormalizeKey(showTitle) : '';
         // Only treat as a show root if at the first folder level
         let isShowRoot = relParts.length === 1;
         

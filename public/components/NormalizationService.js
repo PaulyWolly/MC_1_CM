@@ -1,9 +1,15 @@
 /*
-  NORMALIZATIONSERVICE.JS
-  Version: 17
+  NORMALIZATION SERVICE
+  Version: 2.1
   AppName: MultiChat_Chatty [v17]
   Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
+  
+  PURPOSE: Standardized normalization for consistent internal processing
+  RULES:
+  - UI Display: Use TMDB format exactly (e.g., "Lois & Clark The New Adventures Of Superman")
+  - Internal Keys: Use lowercase with "and" and "of" (e.g., "lois.and.clark.the.new.adventures.of.superman.(1993)")
+  - Periods within words (like "vs.") are preserved as part of the word
 */
 
 function normalizeKey(name) {
@@ -14,6 +20,8 @@ function normalizeKey(name) {
   
   return name
     .replace(/\\/g, '/')
+    // First, protect periods within words (like "vs.") by temporarily replacing them
+    .replace(/(\w+)\.(\w+)/g, '$1__PERIOD__$2')
     // Handle common abbreviations and special cases
     .replace(/\bMr\.\b/gi, 'mr')
     .replace(/\bMrs\.\b/gi, 'mrs')
@@ -252,6 +260,8 @@ function normalizeKey(name) {
     .replace(/\.+/g, '.')
     // Remove leading/trailing dots
     .replace(/^\.|\.$/g, '')
+    // Restore protected periods within words
+    .replace(/__PERIOD__/g, '.')
     // Convert to lowercase for consistency
     .toLowerCase();
 }

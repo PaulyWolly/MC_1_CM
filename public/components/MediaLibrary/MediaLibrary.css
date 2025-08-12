@@ -2675,7 +2675,7 @@
 .media-library-seasons-title h2 {
   text-align: left;
   margin: 0 0 8px 0;
-  font-size: 2.2rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #333;
 }
@@ -3205,7 +3205,7 @@
 .media-library-modal-content.tvshows .media-library-tvshow-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
-    gap: 26px !important;
+    /* gap: 26px !important; */
     justify-items: center !important;
     align-items: start !important;
     width: 100% !important;

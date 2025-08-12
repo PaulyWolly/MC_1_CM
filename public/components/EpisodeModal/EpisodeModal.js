@@ -131,13 +131,16 @@ class EpisodeModal {
         
         if (window.mediaLibraryManager && window.mediaLibraryManager.tvShowsData) {
             console.log('[EPISODE-MODAL] Using MediaLibraryManager data');
+            console.log('[EPISODE-MODAL] Raw tvShowsData:', window.mediaLibraryManager.tvShowsData);
             
             // Handle both array and object formats for TV shows data
             let showsArray = [];
             if (Array.isArray(window.mediaLibraryManager.tvShowsData)) {
                 showsArray = window.mediaLibraryManager.tvShowsData;
+                console.log('[EPISODE-MODAL] Data is array format');
             } else if (typeof window.mediaLibraryManager.tvShowsData === 'object' && window.mediaLibraryManager.tvShowsData) {
                 showsArray = Object.values(window.mediaLibraryManager.tvShowsData);
+                console.log('[EPISODE-MODAL] Data is object format, converted to array');
             }
             
             console.log('[EPISODE-MODAL] TV shows data type:', Array.isArray(window.mediaLibraryManager.tvShowsData) ? 'array' : 'object');
@@ -145,32 +148,105 @@ class EpisodeModal {
             console.log('[EPISODE-MODAL] First 10 shows in data:');
             showsArray.slice(0, 10).forEach((show, index) => {
                 const showTitle = show.TMDBTitle || show.name || show.path || 'unknown';
-                console.log(`[EPISODE-MODAL] ${index + 1}. "${showTitle}"`);
+                console.log(`[EPISODE-MODAL] ${index + 1}. "${showTitle}" (path: ${show.path}, normalizedKey: ${show.normalizedKey})`);
             });
             
+            // Try to get data from getTVShows method if available
+            if (window.mediaLibraryManager.getTVShows) {
+                try {
+                    const getTVShowsResult = window.mediaLibraryManager.getTVShows();
+                    console.log('[EPISODE-MODAL] getTVShows() result:', getTVShowsResult);
+                    console.log('[EPISODE-MODAL] getTVShows() length:', getTVShowsResult.length);
+                    console.log('[EPISODE-MODAL] First 5 shows from getTVShows():');
+                    getTVShowsResult.slice(0, 5).forEach((show, index) => {
+                        console.log(`[EPISODE-MODAL] getTVShows ${index + 1}: "${show.name}" (path: ${show.path}, normalizedKey: ${show.normalizedKey})`);
+                    });
+                    
+                    // Look for Man vs. Bee specifically in getTVShows result
+                    const manVsBeeInGetTVShows = getTVShowsResult.find(show => 
+                        show.name.toLowerCase().includes('man vs bee') || 
+                        show.path.toLowerCase().includes('man vs bee')
+                    );
+                    if (manVsBeeInGetTVShows) {
+                        console.log('[EPISODE-MODAL] *** FOUND MAN VS BEE IN getTVShows() ***');
+                        console.log('[EPISODE-MODAL] Man vs. Bee show object:', manVsBeeInGetTVShows);
+                    } else {
+                        console.log('[EPISODE-MODAL] *** MAN VS BEE NOT FOUND IN getTVShows() ***');
+                    }
+                } catch (error) {
+                    console.error('[EPISODE-MODAL] Error calling getTVShows():', error);
+                }
+            }
+            
             // Find the TV show in the data
+            console.log('[EPISODE-MODAL] Searching for show with name:', showName);
+            console.log('[EPISODE-MODAL] Available shows in data:');
+            showsArray.forEach((show, index) => {
+                const showTitle = show.TMDBTitle || show.name || show.path || '';
+                console.log(`[EPISODE-MODAL] ${index}: "${showTitle}" (path: ${show.path})`);
+            });
+            
             const tvShow = showsArray.find(show => {
                 const showTitle = show.TMDBTitle || show.name || show.path || '';
-                console.log('[EPISODE-MODAL] Checking show:', showTitle, 'against:', showName);
-                console.log('[EPISODE-MODAL] Show title lowercase:', showTitle.toLowerCase());
-                console.log('[EPISODE-MODAL] Show name lowercase:', showName.toLowerCase());
-                console.log('[EPISODE-MODAL] Includes check 1:', showTitle.toLowerCase().includes(showName.toLowerCase()));
-                console.log('[EPISODE-MODAL] Includes check 2:', showName.toLowerCase().includes(showTitle.toLowerCase()));
-                return showTitle.toLowerCase().includes(showName.toLowerCase()) || 
-                       showName.toLowerCase().includes(showTitle.toLowerCase());
+                const showPath = show.path || '';
+                const normalizedKey = show.normalizedKey || '';
+                
+                console.log('[EPISODE-MODAL] Checking show:', showTitle, 'path:', showPath, 'normalizedKey:', normalizedKey);
+                console.log('[EPISODE-MODAL] Against search term:', showName);
+                
+                // Try multiple matching strategies
+                const titleMatch = showTitle.toLowerCase().includes(showName.toLowerCase()) || 
+                                  showName.toLowerCase().includes(showTitle.toLowerCase());
+                const pathMatch = showPath.toLowerCase().includes(showName.toLowerCase()) || 
+                                 showName.toLowerCase().includes(showPath.toLowerCase());
+                const normalizedMatch = normalizedKey.toLowerCase().includes(showName.toLowerCase()) || 
+                                       showName.toLowerCase().includes(normalizedKey.toLowerCase());
+                
+                // NEW: Try matching without year (e.g., "Man vs. Bee" matches "Man vs. Bee (2022)")
+                const showNameWithoutYear = showName.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
+                const showPathWithoutYear = showPath.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
+                const showTitleWithoutYear = showTitle.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
+                const normalizedKeyWithoutYear = normalizedKey.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
+                
+                const yearFlexibleMatch = showNameWithoutYear === showPathWithoutYear || 
+                                         showNameWithoutYear === showTitleWithoutYear || 
+                                         showNameWithoutYear === normalizedKeyWithoutYear;
+                
+                console.log('[EPISODE-MODAL] Matches - Title:', titleMatch, 'Path:', pathMatch, 'Normalized:', normalizedMatch, 'YearFlexible:', yearFlexibleMatch);
+                console.log('[EPISODE-MODAL] Year-flexible comparison:', showNameWithoutYear, 'vs', showPathWithoutYear, showTitleWithoutYear, normalizedKeyWithoutYear);
+                
+                // SPECIAL DEBUG for Man vs. Bee
+                if (showName.toLowerCase().includes('man vs bee') || showPath.toLowerCase().includes('man vs bee') || showTitle.toLowerCase().includes('man vs bee')) {
+                    console.log('[EPISODE-MODAL] *** MAN VS BEE DEBUG ***');
+                    console.log('[EPISODE-MODAL] Show name:', showName);
+                    console.log('[EPISODE-MODAL] Show path:', showPath);
+                    console.log('[EPISODE-MODAL] Show title:', showTitle);
+                    console.log('[EPISODE-MODAL] Normalized key:', normalizedKey);
+                    console.log('[EPISODE-MODAL] Show name without year:', showNameWithoutYear);
+                    console.log('[EPISODE-MODAL] Show path without year:', showPathWithoutYear);
+                    console.log('[EPISODE-MODAL] Show title without year:', showTitleWithoutYear);
+                    console.log('[EPISODE-MODAL] Normalized key without year:', normalizedKeyWithoutYear);
+                    console.log('[EPISODE-MODAL] Year-flexible match result:', yearFlexibleMatch);
+                }
+                
+                return titleMatch || pathMatch || normalizedMatch || yearFlexibleMatch;
             });
             
             if (tvShow) {
                 console.log('[EPISODE-MODAL] Found TV show:', tvShow.path);
                 
+                // Access the actual show data through the data property
+                const showData = tvShow.data || tvShow;
+                console.log('[EPISODE-MODAL] Show data structure:', showData);
+                
                 // Check if episodes are in folders structure
-                if (tvShow.folders && tvShow.folders.length > 0) {
-                    console.log('[EPISODE-MODAL] Seasons found:', tvShow.folders.length);
+                if (showData.folders && showData.folders.length > 0) {
+                    console.log('[EPISODE-MODAL] Seasons found:', showData.folders.length);
                     
                     // Collect all episodes from all seasons
-                    tvShow.folders.forEach(season => {
+                    showData.folders.forEach(season => {
                         if (season.files && season.files.length > 0) {
-                            console.log('[EPISODE-MODAL] Season', season.name, 'has', season.files.length, 'episodes');
+                            console.log('[EPISODE-MODAL] Season', season.path || season.name, 'has', season.files.length, 'episodes');
                             episodes.push(...season.files);
                         }
                     });

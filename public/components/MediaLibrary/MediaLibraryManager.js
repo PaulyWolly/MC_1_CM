@@ -6412,10 +6412,17 @@ class MediaLibraryManager {
         const tvShows = this.getTVShows();
         for (const show of tvShows) {
             const showObjPath = (show.path || '').replace(/\\/g, '/').toLowerCase();
+            const showNormalizedKey = (show.normalizedKey || '').toLowerCase();
             
-            // Strategy 1: Exact match
+            // Strategy 1: Exact path match
             if (showObjPath === target) {
-                console.log('[FIND SHOW DEBUG] Found exact match:', show);
+                console.log('[FIND SHOW DEBUG] Found exact path match:', show);
+                return show;
+            }
+            
+            // Strategy 2: Normalized key match (NEW - this should fix "Man vs. Bee")
+            if (showNormalizedKey && showNormalizedKey === target) {
+                console.log('[FIND SHOW DEBUG] Found normalized key match:', show);
                 return show;
             }
             
