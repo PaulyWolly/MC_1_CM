@@ -791,6 +791,14 @@ class VideoPlayer {
                     subtitleButton.updateIcon();
                 }
                 
+                // Create custom time display to show current time / total duration
+                this.createCustomTimeDisplay();
+                
+                // Add timeupdate listener to update the custom time display
+                this.vjsPlayer.on('timeupdate', () => {
+                    this.updateTimeDisplay();
+                });
+                
                 // REMOVED AUTOMATIC SUBTITLE OVERLAY CREATION - User will click "Subtitles" button when needed
                 console.log('[VIDEO-PLAYER] Player ready - subtitle overlay will be created on demand');
             });
@@ -2431,7 +2439,57 @@ class VideoPlayer {
         
         const current = this.formatTime(currentTime);
         const total = this.formatTime(duration);
-        // this.timeDisplay.innerHTML = `${current} / ${total}`; // Removed custom time display
+        
+        // Update Video.js time display components
+        if (this.vjsPlayer) {
+            const currentTimeDisplay = this.vjsPlayer.controlBar.getChild('currentTimeDisplay');
+            const durationDisplay = this.vjsPlayer.controlBar.getChild('durationDisplay');
+            
+            if (currentTimeDisplay && currentTimeDisplay.el_) {
+                currentTimeDisplay.el_.querySelector('.vjs-current-time-display').textContent = current;
+            }
+            if (durationDisplay && durationDisplay.el_) {
+                durationDisplay.el_.querySelector('.vjs-duration-display').textContent = total;
+            }
+        }
+        
+        // Update custom time display if it exists
+        if (this.customTimeDisplay) {
+            this.customTimeDisplay.innerHTML = `${current} / ${total}`;
+        }
+    }
+
+    createCustomTimeDisplay() {
+        if (!this.vjsPlayer) return;
+        
+        // Create custom time display element
+        this.customTimeDisplay = document.createElement('div');
+        this.customTimeDisplay.className = 'vjs-custom-time-display';
+        this.customTimeDisplay.style.cssText = `
+            color: #fff;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-right: 10px;
+            padding: 0 5px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+        `;
+        
+        // Insert it before the currentTimeDisplay in the control bar
+        const currentTimeDisplay = this.vjsPlayer.controlBar.getChild('currentTimeDisplay');
+        if (currentTimeDisplay && currentTimeDisplay.el_) {
+            const controlBar = this.vjsPlayer.controlBar.el();
+            const currentTimeElement = currentTimeDisplay.el_;
+            
+            // Insert before the currentTimeDisplay
+            controlBar.insertBefore(this.customTimeDisplay, currentTimeElement);
+            
+            // Set initial time display
+            this.updateTimeDisplay();
+            
+            console.log('[VIDEO-PLAYER] Custom time display created and positioned');
+        }
     }
 
     formatTime(seconds) {

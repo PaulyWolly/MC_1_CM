@@ -70,6 +70,76 @@
     padding: 0 15px !important;
 }
 
+/* Episode Carousel Gradient Overlays */
+.episode-carousel-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1200px; /* Increased from default to show more episodes */
+}
+
+.episode-carousel-gradient-left,
+.episode-carousel-gradient-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px; /* Increased gradient width for better fade effect */
+    pointer-events: none;
+    z-index: 10;
+}
+
+.episode-carousel-gradient-left {
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0.9) 40%, rgba(255, 255, 255, 0.6) 60%, rgba(255, 255, 255, 0.2) 80%, rgba(255, 255, 255, 0) 100%);
+}
+
+.episode-carousel-gradient-right {
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0.9) 40%, rgba(255, 255, 255, 0.6) 60%, rgba(255, 255, 255, 0.2) 80%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Responsive gradient widths */
+@media (max-width: 768px) {
+    .episode-carousel-gradient-left,
+    .episode-carousel-gradient-right {
+        width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .episode-carousel-gradient-left,
+    .episode-carousel-gradient-right {
+        width: 40px;
+    }
+}
+
+/* Collection Button Spinner */
+.collection-btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: collection-spin 1s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+    /* Ensure consistent sizing */
+    flex-shrink: 0;
+}
+
+@keyframes collection-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.collection-modal-btn:disabled {
+    /* Maintain exact same dimensions when disabled */
+    min-height: 40px;
+    height: 40px;
+    line-height: 1.2;
+}
+
 .media-library-movie-grid-collections {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
@@ -531,6 +601,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+    z-index: 100000000;
 }
 
 .media-library-spinner {
@@ -2520,18 +2591,18 @@
 }
 
 .media-library-arrow-btn.right {
-    background-color: #0056b3;
-    color: #fff;
-    border-radius: 50%;
-    background-color: #0056b3;
-    width: 40px;
-    height: 40px;
-    border: 2px solid #fff !important;
-    font-size: 24px;
-    border-radius: 50%;
-    position: absolute;
-    top: 224px;
-    right: -172px !important;
+  background-color: #0056b3;
+  color: #fff;
+  border-radius: 50%;
+  background-color: #0056b3 !important;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fff !important;
+  font-size: 24px;
+  border-radius: 50%;
+  position: absolute;
+  top: 224px;
+  right: -216px !important;
 }
 
 .media-library-arrow-episode-btn.right {
@@ -2539,8 +2610,8 @@
     color: #fff;
     border-radius: 50%;
     background-color: #0056b3;
-    /* width: 40px; */
-    /* height: 40px; */
+    width: 40px;
+    height: 40px;
     border: 2px solid #fff !important;
     font-size: 24px;
     border-radius: 50%;
@@ -2873,29 +2944,28 @@
 }
 /* --- EPISODES ARROW NAVIGATION & GRID (ROBUST, VISUALLY APPEALING) --- */
 .media-library-episodes-arrows-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 1170px;
-    margin: 0 auto 24px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    min-height: 240px;
-    top: 25%;
-    right: 100%;
+  position: relative;
+  top: 160px;
+  right: 888px;
+  max-width: 1400px;
+  margin: 0 auto 0px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 240px;
 }
 
 .media-library-episodes-grid {
     display: flex;
     flex-direction: row;
     overflow-x: auto;
-    border: 1px solid #333;
-    padding: 10px;
-    width: 1270px;
-    background-color: #917d7d !important;
+    /* border: 1px solid #333; */
+    padding: 24px;
+    width: 100%; /* Changed from fixed 1270px to 100% for flexibility */
+    /* background-color: #917d7d !important; */
     border-radius: 14px;
-    min-width: 1130px;
+    min-width: 100%; /* Changed from fixed 1130px to 100% for flexibility */
     gap: 16px;
     box-sizing: border-box;
     align-items: center;
@@ -2911,9 +2981,9 @@
 }
 
 .media-library-card.episode {
-  min-width: 180px;
-  max-width: 180px;
-  flex: 0 0 180px;
+  min-width: 160px; /* Reduced from 180px to fit more episodes */
+  max-width: 160px; /* Reduced from 180px to fit more episodes */
+  flex: 0 0 160px; /* Reduced from 180px to fit more episodes */
   margin: 0;
   box-sizing: border-box;
   display: flex;
@@ -2921,7 +2991,7 @@
   align-items: center;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
   overflow: hidden;
   padding: 10px 6px 12px 6px;
   transition: box-shadow 0.2s;
@@ -2929,12 +2999,18 @@
 }
 
 .media-library-card.episode .media-library-card-poster img {
-  width: 160px;
-  height: 180px;
+  width: 140px; /* Reduced from 160px to match smaller card */
+  height: 160px; /* Reduced from 180px to match smaller card */
   object-fit: cover;
   border-radius: 8px;
   display: block;
   margin: 0 auto;
+}
+
+.modal-collections-section-title {
+  color: #fff;
+  margin: 0 0 15px 0;
+  font-size: 14px !important;
 }
 
 .media-library-arrow-btn {
@@ -3552,6 +3628,20 @@
   z-index: 1000000000 !important; /* Very high z-index to appear above everything */
 }
 
+/* Add to Collection Modal Overlay */
+.collection-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000000001 !important; /* Higher than main Collections modal */
+}
+
 .modal-collections {
   position: fixed;
   top: 0;
@@ -3587,6 +3677,7 @@
   position: relative;
   border: 2px solid #333;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 1000000001 !important; /* Higher than main Collections modal */
 }
 
 .collections-modal-header {
@@ -3635,19 +3726,40 @@
   transition: all 0.2s ease;
 }
 
+/* Ensure consistent button sizing during state changes */
+/* .collection-modal-btn {
+  min-height: 40px; 
+  height: 40px; 
+  line-height: 1.2; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+} */
+
+.collection-modal-btn-primary {
+background: #007bff;
+color: #fff;
+}
+
 .collection-modal-btn-cancel {
   background: #666;
   color: #fff;
+}
+
+.collection-modal-btn-close {
+  background: #666;
+  color: #fff;
+  position: absolute;
+  right: 20px;
+  top: 20px;
 }
 
 .collection-modal-btn-cancel:hover {
   background: #777;
 }
 
-.collection-modal-btn-primary {
-  background: #007bff;
-  color: #fff;
-}
+
 
 .collection-modal-btn-primary:hover {
   background: #0056b3;
@@ -4075,7 +4187,7 @@
 /* Make labels more compact */
 .collection-modal-body label {
   margin-bottom: 6px !important;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 /* Reduce spacing between form elements */
@@ -4136,8 +4248,7 @@
   padding: 20px;
   max-width: 90%;
   width: 70vw;
-  height: 90%;
-  overflow-y: auto;
+  height: 92%;
   position: relative;
   border: 2px solid #333;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -4164,9 +4275,9 @@
 /* Collections Modal Body */
 .modal-collections-body {
   margin-bottom: 15px;
-  height: 80vh;
+  height: calc(100% - 60px);
   min-height: 700px;
-  max-height: 90vh;
+  max-height: none;
   overflow: hidden;
   overflow-x: hidden;
   display: flex;
@@ -4179,17 +4290,17 @@
 }
 
 .modal-collections-movies-section {
-  flex: 0 0 55% !important;
-  height: 55% !important;
+  flex: 0 0 48% !important;
+  height: 48% !important;
   min-height: 300px;
   display: flex;
   flex-direction: column;
 }
 
 .modal-collections-tvshows-section {
-  flex: 0 0 45% !important;
-  height: 45% !important;
-  min-height: 350px;
+  flex: 0 0 60% !important;
+  height: 60% !important;
+  min-height: 500px;
   display: flex;
   flex-direction: column;
 }
@@ -4204,7 +4315,7 @@
   padding: 15px;
   background: rgba(0, 0, 0, 0.2);
   min-height: 0;
-  height: 35vh;
+  height: 100%;
   display: grid !important;
   grid-template-columns: repeat(6, 175px) !important;
   grid-auto-rows: 220px !important;
@@ -4226,11 +4337,12 @@
   border-radius: 8px;
   padding: 15px;
   background: rgba(0, 0, 0, 0.2);
-  min-height: 400px !important;
+  min-height: 300px !important;
+  max-height: 26vh;
   display: grid !important;
   grid-template-columns: repeat(6, 160px) !important;
   grid-auto-rows: 245px !important;
-  row-gap: 60px !important;
+  row-gap: 48px !important;
   column-gap: 36px !important;
   align-content: start !important;
   justify-content: start !important;
@@ -4339,3 +4451,226 @@
   grid-column: 1 / -1;
 }
 
+.no-description,
+.no-cast {
+    color: #666;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+/* Multiple Collections Modal Styles */
+.collection-modal-body #currentCollectionsList {
+    min-height: 30px;
+    padding: 8px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    border: 1px solid #444;
+}
+
+.collection-modal-body #currentCollectionsList span {
+    display: inline-block;
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.collection-modal-body .remove-collection-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    margin-left: 4px;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.collection-modal-body .remove-collection-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.collection-modal-body input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.collection-modal-body label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+    color: #fff;
+}
+
+.collection-modal-body label:hover {
+    color: #007bff;
+}
+
+.collection-modal-body input[type="checkbox"]:checked + span {
+    color: #007bff;
+}
+
+.collection-modal-body input[type="checkbox"]:disabled + span {
+    color: #666;
+    cursor: not-allowed;
+}
+
+.collection-modal-body input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+/* New Collections Modal Classes (replacing inline styles) */
+.collections-modal-section {
+    margin-bottom: 20px;
+}
+
+.collections-modal-label {
+    display: block;
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.collections-modal-current-list {
+    min-height: 30px;
+    padding: 8px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    border: 1px solid #444;
+}
+
+.collections-modal-tag {
+    display: inline-block;
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.collections-modal-no-collections {
+    color: #666;
+    font-style: italic;
+}
+
+.collections-modal-checkbox-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px;
+    background: #2a2a2a;
+}
+
+.collections-modal-checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.collections-modal-checkbox-text {
+    color: #fff;
+}
+
+.collections-modal-divider {
+    text-align: center;
+    color: #666;
+    margin: 15px 0;
+    position: relative;
+}
+
+.collections-modal-divider-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #444;
+}
+
+.collections-modal-divider-text {
+    background: #1a1a1a;
+    padding: 0 15px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Modal Loading Overlay */
+.media-library-modal-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(67, 67, 67, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2147483647;
+    border-radius: 0;
+}
+
+.media-library-modal-loading-content {
+    text-align: center;
+    color: white;
+    position: relative;
+}
+
+.media-library-modal-spinner {
+    width: 64px;
+    height: 64px;
+    border: 8px solid rgba(255, 255, 255, 0.3);
+    border-top: 8px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.media-library-modal-loading-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Grid Spinner Overlay */
+.media-library-grid-spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.7);
+    z-index: 1000000000000;
+}
+
+.media-library-grid-spinner {
+    width: 64px;
+    height: 64px;
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    border-top: 8px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Removed duplicate definition - using the main one above */
