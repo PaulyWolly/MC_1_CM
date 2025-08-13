@@ -14,7 +14,6 @@ const config = require('../../config/config');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const NormalizationService = require('../services/NormalizationService');
 const { normalizeKey } = require('../../shared/NormalizationService');
 const { execSync, exec } = require('child_process');
 // Use normalizeKey for all mapping key normalization in this file.

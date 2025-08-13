@@ -4229,6 +4229,20 @@ async function initializeApp() {
         await mediaLibraryManagerInstance.init(); // Initialize the MediaLibraryManager
         window.mediaLibraryManager = mediaLibraryManagerInstance;
         console.log('MediaLibraryManager initialized:', window.mediaLibraryManager);
+        
+        // Add global functions for testing collections
+        window.refreshCollectionButtons = () => {
+            if (window.mediaLibraryManager) {
+                window.mediaLibraryManager.manualRefreshCollectionButtons();
+            }
+        };
+        
+        window.debugCollections = () => {
+            if (window.mediaLibraryManager) {
+                console.log('[DEBUG - COLLECTIONS] Manual debug requested');
+                window.mediaLibraryManager.debugLocalStorageCollections();
+            }
+        };
 
         console.log('✅ [APP] App initialization completed successfully');
 

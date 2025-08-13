@@ -20,6 +20,7 @@ class MediaLibraryManager {
         this.currentTabFlag = 'movies'; // Track current tab for return location
         this.lastActiveTab = 'movies'; // Track last active tab
         this.isLoading = false;
+        this.isRefreshing = false;
         this.videoPlayer = null;
         this.currentVideo = null;
         this.nextVideo = null;
@@ -66,6 +67,8 @@ class MediaLibraryManager {
         // Add at the top of the class
         this.movieGenres = {};
         this.tvGenres = {};
+        this.isShowingModalOverlay = false;
+        this.azSidebarLoaded = false;
         
         // Make restore methods available globally for debugging
         window.restoreWatchLaterData = () => this.restoreWatchLaterFromBackup();
@@ -78,8 +81,63 @@ class MediaLibraryManager {
             this.showToast(`Loaded ${data.items.length} items from watch later data`, 'green');
         };
         
+        // Debug method for A-Z sidebar flag
+        window.checkAZSidebarFlag = () => {
+            console.log('[DEBUG - A-Z] Current azSidebarLoaded flag:', this.azSidebarLoaded);
+            console.log('[DEBUG - A-Z] Current isRefreshing flag:', this.isRefreshing);
+            console.log('[DEBUG - A-Z] Current isShowingModalOverlay flag:', this.isShowingModalOverlay);
+        };
+        
+        // Debug method to manually set A-Z sidebar flag
+        window.setAZSidebarFlag = (value) => {
+            this.azSidebarLoaded = value;
+            console.log('[DEBUG - A-Z] Manually set azSidebarLoaded flag to:', value);
+        };
+        
+        // Debug method to manually reset all spinners
+        window.resetAllSpinners = () => {
+            this.forceRemoveAllSpinners();
+            console.log('[DEBUG - SPINNER] All spinners manually reset');
+        };
+        
+        // Debug method to force resolve the waiting promise
+        window.forceResolveAZSidebar = () => {
+            this.azSidebarLoaded = true;
+            console.log('[DEBUG - A-Z] Force set azSidebarLoaded flag to true');
+            // Force hide any remaining overlays
+            const overlays = document.querySelectorAll('.media-library-modal-loading-overlay');
+            overlays.forEach(overlay => overlay.remove());
+            console.log('[DEBUG - A-Z] Forced removal of', overlays.length, 'overlays');
+        };
+        
+        // Debug method to check A-Z sidebar status
+        window.checkAZSidebarStatus = () => {
+            const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
+            const tvSidebar = document.getElementById('mediaLibraryAZSidebarTVShow');
+            
+            console.log('[DEBUG - A-Z] A-Z Sidebar Status Check:');
+            console.log('[DEBUG - A-Z] - azSidebarLoaded flag:', this.azSidebarLoaded);
+            console.log('[DEBUG - A-Z] - Movie sidebar exists:', !!movieSidebar);
+            console.log('[DEBUG - A-Z] - TV sidebar exists:', !!tvSidebar);
+            
+            if (movieSidebar) {
+                console.log('[DEBUG - A-Z] - Movie sidebar display:', movieSidebar.style.display);
+                console.log('[DEBUG - A-Z] - Movie sidebar children:', movieSidebar.children.length);
+                console.log('[DEBUG - A-Z] - Movie sidebar text:', movieSidebar.textContent.trim().substring(0, 100));
+            }
+            
+            if (tvSidebar) {
+                console.log('[DEBUG - A-Z] - TV sidebar display:', tvSidebar.style.display);
+                console.log('[DEBUG - A-Z] - TV sidebar children:', tvSidebar.children.length);
+                console.log('[DEBUG - A-Z] - TV sidebar text:', tvSidebar.textContent.trim().substring(0, 100));
+            }
+        };
+        
         // Debug localStorage collections on initialization
         this.debugLocalStorageCollections();
+        
+        // Add global error handler to prevent stuck spinners
+        this.setupGlobalErrorHandler();
     }
 
     async init() {
@@ -419,6 +477,9 @@ class MediaLibraryManager {
     }
 
     renderSpinner() {
+        // Don't show spinner during refresh operations
+        if (this.isRefreshing) return;
+        
         let modal = document.getElementById('mediaLibraryModal');
         if (!modal) return;
         if (!document.getElementById('mediaLibrarySpinner')) {
@@ -433,6 +494,112 @@ class MediaLibraryManager {
     removeSpinner() {
         const spinner = document.getElementById('mediaLibrarySpinner');
         if (spinner) spinner.remove();
+    }
+
+    /**
+     * Force remove all spinners to prevent infinite loading states
+     */
+    forceRemoveAllSpinners() {
+        // Remove main spinner
+        this.removeSpinner();
+        
+        // Reset loading flags
+        this.isLoading = false;
+        this.azSidebarLoaded = true;
+        
+        console.log('[DEBUG - SPINNER] All spinners forcefully removed and loading flags reset');
+    }
+
+    /**
+     * Show full modal loading overlay with spinner
+     */
+    showModalLoadingOverlay() {
+        // Check if we're already showing an overlay
+        if (this.isShowingModalOverlay) {
+            console.log('[DEBUG - LOADING] Already showing modal overlay, not creating another one');
+            return;
+        }
+        
+        // Check if overlay already exists
+        const existingOverlay = document.getElementById('mediaLibraryModalLoadingOverlay');
+        if (existingOverlay) {
+            console.log('[DEBUG - LOADING] Overlay already exists, not creating another one');
+            return;
+        }
+        
+        const modals = document.querySelectorAll('.media-library-modal');
+        console.log('[DEBUG - LOADING] Found', modals.length, 'modal elements');
+        
+        if (modals.length === 0) {
+            console.warn('[DEBUG - LOADING] No modal found, cannot show overlay');
+            return;
+        }
+        
+        if (modals.length > 1) {
+            console.warn('[DEBUG - LOADING] Multiple modals found, using first one');
+        }
+        
+        const modal = modals[0];
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'mediaLibraryModalLoadingOverlay';
+        overlay.className = 'media-library-modal-loading-overlay';
+        overlay.innerHTML = `
+            <div class="media-library-modal-loading-content">
+                <div class="media-library-modal-spinner"></div>
+                <div class="media-library-modal-loading-text">Loading Media Library...</div>
+            </div>
+        `;
+        
+        modal.appendChild(overlay);
+        this.isShowingModalOverlay = true;
+        console.log('[DEBUG - LOADING] Modal loading overlay shown on modal:', modal.id || 'no-id');
+    }
+
+    /**
+     * Hide full modal loading overlay
+     */
+    hideModalLoadingOverlay() {
+        const overlays = document.querySelectorAll('.media-library-modal-loading-overlay');
+        console.log('[DEBUG - LOADING] Found', overlays.length, 'modal loading overlays to hide');
+        
+        overlays.forEach((overlay, index) => {
+            overlay.remove();
+            console.log('[DEBUG - LOADING] Removed overlay', index + 1);
+        });
+        
+        this.isShowingModalOverlay = false;
+        console.log('[DEBUG - LOADING] All modal loading overlays hidden');
+    }
+
+    /**
+     * Setup global error handler to prevent stuck spinners
+     */
+    setupGlobalErrorHandler() {
+        // Handle unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('[DEBUG - SPINNER] Unhandled promise rejection detected:', event.reason);
+            this.forceRemoveAllSpinners();
+        });
+
+        // Handle global errors
+        window.addEventListener('error', (event) => {
+            console.error('[DEBUG - SPINNER] Global error detected:', event.error);
+            this.forceRemoveAllSpinners();
+        });
+
+        // Add a safety timeout to automatically remove spinners after 10 seconds
+        setInterval(() => {
+            if (this.isLoading && this.isModalOpen) {
+                const spinner = document.getElementById('mediaLibrarySpinner');
+                if (spinner) {
+                    console.warn('[DEBUG - SPINNER] Safety timeout: removing stuck spinners after 10 seconds');
+                    this.forceRemoveAllSpinners();
+                }
+            }
+        }, 10000); // Check every 10 seconds
+
+        console.log('[DEBUG - SPINNER] Global error handler and safety timeout setup completed');
     }
 
     showError(msg) {
@@ -468,38 +635,38 @@ class MediaLibraryManager {
     }
 
     async openMediaBrowser() {
-
-        
         this.isModalOpen = true;
         
-        // Show spinner immediately when opening the media browser
-        this.isLoading = true;
+        console.log('[DEBUG - LOADING] openMediaBrowser called');
+        console.log('[DEBUG - LOADING] Current tab:', this.currentTab);
+        console.log('[DEBUG - LOADING] Movies data available:', this.moviesData ? this.moviesData.length : 'undefined');
+        console.log('[DEBUG - LOADING] TV shows data available:', this.tvShowsData ? this.tvShowsData.length : 'undefined');
+        
+        // Render modal immediately without loading states
         this.renderModal();
-        this.renderSpinner();
         
         try {
             // Update mediaLibraryRaw to point to the correct data for current tab
             if (this.currentTab === 'movies') {
                 this.mediaLibraryRaw = this.moviesData;
-                // console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to moviesData:', this.moviesData ? this.moviesData.length : 'undefined', 'movies');
+                console.log('[DEBUG - LOADING] Set mediaLibraryRaw to moviesData:', this.moviesData ? this.moviesData.length : 'undefined', 'movies');
             } else if (this.currentTab === 'tvshows') {
                 this.mediaLibraryRaw = this.tvShowsData;
-                // console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to tvShowsData:', this.tvShowsData ? this.tvShowsData.length : 'undefined', 'TV shows');
+                console.log('[DEBUG - LOADING] Set mediaLibraryRaw to tvShowsData:', this.tvShowsData ? this.tvShowsData.length : 'undefined', 'TV shows');
             } else if (this.currentTab === 'watchlater') {
                 // For watchlater tab, we don't need to set mediaLibraryRaw since it uses its own data
                 this.mediaLibraryRaw = null;
-                // console.log('🎬 [MEDIA-LIBRARY] Set mediaLibraryRaw to null for watchlater tab');
+                console.log('[DEBUG - LOADING] Set mediaLibraryRaw to null for watchlater tab');
             }
             
             // Update the modal content after setting the correct data
+            console.log('[DEBUG - LOADING] About to call updateModalContent');
             await this.updateModalContent();
+            console.log('[DEBUG - LOADING] updateModalContent completed');
+            
         } catch (error) {
-            // console.error('[DEBUG - MediaLibrary] Error during loading:', error);
+            console.error('[DEBUG - MediaLibrary] Error during loading:', error);
             this.showError('Failed to load media library.');
-        } finally {
-            // Always remove spinner and set loading to false
-            this.isLoading = false;
-            this.removeSpinner();
         }
     }
 
@@ -635,7 +802,6 @@ class MediaLibraryManager {
         }
         document.body.appendChild(modal);
         document.getElementById('mediaLibraryCloseBtn').onclick = () => this.closeMediaLibrary();
-        if (this.isLoading) this.renderSpinner();
         
         // Use updateModalContent to properly render the grid with click handlers
         await this.updateModalContent();
@@ -657,6 +823,11 @@ class MediaLibraryManager {
                 });
                 // Attach poster selector handlers after rendering (like MOVIE)
                 this.attachPosterSelectorHandlers();
+                
+                // Update collection buttons to show correct state
+                console.log('[DEBUG - COLLECTIONS] About to update collection buttons after rendering TV shows grid');
+                await this.updateCollectionButtons();
+                console.log('[DEBUG - COLLECTIONS] Collection buttons update completed for TV shows');
             }
             // --- Ensure the A-Z sidebar is always populated ---
             if (this.currentTab === 'tvshows') {
@@ -832,7 +1003,7 @@ class MediaLibraryManager {
         if (overlay) overlay.remove();
     }
 
-    switchTab(tab) {
+    async switchTab(tab) {
         // console.log('[SWITCH-TAB-DEBUG] Switching to tab:', tab);
         // console.log('[SWITCH-TAB-DEBUG] Previous currentTab was:', this.currentTab);
         // console.log('[SWITCH-TAB-DEBUG] Previous currentTabFlag was:', this.currentTabFlag);
@@ -896,7 +1067,9 @@ class MediaLibraryManager {
         }
         
         // console.log('[SWITCH-TAB-DEBUG] Calling openMediaBrowser()');
-        this.openMediaBrowser();
+        
+        // Open media browser directly without loading states
+        await this.openMediaBrowser();
     }
 
     updateTabSpecificUI() {
@@ -1020,12 +1193,9 @@ class MediaLibraryManager {
             setTimeout(async () => {
                 await this.updateCollectionButtons();
             }, 50);
-            // Ensure A-Z sidebar is rendered for movies
+            // Ensure A-Z sidebar is rendered for movies - render immediately to prevent loading issues
             // console.log('[DEBUG - UPDATE MODAL] About to render movie A-Z sidebar');
-            setTimeout(() => {
-                // console.log('[DEBUG - A-Z] Rendering A-Z sidebar for movies');
-                this.renderAZSidebarMovie();
-            }, 100);
+            this.renderAZSidebarMovie();
         } else if (this.currentTab === 'tvshows') {
             // For TV shows tab, attach TV show specific handlers
             // console.log('[DEBUG - UPDATE MODAL] Attaching TV show handlers');
@@ -1034,11 +1204,9 @@ class MediaLibraryManager {
                 this.attachTVShowHandlers();
                 this.updateHeartIcons();
             }, 50);
-            // Ensure A-Z sidebar is rendered for TV shows
-            setTimeout(() => {
-                // console.log('[DEBUG - A-Z] Rendering A-Z sidebar for TV shows');
-                this.renderAZSidebarTVShow();
-            }, 100);
+            // Ensure A-Z sidebar is rendered for TV shows - render immediately to prevent loading issues
+            // console.log('[DEBUG - UPDATE MODAL] About to render A-Z sidebar for TV shows');
+            this.renderAZSidebarTVShow();
         } else if (this.currentTab === 'favorites') {
             // Favorites content already rendered by renderTabContent
             // console.log('[DEBUG - UPDATE MODAL] Favorites tab - content already rendered');
@@ -1048,17 +1216,14 @@ class MediaLibraryManager {
                 this.attachFavoritesHandlers();
                 this.updateHeartIcons();
             }, 50);
-            this.hideGridSpinner();
         } else if (this.currentTab === 'collections') {
-            // For collections tab, attach collection handlers and hide spinner
+            // For collections tab, attach collection handlers
             // console.log('[DEBUG - UPDATE MODAL] Attaching collection handlers');
             this.attachCollectionHandlers();
-            this.hideGridSpinner();
         } else if (this.currentTab === 'watchlater') {
             // For Watch Later tab, render the content
             console.log('[DEBUG - UPDATE MODAL] Rendering Watch Later tab content');
             this.updateWatchLaterGrid();
-            this.hideGridSpinner();
         } else {
             // For other tabs (suggestions, etc.), use the general renderMediaGrid
             // console.log('[DEBUG - UPDATE MODAL] Using renderMediaGrid for other tabs');
@@ -1116,21 +1281,16 @@ class MediaLibraryManager {
             modalContent.classList.add(this.currentTab);
         }
 
-        // Show spinner overlay while images load
-        this.showGridSpinner();
-
         // TV shows are handled by renderTVShowsTab() and attachTVShowHandlers()
         // Watch Later is handled by renderWatchLaterContent()
         // This method is only for movies and other content
         if (this.currentTab === 'tvshows') {
             // console.log('[DEBUG] TV shows tab - using renderTVShowsTab instead of renderMediaGrid');
-            this.hideGridSpinner();
             return;
         }
         
         if (this.currentTab === 'watchlater') {
             // console.log('[DEBUG] Watch Later tab - using renderWatchLaterContent instead of renderMediaGrid');
-            this.hideGridSpinner();
             return;
         }
 
@@ -1192,23 +1352,19 @@ class MediaLibraryManager {
                 // Force immediate heart icon update
                 setTimeout(() => this.updateHeartIcons(), 50);
             };
+            
             card.querySelector('.collection-btn').onclick = async (e) => {
                 e.stopPropagation();
                 const btn = e.target;
                 const path = btn.dataset.path;
                 
                 try {
-                    const inCollection = await this.isInCollection(path);
-                    if (inCollection) {
-                        // Item is in a collection, show remove modal
-                        await this.showRemoveFromCollectionModal(item);
-                } else {
-                        // Item is not in a collection, show add modal
-                        await this.showAddToCollectionModal(item);
-                    }
+                    // Always show the manage collections modal for multiple collection support
+                    // This allows users to add to more collections OR remove from existing ones
+                    await this.showAddToCollectionModal(item);
                 } catch (error) {
                     console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
-                    this.showToast('Error checking collection status', 'error');
+                    this.showToast('Error opening collections modal', 'error');
                 }
             };
             // Main card click opens details
@@ -1229,53 +1385,19 @@ class MediaLibraryManager {
         await this.updateCollectionButtons();
         console.log('[DEBUG - COLLECTIONS] Collection buttons update completed');
 
-        // Wait for all images to load or error, then hide spinner
-        const images = grid.querySelectorAll('img');
-        let loaded = 0;
-        const total = images.length;
-        if (total === 0) {
-            this.hideGridSpinner();
-        } else {
-            images.forEach(img => {
-                const done = () => {
-                    loaded++;
-                    if (loaded === total) this.hideGridSpinner();
-                };
-                img.onload = done;
-                img.onerror = done;
-            });
-        }
+        // Images load asynchronously without spinner
+        console.log('[DEBUG - IMAGES] Loading', grid.querySelectorAll('img').length, 'images asynchronously');
     }
 
-    showGridSpinner() {
-        const grid = document.getElementById('mediaGrid');
-        if (!grid) return;
-        const parent = grid.parentElement;
-        if (!parent) return;
-        if (!document.getElementById('mediaGridSpinnerOverlay')) {
-            const overlay = document.createElement('div');
-            overlay.id = 'mediaGridSpinnerOverlay';
-            overlay.className = 'media-library-spinner-overlay';
-            overlay.style.position = 'absolute';
-            overlay.style.top = 0;
-            overlay.style.left = 0;
-            overlay.style.width = '100%';
-            overlay.style.height = '100%';
-            overlay.style.display = 'flex';
-            overlay.style.alignItems = 'center';
-            overlay.style.justifyContent = 'center';
-            overlay.style.background = 'rgba(255,255,255,0.7)';
-            overlay.style.zIndex = 10000;
-            overlay.innerHTML = `<div class="media-library-spinner"></div>`;
-            parent.style.position = 'relative';
-            parent.appendChild(overlay);
-        }
-    }
 
-    hideGridSpinner() {
-        const overlay = document.getElementById('mediaGridSpinnerOverlay');
-        if (overlay) overlay.remove();
-    }
+
+
+
+
+
+
+
+
 
     getItemsForCurrentTab() {
         let items = [];
@@ -1287,6 +1409,7 @@ class MediaLibraryManager {
             items = this.moviesData || [];
             console.log('[MOVIE DEBUG] Raw movies array:', items.slice(0, 2));
             console.log('[MOVIE DEBUG] Total movies found:', items.length);
+            console.log('[MOVIE DEBUG] First few movie titles:', items.slice(0, 3).map(m => m.TMDBTitle || m.title || m.name || m.filename || m.path || 'Unknown'));
         } else if (this.currentTab === 'tvshows') {
             items = this.getTVShows();
         } else if (this.currentTab === 'favorites') {
@@ -1301,7 +1424,7 @@ class MediaLibraryManager {
             items = this.getResumeList();
         }
         
-        // console.log('[DEBUG] Returning items:', items.length);
+        console.log('[DEBUG] Returning items:', items.length);
         return items;
     }
 
@@ -2720,7 +2843,8 @@ class MediaLibraryManager {
 
     // Add: A-Z sidebar rendering
     renderAZSidebarMovie() {
-        // console.log('[DEBUG - A-Z] renderAZSidebarMovie called');
+        console.log('[DEBUG - A-Z] renderAZSidebarMovie called at:', new Date().toISOString());
+        console.log('[DEBUG - A-Z] Current azSidebarLoaded flag before render:', this.azSidebarLoaded);
         
         // Clear both sidebars first to prevent duplicates
         const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
@@ -2732,12 +2856,14 @@ class MediaLibraryManager {
         }
         
         if (!movieSidebar) {
-            // console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarMovie element found');
+            console.warn('[DEBUG - A-Z] No mediaLibraryAZSidebarMovie element found');
             return;
         }
         
         // Get the current filtered and sorted items to determine which letters are available
         const filteredItems = this.getFilteredAndSortedItems();
+        console.log('[DEBUG - A-Z] Filtered items count:', filteredItems.length);
+        
         const availableLetters = new Set();
         
         // Collect all first letters from the filtered items
@@ -2749,12 +2875,14 @@ class MediaLibraryManager {
             }
         });
         
-        // console.log('[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items');
+        console.log('[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items');
         movieSidebar.innerHTML = '';
         movieSidebar.style.display = 'flex';
         
         // Only render letters that have movies in the current filtered results
         const letters = Array.from(availableLetters).sort();
+        console.log('[DEBUG - A-Z] Available letters:', letters);
+        
         letters.forEach(letter => {
             const btn = document.createElement('div');
             btn.className = 'media-library-az-letter-movie';
@@ -2774,11 +2902,21 @@ class MediaLibraryManager {
             }
         };
         
-        // console.log('[DEBUG - A-Z] Movie A-Z sidebar rendered with', letters.length, 'letters:', letters.join(', '));
+        console.log('[DEBUG - A-Z] Movie A-Z sidebar rendered with', letters.length, 'letters:', letters.join(', '));
+        console.log('[DEBUG - A-Z] Sidebar children count after render:', movieSidebar.children.length);
+        
+        // Set the flag to indicate A-Z sidebar is loaded
+        this.azSidebarLoaded = true;
+        console.log('[DEBUG - A-Z] A-Z sidebar loading flag set to true');
+        
+        // Debug: log the current flag status after setting
+        console.log('[DEBUG - A-Z] Current azSidebarLoaded flag after setting:', this.azSidebarLoaded);
+        console.log('[DEBUG - A-Z] Movie A-Z sidebar render completed at:', new Date().toISOString());
     }
 
     renderAZSidebarTVShow() {
-        // console.log('[DEBUG - A-Z] renderAZSidebarTVShow called');
+        console.log('[DEBUG - A-Z] renderAZSidebarTVShow called at:', new Date().toISOString());
+        console.log('[DEBUG - A-Z] Current azSidebarLoaded flag before render:', this.azSidebarLoaded);
         
         // Clear both sidebars first to prevent duplicates
         const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
@@ -2832,6 +2970,14 @@ class MediaLibraryManager {
             }
         };
         // console.log('[DEBUG - A-Z] TV show A-Z sidebar rendered with', letters.length, 'letters:', letters.join(', '));
+        
+        // Set the flag to indicate A-Z sidebar is loaded
+        this.azSidebarLoaded = true;
+        console.log('[DEBUG - A-Z] A-Z sidebar loading flag set to true');
+        
+        // Debug: log the current flag status after setting
+        console.log('[DEBUG - A-Z] Current azSidebarLoaded flag after setting:', this.azSidebarLoaded);
+        console.log('[DEBUG - A-Z] TV Show A-Z sidebar render completed at:', new Date().toISOString());
     }
 
     scrollToLetterMovie(letter) {
@@ -3964,12 +4110,21 @@ class MediaLibraryManager {
     }
 
     /**
-     * Add a media item to a collection
+     * Add a media item to multiple collections
      */
-    async addToCollection(collectionName, path) {
+    async addToCollection(collectionNames, path) {
         try {
             const normalizedPath = this.normalizePath(path);
             const collections = await this.getCollections();
+            
+            // Handle both single string and array of collection names
+            const namesToAdd = Array.isArray(collectionNames) ? collectionNames : [collectionNames];
+            
+            let addedToAny = false;
+            const results = [];
+            
+            for (const collectionName of namesToAdd) {
+                if (!collectionName.trim()) continue;
             
             if (!collections[collectionName]) {
                 collections[collectionName] = [];
@@ -3982,87 +4137,117 @@ class MediaLibraryManager {
             
             if (!alreadyExists) {
                 collections[collectionName].push(path); // Store original path
-                await this.saveCollections(collections);
+                    addedToAny = true;
+                    results.push({ collection: collectionName, added: true });
                 console.log('[DEBUG - COLLECTIONS] Added to collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+            } else {
+                    results.push({ collection: collectionName, added: false, reason: 'Already exists' });
+                console.log('[DEBUG - COLLECTIONS] Item already in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                }
+            }
+            
+            if (addedToAny) {
+                await this.saveCollections(collections);
                 
                 // Immediately update the collection button state
                 await this.updateSingleCollectionButton(path);
                 
-                return true;
+                return { success: true, results };
             } else {
-                console.log('[DEBUG - COLLECTIONS] Item already in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
-                return false;
+                return { success: false, results, message: 'Item already in all specified collections' };
             }
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error adding to collection:', error);
-            return false;
+            return { success: false, error: error.message };
         }
     }
 
     /**
-     * Remove a media item from a collection
+     * Remove a media item from multiple collections
      */
-    async removeFromCollection(collectionName, path) {
+    async removeFromCollection(collectionNames, path) {
         try {
             const normalizedPath = this.normalizePath(path);
             const collections = await this.getCollections();
             
-            if (!collections[collectionName]) {
-                console.log('[DEBUG - COLLECTIONS] Collection not found:', collectionName);
-                return false;
-            }
+            // Handle both single string and array of collection names
+            const namesToRemove = Array.isArray(collectionNames) ? collectionNames : [collectionNames];
             
-            // Find and remove the item
-            const originalIndex = collections[collectionName].findIndex(storedPath => 
-                this.normalizePath(storedPath) === normalizedPath
-            );
+            let removedFromAny = false;
+            const results = [];
             
-            if (originalIndex !== -1) {
-                collections[collectionName].splice(originalIndex, 1);
-                await this.saveCollections(collections);
-                console.log('[DEBUG - COLLECTIONS] Removed from collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+            for (const collectionName of namesToRemove) {
+                if (!collections[collectionName]) {
+                    results.push({ collection: collectionName, removed: false, reason: 'Collection not found' });
+                    console.log('[DEBUG - COLLECTIONS] Collection not found:', collectionName);
+                    continue;
+                }
                 
-                // Immediately update the collection button state
-                await this.updateSingleCollectionButton(path);
-                
-                return true;
-            } else {
-                console.log('[DEBUG - COLLECTIONS] Item not found in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
-                return false;
-            }
-        } catch (error) {
-            console.error('[DEBUG - COLLECTIONS] Error removing from collection:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Remove a media item from a collection
-     */
-    async removeFromCollection(collectionName, path) {
-        try {
-            const normalizedPath = this.normalizePath(path);
-            const collections = await this.getCollections();
-            
-            if (collections[collectionName]) {
-                // Remove by normalized path comparison
-                collections[collectionName] = collections[collectionName].filter(storedPath => 
-                    this.normalizePath(storedPath) !== normalizedPath
+                // Find and remove the item
+                const originalIndex = collections[collectionName].findIndex(storedPath => 
+                    this.normalizePath(storedPath) === normalizedPath
                 );
+                
+                if (originalIndex !== -1) {
+                    collections[collectionName].splice(originalIndex, 1);
+                    removedFromAny = true;
+                    results.push({ collection: collectionName, removed: true });
+                    console.log('[DEBUG - COLLECTIONS] Removed from collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
                 
                 // Remove empty collections
                 if (collections[collectionName].length === 0) {
                     delete collections[collectionName];
+                    }
+                } else {
+                    results.push({ collection: collectionName, removed: false, reason: 'Item not found' });
+                    console.log('[DEBUG - COLLECTIONS] Item not found in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                }
                 }
                 
+            if (removedFromAny) {
                 await this.saveCollections(collections);
-                console.log('[DEBUG - COLLECTIONS] Removed from collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
-                return true;
+                
+                // Immediately update the collection button state
+                await this.updateSingleCollectionButton(path);
+                
+                return { success: true, results };
+            } else {
+                return { success: false, results, message: 'Item not found in any specified collections' };
             }
-            return false;
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error removing from collection:', error);
-            return false;
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Get all collections that a media item belongs to
+     */
+    async getItemCollections(path) {
+        try {
+            const normalizedPath = this.normalizePath(path);
+            const collections = await this.getCollections();
+            const itemCollections = [];
+            
+            console.log('[DEBUG - COLLECTIONS] getItemCollections called for path:', path);
+            console.log('[DEBUG - COLLECTIONS] Normalized path:', normalizedPath);
+            console.log('[DEBUG - COLLECTIONS] All collections:', collections);
+            
+            for (const [collectionName, paths] of Object.entries(collections)) {
+                console.log(`[DEBUG - COLLECTIONS] Checking collection "${collectionName}":`, paths);
+                if (paths && paths.some(storedPath => 
+                    this.normalizePath(storedPath) === normalizedPath
+                )) {
+                    itemCollections.push(collectionName);
+                    console.log(`[DEBUG - COLLECTIONS] Found in collection "${collectionName}"`);
+                }
+            }
+            
+            console.log('[DEBUG - COLLECTIONS] Final result for path:', path, 'Collections:', itemCollections);
+            return itemCollections;
+        } catch (error) {
+            console.error('[DEBUG - COLLECTIONS] Error getting item collections:', error);
+            return [];
         }
     }
 
@@ -4125,38 +4310,60 @@ class MediaLibraryManager {
                 })
             );
 
+            // Get current collections for this item
+            const itemCollections = await this.getItemCollections(mediaItem.path);
+
             // Create modal HTML
             const modalHTML = `
                 <div id="addToCollectionModal" class="collection-modal-overlay">
                     <div class="collection-modal-add-create-content">
                         <div class="collection-modal-header">
-                            <h3>Add to Collection</h3>
-                            <button class="collection-modal-btn collection-modal-btn-cancel" id="closeCollectionModal">&times;</button>
+                            <h3>Manage Collections: ${this.getDisplayTitle(mediaItem)}</h3>
+                            <button class="collection-modal-btn collection-modal-btn-close" id="closeCollectionModal">&times;</button>
                         </div>
                         
                         <div class="collection-modal-body">
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; color: #fff; font-weight: 500; margin-bottom: 6px;">Choose existing collection:</label>
-                                <select id="collectionDropdown" class="collection-input">
-                                <option value="">-- Select Collection --</option>
-                                ${collectionNames.map(name => `<option value="${name}">${name}</option>`).join('')}
-                            </select>
+                            <div class="collections-modal-section">
+                                <label class="collections-modal-label">Current Collections:</label>
+                                <div id="currentCollectionsList" class="collections-modal-current-list">
+                                    ${itemCollections.length > 0 
+                                        ? itemCollections.map(name => `
+                                            <span class="collections-modal-tag">
+                                                ${name} 
+                                                <button class="remove-collection-btn" data-collection="${name}">×</button>
+                                            </span>
+                                        `).join('')
+                                        : '<span class="collections-modal-no-collections">Not in any collections</span>'
+                                    }
+                                </div>
                             </div>
                             
-                            <div style="text-align: center; color: #666; margin: 15px 0; position: relative;">
-                                <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #444;"></div>
-                                <span style="background: #1a1a1a; padding: 0 15px; position: relative; z-index: 1;">or</span>
+                            <div class="collections-modal-section">
+                                <label class="collections-modal-label">Add to Collections:</label>
+                                <div class="collections-modal-checkbox-list">
+                                    ${collectionNames.map(name => `
+                                        <label class="collections-modal-checkbox-item">
+                                            <input type="checkbox" value="${name}" ${itemCollections.includes(name) ? 'checked disabled' : ''}>
+                                            <span class="collections-modal-checkbox-text">${name}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
                             </div>
-            
-                            <div style="margin-bottom: 15px;">
-                                <label style="display: block; color: #fff; font-weight: 500; margin-bottom: 6px;">Create new collection:</label>
+                            
+                            <div class="collections-modal-divider">
+                                <div class="collections-modal-divider-line"></div>
+                                <span class="collections-modal-divider-text">or</span>
+                        </div>
+                        
+                            <div class="collections-modal-section">
+                                <label class="collections-modal-label">Create new collection:</label>
                                 <input id="newCollectionInput" type="text" placeholder="New collection name" class="collection-input">
                             </div>
                         </div>
                         
                         <div class="collection-modal-footer">
                             <button id="cancelCollectionBtn" class="collection-modal-btn collection-modal-btn-cancel">Cancel</button>
-                            <button id="addCollectionBtn" class="collection-modal-btn collection-modal-btn-primary">Add to Collection</button>
+                            <button id="addCollectionBtn" class="collection-modal-btn collection-modal-btn-primary">Update Collections</button>
                             </div>
                                 </div>
                         </div>
@@ -4167,7 +4374,6 @@ class MediaLibraryManager {
 
             // Get modal elements
             const modal = document.getElementById('addToCollectionModal');
-            const dropdown = document.getElementById('collectionDropdown');
             const newInput = document.getElementById('newCollectionInput');
             const addBtn = document.getElementById('addCollectionBtn');
             const cancelBtn = document.getElementById('cancelCollectionBtn');
@@ -4184,37 +4390,86 @@ class MediaLibraryManager {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModal();
             });
+            
+            // Handle remove collection buttons
+            modal.addEventListener('click', async (e) => {
+                if (e.target.classList.contains('remove-collection-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const collectionName = e.target.dataset.collection;
+                    const mediaTitle = this.getDisplayTitle(mediaItem);
+                    if (confirm(`Remove "${mediaTitle}" from "${collectionName}"?`)) {
+                        try {
+                            const result = await this.removeFromCollection(collectionName, mediaItem.path);
+                            if (result.success) {
+                                this.showToast(`Removed "${mediaTitle}" from "${collectionName}"!`, 'success');
+                                
+                                // Refresh the modal to show updated collections
+                                await this.showAddToCollectionModal(mediaItem);
+                            } else {
+                                this.showToast('Error removing from collection', 'error');
+                            }
+                        } catch (error) {
+                            console.error('[DEBUG - COLLECTIONS] Error removing from collection:', error);
+                            this.showToast('Error removing from collection', 'error');
+                        }
+                    }
+                }
+            });
 
             // Add to collection logic
             addBtn.addEventListener('click', async () => {
-                let collectionName = dropdown.value.trim();
-                const newName = newInput.value.trim();
+                // Show loading state with spinner
+                const originalText = addBtn.textContent;
+                addBtn.innerHTML = '<span class="collection-btn-spinner"></span> Updating...';
+                addBtn.disabled = true;
                 
+                // Get selected collections from checkboxes
+                const selectedCollections = Array.from(modal.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)'))
+                    .map(cb => cb.value.trim())
+                    .filter(name => name);
+                
+                // Get new collection name if entered
+                const newName = newInput.value.trim();
                 if (newName) {
-                    collectionName = newName;
+                    selectedCollections.push(newName);
                 }
                 
-                if (!collectionName) {
-                    this.showToast('Please select or enter a collection name.', 'error');
+                if (selectedCollections.length === 0) {
+                    this.showToast('Please select collections or enter a new collection name.', 'error');
+                    // Reset button state
+                    addBtn.innerHTML = originalText;
+                    addBtn.disabled = false;
                     return;
                 }
 
                 try {
-                    const success = await this.addToCollection(collectionName, mediaItem.path);
-                    if (success) {
-                        this.showToast(`Added to "${collectionName}"!`, 'success');
+                    const result = await this.addToCollection(selectedCollections, mediaItem.path);
+                                        if (result.success) {
+                        const addedCount = result.results.filter(r => r.added).length;
+                        if (addedCount > 0) {
+                            const mediaTitle = this.getDisplayTitle(mediaItem);
+                            this.showToast(`Added "${mediaTitle}" to ${addedCount} collection(s)!`, 'success');
+                        } else {
+                            this.showToast('No changes made to collections.', 'info');
+                        }
                         closeModal();
                         
                         // Update collection buttons in the grid
                         await this.updateCollectionButtons();
                         
-                        console.log('[DEBUG - COLLECTIONS] Collection buttons updated after adding to collection');
-            } else {
-                        this.showToast('Item is already in this collection!', 'info');
+                        console.log('[DEBUG - COLLECTIONS] Collection buttons updated after updating collections');
+                    } else {
+                        this.showToast(result.message || 'Error updating collections', 'error');
                     }
                 } catch (error) {
-                    console.error('[DEBUG - COLLECTIONS] Error adding to collection:', error);
-                    this.showToast('Error adding to collection', 'error');
+                    console.error('[DEBUG - COLLECTIONS] Error updating collections:', error);
+                    this.showToast('Error updating collections', 'error');
+                } finally {
+                    // Always reset button state
+                    addBtn.innerHTML = originalText;
+                    addBtn.disabled = false;
                 }
             });
 
@@ -4225,101 +4480,7 @@ class MediaLibraryManager {
         }
     }
 
-    /**
-     * Show modal to remove from collection
-     */
-    async showRemoveFromCollectionModal(mediaItem) {
-        try {
-            // Remove any existing modal
-            const existing = document.getElementById('removeFromCollectionModal');
-            if (existing) existing.remove();
 
-            // Find which collection this item is in
-            const collections = await this.getCollections();
-            let itemCollection = null;
-            
-            for (const [name, paths] of Object.entries(collections)) {
-                if (paths.includes(mediaItem.path)) {
-                    itemCollection = name;
-                    break;
-                }
-            }
-
-            if (!itemCollection) {
-                this.showToast('Item not found in any collection', 'error');
-                return;
-            }
-
-            // Create modal HTML
-            const modalHTML = `
-                <div id="removeFromCollectionModal" class="collection-modal-overlay">
-                    <div class="collection-modal-content">
-                        <div class="collection-modal-header">
-                            <h3>Remove from Collection</h3>
-                            <button class="collection-modal-btn collection-modal-btn-cancel" id="closeRemoveModal">&times;</button>
-                        </div>
-                        
-                        <div class="collection-modal-body">
-                            <p style="color: #fff; text-align: center; margin: 15px 0;">
-                                Remove "<strong>${this.getDisplayTitle(mediaItem)}</strong>" from 
-                                "<strong>${itemCollection}</strong>"?
-                            </p>
-                            </div>
-                        
-                        <div class="collection-modal-footer">
-                            <button id="cancelRemoveBtn" class="collection-modal-btn collection-modal-btn-cancel">Cancel</button>
-                            <button id="removeFromCollectionBtn" class="collection-modal-btn collection-modal-btn-confirm">Remove</button>
-                                </div>
-                                </div>
-                        </div>
-                    `;
-
-            // Insert modal into DOM
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-            // Get modal elements
-            const modal = document.getElementById('removeFromCollectionModal');
-            const removeBtn = document.getElementById('removeFromCollectionBtn');
-            const cancelBtn = document.getElementById('cancelRemoveBtn');
-            const closeBtn = document.getElementById('closeRemoveModal');
-
-            // Close modal function
-            const closeModal = () => {
-                modal.remove();
-            };
-
-            // Event listeners
-            closeBtn.addEventListener('click', closeModal);
-            cancelBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
-
-            // Remove from collection logic
-            removeBtn.addEventListener('click', async () => {
-                try {
-                    const success = await this.removeFromCollection(itemCollection, mediaItem.path);
-                    if (success) {
-                        this.showToast(`Removed from "${itemCollection}"!`, 'success');
-                        closeModal();
-                        
-                        // Update collection buttons in the grid
-                        await this.updateCollectionButtons();
-            } else {
-                        this.showToast('Error removing from collection', 'error');
-                    }
-                } catch (error) {
-                    console.error('[DEBUG - COLLECTIONS] Error removing from collection:', error);
-                    this.showToast('Error removing from collection', 'error');
-                }
-            });
-
-            console.log('[DEBUG - COLLECTIONS] Remove from collection modal opened for:', mediaItem, 'from collection:', itemCollection);
-        } catch (error) {
-            console.error('[DEBUG - COLLECTIONS] Error opening remove from collection modal:', error);
-            this.showToast('Error opening collection modal', 'error');
-        }
-    }
 
     /**
      * Show collection contents modal (COLLECTIONS ONLY - NO SHARED FUNCTIONALITY)
@@ -4366,7 +4527,7 @@ class MediaLibraryManager {
                 <div id="collectionModal" class="modal-collections-overlay">
                     <div class="modal-collections-content">
                         <div class="modal-collections-header">
-                            <h2>Collection: ${collectionName}</h2>
+                            <h3 class="modal-collections-header-title">Collection: ${collectionName}</h3>
                             <button onclick="document.getElementById('collectionModal').remove()" class="modal-collections-btn modal-collections-btn-cancel">×</button>
                         </div>
                         <div class="modal-collections-body">
@@ -4391,7 +4552,7 @@ class MediaLibraryManager {
 
             modalHTML += `
                 <div class="modal-collections-section modal-collections-movies-section">
-                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 18px;">MOVIES (${movies.length})</h3>
+                    <h3 class="modal-collections-section-title" style="color: #fff; margin: 0 0 15px 0; font-size: 18px;">MOVIES (${movies.length})</h3>
                     <div class="modal-collections-movies-grid">
             `;
             
@@ -4439,7 +4600,7 @@ class MediaLibraryManager {
             // RIGHT SIDE: TV Shows in collection (using the already-detected tvShows array)
             modalHTML += `
                 <div class="modal-collections-section modal-collections-tvshows-section">
-                    <h3 style="color: #fff; margin: 0 0 15px 0; font-size: 18px;">TV-SHOWS (${tvShows.length})</h3>
+                    <h3 class="modal-collections-section-title" style="color: #fff; margin: 0 0 15px 0; font-size: 18px;">TV-SHOWS (${tvShows.length})</h3>
                     <div class="modal-collections-tvshows-grid">
             `;
             
@@ -5148,6 +5309,16 @@ class MediaLibraryManager {
             const collectionBtns = document.querySelectorAll('.collection-btn');
             console.log('[DEBUG - COLLECTIONS] Found collection buttons to update:', collectionBtns.length);
             
+            // Debug: Log all found buttons
+            collectionBtns.forEach((btn, index) => {
+                console.log(`[DEBUG - COLLECTIONS] Button ${index}:`, {
+                    path: btn.dataset.path,
+                    text: btn.textContent,
+                    classes: btn.className,
+                    title: btn.title
+                });
+            });
+            
             for (const btn of collectionBtns) {
                 const path = btn.dataset.path;
                 if (!path) {
@@ -5157,14 +5328,20 @@ class MediaLibraryManager {
 
                 try {
                     console.log('[DEBUG - COLLECTIONS] Checking button for path:', path);
-                    const inCollection = await this.isInCollection(path);
-                    console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Result:', inCollection);
+                    const itemCollections = await this.getItemCollections(path);
+                    const inCollection = itemCollections.length > 0;
+                    console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
                     
-                    if (inCollection) {
-                        btn.textContent = '➖';
+                                        if (inCollection) {
+                        if (itemCollections.length === 1) {
+                            btn.textContent = '➖';
+                            btn.title = `Manage Collections (currently in: ${itemCollections[0]})`;
+                        } else {
+                            btn.textContent = `${itemCollections.length}`;
+                            btn.title = `Manage Collections (currently in: ${itemCollections.join(', ')})`;
+                        }
                         btn.className = 'collection-btn collection-btn-remove';
-                        btn.title = 'Remove from Collection';
-                        console.log('[DEBUG - COLLECTIONS] Updated button to ➖ for:', path);
+                        console.log('[DEBUG - COLLECTIONS] Updated button for collections:', path, itemCollections);
                     } else {
                         btn.textContent = '➕';
                         btn.className = 'collection-btn collection-btn-add';
@@ -5183,6 +5360,14 @@ class MediaLibraryManager {
     }
 
     /**
+     * Manual refresh of collection buttons for testing
+     */
+    async manualRefreshCollectionButtons() {
+        console.log('[DEBUG - COLLECTIONS] Manual refresh of collection buttons requested');
+        await this.updateCollectionButtons();
+    }
+
+    /**
      * Update a single collection button immediately after adding/removing from collection
      */
     async updateSingleCollectionButton(path) {
@@ -5193,20 +5378,26 @@ class MediaLibraryManager {
                 return;
             }
 
-            const inCollection = await this.isInCollection(path);
-            console.log('[DEBUG - COLLECTIONS] Checking collection status for:', path, 'Result:', inCollection);
+            const itemCollections = await this.getItemCollections(path);
+            const inCollection = itemCollections.length > 0;
+            console.log('[DEBUG - COLLECTIONS] Checking collection status for:', path, 'Collections:', itemCollections, 'Result:', inCollection);
             
             if (inCollection) {
-                btn.textContent = '➖';
+                if (itemCollections.length === 1) {
+                    btn.textContent = '➖';
+                    btn.title = `Manage Collections (currently in: ${itemCollections[0]})`;
+                } else {
+                    btn.textContent = `${itemCollections.length}`;
+                    btn.title = `Manage Collections (currently in: ${itemCollections.join(', ')})`;
+                }
                 btn.className = 'collection-btn collection-btn-remove';
-                btn.title = 'Remove from Collection';
             } else {
                 btn.textContent = '➕';
                 btn.className = 'collection-btn collection-btn-add';
                 btn.title = 'Add to Collection';
             }
             
-            console.log('[DEBUG - COLLECTIONS] Single collection button updated for:', path, 'State:', inCollection ? 'IN' : 'NOT IN', 'Button text:', btn.textContent);
+            console.log('[DEBUG - COLLECTIONS] Single collection button updated for:', path, 'State:', inCollection ? 'IN' : 'NOT IN', 'Collections:', itemCollections, 'Button text:', btn.textContent);
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error updating single collection button:', error);
         }
@@ -5608,6 +5799,78 @@ class MediaLibraryManager {
             modalContent.classList.add('moviedetails');
         }
         
+        // Render basic movie details immediately to prevent flash
+        const poster = `<img src="${this.getPosterPath(movie)}" alt="${movie.title}" style="width:180px;max-width:40vw;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.12);">`;
+        const genres = (movie.genre || movie.genres || []).toString();
+        const year = movie.year || (movie.releaseDate ? ('' + movie.releaseDate).slice(0,4) : '');
+        
+        // Render basic content immediately
+        grid.innerHTML = `
+            <div class="media-library-details-modal">
+                <div class="media-library-details-poster">${poster}</div>
+                <div class="media-library-details-content">
+                    <button id="backToGridBtn" class="media-library-details-back">← Back</button>
+                    <h2 class="media-library-details-title">${(() => {
+                        // Use normalizedKey for display title, fallback to path if needed
+                        let displayTitle = '';
+                        if (movie.normalizedKey) {
+                            // Convert normalized key to readable display format
+                            displayTitle = this.convertNormalizedKeyToDisplayTitle(movie.normalizedKey);
+                        } else if (movie.path) {
+                            // Fallback to path and clean it
+                            displayTitle = this.cleanTitleForDisplay(movie.path);
+                        } else {
+                            displayTitle = movie.TMDBTitle || movie.title || movie.name || movie.filename || '';
+                        }
+                        return displayTitle;
+                    })()}</h2>
+                    <div class="media-library-details-meta">${year ? year + ' • ' : ''}${genres}</div>
+                    <div class="media-library-details-description">
+                        <div class="media-library-details-loading">Loading description...</div>
+                    </div>
+                    <div class="media-library-details-buttons">
+                        <button id="playMovieBtn" class="media-library-details-play">▶ Play</button>
+                        <button id="detailsFavoriteBtn" title="Toggle Favorite" class="media-library-details-favorite">${this.isFavorite(movie.path) ? '❤️' : '🤍'}</button>
+                        <button id="detailsCollectionBtn" title="Add to Collection" class="media-library-details-collection">➕</button>
+                    </div>
+                    <div class="media-library-details-cast-list">
+                        <b>Cast:</b>
+                        <div class="media-library-details-loading">Loading cast information...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Attach event handlers immediately
+        document.getElementById('backToGridBtn').onclick = () => this.renderMediaGrid();
+        document.getElementById('playMovieBtn').onclick = () => {
+            console.log('[DEBUG - PLAY-BUTTON] Play button clicked for movie:', movie);
+            console.log('[DEBUG - PLAY-BUTTON] Movie properties:', {
+                path: movie.path,
+                absPath: movie.absPath,
+                filePath: movie.filePath,
+                files: movie.files,
+                type: movie.type,
+                mediaType: movie.mediaType,
+                title: movie.title,
+                name: movie.name,
+                normalizedKey: movie.normalizedKey
+            });
+            this.closeModal();
+            this.playMedia(movie);
+        };
+        document.getElementById('detailsFavoriteBtn').onclick = async (e) => {
+            e.stopPropagation();
+            const type = (movie.type && movie.type.toLowerCase().includes('tv')) ? 'tv' : 'movie';
+            this.toggleFavorite(movie.path, type);
+            await this.showMovieDetailsModal(movie); // Re-render to update icon
+        };
+        document.getElementById('detailsCollectionBtn').onclick = (e) => {
+            e.stopPropagation();
+            this.showAddToCollectionModal(movie);
+        };
+        
+        // Now load async data and update the content
         try {
         let movieDescriptions = {};
         try {
@@ -5618,12 +5881,10 @@ class MediaLibraryManager {
         } catch (error) {
             console.log('Could not load movie descriptions:', error);
         }
+            
         // --- DEBUG LOGGING ---
         console.log('[DETAILS DEBUG] Movie object:', movie);
-        // Poster, genres, etc. as before
-        const poster = `<img src="${this.getPosterPath(movie)}" alt="${movie.title}" style="width:180px;max-width:40vw;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.12);">`;
-        const genres = (movie.genre || movie.genres || []).toString();
-        const year = movie.year || (movie.releaseDate ? ('' + movie.releaseDate).slice(0,4) : '');
+            
             let desc = '';
             if (!window.normalizeKey) {
                 console.error('[MOVIE DETAILS] NormalizationService not loaded - this should not happen!');
@@ -5676,6 +5937,13 @@ class MediaLibraryManager {
                 );
                 console.log('[DETAILS DEBUG] Available keys containing "doubtfire" or "mrs":', availableKeys);
             }
+            
+            // Update description
+            const descElement = document.querySelector('.media-library-details-description');
+            if (descElement) {
+                descElement.innerHTML = desc ? desc : '<span class="no-description">No description available.</span>';
+            }
+            
         // --- ACTOR IMAGES ROW ---
         let castRow = '';
             this.movieCast = null;
@@ -5701,6 +5969,7 @@ class MediaLibraryManager {
             );
             console.log('[DETAILS DEBUG] Available cast keys containing "doubtfire" or "mrs":', availableCastKeys);
         }
+            
             let cast = '';
             if (castData && Array.isArray(castData) && castData.length > 0) {
                 // Render cast as round images with names
@@ -5715,66 +5984,28 @@ class MediaLibraryManager {
                     `).join('') +
                     `</div>`;
         }
-        grid.innerHTML = `
-            <div class="media-library-details-modal">
-                <div class="media-library-details-poster">${poster}</div>
-                <div class="media-library-details-content">
-                    <button id="backToGridBtn" class="media-library-details-back">← Back</button>
-                    <h2 class="media-library-details-title">${(() => {
-                        // Use normalizedKey for display title, fallback to path if needed
-                        let displayTitle = '';
-                        if (movie.normalizedKey) {
-                            // Convert normalized key to readable display format
-                            displayTitle = this.convertNormalizedKeyToDisplayTitle(movie.normalizedKey);
-                        } else if (movie.path) {
-                            // Fallback to path and clean it
-                            displayTitle = this.cleanTitleForDisplay(movie.path);
+            
+            // Update cast section
+            const castElement = document.querySelector('.media-library-details-cast-list');
+            if (castElement) {
+                if (cast) {
+                    castElement.innerHTML = `<b>Cast:</b>${cast}`;
                         } else {
-                            displayTitle = movie.TMDBTitle || movie.title || movie.name || movie.filename || '';
-                        }
-                        return displayTitle;
-                    })()}</h2>
-                    <div class="media-library-details-meta">${year ? year + ' • ' : ''}${genres}</div>
-                    <div class="media-library-details-description">${desc ? desc : '<span class="no-description">No description available.</span>'}</div>
-                    <div class="media-library-details-buttons">
-                        <button id="playMovieBtn" class="media-library-details-play">▶ Play</button>
-                        <button id="detailsFavoriteBtn" title="Toggle Favorite" class="media-library-details-favorite">${this.isFavorite(movie.path) ? '❤️' : '🤍'}</button>
-                        <button id="detailsCollectionBtn" title="Add to Collection" class="media-library-details-collection">➕</button>
-                    </div>
-                        ${cast ? `<div class="media-library-details-cast-list"><b>Cast:</b>${cast}</div>` : ''}
-                </div>
-            </div>
-        `;
-        document.getElementById('backToGridBtn').onclick = () => this.renderMediaGrid();
-        document.getElementById('playMovieBtn').onclick = () => {
-            console.log('[DEBUG - PLAY-BUTTON] Play button clicked for movie:', movie);
-            console.log('[DEBUG - PLAY-BUTTON] Movie properties:', {
-                path: movie.path,
-                absPath: movie.absPath,
-                filePath: movie.filePath,
-                files: movie.files,
-                type: movie.type,
-                mediaType: movie.mediaType,
-                title: movie.title,
-                name: movie.name,
-                normalizedKey: movie.normalizedKey
-            });
-            this.closeModal();
-            this.playMedia(movie);
-        };
-        document.getElementById('detailsFavoriteBtn').onclick = async (e) => {
-            e.stopPropagation();
-            const type = (movie.type && movie.type.toLowerCase().includes('tv')) ? 'tv' : 'movie';
-            this.toggleFavorite(movie.path, type);
-            await this.showMovieDetailsModal(movie); // Re-render to update icon
-        };
-        document.getElementById('detailsCollectionBtn').onclick = (e) => {
-            e.stopPropagation();
-            this.showAddToCollectionModal(movie);
-        };
+                    castElement.innerHTML = '<b>Cast:</b><span class="no-cast">No cast information available.</span>';
+                }
+            }
+            
         } catch (err) {
             console.error('[DETAILS MODAL ERROR]', err);
-            grid.innerHTML = `<div class='media-library-details-modal-error'>An error occurred loading details. Check the console for more info.</div>`;
+            // Update error state without clearing the entire modal
+            const descElement = document.querySelector('.media-library-details-description');
+            if (descElement) {
+                descElement.innerHTML = '<span class="error-description">Error loading description. Check the console for more info.</span>';
+            }
+            const castElement = document.querySelector('.media-library-details-cast-list');
+            if (castElement) {
+                castElement.innerHTML = '<b>Cast:</b><span class="error-cast">Error loading cast information.</span>';
+            }
         }
     }
 
@@ -7018,44 +7249,48 @@ class MediaLibraryManager {
                 </div>
                 <div class="${wrapperClass}">
                     ${showArrows ? `<button class=\"media-library-arrow-episode-btn left\" type=\"button\">&#8592;</button>` : ''}
-                    <div class="${gridClass}">
-                        ${episodes.map((episode, index) => {
-                            // Use episode image from still property if available, otherwise fallback to getEpisodeImage
-                            const episodeImage = episode.still || this.getEpisodeImage(showName, seasonName, episode);
-                            // Robust relPath for playback
-                            let relPath = ((episode.relPath) ? episode.relPath : (this.currentTVSeason.replace(/\\/g, '/') + '/' + (episode.name || episode.filename || '').replace(/\\/g, '/'))).replace(/\\/g, '/');
-                            relPath = relPath.replace(/'/g, "\\'");
-                            // Ensure filePath is present and correct
-                            if (!episode.filePath) {
-                                episode.filePath = episode.absPath || episode.path || episode.relPath || '';
-                            }
-                            const episodeData = JSON.stringify(episode).replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
-                            const epNum = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : (() => {
-                                            const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
-                                            return match ? `E${match[1].padStart(2, '0')}` : '';
-                            })();
-                            // For new Media Manager format, extract episode title from filename
-                            let epTitle = '';
-                            if (episode.filename && episode.filename.includes('\\')) {
-                                // This is a full path, extract just the filename
-                                const filename = episode.filename.split(/[\\/]/).pop() || '';
-                                epTitle = this.extractEpisodeTitle(filename);
-                            } else {
-                                // This is already just a filename
-                                epTitle = this.extractEpisodeTitle(episode.name || episode.filename || episode.path || '');
-                            }
-                            
-                            // All episodes are real video files - show as clickable
-                            return `<div class=\"media-library-card episode\" data-episode=\"${episodeData}\" onclick=\"mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)\">`
-                                + `<div class=\"media-library-card-poster\">`
-                                + `<img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">`
-                                + `<div class=\"media-library-play-overlay\">▶</div>`
-                                + `</div>`
-                                + `<div class=\"media-library-card-info\">`
-                                + `<h4 class=\"tv-show-season-episode-name\">${epTitle}</h4>`
-                                + `</div>`
-                                + `</div>`;
-                        }).join('')}
+                    <div class="episode-carousel-container">
+                        <div class="${gridClass}">
+                            ${episodes.map((episode, index) => {
+                                // Use episode image from still property if available, otherwise fallback to getEpisodeImage
+                                const episodeImage = episode.still || this.getEpisodeImage(showName, seasonName, episode);
+                                // Robust relPath for playback
+                                let relPath = ((episode.relPath) ? episode.relPath : (this.currentTVSeason.replace(/\\/g, '/') + '/' + (episode.name || episode.filename || '').replace(/\\/g, '/'))).replace(/\\/g, '/');
+                                relPath = relPath.replace(/'/g, "\\'");
+                                // Ensure filePath is present and correct
+                                if (!episode.filePath) {
+                                    episode.filePath = episode.absPath || episode.path || episode.relPath || '';
+                                }
+                                const episodeData = JSON.stringify(episode).replace(/"/g, '&quot;').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+                                const epNum = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : (() => {
+                                                const match = ((episode.name || episode.filename || episode.path) || '').match(/E(\d{1,2})/i);
+                                                return match ? `E${match[1].padStart(2, '0')}` : '';
+                                })();
+                                // For new Media Manager format, extract episode title from filename
+                                let epTitle = '';
+                                if (episode.filename && episode.filename.includes('\\')) {
+                                    // This is a full path, extract just the filename
+                                    const filename = episode.filename.split(/[\\/]/).pop() || '';
+                                    epTitle = this.extractEpisodeTitle(filename);
+                                } else {
+                                    // This is already just a filename
+                                    epTitle = this.extractEpisodeTitle(episode.name || episode.filename || episode.path || '');
+                                }
+                                
+                                // All episodes are real video files - show as clickable
+                                return `<div class=\"media-library-card episode\" data-episode=\"${episodeData}\" onclick=\"mediaLibraryManager.playEpisodeFromDataAttributeAsync(this)\">`
+                                    + `<div class=\"media-library-card-poster\">`
+                                    + `<img src=\"${episodeImage}\" alt=\"${episode.name || episode.filename}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">`
+                                    + `<div class=\"media-library-play-overlay\">▶</div>`
+                                    + `</div>`
+                                    + `<div class=\"media-library-card-info\">`
+                                    + `<h4 class=\"tv-show-season-episode-name\">${epTitle}</h4>`
+                                    + `</div>`
+                                    + `</div>`;
+                            }).join('')}
+                        </div>
+                        <div class="episode-carousel-gradient-left"></div>
+                        <div class="episode-carousel-gradient-right"></div>
                     </div>
                     ${showArrows ? `<button class=\"media-library-arrow-episode-btn right\" type=\"button\">&#8594;</button>` : ''}
                 </div>
@@ -7737,17 +7972,12 @@ class MediaLibraryManager {
                 collectionBtn.onclick = async (e) => {
                     e.stopPropagation();
                     try {
-                        const inCollection = await this.isInCollection(item.path);
-                        if (inCollection) {
-                            // Item is in a collection, show remove modal
-                            await this.showRemoveFromCollectionModal(item);
-                        } else {
-                            // Item is not in a collection, show add modal
-                            await this.showAddToCollectionModal(item);
-                        }
+                        // Always show the manage collections modal for multiple collection support
+                        // This allows users to add to more collections OR remove from existing ones
+                        await this.showAddToCollectionModal(item);
                     } catch (error) {
                         console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
-                        this.showToast('Error checking collection status', 'error');
+                        this.showToast('Error opening collections modal', 'error');
                     }
                 };
             }
@@ -7812,17 +8042,12 @@ class MediaLibraryManager {
                     const showData = { path: path, name: showName };
                     
                     try {
-                        const inCollection = await this.isInCollection(path);
-                        if (inCollection) {
-                            // Item is in a collection, show remove modal
-                            await this.showRemoveFromCollectionModal(showData);
-                        } else {
-                            // Item is not in a collection, show add modal
-                            await this.showAddToCollectionModal(showData);
-                        }
+                        // Always show the manage collections modal for multiple collection support
+                        // This allows users to add to more collections OR remove from existing ones
+                        await this.showAddToCollectionModal(showData);
                     } catch (error) {
                         console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
-                        this.showToast('Error checking collection status', 'error');
+                        this.showToast('Error opening collections modal', 'error');
                     }
                     return false;
                 };
@@ -8170,7 +8395,7 @@ class MediaLibraryManager {
                   <div class="media-card-actions-tvshows">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
                     <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? '❤️' : '🩷'}</button>
-                    <button class="collection-btn" title="Add to Collection" data-path="${show.path}">➕</button>
+                    <button class="collection-btn collection-btn-add" title="Add to Collection" data-path="${show.path}">➕</button>
                   </div>
                   <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
                   <div class="media-info"><h3 class="media-library-tv-show-title">${displayTitle}</h3></div>
@@ -8997,8 +9222,21 @@ class MediaLibraryManager {
     async refreshCurrentContent() {
         console.log('[DEBUG - REFRESH] 🚀 Starting refresh for tab:', this.currentTab);
         
-        // Show loading spinner
-        this.showGridSpinner();
+        // Set refresh flag to prevent grid spinners
+        this.isRefreshing = true;
+        
+        // Reset A-Z sidebar loading flag for new refresh operation
+        this.azSidebarLoaded = false;
+        
+        // Show loading overlay when refreshing (needed for MongoDB operations)
+        this.showModalLoadingOverlay();
+        
+        // Set a safety timeout to ensure the loading overlay is always hidden
+        const safetyTimeout = setTimeout(() => {
+            console.warn('[DEBUG - REFRESH] Safety timeout reached, forcing overlay hide');
+            this.hideModalLoadingOverlay();
+            this.isRefreshing = false;
+        }, 10000); // 10 seconds timeout
         
         try {
             console.log('[DEBUG - REFRESH] 📋 Current state - Tab:', this.currentTab, 'Show:', this.currentTVShow || 'none', 'Season:', this.currentTVSeason || 'none');
@@ -9039,10 +9277,33 @@ class MediaLibraryManager {
                 }
             }
             
-            // Force reload the current tab
-            console.log('[DEBUG - REFRESH] 🔄 Calling switchTab(' + currentTab + ')...');
-            await this.switchTab(currentTab);
-            console.log('[DEBUG - REFRESH] ✅ switchTab completed successfully');
+            // Force reload the current tab without showing additional loading overlays
+            console.log('[DEBUG - REFRESH] 🔄 Reloading tab content for:', currentTab);
+            
+            // Update mediaLibraryRaw to match current tab's data
+            if (currentTab === 'movies') {
+                this.mediaLibraryRaw = this.moviesData;
+            } else if (currentTab === 'tvshows') {
+                this.mediaLibraryRaw = this.tvShowsData;
+            } else if (currentTab === 'favorites') {
+                this.mediaLibraryRaw = this.moviesData;
+            } else if (currentTab === 'watchlater') {
+                this.mediaLibraryRaw = null;
+            }
+            
+            // Update the modal content directly without calling switchTab
+            await this.updateModalContent();
+            console.log('[DEBUG - REFRESH] ✅ Tab content reloaded successfully');
+            
+            // Quick check: if A-Z sidebar is already loaded, skip the wait
+            const movieSidebar = document.getElementById('mediaLibraryAZSidebarMovie');
+            const tvSidebar = document.getElementById('mediaLibraryAZSidebarTVShow');
+            const activeSidebar = (this.currentTab === 'movies' && movieSidebar) ? movieSidebar : 
+                                 (this.currentTab === 'tvshows' && tvSidebar) ? tvSidebar : null;
+            
+            if (activeSidebar && activeSidebar.textContent.match(/[A-Z]/)) {
+                console.log('[DEBUG - REFRESH] A-Z sidebar already loaded, skipping wait');
+            }
             
             // If we were in a specific TV show view, restore it
             if (currentTab === 'tvshows' && currentShow) {
@@ -9072,9 +9333,16 @@ class MediaLibraryManager {
             console.error('[DEBUG - REFRESH] ❌ Stack:', error.stack);
             this.showToast(`Error refreshing content: ${error.message}`, 'error');
         } finally {
-            // Always hide loading spinner
-            this.hideGridSpinner();
-            console.log('[DEBUG - REFRESH] 🏁 Refresh operation finished (spinner hidden)');
+            // Clear the safety timeout
+            clearTimeout(safetyTimeout);
+            
+            // Reset refresh flag
+            this.isRefreshing = false;
+            
+            // Hide the loading overlay
+            this.hideModalLoadingOverlay();
+            
+            console.log('[DEBUG - REFRESH] 🏁 Refresh operation finished');
         }
     }
 

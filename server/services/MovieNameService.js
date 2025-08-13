@@ -1,18 +1,20 @@
 /*
-  NORMALIZATIONSERVICE.JS
+  MOVIENAMESERVICE.JS
   Version: 17
   AppName: MultiChat_Chatty [v17]
   Updated: 8/12/2025 @4:00AM
   Created by Paul Welby
+  Purpose: Movie name cleaning and normalization (removes technical tags, quality indicators, etc.)
 */
 
 const path = require('path');
 
 /**
- * Normalization service for movie names and file paths
- * Ensures consistent, clean names for mapping and display
+ * Movie name service for cleaning movie filenames and paths
+ * Removes technical tags, quality indicators, and release group information
+ * while preserving essential movie information like title and year
  */
-class NormalizationService {
+class MovieNameService {
     
     /**
      * Normalizes a movie name by removing technical tags and formatting consistently
@@ -100,63 +102,55 @@ class NormalizationService {
     static createDisplayName(movieName) {
         if (!movieName) return '';
         
-        let displayName = this.normalizeMovieName(movieName);
+        // Use the same normalization logic as normalizeMovieName
+        return this.normalizeMovieName(movieName);
+    }
+    
+    /**
+     * Creates a clean folder name for directory creation
+     * @param {string} name - The original name
+     * @returns {string} - Clean folder name
+     */
+    static createFolderName(name) {
+        if (!name) return '';
         
-        // Ensure proper capitalization
-        displayName = displayName.replace(/\b\w/g, l => l.toUpperCase());
+        let cleanName = name;
         
-        // Handle special cases like "The", "A", "An" at the beginning
-        const articles = ['The ', 'A ', 'An '];
-        articles.forEach(article => {
-            if (displayName.startsWith(article)) {
-                displayName = displayName.substring(article.length) + ', ' + article.trim();
-            }
+        // Remove file extensions
+        cleanName = path.parse(cleanName).name;
+        
+        // Remove common technical tags
+        const technicalTags = [
+            /\[BluRay\]/gi, /\[WEBRip\]/gi, /\[HDRip\]/gi, /\[BRRip\]/gi, /\[DVDRip\]/gi,
+            /\[5\.1\]/gi, /\[7\.1\]/gi, /\[AAC\]/gi, /\[AC3\]/gi, /\[DTS\]/gi,
+            /\[YTS\.MX\]/gi, /\[YTS\.LT\]/gi, /\[YTS\.AG\]/gi, /\[RARBG\]/gi, /\[YIFY\]/gi,
+            /\[UNRATED\]/gi, /\[REPACK\]/gi, /\[EXTENDED\]/gi, /\[REMASTERED\]/gi,
+            /\[DIRFIX\]/gi, /\[PROPER\]/gi, /\[INTERNAL\]/gi,
+            /\(\d{4}\)\s*\(\d{4}\)/gi,
+        ];
+        
+        technicalTags.forEach(tag => {
+            cleanName = cleanName.replace(tag, '');
         });
         
-        return displayName;
-    }
-    
-    /**
-     * Generates a folder name for storing posters
-     * @param {string} movieName - The original movie name
-     * @returns {string} - Clean folder name with proper formatting
-     */
-    static createFolderName(movieName) {
-        if (!movieName) return '';
+        // Clean up spaces and trim
+        cleanName = cleanName.replace(/\s+/g, ' ').trim();
         
-        let folderName = this.normalizeMovieName(movieName);
+        // Remove trailing/leading special characters
+        cleanName = cleanName.replace(/[._-]+$/, '');
+        cleanName = cleanName.replace(/^[._-]+/, '');
         
-        // Preserve parentheses around years and brackets around quality
-        // Replace spaces with dots for folder naming, but keep special formatting
-        folderName = folderName.replace(/\s+/g, '.');
+        // Remove technical artifacts
+        cleanName = cleanName.replace(/\.(x264|x265|h264|h265)/gi, '');
+        cleanName = cleanName.replace(/-(YTS|RARBG|YIFY)/gi, '');
         
-        // Remove any remaining special characters that might cause issues
-        // But preserve parentheses () and brackets []
-        folderName = folderName.replace(/[<>:"/\\|?*]/g, '');
+        // Final cleanup
+        cleanName = cleanName.replace(/\s+/g, ' ').trim();
+        cleanName = cleanName.replace(/\[(YTS(\.[A-Z]+)?|RARBG|YIFY|YTS)?[^\]]*$/i, '');
+        cleanName = cleanName.replace(/\s+$/, '');
         
-        return folderName;
-    }
-    
-    /**
-     * Extracts year from movie name if present
-     * @param {string} movieName - The movie name
-     * @returns {string|null} - Year if found, null otherwise
-     */
-    static extractYear(movieName) {
-        if (!movieName) return null;
-        
-        const yearMatch = movieName.match(/\((\d{4})\)/);
-        return yearMatch ? yearMatch[1] : null;
-    }
-    
-    /**
-     * Creates a mapping key for poster storage
-     * @param {string} filePath - Full path to the movie file
-     * @returns {string} - Normalized mapping key
-     */
-    static createMappingKey(filePath) {
-        return this.normalizeFilePath(filePath);
+        return cleanName;
     }
 }
 
-module.exports = NormalizationService; 
+module.exports = MovieNameService;
