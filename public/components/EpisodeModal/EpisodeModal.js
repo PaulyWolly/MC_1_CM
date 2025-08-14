@@ -340,11 +340,18 @@ class EpisodeModal {
                 const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
                 const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
                 
+                // Extract episode title for currently playing episode
+                let playingText = '';
+                if (isCurrentEpisode) {
+                    const episodeTitle = this.extractEpisodeTitle(episode.name);
+                    playingText = `Playing: S${epInfo.seasonNumber.toString().padStart(2, '0')} E${epInfo.episodeNumber.toString().padStart(2, '0')} ${episodeTitle}`;
+                }
+                
                 episodeButtons += `
                     <button class="${buttonClass}" data-index="${index}" ${isCurrentEpisode ? 'disabled' : ''}>
                         <div class="episode-label">${episodeLabel}${statusText}</div>
                         <div class="episode-name">${episode.name}</div>
-                        ${isCurrentEpisode ? '<div class="currently-playing-overlay">Currently Playing</div>' : ''}
+                        ${isCurrentEpisode ? `<div class="currently-playing-overlay">${playingText}</div>` : ''}
                     </button>
                 `;
             });
@@ -420,6 +427,29 @@ class EpisodeModal {
             .trim();
         
         return showName || 'Unknown Show';
+    }
+
+    // Extract episode title from filename
+    extractEpisodeTitle(fileName) {
+        // Remove file extension
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        
+        // Remove show name and year (e.g., "Blue Planet 2 (2017)")
+        let episodeTitle = nameWithoutExt
+            .replace(/^.*?\([0-9]{4}\)\s*-\s*/, '') // Remove "Show Name (Year) - "
+            .replace(/^.*?S\d{1,2}E\d{1,2}\s*-\s*/, '') // Remove "Show Name S01E01 - "
+            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 01 Episode 01 - "
+            .trim();
+        
+        // If no title found, try to extract from S01E01 format
+        if (!episodeTitle || episodeTitle === nameWithoutExt) {
+            const episodeMatch = nameWithoutExt.match(/S\d{1,2}E\d{1,2}\s*[-_]\s*(.+)/i);
+            if (episodeMatch) {
+                episodeTitle = episodeMatch[1].trim();
+            }
+        }
+        
+        return episodeTitle || 'Unknown Episode';
     }
 
     // Get current episode info

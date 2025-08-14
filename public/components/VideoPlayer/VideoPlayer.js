@@ -1278,6 +1278,31 @@ class VideoPlayer {
         return result;
     }
 
+    // Extract episode title from filename
+    extractEpisodeTitle(fileName) {
+        if (!fileName) return 'Unknown Episode';
+        
+        // Remove file extension
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        
+        // Remove show name and year (e.g., "Blue Planet 2 (2017)")
+        let episodeTitle = nameWithoutExt
+            .replace(/^.*?\([0-9]{4}\)\s*-\s*/, '') // Remove "Show Name (Year) - "
+            .replace(/^.*?S\d{1,2}E\d{1,2}\s*-\s*/, '') // Remove "Show Name S01E01 - "
+            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 01 Episode 01 - "
+            .trim();
+        
+        // If no title found, try to extract from S01E01 format
+        if (!episodeTitle || episodeTitle === nameWithoutExt) {
+            const episodeMatch = nameWithoutExt.match(/S\d{1,2}E\d{1,2}\s*[-_]\s*(.+)/i);
+            if (episodeMatch) {
+                episodeTitle = episodeMatch[1].trim();
+            }
+        }
+        
+        return episodeTitle || 'Unknown Episode';
+    }
+
     // NEW METHOD: Single source of truth for TV show title formatting
     async processProperTvShowName(episodeInfo, filePath) {
         console.log('[DEBUG - VIDEO-PLAYER] processProperTvShowName called');
@@ -4175,7 +4200,13 @@ class VideoPlayer {
                 currentEpisodeInfo.seasonNumber === epInfo.seasonNumber && 
                 currentEpisodeInfo.episodeNumber === epInfo.episodeNumber;
             
-            const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
+            // Extract episode title for currently playing episode
+            let statusText = '';
+            if (isCurrentEpisode) {
+                const episodeTitle = this.extractEpisodeTitle(episode.name);
+                statusText = ` (Playing: S${epInfo.seasonNumber} E${epInfo.episodeNumber} ${episodeTitle})`;
+            }
+            
             const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
             
             episodeButtons += `

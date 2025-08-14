@@ -1,0 +1,5 @@
+[33m1a85635[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #28 from PaulyWolly/feature/Collections-Add/Create-modal-multi
+[33m2502f38[m[33m ([m[1;31morigin/feature/Collections-Add/Create-modal-multi[m[33m, [m[1;32mfeature/Collections-Add/Create-modal-multi[m[33m)[m Collection now have ability to add MULTIPLE collections to a single MEDIA item
+[33mba9b917[m Updates to SCAN scritps, normalizationService, EpisodeModal, styling
+[33m1687dc1[m Merge pull request #27 from PaulyWolly/feature/Collections-Fixes
+[33m0c0938d[m[33m ([m[1;31morigin/feature/Collections-Fixes[m[33m, [m[1;32mfeature/Collections-Fixes[m[33m)[m Fixes for Collections tab for MOVIEs and TV-SHOWS: - Clicking a MOVIE opens the MOVIE in the Player - Clicking a TV-SHOW takes the user to the TV-SHOW Season(s) page

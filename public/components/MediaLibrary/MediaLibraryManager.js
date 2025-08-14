@@ -721,6 +721,9 @@ class MediaLibraryManager {
     }
 
     async renderModal() {
+        console.log('[DEBUG - RENDER-MODAL] renderModal called');
+        console.log('[DEBUG - RENDER-MODAL] Current state - currentTab:', this.currentTab, 'currentTVShow:', this.currentTVShow, 'currentTVSeason:', this.currentTVSeason);
+        
         // Add overlay if not present
         if (!document.querySelector('.media-library-overlay')) {
             const overlay = document.createElement('div');
@@ -825,9 +828,9 @@ class MediaLibraryManager {
                 this.attachPosterSelectorHandlers();
                 
                 // Update collection buttons to show correct state
-                console.log('[DEBUG - COLLECTIONS] About to update collection buttons after rendering TV shows grid');
+                // console.log('[DEBUG - COLLECTIONS] About to update collection buttons after rendering TV shows grid');
                 await this.updateCollectionButtons();
-                console.log('[DEBUG - COLLECTIONS] Collection buttons update completed for TV shows');
+                // console.log('[DEBUG - COLLECTIONS] Collection buttons update completed for TV shows');
             }
             // --- Ensure the A-Z sidebar is always populated ---
             if (this.currentTab === 'tvshows') {
@@ -1241,16 +1244,17 @@ class MediaLibraryManager {
                 // console.log('[DEBUG - RenderTabContent] Rendering movies tab');
                 return this.renderMoviesContent();
             case 'tvshows':
+                console.log('[DEBUG - RENDER-TAB-CONTENT] TV shows case - currentTVShow:', this.currentTVShow, 'currentTVSeason:', this.currentTVSeason);
                 if (this.currentTVShow) {
                     if (this.currentTVSeason) {
-                        // console.log('[DEBUG - RenderTabContent] Rendering episodes view');
+                        console.log('[DEBUG - RENDER-TAB-CONTENT] Rendering episodes view');
                         return this.renderEpisodesView();
                     } else {
-                        // console.log('[DEBUG - RenderTabContent] Rendering seasons view');
+                        console.log('[DEBUG - RENDER-TAB-CONTENT] Rendering seasons view');
                         return await this.renderSeasonsView(this.currentTVShow);
                     }
                 } else {
-                    // console.log('[DEBUG - RenderTabContent] Rendering TV-Shows tab');
+                    console.log('[DEBUG - RENDER-TAB-CONTENT] Rendering TV-Shows tab');
                     return this.renderTVShowsTab();
                 }
             case 'favorites':
@@ -1363,7 +1367,7 @@ class MediaLibraryManager {
                     // This allows users to add to more collections OR remove from existing ones
                     await this.showAddToCollectionModal(item);
                 } catch (error) {
-                    console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
+                    // console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
                     this.showToast('Error opening collections modal', 'error');
                 }
             };
@@ -1381,22 +1385,13 @@ class MediaLibraryManager {
         this.attachPosterSelectorHandlers();
 
         // Update collection buttons to show correct state
-        console.log('[DEBUG - COLLECTIONS] About to update collection buttons after rendering grid');
+        // console.log('[DEBUG - COLLECTIONS] About to update collection buttons after rendering grid');
         await this.updateCollectionButtons();
-        console.log('[DEBUG - COLLECTIONS] Collection buttons update completed');
+        // console.log('[DEBUG - COLLECTIONS] Collection buttons update completed');
 
         // Images load asynchronously without spinner
-        console.log('[DEBUG - IMAGES] Loading', grid.querySelectorAll('img').length, 'images asynchronously');
+        // console.log('[DEBUG - IMAGES] Loading', grid.querySelectorAll('img').length, 'images asynchronously');
     }
-
-
-
-
-
-
-
-
-
 
 
     getItemsForCurrentTab() {
@@ -3939,48 +3934,48 @@ class MediaLibraryManager {
                 keyUsed = 'mediaLibraryCollections';
             }
             
-            console.log('[DEBUG - COLLECTIONS] Raw localStorage data from key "' + keyUsed + '":', stored);
+            // console.log('[DEBUG - COLLECTIONS] Raw localStorage data from key "' + keyUsed + '":', stored);
             
             if (stored) {
                 const collections = JSON.parse(stored);
-                console.log('[DEBUG - COLLECTIONS] Parsed localStorage collections:', collections);
-                console.log('[DEBUG - COLLECTIONS] Collection keys:', Object.keys(collections));
-                console.log('[DEBUG - COLLECTIONS] Total collections count:', Object.keys(collections).length);
+                // console.log('[DEBUG - COLLECTIONS] Parsed localStorage collections:', collections);
+                // console.log('[DEBUG - COLLECTIONS] Collection keys:', Object.keys(collections));
+                // console.log('[DEBUG - COLLECTIONS] Total collections count:', Object.keys(collections).length);
                 
                 // If we have collections in localStorage, return them immediately
                 if (collections && Object.keys(collections).length > 0) {
-                    console.log('[DEBUG - COLLECTIONS] Returning collections from localStorage');
+                    // console.log('[DEBUG - COLLECTIONS] Returning collections from localStorage');
                     
                     // If we found collections in the old key, migrate them to the new key
                     if (keyUsed === 'mediaLibraryCollections') {
-                        console.log('[DEBUG - COLLECTIONS] Migrating collections from old key to new key');
+                        // console.log('[DEBUG - COLLECTIONS] Migrating collections from old key to new key');
                         localStorage.setItem('mediaCollections', JSON.stringify(collections));
                         localStorage.removeItem('mediaLibraryCollections');
                     }
                     
                     return collections;
             } else {
-                    console.log('[DEBUG - COLLECTIONS] localStorage collections are empty or invalid');
+                    // console.log('[DEBUG - COLLECTIONS] localStorage collections are empty or invalid');
                 }
             } else {
-                console.log('[DEBUG - COLLECTIONS] No data found in localStorage for either key');
+                // console.log('[DEBUG - COLLECTIONS] No data found in localStorage for either key');
             }
                 } catch (error) {
-            console.warn('[DEBUG - COLLECTIONS] Error parsing localStorage collections:', error);
+            // console.warn('[DEBUG - COLLECTIONS] Error parsing localStorage collections:', error);
         }
 
         // Only try MongoDB if localStorage is empty
-        console.log('[DEBUG - COLLECTIONS] localStorage empty, trying MongoDB...');
+        // console.log('[DEBUG - COLLECTIONS] localStorage empty, trying MongoDB...');
         try {
             const response = await fetch('/api/collections');
             if (response.ok) {
                 const collections = await response.json();
-                console.log('[DEBUG - COLLECTIONS] getCollections from MongoDB:', collections);
+                // console.log('[DEBUG - COLLECTIONS] getCollections from MongoDB:', collections);
                 
                 // If MongoDB has collections, save them to localStorage for future use
                 if (collections && Object.keys(collections).length > 0) {
                     localStorage.setItem('mediaCollections', JSON.stringify(collections));
-                    console.log('[DEBUG - COLLECTIONS] Collections synced from MongoDB to localStorage');
+                    // console.log('[DEBUG - COLLECTIONS] Collections synced from MongoDB to localStorage');
                 }
                 
                 return collections || {};
@@ -3990,7 +3985,7 @@ class MediaLibraryManager {
         }
 
         // Return empty collections if both sources fail
-        console.log('[DEBUG - COLLECTIONS] Both sources failed, returning empty collections');
+        // console.log('[DEBUG - COLLECTIONS] Both sources failed, returning empty collections');
         return {};
     }
 
@@ -4001,15 +3996,15 @@ class MediaLibraryManager {
         // Save to localStorage first for immediate access
         try {
             localStorage.setItem('mediaCollections', JSON.stringify(collections));
-            console.log('[DEBUG - COLLECTIONS] Collections saved to localStorage with key "mediaCollections"');
+            // console.log('[DEBUG - COLLECTIONS] Collections saved to localStorage with key "mediaCollections"');
             
             // Also remove the old key if it exists to avoid confusion
             if (localStorage.getItem('mediaLibraryCollections')) {
                 localStorage.removeItem('mediaLibraryCollections');
-                console.log('[DEBUG - COLLECTIONS] Removed old localStorage key "mediaLibraryCollections"');
+                // console.log('[DEBUG - COLLECTIONS] Removed old localStorage key "mediaLibraryCollections"');
             }
         } catch (error) {
-            console.error('[DEBUG - COLLECTIONS] Error saving to localStorage:', error);
+            // console.error('[DEBUG - COLLECTIONS] Error saving to localStorage:', error);
         }
         
         // Then sync to MongoDB as backup
@@ -4021,9 +4016,9 @@ class MediaLibraryManager {
             });
             
             if (response.ok) {
-                console.log('[DEBUG - COLLECTIONS] Collections synced to MongoDB successfully');
+                // console.log('[DEBUG - COLLECTIONS] Collections synced to MongoDB successfully');
             } else {
-                console.warn('[DEBUG - COLLECTIONS] MongoDB sync failed, response:', response.status);
+                // console.warn('[DEBUG - COLLECTIONS] MongoDB sync failed, response:', response.status);
             }
         } catch (error) {
             console.warn('[DEBUG - COLLECTIONS] MongoDB sync failed, collections remain in localStorage:', error);
@@ -4034,36 +4029,36 @@ class MediaLibraryManager {
      * Debug localStorage collections on initialization
      */
     debugLocalStorageCollections() {
-        console.log('[DEBUG - COLLECTIONS] === localStorage Collections Debug ===');
+        // console.log('[DEBUG - COLLECTIONS] === localStorage Collections Debug ===');
         
         // Check both keys
         const newKey = localStorage.getItem('mediaCollections');
         const oldKey = localStorage.getItem('mediaLibraryCollections');
         
-        console.log('[DEBUG - COLLECTIONS] New key "mediaCollections":', newKey);
-        console.log('[DEBUG - COLLECTIONS] Old key "mediaLibraryCollections":', oldKey);
+        // console.log('[DEBUG - COLLECTIONS] New key "mediaCollections":', newKey);
+        // console.log('[DEBUG - COLLECTIONS] Old key "mediaLibraryCollections":', oldKey);
         
         if (newKey) {
             try {
                 const parsed = JSON.parse(newKey);
-                console.log('[DEBUG - COLLECTIONS] Parsed new key:', parsed);
-                console.log('[DEBUG - COLLECTIONS] Collection names from new key:', Object.keys(parsed));
+                // console.log('[DEBUG - COLLECTIONS] Parsed new key:', parsed);
+                // console.log('[DEBUG - COLLECTIONS] Collection names from new key:', Object.keys(parsed));
             } catch (e) {
-                console.error('[DEBUG - COLLECTIONS] Error parsing new key:', e);
+                // console.error('[DEBUG - COLLECTIONS] Error parsing new key:', e);
             }
         }
         
         if (oldKey) {
             try {
                 const parsed = JSON.parse(oldKey);
-                console.log('[DEBUG - COLLECTIONS] Parsed old key:', parsed);
-                console.log('[DEBUG - COLLECTIONS] Collection names from old key:', Object.keys(parsed));
+                // console.log('[DEBUG - COLLECTIONS] Parsed old key:', parsed);
+                // console.log('[DEBUG - COLLECTIONS] Collection names from old key:', Object.keys(parsed));
             } catch (e) {
-                console.error('[DEBUG - COLLECTIONS] Error parsing old key:', e);
+                // console.error('[DEBUG - COLLECTIONS] Error parsing old key:', e);
             }
         }
         
-        console.log('[DEBUG - COLLECTIONS] === End Debug ===');
+        // console.log('[DEBUG - COLLECTIONS] === End Debug ===');
     }
 
     /**
@@ -4072,7 +4067,7 @@ class MediaLibraryManager {
     normalizePath(path) {
         if (!path) return '';
         const normalized = path.replace(/\\/g, '/').toLowerCase().trim();
-        console.log('[DEBUG - COLLECTIONS] normalizePath input:', path, 'output:', normalized);
+        // console.log('[DEBUG - COLLECTIONS] normalizePath input:', path, 'output:', normalized);
         return normalized;
     }
 
@@ -4082,16 +4077,16 @@ class MediaLibraryManager {
     async isInCollection(path, collectionName = null) {
         try {
             const normalizedPath = this.normalizePath(path);
-            console.log('[DEBUG - COLLECTIONS] isInCollection called with path:', path, 'normalized:', normalizedPath, 'collectionName:', collectionName);
+            // console.log('[DEBUG - COLLECTIONS] isInCollection called with path:', path, 'normalized:', normalizedPath, 'collectionName:', collectionName);
             const collections = await this.getCollections();
-            console.log('[DEBUG - COLLECTIONS] Collections loaded for check:', collections);
+            // console.log('[DEBUG - COLLECTIONS] Collections loaded for check:', collections);
             
             if (collectionName) {
                 // Check specific collection
                 const result = collections[collectionName] && collections[collectionName].some(storedPath => 
                     this.normalizePath(storedPath) === normalizedPath
                 );
-                console.log('[DEBUG - COLLECTIONS] Check in specific collection:', collectionName, 'result:', result);
+                // console.log('[DEBUG - COLLECTIONS] Check in specific collection:', collectionName, 'result:', result);
                 return result;
             } else {
                 // Check if item is in any collection
@@ -4100,7 +4095,7 @@ class MediaLibraryManager {
                         this.normalizePath(storedPath) === normalizedPath
                     )
                 );
-                console.log('[DEBUG - COLLECTIONS] Check in any collection, result:', result);
+                // console.log('[DEBUG - COLLECTIONS] Check in any collection, result:', result);
                 return result;
             }
         } catch (error) {
@@ -4139,10 +4134,10 @@ class MediaLibraryManager {
                 collections[collectionName].push(path); // Store original path
                     addedToAny = true;
                     results.push({ collection: collectionName, added: true });
-                console.log('[DEBUG - COLLECTIONS] Added to collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                // console.log('[DEBUG - COLLECTIONS] Added to collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
             } else {
                     results.push({ collection: collectionName, added: false, reason: 'Already exists' });
-                console.log('[DEBUG - COLLECTIONS] Item already in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                // console.log('[DEBUG - COLLECTIONS] Item already in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
                 }
             }
             
@@ -4179,7 +4174,7 @@ class MediaLibraryManager {
             for (const collectionName of namesToRemove) {
                 if (!collections[collectionName]) {
                     results.push({ collection: collectionName, removed: false, reason: 'Collection not found' });
-                    console.log('[DEBUG - COLLECTIONS] Collection not found:', collectionName);
+                    // console.log('[DEBUG - COLLECTIONS] Collection not found:', collectionName);
                     continue;
                 }
                 
@@ -4192,7 +4187,7 @@ class MediaLibraryManager {
                     collections[collectionName].splice(originalIndex, 1);
                     removedFromAny = true;
                     results.push({ collection: collectionName, removed: true });
-                    console.log('[DEBUG - COLLECTIONS] Removed from collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                    // console.log('[DEBUG - COLLECTIONS] Removed from collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
                 
                 // Remove empty collections
                 if (collections[collectionName].length === 0) {
@@ -4200,9 +4195,9 @@ class MediaLibraryManager {
                     }
                 } else {
                     results.push({ collection: collectionName, removed: false, reason: 'Item not found' });
-                    console.log('[DEBUG - COLLECTIONS] Item not found in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
+                        // console.log('[DEBUG - COLLECTIONS] Item not found in collection:', collectionName, 'original path:', path, 'normalized:', normalizedPath);
                 }
-                }
+            }
                 
             if (removedFromAny) {
                 await this.saveCollections(collections);
@@ -4229,21 +4224,21 @@ class MediaLibraryManager {
             const collections = await this.getCollections();
             const itemCollections = [];
             
-            console.log('[DEBUG - COLLECTIONS] getItemCollections called for path:', path);
-            console.log('[DEBUG - COLLECTIONS] Normalized path:', normalizedPath);
-            console.log('[DEBUG - COLLECTIONS] All collections:', collections);
+            // console.log('[DEBUG - COLLECTIONS] getItemCollections called for path:', path);
+            // console.log('[DEBUG - COLLECTIONS] Normalized path:', normalizedPath);
+            // console.log('[DEBUG - COLLECTIONS] All collections:', collections);
             
             for (const [collectionName, paths] of Object.entries(collections)) {
-                console.log(`[DEBUG - COLLECTIONS] Checking collection "${collectionName}":`, paths);
+                // console.log(`[DEBUG - COLLECTIONS] Checking collection "${collectionName}":`, paths);
                 if (paths && paths.some(storedPath => 
                     this.normalizePath(storedPath) === normalizedPath
                 )) {
                     itemCollections.push(collectionName);
-                    console.log(`[DEBUG - COLLECTIONS] Found in collection "${collectionName}"`);
+                    // console.log(`[DEBUG - COLLECTIONS] Found in collection "${collectionName}"`);
                 }
             }
             
-            console.log('[DEBUG - COLLECTIONS] Final result for path:', path, 'Collections:', itemCollections);
+            // console.log('[DEBUG - COLLECTIONS] Final result for path:', path, 'Collections:', itemCollections);
             return itemCollections;
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error getting item collections:', error);
@@ -4259,7 +4254,7 @@ class MediaLibraryManager {
             const collections = await this.getCollections();
             delete collections[collectionName];
             await this.saveCollections(collections);
-            console.log('[DEBUG - COLLECTIONS] Deleted collection:', collectionName);
+            // console.log('[DEBUG - COLLECTIONS] Deleted collection:', collectionName);
             return true;
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error deleting collection:', error);
@@ -4274,7 +4269,7 @@ class MediaLibraryManager {
         try {
             const collections = await this.getCollections();
             const collectionItems = collections[collectionName] || [];
-            console.log('[DEBUG - COLLECTIONS] Viewing collection:', collectionName, collectionItems);
+            // console.log('[DEBUG - COLLECTIONS] Viewing collection:', collectionName, collectionItems);
             
             if (collectionItems.length > 0) {
                 await this.showCollectionModal(collectionName, collectionItems);
@@ -4459,7 +4454,7 @@ class MediaLibraryManager {
                         // Update collection buttons in the grid
                         await this.updateCollectionButtons();
                         
-                        console.log('[DEBUG - COLLECTIONS] Collection buttons updated after updating collections');
+                        // console.log('[DEBUG - COLLECTIONS] Collection buttons updated after updating collections');
                     } else {
                         this.showToast(result.message || 'Error updating collections', 'error');
                     }
@@ -4473,7 +4468,7 @@ class MediaLibraryManager {
                 }
             });
 
-            console.log('[DEBUG - COLLECTIONS] Add to collection modal opened for:', mediaItem);
+            // console.log('[DEBUG - COLLECTIONS] Add to collection modal opened for:', mediaItem);
         } catch (error) {
             console.error('[DEBUG - COLLECTIONS] Error opening add to collection modal:', error);
             this.showToast('Error opening collection modal', 'error');
@@ -4885,16 +4880,105 @@ class MediaLibraryManager {
                                     await this.playMedia(mediaItem);
                                     // Close the modal after starting playback
                                     document.getElementById('favoritesModal').remove();
-                        } else {
+                                } else {
                                     console.warn('[FAVORITES] No movie data found for path:', path);
                                     this.showToast('Movie data not found', 'error');
                                 }
                             } else if (type === 'tvshow') {
-                                // For TV shows, navigate to seasons view
-                                await this.openTVShow(path);
-                                // Close the modal after navigation
+                                // For TV shows, extract the show name and add tv-shows/ prefix to match data structure
+                                let showPath = '';
+                                if (path.includes('\\Season ') || path.includes('/Season ')) {
+                                    // Extract the TV show name (the directory name before "Season")
+                                    const pathParts = path.split(/[\\/]/);
+                                    const seasonIndex = pathParts.findIndex(part => part.toLowerCase().startsWith('season'));
+                                    if (seasonIndex > 0) {
+                                        const showName = pathParts[seasonIndex - 1];
+                                        // Add tv-shows/ prefix to match the data structure
+                                        showPath = `tv-shows/${showName}`;
+                                        console.log('[FAVORITES] Extracted show name and added prefix:', path, '->', showPath);
+                                    }
+                                } else {
+                                    // If no season in path, use the last directory name with prefix
+                                    const pathParts = path.split(/[\\/]/);
+                                    const showName = pathParts[pathParts.length - 1];
+                                    showPath = `tv-shows/${showName}`;
+                                }
+                                
+                                // CRITICAL DEBUG: Log the showPath immediately after extraction
+                                console.log('[DEBUG - FAVORITES] showPath immediately after extraction:', showPath);
+                                console.log('[DEBUG - FAVORITES] showPath type:', typeof showPath);
+                                console.log('[DEBUG - FAVORITES] showPath starts with tv-shows/:', showPath.startsWith('tv-shows/'));
+                                
+                                console.log('[DEBUG - FAVORITES] showPath after extraction:', showPath);
+                                console.log('[DEBUG - FAVORITES] About to open TV show:', showPath);
+                                console.log('[DEBUG - FAVORITES] Current state before opening - currentTVShow:', this.currentTVShow, 'currentTVSeason:', this.currentTVSeason);
+                                
+                                // Use centralized data loading method (SAME AS COLLECTIONS)
+                                await this.ensureTVShowDataLoaded();
+                                
+                                // Set the current TV show before closing the modal (SAME AS COLLECTIONS)
+                                this.currentTVShow = showPath;
+                                console.log('[DEBUG - FAVORITES] Set currentTVShow to showPath after ensureTVShowDataLoaded:', this.currentTVShow);
+                                
+                                // Close the favorites modal first
                                 document.getElementById('favoritesModal').remove();
-                        }
+                                
+                                // Use the EXACT same approach as Collections
+                                this.currentTab = 'tvshows';
+                                this.openMediaBrowser();
+                                
+                                // Wait for the modal to render, then navigate to seasons (same as Collections)
+                                setTimeout(async () => {
+                                    console.log('[DEBUG - FAVORITES] Timeout callback started');
+                                    console.log('[DEBUG - FAVORITES] Current state in timeout - currentTVShow:', this.currentTVShow, 'currentTVSeason:', this.currentTVSeason);
+                                    console.log('[DEBUG - FAVORITES] showPath being used:', showPath);
+                                    
+                                    // First, ensure we're on the TV shows tab
+                                    const modalContent = document.querySelector('.media-library-modal-content');
+                                    if (modalContent) {
+                                        modalContent.classList.remove('movies', 'tvshows', 'favorites', 'collections', 'suggestions', 'watchlater', 'moviedetails', 'tvshowepisodes');
+                                        modalContent.classList.add('tvshows');
+                                        console.log('[DEBUG - FAVORITES] Set modal content class to tvshows');
+                                    } else {
+                                        console.error('[DEBUG - FAVORITES] Modal content not found!');
+                                    }
+                                    
+                                    // Now find the specific TV show that was clicked and navigate to its seasons
+                                    // Use the showPath that was extracted earlier (with tv-shows/ prefix)
+                                    console.log('[FAVORITES] Looking for TV show with showPath:', showPath);
+                                    console.log('[DEBUG - FAVORITES] tvShowsData available:', !!this.tvShowsData);
+                                    if (this.tvShowsData) {
+                                        console.log('[DEBUG - FAVORITES] tvShowsData length:', this.tvShowsData.length);
+                                        console.log('[DEBUG - FAVORITES] First few TV shows:', this.tvShowsData.slice(0, 3).map(s => s.path || s.title || s.name));
+                                    }
+                                    
+                                    // Find the show in TV shows data using the showPath with tv-shows/ prefix
+                                    console.log('[DEBUG - FAVORITES] About to call findShowByPath with:', showPath);
+                                    console.log('[DEBUG - FAVORITES] showPath type:', typeof showPath);
+                                    console.log('[DEBUG - FAVORITES] showPath length:', showPath ? showPath.length : 'undefined');
+                                    const show = this.findShowByPath(showPath);
+                                    console.log('[DEBUG - FAVORITES] findShowByPath result:', show);
+                                    
+                                    if (show) {
+                                        console.log('[FAVORITES] Found show, navigating to seasons view');
+                                        console.log('[DEBUG - FAVORITES] Show object:', show);
+                                        // Navigate to the seasons view for this specific show
+                                        // IMPORTANT: Set currentTVShow to the showPath with tv-shows/ prefix BEFORE calling openTVShow
+                                        this.currentTVShow = showPath;
+                                        console.log('[DEBUG - FAVORITES] Set currentTVShow to showPath before openTVShow:', this.currentTVShow);
+                                        console.log('[DEBUG - FAVORITES] About to call openTVShow with showPath:', showPath);
+                                        await this.openTVShow(showPath);
+                                        console.log('[DEBUG - FAVORITES] After openTVShow call, currentTVShow is:', this.currentTVShow);
+                                    } else {
+                                        console.error('[FAVORITES] Could not find TV show with showPath:', showPath);
+                                        console.log('[DEBUG - FAVORITES] showPath that failed:', showPath);
+                                        console.log('[DEBUG - FAVORITES] Original path that was passed in:', path);
+                                        this.showToast('TV show not found', 'error');
+                                    }
+                                }, 100);
+                                
+                                console.log('[DEBUG - FAVORITES] After setup - currentTVShow:', this.currentTVShow, 'currentTVSeason:', this.currentTVSeason);
+                            }
                         } catch (error) {
                             console.error('[FAVORITES] Error in media item click handler:', error);
                             this.showToast('Error playing media', 'error');
@@ -5031,8 +5115,20 @@ class MediaLibraryManager {
             // Use centralized data loading method
             await this.ensureTVShowDataLoaded();
             
+            // Extract the show path from the episode path if needed
+            let showPath = path;
+            if (path.includes('\\Season ') || path.includes('/Season ')) {
+                // Extract the TV show directory path (remove season and episode info)
+                const pathParts = path.split(/[\\/]/);
+                const seasonIndex = pathParts.findIndex(part => part.toLowerCase().startsWith('season'));
+                if (seasonIndex > 0) {
+                    showPath = pathParts.slice(0, seasonIndex).join('\\');
+                    console.log('[COLLECTIONS] Extracted show path from episode path:', path, '->', showPath);
+                }
+            }
+            
             // Set the current TV show before closing the modal
-            this.currentTVShow = path;
+            this.currentTVShow = showPath;
             
             // Close the collections modal
             const modal = document.getElementById('collectionModal');
@@ -5059,11 +5155,11 @@ class MediaLibraryManager {
                 console.log('[COLLECTIONS] Looking for TV show:', showName);
                 
                 // Find the show in TV shows data
-                const show = this.findShowByPath(path);
+                const show = this.findShowByPath(showPath);
                 if (show) {
                     console.log('[COLLECTIONS] Found show, navigating to seasons view');
                     // Navigate to the seasons view for this specific show
-                    await this.openTVShow(path);
+                    await this.openTVShow(showPath);
                 } else {
                     console.error('[COLLECTIONS] Could not find TV show:', showName);
                     this.showToast('TV show not found', 'error');
@@ -5307,30 +5403,30 @@ class MediaLibraryManager {
     async updateCollectionButtons() {
         try {
             const collectionBtns = document.querySelectorAll('.collection-btn');
-            console.log('[DEBUG - COLLECTIONS] Found collection buttons to update:', collectionBtns.length);
+            // console.log('[DEBUG - COLLECTIONS] Found collection buttons to update:', collectionBtns.length);
             
             // Debug: Log all found buttons
             collectionBtns.forEach((btn, index) => {
-                console.log(`[DEBUG - COLLECTIONS] Button ${index}:`, {
-                    path: btn.dataset.path,
-                    text: btn.textContent,
-                    classes: btn.className,
-                    title: btn.title
-                });
+                // console.log(`[DEBUG - COLLECTIONS] Button ${index}:`, {
+                //     path: btn.dataset.path,
+                //     text: btn.textContent,
+                //     classes: btn.className,
+                //     title: btn.title
+                // });
             });
             
             for (const btn of collectionBtns) {
                 const path = btn.dataset.path;
                 if (!path) {
-                    console.log('[DEBUG - COLLECTIONS] Button missing data-path:', btn);
+                    // console.log('[DEBUG - COLLECTIONS] Button missing data-path:', btn);
                     continue;
                 }
 
                 try {
-                    console.log('[DEBUG - COLLECTIONS] Checking button for path:', path);
+                    // console.log('[DEBUG - COLLECTIONS] Checking button for path:', path);
                     const itemCollections = await this.getItemCollections(path);
                     const inCollection = itemCollections.length > 0;
-                    console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
+                    // console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
                     
                                         if (inCollection) {
                         if (itemCollections.length === 1) {
@@ -5341,21 +5437,21 @@ class MediaLibraryManager {
                             btn.title = `Manage Collections (currently in: ${itemCollections.join(', ')})`;
                         }
                         btn.className = 'collection-btn collection-btn-remove';
-                        console.log('[DEBUG - COLLECTIONS] Updated button for collections:', path, itemCollections);
+                        // console.log('[DEBUG - COLLECTIONS] Updated button for collections:', path, itemCollections);
                     } else {
                         btn.textContent = '➕';
                         btn.className = 'collection-btn collection-btn-add';
                         btn.title = 'Add to Collection';
-                        console.log('[DEBUG - COLLECTIONS] Updated button to ➕ for:', path);
+                        // console.log('[DEBUG - COLLECTIONS] Updated button to ➕ for:', path);
                     }
                 } catch (error) {
                     console.error('[DEBUG - COLLECTIONS] Error updating collection button:', error);
                 }
             }
 
-            console.log('[DEBUG - COLLECTIONS] Collection buttons update completed');
+            // console.log('[DEBUG - COLLECTIONS] Collection buttons update completed');
         } catch (error) {
-            console.error('[DEBUG - COLLECTIONS] Error updating collection buttons:', error);
+            // console.error('[DEBUG - COLLECTIONS] Error updating collection buttons:', error);
         }
     }
 
@@ -5363,7 +5459,7 @@ class MediaLibraryManager {
      * Manual refresh of collection buttons for testing
      */
     async manualRefreshCollectionButtons() {
-        console.log('[DEBUG - COLLECTIONS] Manual refresh of collection buttons requested');
+        // console.log('[DEBUG - COLLECTIONS] Manual refresh of collection buttons requested');
         await this.updateCollectionButtons();
     }
 
@@ -5374,13 +5470,13 @@ class MediaLibraryManager {
         try {
             const btn = document.querySelector(`.collection-btn[data-path="${path}"]`);
             if (!btn) {
-                console.log('[DEBUG - COLLECTIONS] Button not found for path:', path);
+                // console.log('[DEBUG - COLLECTIONS] Button not found for path:', path);
                 return;
             }
 
             const itemCollections = await this.getItemCollections(path);
             const inCollection = itemCollections.length > 0;
-            console.log('[DEBUG - COLLECTIONS] Checking collection status for:', path, 'Collections:', itemCollections, 'Result:', inCollection);
+            // console.log('[DEBUG - COLLECTIONS] Checking collection status for:', path, 'Collections:', itemCollections, 'Result:', inCollection);
             
             if (inCollection) {
                 if (itemCollections.length === 1) {
@@ -5397,34 +5493,34 @@ class MediaLibraryManager {
                 btn.title = 'Add to Collection';
             }
             
-            console.log('[DEBUG - COLLECTIONS] Single collection button updated for:', path, 'State:', inCollection ? 'IN' : 'NOT IN', 'Collections:', itemCollections, 'Button text:', btn.textContent);
+            // console.log('[DEBUG - COLLECTIONS] Single collection button updated for:', path, 'State:', inCollection ? 'IN' : 'NOT IN', 'Collections:', itemCollections, 'Button text:', btn.textContent);
         } catch (error) {
-            console.error('[DEBUG - COLLECTIONS] Error updating single collection button:', error);
+            // console.error('[DEBUG - COLLECTIONS] Error updating single collection button:', error);
         }
     }
 
     // --- COLLECTIONS TAB RENDERING ---
     async renderCollectionsTab() {
         try {
-            console.log('[DEBUG - COLLECTIONS] renderCollectionsTab called');
+            // console.log('[DEBUG - COLLECTIONS] renderCollectionsTab called');
             
             // Debug: Check localStorage directly
             const localStorageCollectionsRaw = localStorage.getItem('mediaCollections');
-            console.log('[DEBUG - COLLECTIONS] localStorage "mediaCollections" raw:', localStorageCollectionsRaw);
+            // console.log('[DEBUG - COLLECTIONS] localStorage "mediaCollections" raw:', localStorageCollectionsRaw);
             try {
                 const parsedLocalStorageCollections = JSON.parse(localStorageCollectionsRaw || '{}');
-                console.log('[DEBUG - COLLECTIONS] localStorage "mediaCollections" parsed:', parsedLocalStorageCollections);
-                console.log('[DEBUG - COLLECTIONS] localStorage collections keys (parsed):', Object.keys(parsedLocalStorageCollections));
-                console.log('[DEBUG - COLLECTIONS] localStorage collections length (parsed):', Object.keys(parsedLocalStorageCollections).length);
+                // console.log('[DEBUG - COLLECTIONS] localStorage "mediaCollections" parsed:', parsedLocalStorageCollections);
+                // console.log('[DEBUG - COLLECTIONS] localStorage collections keys (parsed):', Object.keys(parsedLocalStorageCollections));
+                // console.log('[DEBUG - COLLECTIONS] localStorage collections length (parsed):', Object.keys(parsedLocalStorageCollections).length);
             } catch (e) {
                 console.error('[DEBUG - COLLECTIONS] Error parsing localStorage "mediaCollections":', e);
             }
 
             const collections = await this.getCollections();
-            console.log('[DEBUG - COLLECTIONS] getCollections returned:', collections);
-            console.log('[DEBUG - COLLECTIONS] Collections type:', typeof collections);
-            console.log('[DEBUG - COLLECTIONS] Collections keys:', Object.keys(collections));
-            console.log('[DEBUG - COLLECTIONS] Collections length:', Object.keys(collections).length);
+            // console.log('[DEBUG - COLLECTIONS] getCollections returned:', collections);
+            // console.log('[DEBUG - COLLECTIONS] Collections type:', typeof collections);
+            // console.log('[DEBUG - COLLECTIONS] Collections keys:', Object.keys(collections));
+            // console.log('[DEBUG - COLLECTIONS] Collections length:', Object.keys(collections).length);
             const names = Object.keys(collections).sort((a, b) => 
                 a.localeCompare(b, undefined, { 
                     sensitivity: 'base',
@@ -5432,8 +5528,8 @@ class MediaLibraryManager {
                     caseFirst: 'upper'
                 })
             );
-            console.log('[DEBUG - COLLECTIONS] Collection names (sorted):', names);
-            console.log('[DEBUG - COLLECTIONS] Collections object:', collections);
+            // console.log('[DEBUG - COLLECTIONS] Collection names (sorted):', names);
+            // console.log('[DEBUG - COLLECTIONS] Collections object:', collections);
             
             // Check if we're viewing a specific collection or the main list
             if (this.currentCollectionView) {
@@ -5464,8 +5560,8 @@ class MediaLibraryManager {
                 if (movies.length > 0) {
                     movies.forEach(path => {
                         const title = this.extractTitleFromPath(path);
-                        console.log('[COLLECTIONS] Processing movie path:', path);
-                        console.log('[COLLECTIONS] Extracted title:', title);
+                        // console.log('[COLLECTIONS] Processing movie path:', path);
+                        // console.log('[COLLECTIONS] Extracted title:', title);
                         
                         // Create a proper media item object for poster lookup
                         const mediaItem = {
@@ -5474,10 +5570,10 @@ class MediaLibraryManager {
                             title: title,
                             normalizedKey: window.normalizeKey ? window.normalizeKey(title) : null
                         };
-                        console.log('[COLLECTIONS] Created media item object:', mediaItem);
+                        // console.log('[COLLECTIONS] Created media item object:', mediaItem);
                         
                         const posterPath = this.getPosterPath(mediaItem);
-                        console.log('[COLLECTIONS] Poster path result:', posterPath);
+                        // console.log('[COLLECTIONS] Poster path result:', posterPath);
                         
                         html += `
                             <div class="media-library-movie-card-collections" data-path="${path}">
@@ -5507,8 +5603,8 @@ class MediaLibraryManager {
                 if (tvShows.length > 0) {
                     tvShows.forEach(path => {
                         const title = this.extractTitleFromPath(path);
-                        console.log('[COLLECTIONS] Processing TV show path:', path);
-                        console.log('[COLLECTIONS] Extracted title:', title);
+                        // console.log('[COLLECTIONS] Processing TV show path:', path);
+                        // console.log('[COLLECTIONS] Extracted title:', title);
                         
                         // Create a proper media item object for poster lookup
                         const mediaItem = {
@@ -5517,10 +5613,10 @@ class MediaLibraryManager {
                             title: title,
                             normalizedKey: window.normalizeKey ? window.normalizeKey(title) : null
                         };
-                        console.log('[COLLECTIONS] Created TV show media item object:', mediaItem);
+                        // console.log('[COLLECTIONS] Created TV show media item object:', mediaItem);
                         
                         const posterPath = this.getTVShowPosterPath(mediaItem);
-                        console.log('[COLLECTIONS] TV show poster path result:', posterPath);
+                        // console.log('[COLLECTIONS] TV show poster path result:', posterPath);
                         
                         html += `
                             <div class="media-library-movie-card-tvshows" data-path="${path}">
@@ -5655,7 +5751,7 @@ class MediaLibraryManager {
         const cleanedFilename = filename.replace(/\.[^/.]+$/, ''); // Remove file extension
         // Also remove resolution info from filename if present
         const finalCleanFilename = cleanedFilename.replace(/\s*\[\d+p\]\s*$/i, '');
-        console.log('[COLLECTIONS] Fallback to filename extraction:', finalCleanFilename, 'for path:', path);
+        // console.log('[COLLECTIONS] Fallback to filename extraction:', finalCleanFilename, 'for path:', path);
         return finalCleanFilename;
     }
 
@@ -6641,9 +6737,14 @@ class MediaLibraryManager {
         
         // 1. Search top-level TV show objects with multiple matching strategies
         const tvShows = this.getTVShows();
+        console.log('[FIND SHOW DEBUG] Total TV shows to search:', tvShows.length);
+        console.log('[FIND SHOW DEBUG] First 3 TV shows paths:', tvShows.slice(0, 3).map(s => s.path || s.title || s.name));
+        
         for (const show of tvShows) {
             const showObjPath = (show.path || '').replace(/\\/g, '/').toLowerCase();
             const showNormalizedKey = (show.normalizedKey || '').toLowerCase();
+            
+            console.log('[FIND SHOW DEBUG] Comparing target:', target, 'with showObjPath:', showObjPath, 'showNormalizedKey:', showNormalizedKey);
             
             // Strategy 1: Exact path match
             if (showObjPath === target) {
@@ -6944,8 +7045,10 @@ class MediaLibraryManager {
         }
 
     async renderSeasonsView(showPath) {
+        console.log('[DEBUG - RENDER-SEASONS-VIEW] renderSeasonsView called with showPath:', showPath);
         // CRITICAL: Set the current TV show state for navigation
         this.currentTVShow = showPath;
+        console.log('[DEBUG - RENDER-SEASONS-VIEW] Set currentTVShow to:', this.currentTVShow);
         
         // Update modal content class to hide A-Z sidebar for TV show seasons
         const modalContent = document.querySelector('.media-library-modal-content');
@@ -7122,7 +7225,14 @@ class MediaLibraryManager {
 
     openTVShow(showPath) {
         console.log('[DEBUG - OpenTVShow] openTVShow called with:', showPath);
-        this.currentTVShow = showPath;
+        console.log('[DEBUG - OpenTVShow] Current currentTVShow before setting:', this.currentTVShow);
+        // Only set currentTVShow if it's different or if it doesn't have the tv-shows/ prefix
+        if (!this.currentTVShow || !this.currentTVShow.startsWith('tv-shows/')) {
+            this.currentTVShow = showPath;
+            console.log('[DEBUG - OpenTVShow] Set currentTVShow to:', this.currentTVShow);
+        } else {
+            console.log('[DEBUG - OpenTVShow] Preserved existing currentTVShow:', this.currentTVShow);
+        }
         this.currentTVSeason = null;
         this.renderModal(); // Re-render modal to update tab highlight
     }
@@ -7976,7 +8086,7 @@ class MediaLibraryManager {
                         // This allows users to add to more collections OR remove from existing ones
                         await this.showAddToCollectionModal(item);
                     } catch (error) {
-                        console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
+                        // console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
                         this.showToast('Error opening collections modal', 'error');
                     }
                 };
@@ -8046,7 +8156,7 @@ class MediaLibraryManager {
                         // This allows users to add to more collections OR remove from existing ones
                         await this.showAddToCollectionModal(showData);
                     } catch (error) {
-                        console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
+                        // console.error('[DEBUG - COLLECTIONS] Error handling collection button click:', error);
                         this.showToast('Error opening collections modal', 'error');
                     }
                     return false;
@@ -8138,14 +8248,37 @@ class MediaLibraryManager {
             }
             
             // Attach card click handler for opening TV shows
-            card.onclick = (e) => {
+            card.onclick = async (e) => {
                 if (e.target.closest('.favorites-only-heart-btn') || e.target.closest('.poster-selector-btn') || e.target.closest('.collection-btn')) return; // Don't trigger for action buttons
-                // console.log('[DEBUG - FAVORITES] Opening TV show from favorites:', path);
-                // Switch to TV shows tab first, then open the specific show
+                
+                console.log('[DEBUG - FAVORITES-HANDLERS] Opening TV show from favorites:', path);
+                
+                // Extract the TV show path from the episode path (same logic as showFavoritesModal)
+                let showPath = '';
+                if (path.includes('\\Season ') || path.includes('/Season ')) {
+                    // Extract the TV show name (the directory name before "Season")
+                    const pathParts = path.split(/[\\/]/);
+                    const seasonIndex = pathParts.findIndex(part => part.toLowerCase().startsWith('season'));
+                    if (seasonIndex > 0) {
+                        const showName = pathParts[seasonIndex - 1];
+                        // Add tv-shows/ prefix to match the data structure
+                        showPath = `tv-shows/${showName}`;
+                        console.log('[DEBUG - FAVORITES-HANDLERS] Extracted show name and added prefix:', path, '->', showPath);
+                    }
+                } else {
+                    // If no season in path, use the last directory name with prefix
+                    const pathParts = path.split(/[\\/]/);
+                    const showName = pathParts[pathParts.length - 1];
+                    showPath = `tv-shows/${showName}`;
+                }
+                
+                console.log('[DEBUG - FAVORITES-HANDLERS] Final showPath for openTVShow:', showPath);
+                
+                // Switch to TV shows tab first, then open the specific show with the correct path
                 this.currentTab = 'tvshows';
                 this.currentTabFlag = 'tvshows'; // Update the flag as well
-                this.openTVShow(path);
-                };
+                this.openTVShow(showPath);
+            };
             });
     }
 
@@ -8176,7 +8309,7 @@ class MediaLibraryManager {
         const deleteBtn = document.getElementById('deleteCollectionBtn');
         if (deleteBtn) {
             deleteBtn.onclick = async () => {
-                console.log('[DEBUG - COLLECTIONS] Deleting collection:', this.currentCollectionView);
+                // console.log('[DEBUG - COLLECTIONS] Deleting collection:', this.currentCollectionView);
                 
                 // Create custom confirmation modal
                 const modal = document.createElement('div');
