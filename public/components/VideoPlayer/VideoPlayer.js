@@ -970,6 +970,18 @@ class VideoPlayer {
         
         // Add amplify controls container directly to the video container (positioned absolutely)
         this.container.appendChild(this.amplifyControlsContainer);
+
+        // Create RED LED indicator for AMPLIFY status
+        this.amplifyLedIndicator = document.createElement('div');
+        this.amplifyLedIndicator.className = 'amplify-led-indicator';
+        this.amplifyLedIndicator.title = 'AMPLIFY Status Indicator';
+        this.amplifyLedIndicator.removeAttribute('style');
+        
+        // Add LED indicator to container
+        this.container.appendChild(this.amplifyLedIndicator);
+
+        // Initialize LED indicator state
+        this.updateAmplifyButton();
     }
 
     setupEventListeners() {
@@ -2311,6 +2323,17 @@ class VideoPlayer {
                 this.amplifySliderContainer.style.display = 'none';
             }
         }
+
+        // Update LED indicator based on amplify state
+        if (this.amplifyLedIndicator) {
+            if (this.amplifyEnabled) {
+                this.amplifyLedIndicator.classList.add('active');
+                this.amplifyLedIndicator.title = 'AMPLIFY: ON';
+            } else {
+                this.amplifyLedIndicator.classList.remove('active');
+                this.amplifyLedIndicator.title = 'AMPLIFY: OFF';
+            }
+        }
     }
 
     toggleFullscreen() {
@@ -2650,6 +2673,9 @@ class VideoPlayer {
         this.sourceCreated = false;
         this.sourceNode = null;
         this.amplifyEnabled = false;
+        
+        // Update LED indicator to reflect disabled state
+        this.updateAmplifyButton();
         
         // Clear title check interval
         this.clearTitleCheckInterval();
