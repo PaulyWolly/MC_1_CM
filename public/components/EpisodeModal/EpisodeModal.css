@@ -92,10 +92,13 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     border-radius: 8px;
     pointer-events: none;
     z-index: 10;
+    padding: 8px;
+    text-align: center;
+    line-height: 1.2;
 } 
 
 .episode-modal-title {
