@@ -775,7 +775,7 @@ body.vjs-pip-window .video-js {
   margin: 0;
   padding: 0.2em 0;
   line-height: 1.4em;
-  font-size: 1.2em;
+  font-size: .9em;
   text-align: center;
   text-transform: lowercase;
 }
@@ -822,7 +822,7 @@ body.vjs-pip-window .video-js {
   position: absolute;
   bottom: 0;
   width: 10em;
-  left: -3em;
+  left: -1.5em;
   height: 0em;
   margin-bottom: 1.5em;
   border-top-color: rgba(43, 51, 63, 0.7);
@@ -837,7 +837,7 @@ body.vjs-pip-window .video-js {
   background-color: #2B333F;
   background-color: rgba(43, 51, 63, 0.7);
   position: absolute;
-  width: 100%;
+  width: 90%;
   bottom: 1.5em;
   max-height: 15em;
 }

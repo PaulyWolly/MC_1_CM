@@ -109,7 +109,10 @@ function cleanTitleForTMDB(title) {
     .replace(/\[[^\]]*\]/g, '') // remove [tags]
     .replace(/\{[^\}]*\}/g, '') // remove {tags}
     .replace(/\b(1080p|720p|2160p|4K|UHD|HD|SD|EXTENDED|SPECIAL|REMASTERED|DC|35mm|UNRATED|UNCUT|WEB[- ]?DL|BLURAY|BRRIP|HDR|XVID|H264|HEVC|AAC|DTS|YIFY|JYK|X265|X264|10bit|8bit|DUAL|MULTI|PROPER|LIMITED|INTERNAL|COMPLETE|REPACK|REMUX|TRUEHD|ATMOS|DV|HDR10|HDR10\+|SDR|FS|WS|RERIP|READNFO|SUBBED|DUBBED|CUSTOM|FRENCH|GERMAN|SPANISH|ITALIAN|RUSSIAN|JAPANESE|KOREAN|CHINESE|HINDI|TAMIL|TELUGU|MALAYALAM|KANADA|THAI|VIETNAMESE|PORTUGUESE|POLISH|TURKISH|ARABIC|DANISH|DUTCH|FINNISH|GREEK|HEBREW|HUNGARIAN|NORWEGIAN|ROMANIAN|SLOVAK|SWEDISH|CROATIAN|SERBIAN|SLOVENIAN|BULGARIAN|CZECH|ESTONIAN|LATVIAN|LITHUANIAN|UKRAINIAN|ENGLISH|ENG|FRE|SPA|ITA|GER|RUS|JPN|KOR|CHI|HIN|TAM|TEL|MAL|KAN|THA|VIE|POR|POL|TUR|ARA|DAN|NLD|FIN|GRE|HEB|HUN|NOR|RON|SLK|SWE|HRV|SRP|SLV|BGR|CES|EST|LAV|LIT|UKR)\b/gi, '') // remove common tags
-    .replace(/\./g, ' ') // replace dots with spaces
+    // Preserve periods in abbreviations like E.T., A.I., etc. before general dot replacement
+    .replace(/(\b\w)\.(\w\b)/g, '$1__PERIOD__$2')
+    .replace(/\./g, ' ') // replace remaining dots with spaces
+    .replace(/__PERIOD__/g, '.') // restore protected periods
     .replace(/\s{2,}/g, ' ') // collapse multiple spaces
     .replace(/[^a-zA-Z0-9\s:,'!-]/g, '') // remove most non-alphanum except some punctuation
     .trim();

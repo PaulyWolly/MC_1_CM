@@ -20,34 +20,6 @@ function normalizeKey(name) {
   
   return name
     .replace(/\\/g, '/')
-    // First, protect periods within words (like "vs.") by temporarily replacing them
-    .replace(/(\w+)\.(\w+)/g, '$1__PERIOD__$2')
-    // Handle common abbreviations and special cases
-    .replace(/\bMr\.\b/gi, 'mr')
-    .replace(/\bMrs\.\b/gi, 'mrs')
-    .replace(/\bMs\.\b/gi, 'ms')
-    .replace(/\bDr\.\b/gi, 'dr')
-    .replace(/\bProf\.\b/gi, 'prof')
-    .replace(/\bSt\.\b/gi, 'st')
-    .replace(/\bAve\.\b/gi, 'ave')
-    .replace(/\bBlvd\.\b/gi, 'blvd')
-    .replace(/\bRd\.\b/gi, 'rd')
-    .replace(/\bLn\.\b/gi, 'ln')
-    .replace(/\bCt\.\b/gi, 'ct')
-    .replace(/\bCo\.\b/gi, 'co')
-    .replace(/\bInc\.\b/gi, 'inc')
-    .replace(/\bLtd\.\b/gi, 'ltd')
-    .replace(/\bCorp\.\b/gi, 'corp')
-    .replace(/\bLLC\b/gi, 'llc')
-    .replace(/\bU\.S\.A\.\b/gi, 'usa')
-    .replace(/\bU\.S\.A\b/gi, 'usa')
-    .replace(/\bU\.S\.\b/gi, 'us')
-    .replace(/\bU\.S\b/gi, 'us')
-    .replace(/\bU\.K\.\b/gi, 'uk')
-    .replace(/\bU\.N\.\b/gi, 'un')
-    .replace(/\bII\b/gi, '2')
-    .replace(/\bIII\b/gi, '3')
-    .replace(/\bIV\b/gi, '4')
     // Convert "&" to "and" for internal consistency
     .replace(/\s*&\s*/g, '.and.')
     // Convert "And" to "and" for internal consistency  
@@ -260,8 +232,6 @@ function normalizeKey(name) {
     .replace(/\.+/g, '.')
     // Remove leading/trailing dots
     .replace(/^\.|\.$/g, '')
-    // Restore protected periods within words
-    .replace(/__PERIOD__/g, '.')
     // Convert to lowercase for consistency
     .toLowerCase();
 }

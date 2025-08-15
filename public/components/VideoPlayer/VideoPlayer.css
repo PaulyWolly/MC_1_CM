@@ -1132,8 +1132,15 @@
     transition: background 0.2s !important;
     z-index: 10010 !important;
     position: absolute;
-    right: 412px;
+    right: 310px;
     bottom: 24px;
+}
+
+.custom-save-later {
+    margin-bottom: 2px !important;
+    position: relative !important;
+    bottom: -2px;
+    padding-top: 9px !important;
 }
 
 .subtitle-search-btn:hover {
@@ -1655,4 +1662,20 @@
 .vjs-control-bar .vjs-custom-time-display {
     order: -1 !important;
     margin-left: 20px !important;
+}
+
+/* Hide Volume Control Panel Completely */
+.video-js .vjs-volume-panel {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Ensure the volume control doesn't take up any space */
+.video-js .vjs-volume-panel,
+.video-js .vjs-volume-panel * {
+    display: none !important;
 }
