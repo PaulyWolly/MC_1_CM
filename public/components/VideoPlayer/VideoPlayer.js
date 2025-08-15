@@ -740,16 +740,16 @@ class VideoPlayer {
                         'PlayPauseToggleButton',
                         'Back10Button',
                         'Forward10Button',
-                        'volumePanel',
                         'currentTimeDisplay',
                         'timeDivider',
                         'durationDisplay',
                         'progressControl',
                         'SaveLaterButton',
                         'SubtitleButton',
-                        'fullscreenToggle',
-                        'remainingTimeDisplay',
                         'subsCapsButton',
+                        'fullscreenToggle',
+                        'volumePanel',
+                        'remainingTimeDisplay',
                         'playbackRateMenuButton',
                         'chaptersButton',
                         'descriptionsButton',
@@ -790,6 +790,9 @@ class VideoPlayer {
                 if (subtitleButton) {
                     subtitleButton.updateIcon();
                 }
+                
+                // Apply custom classes to volume and fullscreen icons for DOM targeting
+                this.applyCustomIconClasses();
                 
                 // Create custom time display to show current time / total duration
                 this.createCustomTimeDisplay();
@@ -2504,6 +2507,30 @@ class VideoPlayer {
         // Update custom time display if it exists
         if (this.customTimeDisplay) {
             this.customTimeDisplay.innerHTML = `${current} / ${total}`;
+        }
+    }
+
+    applyCustomIconClasses() {
+        if (!this.vjsPlayer) return;
+        
+        // Apply custom class to volume icon
+        const volumePanel = this.vjsPlayer.controlBar.getChild('volumePanel');
+        if (volumePanel && volumePanel.el_) {
+            const volumeIcon = volumePanel.el_.querySelector('.vjs-icon-placeholder');
+            if (volumeIcon) {
+                volumeIcon.classList.add('volume-icon');
+                console.log('[VIDEO-PLAYER] Volume icon class applied: volume-icon');
+            }
+        }
+        
+        // Apply custom class to fullscreen icon
+        const fullscreenControl = this.vjsPlayer.controlBar.getChild('fullscreenToggle');
+        if (fullscreenControl && fullscreenControl.el_) {
+            const fullscreenIcon = fullscreenControl.el_.querySelector('.vjs-icon-placeholder');
+            if (fullscreenIcon) {
+                fullscreenIcon.classList.add('fullscreen-icon');
+                console.log('[VIDEO-PLAYER] Fullscreen icon class applied: fullscreen-icon');
+            }
         }
     }
 

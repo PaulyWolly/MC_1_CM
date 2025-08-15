@@ -205,7 +205,7 @@
 /* AMPLIFY LED Indicator */
 .amplify-led-indicator {
     position: absolute;
-    bottom: 20px;
+    bottom: 24px;
     left: 8px;
     width: 10px;
     height: 10px;
@@ -244,6 +244,105 @@
             0 0 12px rgba(255,0,0,1),
             0 0 24px rgba(255,0,0,0.6);
     }
+}
+
+/* Video.js Control Styling - Volume and Fullscreen */
+.video-js .vjs-volume-panel .vjs-icon-placeholder,
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon {
+    /* Volume control icon styling */
+    color: #fff;
+    font-size: 18px;
+}
+
+.video-js .vjs-volume-panel .vjs-icon-placeholder:hover,
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon:hover {
+    color: #ff6b6b;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder,
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon {
+    /* Fullscreen control icon styling */
+    color: #fff;
+    font-size: 18px;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder:hover,
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon:hover {
+    color: #4ecdc4;
+}
+
+/* Ensure proper alignment of volume and fullscreen controls */
+.video-js .vjs-volume-panel,
+.video-js .vjs-fullscreen-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Position volume control to the right side */
+.video-js .vjs-volume-panel {
+    margin-left: auto !important;
+    margin-right: 10px !important;
+}
+
+/* Volume slider area styling - show at 80% width */
+.video-js .vjs-volume-panel .vjs-volume-control {
+    width: 80% !important;
+    max-width: 80% !important;
+}
+
+.video-js .vjs-volume-panel .vjs-volume-bar {
+    width: 80% !important;
+    max-width: 80% !important;
+}
+
+/* Custom volume and fullscreen icon classes for DOM targeting */
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon {
+    /* Additional volume-specific styling */
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon {
+    /* Additional fullscreen-specific styling */
+    background: rgba(78, 205, 196, 0.1);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+/* CC Button (Closed Captions) Alignment Fix */
+.video-js .vjs-subs-caps-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+}
+
+.video-js .vjs-subs-caps-button .vjs-control-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+.video-js .vjs-subs-caps-button .vjs-icon-placeholder {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+}
+
+/* Ensure consistent sizing with other control buttons */
+.video-js .vjs-subs-caps-button {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    width: 32px !important;
+    font-size: 1.3em !important;
 }
 
 /* Removed .video-player-fullscreen-btn - not part of AMPLIFY feature */
@@ -585,7 +684,7 @@
     max-width: 120px !important;
     flex: 0 1 100px !important;
     margin: 0 6px !important;
-  margin-left: 165px !important;
+    margin-left: 60px !important;
 }
 
 .vjs-play-progress, .vjs-load-progress {
@@ -1033,8 +1132,8 @@
     transition: background 0.2s !important;
     z-index: 10010 !important;
     position: absolute;
-    right: 130px;
-    bottom: 30px;
+    right: 412px;
+    bottom: 24px;
 }
 
 .subtitle-search-btn:hover {
