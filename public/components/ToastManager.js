@@ -1,14 +1,8 @@
 /*
   TOASTMANAGER.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -21,6 +15,8 @@
 export default class ToastManager {
     constructor() {
         this.container = null;
+        this.toastQueue = [];
+        this.isShowingToast = false;
         this.init();
     }
 
@@ -97,12 +93,50 @@ export default class ToastManager {
     }
 
     /**
-     * Show a toast notification
+     * Show a toast notification (with queue system to prevent overlapping)
      * @param {string} message - Message to display
      * @param {string} type - Toast type (cache, api, success, error, info)
      * @param {number} duration - Duration in milliseconds (default: 3000)
      */
     showToast(message, type = 'info', duration = 3000) {
+        // Add to queue instead of showing immediately
+        this.toastQueue.push({ message, type, duration });
+        this.processToastQueue();
+    }
+
+    /**
+     * Process the toast queue with delays between toasts
+     */
+    async processToastQueue() {
+        if (this.isShowingToast || this.toastQueue.length === 0) {
+            return;
+        }
+
+        this.isShowingToast = true;
+        
+        while (this.toastQueue.length > 0) {
+            const { message, type, duration } = this.toastQueue.shift();
+            
+            // Show the toast immediately
+            const toast = this.showToastImmediate(message, type, duration);
+            
+            // Wait for toast duration + buffer before showing next toast
+            // Give warning/error toasts extra time to be readable
+            const extraTime = (type === 'warning' || type === 'error') ? 2000 : 800;
+            const waitTime = Math.min(duration, 8000) + extraTime;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        this.isShowingToast = false;
+    }
+
+    /**
+     * Show a toast notification immediately (internal method)
+     * @param {string} message - Message to display
+     * @param {string} type - Toast type (cache, api, success, error, info)
+     * @param {number} duration - Duration in milliseconds (default: 3000)
+     */
+    showToastImmediate(message, type = 'info', duration = 3000) {
         console.log(`[TOAST][${type}] ${message} (duration: ${duration}ms)`);
         // Ensure container exists
         this.createContainer();

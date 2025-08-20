@@ -1,14 +1,8 @@
 /*
   ADMIN.ROUTES.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -21,7 +15,7 @@ const fs = require('fs').promises;
 const TMDBPosterService = require('../services/TMDBPosterService');
 const Poster = require('../models/Poster');
 const https = require('https');
-const NormalizationService = require('../services/NormalizationService');
+const MovieNameService = require('../services/MovieNameService');
 const { normalizeKey } = require('../../shared/NormalizationService');
 // Use normalizeKey for all mapping key normalization in this file.
 
@@ -350,15 +344,15 @@ router.post('/posters/download', async (req, res) => {
     } else if (mediaType === 'tv') {
       // For TV, use normalized name
       console.log('[POSTER DEBUG] Incoming TV show name:', name);
-      const normalizedName = NormalizationService.createFolderName(name);
+      const normalizedName = MovieNameService.createFolderName(name);
       console.log('[POSTER DEBUG] Normalized TV show folder:', normalizedName);
       basePath = path.join('S:/MEDIA/TV-SHOWS', normalizedName);
       console.log('[POSTER DEBUG] Computed basePath:', basePath);
     } else if (mediaType === 'season') {
-      const normalizedName = NormalizationService.createFolderName(name);
+      const normalizedName = MovieNameService.createFolderName(name);
       basePath = path.join('S:/MEDIA/TV-SHOWS', normalizedName, `Season ${season}`);
     } else if (mediaType === 'episode') {
-      const normalizedName = NormalizationService.createFolderName(name);
+      const normalizedName = MovieNameService.createFolderName(name);
       basePath = path.join('S:/MEDIA/TV-SHOWS', normalizedName, `Season ${season}`, `Episode ${episode}`);
     } else {
       return res.status(400).json({ error: 'Invalid mediaType' });

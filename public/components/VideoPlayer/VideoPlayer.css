@@ -1,14 +1,8 @@
 /*
   VIDEOPLAYER.CSS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -39,83 +33,175 @@
 
 .video-player-controls {
     position: absolute;
-    bottom: 0;
+    bottom: 70px;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    padding: 20px;
+    background: linear-gradient(transparent, rgb(0 0 0 / 0%));
+    padding: 15px;
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 8px;
+    width: 24%;
+    flex-wrap: nowrap;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 0.3s;
+    z-index: 10020 !important;
 }
 
-.video-player-play-btn {
-    background: none;
-    border: none;
+/* Show main controls on hover over the video player container */
+.video-player-container:hover .video-player-controls {
+    opacity: 1;
+}
+
+/* AMPLIFY Controls Container */
+.amplify-controls-container {
+    position: absolute;
+    bottom: 84px; /* Position above main control bar */
+    left: 20px; /* Position to the right of progress controls */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000000001;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s; /* Same transition as main controls for synchronized behavior */
+    pointer-events: none; /* Disable pointer events when hidden */
+}
+
+/* Show AMPLIFY controls container ONLY when main controls are also showing */
+.video-player-container:hover .amplify-controls-container {
+    opacity: 1;
+    pointer-events: auto; /* Enable pointer events when visible */
+}
+
+/* Also show controls when they're focused or active */
+.video-player-controls:hover,
+.video-player-controls:focus-within {
+    opacity: 1;
+}
+
+/* AMPLIFY controls should ONLY be visible when main controls are visible - no independent hover rules */
+
+/* Controls will show/hide based on hover state */
+
+/* Removed .video-player-play-btn - not part of AMPLIFY feature */
+
+/* Removed .video-player-progress - not part of AMPLIFY feature */
+
+/* Removed .video-player-time - not part of AMPLIFY feature */
+
+/* Removed .video-player-volume - not part of AMPLIFY feature */
+
+/* Audio Amplification Controls */
+.video-player-amplify-btn {
+    background: linear-gradient(145deg, #2c3e50, #34495e);
     color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    transition: background 0.3s;
-}
-
-.video-player-play-btn:hover {
-    background: rgba(255,255,255,0.2);
-}
-
-.video-player-progress {
-    flex: 1;
-    height: 6px;
-    background: rgba(255,255,255,0.3);
-    border-radius: 3px;
-    cursor: pointer;
+    border: blue;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer !important;
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin: 0 4px;
+    min-width: 80px;
+    z-index: 1000000001 !important;
     position: relative;
+    pointer-events: auto !important;
 }
 
-.video-player-progress:hover {
-    background: rgba(255,255,255,0.4);
+.video-player-amplify-btn:hover {
+    background: linear-gradient(145deg, #34495e, #3c5f7a);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+    transform: translateY(-1px);
+    cursor: pointer !important; /* Force pointer cursor on hover too */
 }
 
-.video-player-time {
-    color: white;
-    font-size: 14px;
-    font-family: monospace;
-    min-width: 120px;
+.video-player-amplify-btn.active {
+    background: linear-gradient(145deg, #e74c3c, #c0392b);
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
+    animation: pulse-amplify 2s infinite;
 }
 
-.video-player-volume {
-    width: 80px;
+@keyframes pulse-amplify {
+    0%, 100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8); }
+}
+
+.video-player-amplify-controls {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    border: 1px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    /* No positioning or opacity needed - handled by parent container */
+}
+
+.video-player-amplify-level {
+    color: #4CAF50;
+    font-size: 12px; /* Comfortable size in the reserved space */
+    font-weight: bold;
+    min-width: 35px; /* Comfortable width in the reserved space */
+    text-align: center;
+    margin-right: 6px; /* Comfortable spacing in the reserved space */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Removed .video-player-watch-later-btn - not part of AMPLIFY feature */
+.video-player-amplify-slider {
+    width: 80px; /* Comfortable width in the reserved space */
     height: 6px;
-    background: rgba(255,255,255,0.3);
     border-radius: 3px;
     outline: none;
     cursor: pointer;
+    background: linear-gradient(to right, 
+        #4CAF50 0%, 
+        #4CAF50 33.33%, 
+        #FF9800 33.33%, 
+        #FF9800 66.66%, 
+        #F44336 66.66%, 
+        #F44336 100%);
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-.video-player-volume:hover {
-    background: rgba(255,255,255,0.4);
-}
-
-.video-player-fullscreen-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 8px;
+.video-player-amplify-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    transition: background 0.3s;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
 }
 
-.video-player-fullscreen-btn:hover {
-    background: rgba(255,255,255,0.2);
+.video-player-amplify-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6);
 }
 
-<<<<<<< FIXES/general-fixes
-=======
+.video-player-amplify-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 2px solid #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.video-player-amplify-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+}
+
 /* AMPLIFY LED Indicator */
 .amplify-led-indicator {
     position: absolute;
@@ -261,7 +347,6 @@
 
 /* Removed .video-player-fullscreen-btn - not part of AMPLIFY feature */
 
->>>>>>> local
 .video-player-file-btn {
     position: absolute;
     top: 2px !important;
@@ -278,7 +363,7 @@
 }
 
 .video-player-file-btn:hover {
-    background: rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.9) !important;
 }
 
 .video-player-close-btn {
@@ -305,25 +390,45 @@
 }
 
 .video-player-close-btn:hover {
-    background: rgba(255,0,0,1);
+    background: rgba(255,0,0,1) !important;
 }
 
 /* Hide file and close buttons unless hovering over the video player */
 .video-player-file-btn,
-.video-player-close-btn {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
+.video-player-close-btn,
+.video-player-next-show-btn {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
 }
 
 .video-player-container:hover .video-player-file-btn,
-.video-player-container:hover .video-player-close-btn {
-    opacity: 1;
-    pointer-events: auto;
+.video-player-container:hover .video-player-close-btn,
+.video-player-container:hover .video-player-next-show-btn {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Episode info header styling */
 .video-player-episode-info {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    z-index: 10001;
+    transition: background 0.3s;
+    text-align: center;
+    white-space: nowrap;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
@@ -332,6 +437,14 @@
 .video-player-container:hover .video-player-episode-info {
     opacity: 1;
 }
+
+.save-later-icon {
+  font-size: 1.5em;
+    vertical-align: middle;
+    margin-right: 2px;
+    margin-left: 2px;
+    pointer-events: none;
+} 
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -342,8 +455,8 @@
     }
     
     .video-player-controls {
-        padding: 15px;
-        gap: 10px;
+        padding: 10px;
+        gap: 6px;
     }
     
     .video-player-play-btn {
@@ -357,7 +470,41 @@
     }
     
     .video-player-volume {
-        width: 60px;
+        width: 6px; /* Even shorter for mobile */
+    }
+    
+    .video-player-amplify-btn {
+        padding: 6px 8px;
+        font-size: 10px;
+        min-width: 70px;
+    }
+    
+    .video-player-amplify-slider {
+        width: 60px; /* Adjusted for mobile */
+    }
+    
+    .video-player-amplify-level {
+        font-size: 11px; /* Adjusted for mobile */
+        min-width: 35px; /* Adjusted for mobile */
+    }
+    
+    .amplify-controls-container {
+        bottom: 50px; /* Float above control bar on mobile */
+        left: 80px; /* Adjusted position for mobile */
+        gap: 6px; /* Smaller gap for mobile */
+    }
+    
+    .video-player-amplify-controls {
+        padding: 6px 8px; /* Smaller padding for mobile */
+    }
+    
+    .vjs-control-bar {
+        padding: 6px 4px; /* Normal padding for mobile */
+    }
+    
+    .video-player-progress {
+        flex: 0 0 25px; /* Even shorter for mobile */
+        max-width: 25px;
     }
     
     .video-player-file-btn {
@@ -375,6 +522,13 @@
         font-size: 14px;
         padding: 8px 16px;
         max-width: 80%;
+    }
+
+    .amplify-led-indicator {
+        bottom: 15px;
+        left: 15px;
+        width: 14px;
+        height: 14px;
     }
 }
 
@@ -395,6 +549,32 @@
     border-radius: 0;
     width: 100vw;
     height: 100vh;
+}
+
+
+
+/* Force AMPLIFY controls container to be visible in fullscreen mode */
+.video-player-container:fullscreen .amplify-controls-container,
+.video-player-container:-webkit-full-screen .amplify-controls-container,
+.video-player-container:-moz-full-screen .amplify-controls-container {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+    position: fixed !important;
+    bottom: 120px !important;
+    left: 50px !important;
+    z-index: 10000000020 !important;
+}
+
+/* Force LED indicator to be visible in fullscreen mode */
+.video-player-container:fullscreen .amplify-led-indicator,
+.video-player-container:-webkit-full-screen .amplify-led-indicator,
+.video-player-container:-moz-full-screen .amplify-led-indicator {
+    position: fixed !important;
+    bottom: 30px !important;
+    left: 30px !important;
+    z-index: 10000000020 !important;
+    opacity: 1 !important;
 }
 
 /* Animation for showing/hiding */
@@ -430,6 +610,11 @@
 
 .vjs-tech, .vjs-poster, .vjs-player {
     cursor: pointer !important;
+}
+
+/* Hide the big play button overlay completely */
+.vjs-big-play-button {
+    display: none !important;
 } 
 
 /* Custom Video.js Seek Buttons */
@@ -472,7 +657,7 @@
 
 .vjs-control-bar {
   background: linear-gradient(transparent, rgba(0,0,0,0.85));
-  padding: 8px 16px;
+  padding: 8px 16px; /* Removed extra right padding */
   border-radius: 0 0 10px 10px;
   min-height: 48px;
   display: flex;
@@ -495,11 +680,11 @@
 }
 
 .vjs-progress-control {
-  max-width: 350px !important;
-  min-width: 120px;
-  flex: 0 1 auto !important;
-  margin: 0 12px !important;
-  margin-left: 165px !important;
+    min-width: 80px !important;
+    max-width: 120px !important;
+    flex: 0 1 100px !important;
+    margin: 0 6px !important;
+    margin-left: 60px !important;
 }
 
 .vjs-play-progress, .vjs-load-progress {
@@ -523,7 +708,7 @@
 }
 
 .vjs-volume-panel {
-  min-width: 80px;
+  min-width: 20px;
 }
 
 .vjs-fullscreen-control {
@@ -533,8 +718,8 @@
 /* Responsive: allow timeline to grow a bit on small screens */
 @media (max-width: 600px) {
   .vjs-progress-control {
-    max-width: 60vw !important;
-    min-width: 80px;
+    max-width: 30vw !important;
+    min-width: 50px !important;
   }
   .vjs-control-bar {
     padding: 6px 4px;
@@ -544,12 +729,21 @@
 
 /* --- CLEANED Video.js Control Icon Sizing and Spacing --- */
 .vjs-control-bar .vjs-control,
-.vjs-back10-button, .vjs-forward10-button, .vjs-playpause-toggle-button, .vjs-save-later-button, .vjs-fullscreen-control, .vjs-fullscreen-toggle {
+.vjs-playpause-toggle-button, .vjs-save-later-button, .vjs-fullscreen-control, .vjs-fullscreen-toggle {
   font-size: 1.3em !important;
   min-width: 32px !important;
   min-height: 32px !important;
   height: 32px !important;
   width: 32px !important;
+}
+
+/* Special sizing for back/forward buttons to accommodate inline text and icons */
+.vjs-back10-button, .vjs-forward10-button {
+  font-size: 1.3em !important;
+  min-width: 65px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  width: 65px !important;
 }
 .vjs-control-bar {
   gap: 6px;
@@ -564,6 +758,59 @@
 
 .video-player-skip-intro-btn {
   bottom: 35px;
+}
+
+.save-later-icon {
+  font-size: 1.5em;
+  position: relative;
+  bottom: 5px;
+}
+
+/* Next Show Button Styles */
+.video-player-next-show-btn {
+  position: absolute;
+  top: 10px !important;
+  right: 65px !important;
+  z-index: 10002;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  border: 2px solid #43a047;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-player-next-show-btn:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  background: rgba(0,0,0,0.9);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.video-player-next-show-btn .next-show-text {
+  text-align: center;
+  font-weight: bold;
+}
+
+.video-player-next-show-btn .next-show-text div:first-child {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.video-player-next-show-btn .next-show-text div:last-child {
+  font-size: 12px;
+  opacity: 0.8;
+  word-wrap: break-word;
+  max-width: 180px;
 }
 
 /* Skip to Next Episode Button Styles */
@@ -638,6 +885,14 @@
   transition: width 0.1s linear;
 }
 
+.vjs-play-icon, .vjs-pause-icon, .vjs-back10-icon, .vjs-forward10-icon {
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin-right: 2px;
+  margin-left: 2px;
+  pointer-events: none;
+} 
+
 /* Animation for skip to next button */
 @keyframes skipToNextFadeIn {
   from {
@@ -669,4 +924,758 @@
     font-size: 12px;
     max-width: 200px;
   }
+}
+
+/* Episode Selection Popup Styles */
+.episode-selection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000000000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.episode-selection-popup {
+    background: #1a1a1a;
+    border: 2px solid #43a047;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: white;
+}
+
+.episode-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.episode-selection-title {
+    margin: 0;
+    color: #43a047;
+}
+
+.episode-selection-close-btn {
+    background: #b71c1c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.episode-selection-close-btn:hover {
+    background: #d32f2f;
+}
+
+.episode-list {
+    display: grid;
+    gap: 8px;
+}
+
+.episode-button {
+    background: #2a2a2a;
+    color: white;
+    border: 1px solid #43a047;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.2s;
+}
+
+.episode-button:hover {
+    background: #3a3a3a;
+}
+
+.episode-button.current-episode {
+    background: #2a2a2a;
+    color: white;
+    border: 2px solid #43a047;
+    opacity: 1;
+}
+
+.episode-button.current-episode .episode-label {
+    color: #43a047;
+}
+
+.episode-button.current-episode .episode-name {
+    color: #fff;
+}
+
+.episode-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.episode-label {
+    font-weight: bold;
+    color: #43a047;
+}
+
+.episode-name {
+    font-size: 14px;
+    color: #ccc;
+    margin-top: 4px;
+}
+
+.episode-loading {
+    text-align: center;
+    color: #888;
+}
+
+/* Hidden file input styling */
+.video-player-container input[type="file"] {
+    display: none !important;
+}
+
+/* Subtitle Button Styles */
+.vjs-subtitle-button,
+.vjs-subtitle-button.vjs-control {
+    z-index: 10010 !important;
+    background: #222 !important;
+    color: #fff !important;
+    border-radius: 50% !important;
+    margin: 0 4px !important;
+    border: none !important;
+    font-size: 1.2em !important;
+    /* box-shadow: 0 2px 8px rgba(0,0,0,0.18); */
+    transition: background 0.2s, color 0.2s;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    width: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.vjs-subtitle-button:hover {
+    background: #1976d2 !important;
+    color: #fff !important;
+}
+
+/* Simple active state for subtitle button */
+.vjs-subtitle-button.active,
+.vjs-subtitle-button.vjs-control.active {
+    background: #1976d2 !important;
+    color: #fff !important;
+    /* box-shadow: 0 0 15px rgba(25, 118, 210, 0.6) !important; */
+    border: 2px solid #fff !important;
+    transform: scale(1.05) !important;
+}
+
+.subtitle-icon {
+    font-size: 1.3em !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    display: block !important;
+    line-height: 1 !important;
+}
+
+
+
+/* Enhanced Subtitle Text Styling */
+.video-js .vjs-text-track-cue {
+    color: #fff !important;
+    background: rgba(0,0,0,0.8) !important;
+    font-size: 1.4em !important;
+    font-family: 'Arial Black', Arial, sans-serif !important;
+    text-shadow: 2px 2px 4px #000 !important;
+    border-radius: 8px !important;
+    padding: 8px 20px !important;
+    line-height: 1.4 !important;
+    bottom: 15% !important;
+    max-width: 80% !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+}
+
+/* Subtitle text display container */
+.vjs-text-track-display {
+    position: absolute;
+    bottom: 3em;
+    left: 0;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+    z-index: 10005;
+}
+
+/* Ensure subtitles are visible even when controls are hidden */
+.video-js.vjs-controls-disabled .vjs-text-track-display,
+.video-js.vjs-user-inactive.vjs-playing .vjs-text-track-display {
+    bottom: 1em;
+}
+
+/* Subtitle Search Button */
+.subtitle-search-btn {
+    background: #ff6b35 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    margin-left: 8px !important;
+    transition: background 0.2s !important;
+    z-index: 10010 !important;
+    position: absolute;
+    right: 310px;
+    bottom: 24px;
+}
+
+.custom-save-later {
+    margin-bottom: 2px !important;
+    position: relative !important;
+    bottom: -2px;
+    padding-top: 9px !important;
+}
+
+.subtitle-search-btn:hover {
+    background: #e55a2b !important;
+}
+
+/* Subtitle Styling Button */
+.vjs-subtitle-styling-button {
+    background: transparent !important;
+    border: none !important;
+    color: #fff !important;
+    cursor: pointer !important;
+    padding: 8px !important;
+    margin: 0 2px !important;
+    border-radius: 4px !important;
+    transition: background 0.2s !important;
+}
+
+.vjs-subtitle-styling-button:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.subtitle-styling-icon {
+    font-size: 16px !important;
+    display: block !important;
+}
+
+/* Video Subtitle Styling Classes */
+.video-subtitle-container {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.video-subtitle-text {
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    max-width: 80%;
+    line-height: 1.4;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    font-family: 'Arial', sans-serif;
+}
+
+.video-subtitle-text.large {
+    font-size: 20px;
+    padding: 10px 20px;
+}
+
+.video-subtitle-text.small {
+    font-size: 14px;
+    padding: 6px 12px;
+}
+
+.video-subtitle-text.bold {
+    font-weight: 700;
+}
+
+.video-subtitle-text.italic {
+    font-style: italic;
+}
+
+.video-subtitle-text.underline {
+    text-decoration: underline;
+}
+
+.video-subtitle-text.outline {
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+
+.video-subtitle-text.glow {
+    text-shadow: 
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 15px #0073e6,
+        0 0 20px #0073e6;
+}
+
+.video-subtitle-text.dark-theme {
+    background: rgba(0, 0, 0, 0.9);
+    color: #e0e0e0;
+}
+
+.video-subtitle-text.light-theme {
+    background: rgba(255, 255, 255, 0.9);
+    color: #000000;
+}
+
+.video-subtitle-text.blue-theme {
+    background: rgba(0, 115, 230, 0.8);
+    color: #ffffff;
+}
+
+.video-subtitle-text.green-theme {
+    background: rgba(0, 128, 0, 0.8);
+    color: #ffffff;
+}
+
+.video-subtitle-text.red-theme {
+    background: rgba(220, 53, 69, 0.8);
+    color: #ffffff;
+}
+
+.video-subtitle-text.yellow-theme {
+    background: rgba(255, 193, 7, 0.9);
+    color: #000000;
+}
+
+/* Subtitle position variations */
+.video-subtitle-container.top {
+    bottom: auto;
+    top: 60px;
+}
+
+.video-subtitle-container.left {
+    left: 20px;
+    transform: none;
+}
+
+.video-subtitle-container.right {
+    left: auto;
+    right: 20px;
+    transform: none;
+}
+
+/* Subtitle animation classes */
+.video-subtitle-text.fade-in {
+    animation: subtitleFadeIn 0.3s ease-in;
+}
+
+.video-subtitle-text.fade-out {
+    animation: subtitleFadeOut 0.3s ease-out;
+}
+
+.video-subtitle-text.slide-up {
+    animation: subtitleSlideUp 0.3s ease-out;
+}
+
+.video-subtitle-text.slide-down {
+    animation: subtitleSlideDown 0.3s ease-out;
+}
+
+/* Subtitle animations */
+@keyframes subtitleFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes subtitleFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes subtitleSlideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes subtitleSlideDown {
+    from { 
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Subtitle timing indicators */
+.video-subtitle-timing {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    z-index: 1001;
+}
+
+/* Subtitle language indicator */
+.video-subtitle-language {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 115, 230, 0.8);
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1001;
+}
+
+/* Video.js Subtitle Styling */
+.custom-subtitle-styling {
+    z-index: 1000 !important;
+}
+
+/* Ensure Video.js subtitle display is on top and visible */
+.vjs-text-track-display {
+    z-index: 1000000000 !important;
+    position: absolute !important;
+    bottom: 120px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    pointer-events: none !important;
+    display: block !important;
+    width: 80% !important;
+    max-width: 80% !important;
+}
+
+/* Ensure subtitle cues are visible */
+.vjs-text-track-cue {
+    z-index: 10001 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    max-width: 100% !important;
+    line-height: 1.4 !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    font-family: 'Arial', sans-serif !important;
+    display: block !important;
+    margin: 0 auto !important;
+    position: relative !important;
+}
+
+.vjs-text-track-cue {
+    z-index: 10001 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    max-width: 80% !important;
+    line-height: 1.4 !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    font-family: 'Arial', sans-serif !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+.custom-subtitle-styling .vjs-text-track-cue {
+    background: rgba(0, 0, 0, 0.7) !important;
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    max-width: 80% !important;
+    line-height: 1.4 !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    font-family: 'Arial', sans-serif !important;
+}
+
+/* Size classes */
+.subtitle-large .vjs-text-track-cue {
+    font-size: 20px !important;
+    padding: 10px 20px !important;
+}
+
+/* Weight classes */
+.subtitle-bold .vjs-text-track-cue {
+    font-weight: 700 !important;
+}
+
+/* Effect classes */
+.subtitle-outline .vjs-text-track-cue {
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000 !important;
+}
+
+.subtitle-glow .vjs-text-track-cue {
+    text-shadow: 
+        0 0 5px #fff,
+        0 0 10px #fff,
+        0 0 15px #0073e6,
+        0 0 20px #0073e6 !important;
+}
+
+/* Theme classes */
+.subtitle-blue .vjs-text-track-cue {
+    background: rgba(0, 115, 230, 0.8) !important;
+    color: #ffffff !important;
+}
+
+.subtitle-green .vjs-text-track-cue {
+    background: rgba(0, 128, 0, 0.8) !important;
+    color: #ffffff !important;
+}
+
+.subtitle-red .vjs-text-track-cue {
+    background: rgba(220, 53, 69, 0.8) !important;
+    color: #ffffff !important;
+}
+
+.subtitle-yellow .vjs-text-track-cue {
+    background: rgba(255, 193, 7, 0.9) !important;
+    color: #000000 !important;
+}
+
+.subtitle-dark .vjs-text-track-cue {
+    background: rgba(0, 0, 0, 0.9) !important;
+    color: #e0e0e0 !important;
+}
+
+.subtitle-light .vjs-text-track-cue {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #000000 !important;
+}
+
+/* Test subtitle overlay */
+.custom-subtitle-overlay {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.subtitle-test-text {
+    background: rgba(255, 0, 0, 0.8);
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    animation: pulse 2s infinite;
+}
+
+/* Style for actual subtitle text in the overlay */
+.custom-subtitle-overlay .video-subtitle-text {
+    background: rgba(0, 0, 0, 0.8);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px; /* Smaller default size */
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    max-width: 80%;
+    line-height: 1.4;
+    display: none; /* Hidden by default, shown when cues are active */
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Subtitle Overlay Styling */
+.simple-subtitle-overlay {
+    position: absolute !important;
+    bottom: 80px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: transparent !important;
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+    font-size: 44px !important;
+    font-weight: normal !important;
+    z-index: 1000000000 !important;
+    text-align: center !important;
+    max-width: 100% !important;
+    width: 60vw !important;
+    pointer-events: auto !important;
+    display: block !important;
+    transition: opacity 0.3s ease !important;
+}
+
+/* Subtitle styling variations */
+.simple-subtitle-overlay.large {
+    font-size: 24px;
+    padding: 15px 25px;
+}
+
+.simple-subtitle-overlay.small {
+    font-size: 14px;
+    padding: 8px 15px;
+}
+
+.simple-subtitle-overlay.bold {
+    font-weight: bold;
+}
+
+.simple-subtitle-overlay.italic {
+    font-style: italic;
+}
+
+.simple-subtitle-overlay.outline {
+    text-shadow: 
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+}
+
+.simple-subtitle-overlay.glow {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.simple-subtitle-overlay.blue {
+    background: rgba(0, 0, 255, 0.8);
+}
+
+.simple-subtitle-overlay.green {
+    background: rgba(0, 255, 0, 0.8);
+}
+
+.simple-subtitle-overlay.red {
+    background: rgba(255, 0, 0, 0.8);
+}
+
+.simple-subtitle-overlay.yellow {
+    background: rgba(255, 255, 0, 0.8);
+    color: black;
+}
+
+.simple-subtitle-overlay.dark {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.simple-subtitle-overlay.light {
+    background: rgba(255, 255, 255, 0.9);
+    color: black;
+}
+
+/* Position variations */
+.simple-subtitle-overlay.top {
+    bottom: auto;
+    top: 120px;
+}
+
+.simple-subtitle-overlay.left {
+    left: 20px;
+    transform: none;
+}
+
+.simple-subtitle-overlay.right {
+    left: auto;
+    right: 20px;
+    transform: none;
+}
+
+/* Support for HTML tags in subtitles */
+.custom-subtitle-overlay i,
+.simple-subtitle-overlay i {
+    font-style: italic;
+}
+
+.custom-subtitle-overlay b,
+.custom-subtitle-overlay strong,
+.simple-subtitle-overlay b,
+.simple-subtitle-overlay strong {
+    font-weight: bold;
+}
+
+.custom-subtitle-overlay u,
+.simple-subtitle-overlay u {
+    text-decoration: underline;
+}
+
+.custom-subtitle-overlay s,
+.simple-subtitle-overlay s {
+    text-decoration: line-through;
+}
+
+/* Custom Time Display Styles */
+.vjs-custom-time-display {
+    color: #fff !important;
+    font-size: 1.2em !important;
+    font-weight: bold !important;
+    margin-right: 10px !important;
+    padding: 0 5px !important;
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    min-width: 80px !important;
+    justify-content: center !important;
+}
+
+/* Ensure the custom time display is visible and properly positioned */
+.vjs-control-bar .vjs-custom-time-display {
+    order: -1 !important;
+    margin-left: 20px !important;
+}
+
+/* Hide Volume Control Panel Completely */
+.video-js .vjs-volume-panel {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Ensure the volume control doesn't take up any space */
+.video-js .vjs-volume-panel,
+.video-js .vjs-volume-panel * {
+    display: none !important;
 }

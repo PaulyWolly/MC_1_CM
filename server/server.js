@@ -1,14 +1,8 @@
 /*
   SERVER.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -40,7 +34,7 @@ const bcrypt           = require('bcryptjs');
 const chalk = require('chalk');
 
 // Import MongoDB models
-const YouTubeSearchResult = require('./models/YouTubeSearchResult');
+// YouTubeSearchResult functionality now consolidated into YouTubeSearch model
 const PageToken = require('./models/PageToken');
 const User = require('./models/User');
 const Bug = require('./models/Bug');
@@ -141,15 +135,23 @@ app.use(express.urlencoded({limit: '50mb', extended: true}));
 // Serve config to the frontend FIRST
 app.use('/config', express.static(path.join(__dirname, '../config')));
 
+// Serve shared directory to the frontend
+app.use('/shared', express.static(path.join(__dirname, '../shared')));
+
 // Mount playlist API routes
 const playlistRoutes = require('./routes/playlists.routes');
 const youtubeHistoryRoutes = require('./routes/youtubeHistory.routes.js');
 const clickedVideosRoutes = require('./routes/clickedVideos.routes.js');
+const watchLaterRoutes = require('./routes/watchLater.routes.js');
+const lyricsRoutes = require('./routes/lyrics.routes.js');
 
 // Mount the routes
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/youtube/history', youtubeHistoryRoutes);
 app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
+app.use('/api/watch-later', watchLaterRoutes);
+app.use('/api/lyrics', lyricsRoutes);
+app.use('/api/collections', require('./routes/collections.routes'));
 
 // 1. Serve S:/MEDIA as /media (STATIC)
 app.use('/media', express.static('S:/MEDIA'));
@@ -163,15 +165,21 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
         const { query } = req.params;
         console.log(`🔍 [RESTORE] Looking for cached results for: "${query}"`);
         
-        // Find all pages for this query in MongoDB
-        const savedResults = await YouTubeSearchResult.find({ query }).sort({ page: 1 });
+        // First, let's see what queries we actually have in the database
+        const allQueries = await YouTubeSearch.find({}, { query: 1, videoResults: 1 }).limit(20);
+        console.log(`🔍 [RESTORE] Available queries in database:`, allQueries.map(q => `"${q.query}" (${q.videoResults?.length || 0} pages)`));
         
-        if (savedResults.length === 0) {
+        // Find saved search with video results for this query in MongoDB (case-insensitive)
+        const savedSearch = await YouTubeSearch.findOne({ 
+            query: { $regex: new RegExp(`^${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
+        
+        if (!savedSearch || !savedSearch.videoResults || savedSearch.videoResults.length === 0) {
             return res.json({ success: false, message: 'No cached results found for this query' });
         }
         
         // Restore to localStorage format and return
-        const restoredPages = savedResults.map(result => ({
+        const restoredPages = savedSearch.videoResults.map(result => ({
             page: result.page,
             videos: result.videos,
             resultType: result.resultType,
@@ -179,13 +187,18 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
             timestamp: result.timestamp
         }));
         
-        console.log(`✅ [RESTORE] Found ${savedResults.length} cached pages for "${query}"`);
+        console.log(`✅ [RESTORE] Found ${savedSearch.videoResults.length} cached pages for "${query}"`);
+        
+        // Return the first page of videos for immediate display
+        const firstPage = savedSearch.videoResults.find(result => result.page === 1);
+        const videos = firstPage ? firstPage.videos : savedSearch.videoResults[0]?.videos || [];
         
         res.json({
             success: true,
             query,
+            videos: videos,
             pages: restoredPages,
-            totalPages: savedResults.length
+            totalPages: savedSearch.videoResults.length
         });
         
     } catch (error) {
@@ -204,6 +217,86 @@ app.use('/api/media', mediaManagerRoutes);
 
 // Serve static frontend files
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Subtitle file serving endpoint
+app.get('/api/subtitles', (req, res) => {
+    try {
+        const subtitlePath = req.query.path;
+        if (!subtitlePath) {
+            return res.status(400).json({ error: 'Subtitle path is required' });
+        }
+
+        // Decode the path and construct the full file path
+        const decodedPath = decodeURIComponent(subtitlePath);
+        console.log('[SERVER] Subtitle request - Original path:', subtitlePath);
+        console.log('[SERVER] Subtitle request - Decoded path:', decodedPath);
+        
+        // Security check: ensure the path is within allowed directories
+        const allowedDirs = [
+            path.resolve(__dirname, '../public/assets'),
+            path.resolve(__dirname, '../uploads'),
+            path.resolve(__dirname, '../public/assets/video'),
+            path.resolve('S:/MEDIA') // Allow access to your media drive
+        ];
+        
+        const fullPath = path.resolve(decodedPath);
+        console.log('[SERVER] Subtitle request - Full path:', fullPath);
+        console.log('[SERVER] Subtitle request - Allowed dirs:', allowedDirs);
+        
+        const isAllowed = allowedDirs.some(allowedDir => 
+            fullPath.startsWith(allowedDir)
+        );
+        
+        console.log('[SERVER] Subtitle request - Is allowed:', isAllowed);
+        
+        if (!isAllowed) {
+            console.log('[SERVER] Blocked subtitle access to:', fullPath);
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Check if file exists
+        const fileExists = fs.existsSync(fullPath);
+        console.log('[SERVER] Subtitle request - File exists:', fileExists);
+        
+        if (!fileExists) {
+            console.log('[SERVER] Subtitle file not found at:', fullPath);
+            return res.status(404).json({ error: 'Subtitle file not found' });
+        }
+
+        // Get file extension to set correct content type
+        const ext = path.extname(fullPath).toLowerCase();
+        let contentType = 'text/plain';
+        
+        if (ext === '.vtt') {
+            contentType = 'text/vtt';
+        } else if (ext === '.srt') {
+            contentType = 'text/plain';
+        } else if (ext === '.sub') {
+            contentType = 'text/plain';
+        }
+
+        // Set CORS headers for subtitle files
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Content-Type', contentType);
+
+        // For HEAD requests (used to check if file exists)
+        if (req.method === 'HEAD') {
+            return res.status(200).end();
+        }
+
+        // Stream the subtitle file
+        const fileStream = fs.createReadStream(fullPath);
+        fileStream.pipe(res);
+
+        console.log('[SERVER] Serving subtitle file:', fullPath);
+
+    } catch (error) {
+        console.error('[SERVER] Error serving subtitle file:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 // YouTube Search Route
 app.get('/api/youtube/search', async (req, res) => {
@@ -256,7 +349,7 @@ app.get('/api/youtube/search', async (req, res) => {
             thumbnail: item.snippet.thumbnails.high.url,
             channel: item.snippet.channelTitle,
             views: item.statistics.viewCount,
-            duration: item.contentDetails.duration,
+            duration: item. image.pngcontentDetails.duration,
             publishedAt: item.snippet.publishedAt
         }));
 
@@ -2564,17 +2657,38 @@ const YouTubeSearch = require('./models/YouTubeSearch');
 // Single MongoDB connection
 let retryCount = 0;
 const maxRetries = 3;
+let isConnecting = false; // Prevent multiple simultaneous connection attempts
 
 async function connectWithRetry() {
+    // Prevent multiple simultaneous connection attempts
+    if (isConnecting) {
+        console.log('MongoDB connection already in progress, skipping...');
+        return;
+    }
+    
+    if (retryCount >= maxRetries) {
+        console.error('MongoDB connection failed after maximum retries. Please check your connection and restart the server.');
+        return;
+    }
+    
+    isConnecting = true;
+    
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 30000, // 30 seconds
+            socketTimeoutMS: 45000, // 45 seconds
+            maxPoolSize: 10,
+            minPoolSize: 2,
+            maxIdleTimeMS: 30000
+        });
         console.log('\x1b[32m%s\x1b[0m', 'MongoDB connect with Retry on HOST and PORT successful:');
         console.log('\x1b[32m%s\x1b[0m', JSON.stringify({
             host: mongoose.connection.host || 'Atlas Cluster',
             port: mongoose.connection.port || 'SRV',
-            name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown',
-            collections: await mongoose.connection.db.listCollections().toArray()
+            name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown'
         }, null, 4));
+        retryCount = 0; // Reset retry count on successful connection
+        isConnecting = false; // Reset connection flag
     } catch (err) {
         console.error('MongoDB connection error:', {
             error: err.message,
@@ -2585,39 +2699,51 @@ async function connectWithRetry() {
         if (retryCount < maxRetries) {
             retryCount++;
             console.log(`Retrying connection in 5 seconds... (Attempt ${retryCount}/${maxRetries})`);
-            setTimeout(connectWithRetry, 5000);
+            setTimeout(() => {
+                isConnecting = false; // Reset flag before retrying
+                connectWithRetry();
+            }, 5000);
+        } else {
+            console.error('MongoDB connection failed after maximum retries. Please check your connection and restart the server.');
+            isConnecting = false;
         }
     }
 }
 
 // Initial connection
+console.log('[MONGODB] Starting connection process...');
+console.log('[MONGODB] Environment check:', {
+    MONGODB_URI: process.env.MONGODB_URI ? 'Present' : 'Missing',
+    NODE_ENV: process.env.NODE_ENV || 'development'
+});
+
+if (!process.env.MONGODB_URI) {
+    console.error('[MONGODB] ERROR: MONGODB_URI environment variable is not set!');
+    console.error('[MONGODB] Please check your .env file or environment configuration.');
+    process.exit(1);
+}
+
 connectWithRetry();
 
-// Single MongoDB connection
-mongoose.connect(process.env.MONGODB_URI).then(() => {
-    console.log('\x1b[32m%s\x1b[0m', 'MongoDB connected HOST and PORT successfully:');
-    console.log('\x1b[32m%s\x1b[0m', JSON.stringify({
-        host: mongoose.connection.host || 'Atlas Cluster',
-        port: mongoose.connection.port || 'SRV',
-        name: mongoose.connection.name || mongoose.connection.db?.databaseName || 'Unknown'
-    }, null, 4));
+// Set up conversation collection reference after connection
+mongoose.connection.once('open', () => {
     conversationCollection = mongoose.connection.collection('conversation_history');
-}).catch(err => {
-    console.error('MongoDB connection error:', {
-        error: err.message,
-        code: err.code,
-        uri: process.env.MONGODB_URI?.replace(/\/\/.*@/, '//***:***@')
-    });
+    console.log('[DEBUG - MONGO] Conversation collection reference set');
 });
 
 // Handle disconnection
 mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB connected successfully:', {
+    console.log('MongoDB disconnected:', {
         status: 'disconnected',
         time: new Date().toISOString()
     });
-    if (retryCount < maxRetries) {
+    
+    // Only retry if we haven't exceeded max retries and we're not already connecting
+    if (retryCount < maxRetries && !isConnecting) {
+        console.log('Attempting to reconnect to MongoDB...');
         connectWithRetry();
+    } else if (retryCount >= maxRetries) {
+        console.error('MongoDB reconnection failed after maximum retries. Please check your connection and restart the server.');
     }
 });
 
@@ -2710,7 +2836,25 @@ app.post('/api/debug/add-test-joke', async (req, res) => {
 app.post('/api/youtube/save-search', async (req, res) => {
     try {
         let { query, userId, displayName, totalPages, videoCount, cacheKeys, searchMetadata } = req.body;
-        query = (query || '').trim().toLowerCase();
+        
+        // Normalize query for internal storage
+        const normalizeQuery = (q) => {
+            return q.toLowerCase()
+                .trim()
+                .replace(/^youtube\s+search\s+/i, '') // Remove youtube search prefix
+                .replace(/\s+/g, '.') // Replace spaces with dots
+                .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+        };
+        
+        const originalQuery = (query || '').trim();
+        query = normalizeQuery(originalQuery);
+        
+        // If no displayName provided, create human-readable version from normalized query
+        if (!displayName) {
+            displayName = query.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
 
         console.log('💾 [YOUTUBE-DB] Saving search query:', { query, userId, displayName });
 
@@ -2983,9 +3127,8 @@ async function getNextPageToken(query, searchType, page) {
 
 async function saveSearchResultToMongoDB(query, page, videos, resultType, nextPageToken = null, quotaUsed = 101) {
     try {
-        // Create the update data without _id field to avoid MongoDB immutable field error
-        const updateData = {
-            query,
+        // Create the video result data
+        const videoResultData = {
             page,
             videos,
             resultType,
@@ -2995,14 +3138,56 @@ async function saveSearchResultToMongoDB(query, page, videos, resultType, nextPa
             timestamp: new Date()
         };
 
-        // Use upsert to replace existing results for same query+page
-        await YouTubeSearchResult.findOneAndUpdate(
-            { query, page },
-            { $set: updateData },
-            { upsert: true, new: true }
-        );
+        // Normalize the query for lookup
+        const normalizeQuery = (q) => {
+            return q.toLowerCase()
+                .trim()
+                .replace(/^youtube\s+search\s+/i, '') // Remove youtube search prefix
+                .replace(/\s+/g, '.') // Replace spaces with dots
+                .replace(/[^a-z0-9.]/g, '') // Remove special characters except dots
+                .replace(/\.+/g, '.') // Replace multiple dots with single dot
+                .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+        };
+        
+        const normalizedQuery = normalizeQuery(query);
+        
+        // Find or create the YouTube search document
+        let searchDoc = await YouTubeSearch.findOne({ query: normalizedQuery });
+        
+        if (!searchDoc) {
+            const humanReadableDisplay = normalizedQuery.replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Create new search document
+            searchDoc = new YouTubeSearch({
+                query: normalizedQuery, // Store normalized query
+                userId: 'default-user',
+                displayName: humanReadableDisplay, // Human-readable display name
+                videoCount: videos.length,
+                lastSearched: new Date(),
+                dateCreated: new Date(),
+                videoResults: [videoResultData]
+            });
+            await searchDoc.save();
+        } else {
+            // Update existing document - replace or add the page result
+            const existingPageIndex = searchDoc.videoResults.findIndex(result => result.page === page);
+            
+            if (existingPageIndex >= 0) {
+                // Update existing page
+                searchDoc.videoResults[existingPageIndex] = videoResultData;
+            } else {
+                // Add new page
+                searchDoc.videoResults.push(videoResultData);
+            }
+            
+            // Update metadata
+            searchDoc.lastSearched = new Date();
+            searchDoc.videoCount = searchDoc.videoResults.reduce((total, result) => total + result.videos.length, 0);
+            
+            await searchDoc.save();
+        }
 
-        console.log(`💾 [MONGODB] Saved ${videos.length} videos for "${query}" page ${page} to database`);
+        console.log(`💾 [MONGODB] Saved ${videos.length} videos for "${query}" page ${page} to consolidated youtube_searches collection`);
     } catch (error) {
         console.error('❌ [MONGODB] Error saving search result:', error);
     }
@@ -3593,6 +3778,68 @@ app.get('/api/youtube/quota-status', (req, res) => {
     res.json(quotaInfo);
 });
 
+// Test YouTube API quota status with minimal API call
+app.post('/api/youtube/test-quota', async (req, res) => {
+    try {
+        console.log('🧪 [QUOTA-TEST] Testing YouTube API quota status...');
+        
+        // Make a minimal YouTube API call to test quota
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: process.env.YOUTUBE_API_KEY
+        });
+
+        const searchResponse = await youtube.search.list({
+            part: ['snippet'],
+            q: 'test',
+            maxResults: 1,
+            type: 'video'
+        });
+
+        if (searchResponse && searchResponse.data && searchResponse.data.items) {
+            console.log('✅ [QUOTA-TEST] YouTube API quota OK');
+            res.json({ 
+                success: true, 
+                quotaExceeded: false,
+                message: 'YouTube API quota is available'
+            });
+        } else {
+            console.log('⚠️ [QUOTA-TEST] Unexpected API response');
+            res.json({ 
+                success: false, 
+                quotaExceeded: false,
+                message: 'Unexpected API response'
+            });
+        }
+    } catch (error) {
+        console.error('❌ [QUOTA-TEST] YouTube API error:', error.message);
+        
+        // Check if error indicates quota exceeded
+        const isQuotaError = error.message.includes('quota') || 
+                            error.message.includes('Quota') ||
+                            error.code === 403 ||
+                            error.status === 403;
+        
+        if (isQuotaError) {
+            console.log('🚫 [QUOTA-TEST] YouTube API quota limit reached');
+            res.status(403).json({ 
+                success: false, 
+                quotaExceeded: true,
+                error: 'YouTube API quota limit reached',
+                message: error.message
+            });
+        } else {
+            console.log('❌ [QUOTA-TEST] Other API error:', error.message);
+            res.status(500).json({ 
+                success: false, 
+                quotaExceeded: false,
+                error: 'API test failed',
+                message: error.message
+            });
+        }
+    }
+});
+
 // Admin endpoint to manually set quota usage (for fixing quota tracking)
 app.post('/api/youtube/quota-set', (req, res) => {
     const { used } = req.body;
@@ -3857,19 +4104,44 @@ app.post('/api/youtube/playlists-update-durations', async (req, res) => {
 
 
 // =====================================================
+// PROCESS ERROR HANDLING
+// =====================================================
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error(chalk.red('[PROCESS] Uncaught Exception:'), error);
+    console.error(chalk.red('[PROCESS] Error stack:'), error.stack);
+    process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(chalk.red('[PROCESS] Unhandled Rejection at:'), promise);
+    console.error(chalk.red('[PROCESS] Reason:'), reason);
+    process.exit(1);
+});
+
+// =====================================================
 // SERVER LISTENER
 // =====================================================
 
 // Call the server and port
+console.log('[SERVER] Attempting to start server on port:', port);
+
 app.listen(port, '0.0.0.0', () => {
     console.log(chalk.magenta(`[BACKEND] Listening at http://localhost:${port}`));
+    console.log(chalk.green('[SERVER] Server started successfully!'));
 }).on('error', (error) => {
-    console.error(chalk.magenta('[BACKEND] Error starting server:'), error);
+    console.error(chalk.red('[BACKEND] Error starting server:'), error);
     if (error.code === 'EACCES') {
-        console.error(chalk.magenta('[BACKEND] Permission denied. Try using a port number above 1024.'));
+        console.error(chalk.red('[BACKEND] Permission denied. Try using a port number above 1024.'));
     } else if (error.code === 'EADDRINUSE') {
-        console.error(chalk.magenta('[BACKEND] Port is already in use. Try a different port.'));
+        console.error(chalk.red('[BACKEND] Port is already in use. Try a different port.'));
+    } else {
+        console.error(chalk.red('[BACKEND] Unexpected error:'), error.message);
+        console.error(chalk.red('[BACKEND] Error stack:'), error.stack);
     }
+    process.exit(1);
 });
 
 
@@ -4110,75 +4382,8 @@ app.post('/api/admin/backfill-youtube-timestamps', async (req, res) => {
 // =========================
 // WATCH LATER DATA API ENDPOINTS
 // =========================
-
-const WATCH_LATER_DATA_FILE = path.join(__dirname, '../public/components/MediaLibrary/data/watch_later/watch_later_backup.json');
-
-// Ensure the data file exists
-if (!fs.existsSync(WATCH_LATER_DATA_FILE)) {
-    fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify({
-        timestamp: new Date().toISOString(),
-        itemCount: 0,
-        items: []
-    }, null, 2));
-}
-
-// API endpoint to save Watch Later data
-app.post('/api/watch-later-data', (req, res) => {
-    try {
-        const backupData = req.body;
-        
-        // Validate the data
-        if (!backupData || !Array.isArray(backupData.items)) {
-            return res.status(400).json({ error: 'Invalid data format' });
-        }
-        
-        // Save to file
-        fs.writeFileSync(WATCH_LATER_DATA_FILE, JSON.stringify(backupData, null, 2));
-        
-        console.log('[WATCH-LATER-API] Backup saved:', backupData.items.length, 'items');
-        res.json({ success: true, itemCount: backupData.items.length });
-        
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Save error:', error);
-        res.status(500).json({ error: 'Failed to save backup' });
-    }
-});
-
-// API endpoint to get Watch Later data
-app.get('/api/watch-later-data', (req, res) => {
-    try {
-        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
-            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
-            res.json(data);
-        } else {
-            res.json({ timestamp: new Date().toISOString(), itemCount: 0, items: [] });
-        }
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Read error:', error);
-        res.status(500).json({ error: 'Failed to read backup' });
-    }
-});
-
-// API endpoint to get backup info
-app.get('/api/watch-later-data/info', (req, res) => {
-    try {
-        if (fs.existsSync(WATCH_LATER_DATA_FILE)) {
-            const data = JSON.parse(fs.readFileSync(WATCH_LATER_DATA_FILE, 'utf8'));
-            const stats = fs.statSync(WATCH_LATER_DATA_FILE);
-            res.json({
-                timestamp: data.timestamp,
-                itemCount: data.itemCount,
-                fileSize: stats.size,
-                lastModified: stats.mtime
-            });
-        } else {
-            res.json({ timestamp: null, itemCount: 0, fileSize: 0, lastModified: null });
-        }
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Info error:', error);
-        res.status(500).json({ error: 'Failed to get backup info' });
-    }
-});
+// Note: Watch Later functionality has been moved to MongoDB-based API routes
+// See /api/watch-later/* endpoints for the new implementation
 
 // =========================
 // SERVER STARTUP

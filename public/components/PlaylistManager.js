@@ -14,15 +14,9 @@ export default class PlaylistManager {
 
   /*
   PLAYLISTMANAGER.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
   cleanPlaylistNameForDisplay(name) {
@@ -47,25 +41,22 @@ export default class PlaylistManager {
     // If cleaning results in empty string, use original
     if (!cleaned) cleaned = name;
     
-<<<<<<< FIXES/general-fixes
-=======
     // HUMANIZE: Convert normalized dot notation and underscores to human-readable format
     // e.g., "jean.luc.ponty" -> "Jean Luc Ponty", "hillsong.united.of.dirt.and.grace" -> "Hillsong United Of Dirt And Grace"
     // e.g., "jean_luc_ponty" -> "Jean Luc Ponty", "hillsong_united_of_dirt_and_grace" -> "Hillsong United Of Dirt And Grace"
     const humanReadable = cleaned.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     
->>>>>>> local
     // Add type indicators based on detected search type
     switch (type) {
       case 'channel':
-        return `${cleaned} (ch)`;
+        return `${humanReadable} (ch)`;
       case 'movies':
-        return `${cleaned} (mv)`;
+        return `${humanReadable} (mv)`;
       case 'tv':
-        return `${cleaned} (tv)`;
+        return `${humanReadable} (tv)`;
       case 'search':
       default:
-        return cleaned; // No indicator for regular searches
+        return humanReadable; // No indicator for regular searches
     }
   }
 

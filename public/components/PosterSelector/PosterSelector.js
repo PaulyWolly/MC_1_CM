@@ -1,14 +1,8 @@
 /*
   POSTERSELECTOR.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -16,16 +10,20 @@
 // Modular component for selecting and saving TMDB posters for TV or movies
 
 // Use shared normalization service
-const normalizeKey = window.normalizeKey || ((name) => {
-  return name
-    .replace(/\\/g, '/')
-    .replace(/\s*&\s*/g, '.&.') // preserve ampersand as dot-ampersand-dot
-    .replace(/\s+/g, '.')
-    .replace(/[^a-zA-Z0-9.&.\[\]()]/g, '') // include & in allowed characters
-    .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '');
-});
-// Use normalizeKey for all mapping key normalization in this file.
+// Note: window.normalizeKey should be available from NormalizationService.js
+// We'll check for it when needed rather than at load time
+let normalizeKey = null;
+
+function getNormalizeKey() {
+    if (!normalizeKey && window.normalizeKey) {
+        normalizeKey = window.normalizeKey;
+    }
+    if (!normalizeKey) {
+        console.error('[POSTER SELECTOR] NormalizationService not loaded - this should not happen!');
+        return null;
+    }
+    return normalizeKey;
+}
 
 class PosterSelector {
     constructor(mode = 'tv', options = {}) {

@@ -1,14 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -66,13 +60,96 @@
 /* Media Grid Styles */
 .media-library-movie-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-    gap: 28px 20px;
-    justify-items: center;
-    align-items: start;
-    max-width: 1370px;
-    margin: 0 auto;
-    margin-left: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+}
+
+/* Episode Carousel Gradient Overlays */
+.episode-carousel-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1200px; /* Increased from default to show more episodes */
+}
+
+.episode-carousel-gradient-left,
+.episode-carousel-gradient-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px; /* Increased gradient width for better fade effect */
+    pointer-events: none;
+    z-index: 10;
+}
+
+.episode-carousel-gradient-left {
+    left: 0;
+    background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0.9) 40%, rgba(255, 255, 255, 0.6) 60%, rgba(255, 255, 255, 0.2) 80%, rgba(255, 255, 255, 0) 100%);
+}
+
+.episode-carousel-gradient-right {
+    right: 0;
+    background: linear-gradient(to left, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 20%, rgba(255, 255, 255, 0.9) 40%, rgba(255, 255, 255, 0.6) 60%, rgba(255, 255, 255, 0.2) 80%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Responsive gradient widths */
+@media (max-width: 768px) {
+    .episode-carousel-gradient-left,
+    .episode-carousel-gradient-right {
+        width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .episode-carousel-gradient-left,
+    .episode-carousel-gradient-right {
+        width: 40px;
+    }
+}
+
+/* Collection Button Spinner */
+.collection-btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: collection-spin 1s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+    /* Ensure consistent sizing */
+    flex-shrink: 0;
+}
+
+@keyframes collection-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.collection-modal-btn:disabled {
+    /* Maintain exact same dimensions when disabled */
+    min-height: 40px;
+    height: 40px;
+    line-height: 1.2;
+}
+
+.media-library-movie-grid-collections {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
 }
 
 .media-library-movie-card {
@@ -83,14 +160,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 135px;
+    width: 150px !important;
     height: 32.0vh;
-    min-width: 120px;
-    max-width: 150px;
+    min-width: 140px !important;
+    max-width: 160px !important;
     padding: 10px 6px 12px 6px;
     transition: box-shadow 0.2s;
     cursor: pointer;
     font-size: 0.97em;
+    margin: 0 !important;
 }
 
 .media-library-movie-card img {
@@ -244,13 +322,27 @@
 }
 
 .tv-show-season-episode-name {
-    font-size: 0.85em !important;
+    font-size: 0.8em !important;
     line-height: 1.2;
     white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 200px;
+    text-align: center;
+    padding: 4px 2px;
+    min-height: 2.4em;
+    max-height: 2.4em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 auto;
 }
 
 .tv-show-episode-name {
-    font-size: 0.8em !important;
+    font-size: 0.7em !important;
     line-height: 1.2;
     white-space: normal;
 }
@@ -507,6 +599,7 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+    z-index: 100000000;
 }
 
 .media-library-spinner {
@@ -811,14 +904,27 @@
 }
 
 /* --- TV Show Navigation Styles --- */
+.season-episode-breadcrumb {
+    margin-bottom: 20px;
+    width: 100%;
+    margin-left: -20px;
+}
+
 .media-library-breadcrumbs {
     padding: 15px 20px;
     background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
+    /* border-bottom: 1px solid #e9ecef; */
     font-size: 14px;
     color: #6c757d;
-    width: 80vw;
+    /* width: 80vw; */
     height: 2%;
+}
+
+/* Override for seasons and episodes views - breadcrumb flush left */
+.media-library-modal-content.tvshows .season-episode-breadcrumb .media-library-breadcrumbs {
+    padding-left: 0px;
+    background: none;
+    border-bottom: none;
 }
 
 .breadcrumb-link {
@@ -881,13 +987,14 @@
 
 /* TV Show Grid Styles (copied from movie grid) */
 .media-library-tvshow-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 24px 18px;
-    padding: 24px 18px;
-    width: 100%;
-    box-sizing: border-box;
-    padding-right: 40px;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    gap: 15px !important;
+    padding: 0 15px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    max-width: none !important;
+    margin: 0 !important;
 }
 
 
@@ -902,9 +1009,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 160px;
-    max-width: 180px;
-    margin: 0 auto;
+    width: 135px !important;
+    min-width: 120px !important;
+    max-width: 150px !important;
+    margin: 0 !important;
     transition: box-shadow 0.2s;
     cursor: pointer;
 }
@@ -966,11 +1074,27 @@
     word-break: break-word;
 }
 
+.media-library-grid-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+
 .media-library-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    justify-content: flex-start;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
 }
 
 .media-library-card {
@@ -1145,16 +1269,6 @@
     overflow: hidden;
 }
 
-/* Remove duplicate A-Z sidebar rule that conflicts with the main one */
-
-.media-library-movie-grid-scroll {
-    flex: 1;
-    overflow-y: auto;
-    min-width: 0;
-    min-height: 0;
-    padding-left: 12px;
-}
-
 .media-library-content-wrapper {
     /* max-width: 1027px; */
     margin: 0px auto;
@@ -1171,9 +1285,13 @@
     display: flex;
     height: 60vh;
     min-height: 0;
-    overflow-y: auto;
     width: 85.5vw;
     box-sizing: border-box;
+}
+
+/* Movies-specific flex row with scrollbar */
+.media-library-modal-content.movies .media-library-flex-row {
+    overflow-y: auto !important;
 }
 
 .media-library-movie-grid-scroll {
@@ -1216,15 +1334,13 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     padding: 6px 10px 0 10px;
     z-index: 9998 !important;
     pointer-events: auto !important;
     position: relative !important;
 }
 
-<<<<<<< FIXES/general-fixes
-=======
 .media-card-actions-tvshows {
   display: flex;
   justify-content: flex-end;
@@ -1237,7 +1353,6 @@
   position: relative !important;
 }
 
->>>>>>> local
 /* Action movie buttons (icons) */
 .change-poster-btn {
     border: 2px solid #3a7bd5;
@@ -1257,15 +1372,63 @@
     cursor: pointer !important;
 }
 
-.favorites-movies-section {
-    width: 50%;
-    height: 100%;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 10px;
-    box-sizing: border-box;
-    overflow-y: auto;
-    margin-right: 10px;
+.favorites-only-heart-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.2em;
+}
+
+/* FAVORITES SECTION SPECIFIC STYLES */
+.movies-section-favorites {
+  width: 50%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  /* overflow-x: hidden; */
+}
+
+.tvshows-section-favorites {
+  width: 48%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 0px 10px 10px 10px;
+  box-sizing: border-box;
+}
+
+.media-card-actions-favorites {
+  display: flex;
+  margin-left: 15px;
+}
+
+.tvshows-section-favorites h3 {
+  margin-top: 28px;
+}
+
+/* COLLECTIONS SECTION SPECIFIC STYLES */
+.movies-section-collections {
+  width: 70%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.tvshows-section-collections {
+  width: 50%;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .collection-btn {
@@ -1275,6 +1438,47 @@
     position: relative !important;
     pointer-events: auto !important;
     cursor: pointer !important;
+}
+
+/* Collection button states */
+.collection-btn-add {
+    background: #7cbef5 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4em !important;
+    line-height: 1 !important;
+    color: white !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+
+.collection-btn-remove {
+    background: #7df081 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4em !important;
+    line-height: 1 !important;
+    color: white !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}
+
+/* Collection display buttons (for the collections tab) */
+.collection-btn-display {
+    padding: 28px 36px !important;
+    border-radius: 12px !important;
+    background: #f5f5f5 !important;
+    color: #1976d2 !important;
+    font-size: 1.1em !important;
+    font-weight: bold !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    transition: background 0.2s !important;
+}
+
+.collection-btn-display:hover {
+    background: #e0e0e0 !important;
 }
 
 .poster-selector-btn {
@@ -1404,8 +1608,9 @@
     display: flex;
     gap: 24px;
     justify-content: space-between;
-    width: 100%;
-    height: 525px;
+    width: 82vw;
+    margin-left: 70px;
+    height: 550px;
     flex-direction: row;
   }
   .watch-later-column {
@@ -1422,17 +1627,10 @@
   .watch-later-section-divider {
     margin: 0 0 12px 0;
   }
+  /* WATCH LATER SPECIFIC STYLES */
   .watch-later-scroll {
     flex: 1;
     overflow-y: auto;
-<<<<<<< FIXES/general-fixes
-    max-height: 480px;
-  }
-  .watch-later-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-=======
     max-height: 490px;
     /* Add scrollbar styling to match other sections */
     scrollbar-width: thin;
@@ -1729,7 +1927,6 @@
     display: grid;
     grid-template-columns: repeat(3, .325fr);
     gap: 10px; /* Reduce gap further to make content more compact */
->>>>>>> local
   }
   .watch-later-card {
     position: relative;
@@ -1802,12 +1999,14 @@
     padding: 10px;
     margin-bottom: 20px;
   }
+  
+  .media-library-movie-card-movies-collections {
+    /* width: 200px; */
+    padding: 10px;
+  }
   .media-library-movie-card-tvshows {
     /* height: 35vh; */
-<<<<<<< FIXES/general-fixes
-=======
     margin-top: -4px;
->>>>>>> local
   }
 
 .watch-later-img-movie {
@@ -1921,8 +2120,10 @@
     box-shadow: rgba(57, 57, 57, 0.35) 0px 5px 15px;
     min-width: 340px;
     max-width: 1300px;
-    width: 100%;
+    margin-left: 60px;
+    width: 80vw;
     max-height: 90vh;
+    height: 52vh;
     overflow-y: auto;
     position: relative;
     display: flex;
@@ -1966,12 +2167,13 @@
 }
 
 .media-library-seasons-description {
-    margin-bottom: 0;
-    position: absolute;
-    width: 800px;
-    right: -120px;
-    text-align: justify;
-    top: 6px;
+  margin-bottom: 0;
+  position: relative;
+  top: 6px;
+  left: 120px;
+  width: 670px;
+  text-align: justify;
+  flex-shrink: 0;
 }
 
 .media-library-details-buttons {
@@ -2010,7 +2212,7 @@
 }
 
 .media-library-details-cast-list {
-    margin-top: 70px;
+    margin-top: 130px;
 }
 
 .media-library-details-collection-info {
@@ -2129,7 +2331,7 @@
 }
 
 .media-library-details-poster img {
-    width: 300px !important;
+    width: 295px !important;
 }
 
 /* --- TV Show Seasons Page Flex Layout --- */
@@ -2147,7 +2349,7 @@
     flex-direction: column;
     align-items: flex-start;
     padding-left: 0;
-    margin-top: 70px;
+    /* margin-top: 70px; */
     position: absolute;
     left: 6px;
 
@@ -2191,6 +2393,42 @@
   font-size: 1.1rem;
   text-align: left;
 }
+
+.media-library-tv-show-title {
+  margin: 0 0 4px 0;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: left;
+  line-height: 1.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-library-tv-show-title-lois-clark {
+    margin: 0 0 4px 0;
+    font-size: 1.2rem !important;
+    font-weight: 700;
+    text-align: left;
+    line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
 .media-library-details-description {
     max-width: 700px;
     font-size: 1.08rem;
@@ -2244,6 +2482,11 @@
     flex-direction: column;
     gap: 18px;
   }
+  
+  .media-library-tv-show-title {
+    font-size: 1.6rem;
+    -webkit-line-clamp: 3;
+  }
   .media-library-seasons-side-col {
     max-width: 100%;
     width: 100%;
@@ -2255,6 +2498,13 @@
   }
   .media-library-seasons-grid {
     width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .media-library-tv-show-title {
+    font-size: 1.4rem;
+    -webkit-line-clamp: 4;
   }
 }
 
@@ -2354,6 +2604,21 @@
 }
 
 .media-library-arrow-btn.right {
+  background-color: #0056b3;
+  color: #fff;
+  border-radius: 50%;
+  background-color: #0056b3 !important;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fff !important;
+  font-size: 24px;
+  border-radius: 50%;
+  position: absolute;
+  top: 224px;
+  right: -216px !important;
+}
+
+.media-library-arrow-episode-btn.right {
     background-color: #0056b3;
     color: #fff;
     border-radius: 50%;
@@ -2363,23 +2628,12 @@
     border: 2px solid #fff !important;
     font-size: 24px;
     border-radius: 50%;
-    position: absolute;
-    top: 160px;
-    right: -172px !important;
-}
-
-.media-library-arrow-episode-btn.right {
-    background-color: #0056b3;
-    color: #fff;
-    border-radius: 50%;
-    background-color: #0056b3;
-    /* width: 40px; */
-    /* height: 40px; */
-    border: 2px solid #fff !important;
-    font-size: 24px;
-    border-radius: 50%;
     position: relative;
     top: -35px;
+}
+
+.media-library-tvshows-hr {
+  margin-top: 10px;
 }
 
 /* .media-library-arrow-episode-btn.left {
@@ -2433,6 +2687,7 @@
     display: block;
     margin: 0 auto;
     width: 170px;
+    margin-top: 0px !important;
 }
 
 /* --- BASE POSTER IMAGE STYLES --- */
@@ -2472,41 +2727,52 @@
 
 /* Breadcrumb flush left, with spacing */
 .media-library-breadcrumbs {
-  margin-top: 18px;
-  margin-bottom: 12px;
-  font-size: 1.1em;
-  color: #6c757d;
-  width: 100%;
-  background: none;
-  padding-left: 0;
-  position: static;
+    margin-top: 70px;
+    margin-bottom: 12px;
+    font-size: 1.0em;
+    color: #6c757d;
+    width: 100%;
+    background: none;
+    padding-left: 0px;
+    position: static;
+    z-index: 1000000000;
 }
 
 /* Header row: title and description side by side on desktop, stacked on mobile */
 .media-library-seasons-header-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 0;
-  margin-bottom: 8px;
+  /* gap: 40px; */
+  margin-bottom: 20px;
   width: 100%;
   position: static;
 }
 
 .media-library-seasons-title {
   min-width: 0;
+  max-width: 500px;
   margin-bottom: 0;
   text-align: left;
 }
 
-.media-library-seasons-title h2,
+.media-library-seasons-title h2 {
+  text-align: left;
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
 .media-library-seasons-title p {
   text-align: left;
-  margin-left: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  color: #666;
 }
 
 .media-library-details-description {
-    max-width: 620px;
+    max-width: 690px;
     font-size: 1.08rem;
     color: #222;
     text-align: justify;
@@ -2516,8 +2782,8 @@
     padding: 12px 18px;
     background: #fafbfc;
     position: absolute;
-    right: 74px;
-    top: 80px;
+    right: 30px;
+    top: 116px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -2528,7 +2794,7 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  margin-top: 20px;
+  margin-top: 45px;
   position: static;
 }
 
@@ -2691,40 +2957,19 @@
 }
 /* --- EPISODES ARROW NAVIGATION & GRID (ROBUST, VISUALLY APPEALING) --- */
 .media-library-episodes-arrows-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 1170px;
-    margin: 0 auto 24px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    min-height: 240px;
-    top: 25%;
-    right: 100%;
+  position: relative;
+  top: 160px;
+  right: 888px;
+  max-width: 1400px;
+  margin: 0 auto 0px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 240px;
 }
 
 .media-library-episodes-grid {
-<<<<<<< FIXES/general-fixes
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    border: 1px solid #333;
-    padding: 10px;
-    width: 1270px;
-    background-color: #917d7d !important;
-    border-radius: 14px;
-    min-width: 1270px;
-    gap: 16px;
-    box-sizing: border-box;
-    align-items: center;
-    justify-content: flex-start;
-    scroll-behavior: smooth;
-    background: none;
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-bottom: 60px;
-=======
   min-width: 174px;
   max-width: 200px;
   flex: 0 0 160px;
@@ -2742,22 +2987,15 @@
   padding: 10px 6px 12px 6px;
   transition: box-shadow 0.2s;
   cursor: pointer;
->>>>>>> local
 }
 .center-episodes {
   justify-content: center !important;
 }
 
 .media-library-card.episode {
-<<<<<<< FIXES/general-fixes
-  min-width: 180px;
-  max-width: 180px;
-  flex: 0 0 180px;
-=======
   min-width: 174px;
   max-width: 200px;
   flex: 0 0 160px;
->>>>>>> local
   margin: 0;
   box-sizing: border-box;
   column-gap: 10px;
@@ -2767,7 +3005,7 @@
   align-items: center;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
   overflow: hidden;
   padding: 10px 6px 12px 6px;
   transition: box-shadow 0.2s;
@@ -2775,17 +3013,18 @@
 }
 
 .media-library-card.episode .media-library-card-poster img {
-<<<<<<< FIXES/general-fixes
-  width: 160px;
-  height: 220px;
-=======
   width: 170px;
   height: 205px;
->>>>>>> local
   object-fit: cover;
   border-radius: 8px;
   display: block;
   margin: 0 auto;
+}
+
+.modal-collections-section-title {
+  color: #fff;
+  margin: 0 0 15px 0;
+  font-size: 14px !important;
 }
 
 .media-library-arrow-btn {
@@ -2829,7 +3068,7 @@
 /* A-Z Sidebar for Movies */
 .media-library-az-sidebar-movies {
   width: 24px !important;
-  height: 55.5vh;
+  height: 53.0vh;
   font-size: .85em !important;
   border-radius: 8px;
   background: #f5f5f5;
@@ -2849,7 +3088,7 @@
 /* A-Z Sidebar for TV Shows */
 .media-library-az-sidebar-tvshows {
   width: 24px !important;
-  height: 55.5vh;
+  height: 53.0vh;
   font-size: .85em !important;
   border-radius: 8px;
   background: #f5f5f5;
@@ -2882,21 +3121,21 @@
 
 /* Toast alert styles */
 .media-library-toast {
-    position: fixed;
-    bottom: 67px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #fff;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 1.1em;
-    z-index: 1000000000 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    opacity: 0.95;
-    transition: opacity 0.3s;
-    display: flex;
-    border: 3px solid yellow; /* For debugging, remove when done */
-    background: #1976d2;
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 1.1em;
+  z-index: 1000000000 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  opacity: 0.95;
+  transition: opacity 0.3s;
+  display: flex;
+  border: 3px solid yellow;
+  background: #1976d2;
 }
 .media-library-toast.success {
     background: #1976d2;
@@ -2916,7 +3155,8 @@
   max-width: 50%; /* Ensure each section takes exactly 50% width */
 }
 
-.favorites-section-title-movies {
+/* FAVORITES SECTION TITLE STYLES */
+.section-title-movies-favorites {
   flex: 0 0 auto;
   margin-bottom: 8px;
   position: sticky;
@@ -2932,12 +3172,15 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  text-align: left; /* Center the title text */
 }
 
-.favorites-section-title-tvshows {
+/* COLLECTIONS SECTION TITLE STYLES */
+.section-title-movies-collections 
+  {
     flex: 0 0 auto;
-    margin-bottom: 8px;
-    margin-top: 27px;
+    margin-bottom: 24px;
+    margin-top: -20px;
     position: sticky;
     top: 0;
     background: inherit;
@@ -2948,128 +3191,131 @@
     font-size: 1.1em;
     color: #333;
     position: sticky;
-    top: 0px;
+    top: 0;
     z-index: 1000;
-  }
-
-.favorites-movies-section .media-library-movie-grid,
-.favorites-tvshows-section .media-library-movie-grid {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  overflow-x: hidden; /* NO horizontal scrolling */
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  margin-top: 0; /* Remove any top margin that might interfere with sticky */
-  /* Ensure only content scrolls, not titles */
-  max-height: calc(100vh - 200px); /* Leave room for header and titles */
+    text-align: left;
 }
 
-/* Ensure no horizontal scrollbars anywhere in favorites */
-.favorites-container {
+/* FAVORITES TV SHOWS SECTION TITLE STYLES */
+.section-title-tvshows-favorites {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    text-align: left; /* Center the title text */
+  }
+
+/* COLLECTIONS TV SHOWS SECTION TITLE STYLES */
+.section-title-tvshows-collections {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0;
+    position: relative;
+    top: -5px;
+    z-index: 1000;
+    text-align: left; /* Center the title text */
+  }
+
+/* REMOVED OLD CONFLICTING FAVORITES STYLES - REPLACED WITH SPECIFIC STYLES ABOVE */
+
+/* Ensure no horizontal scrollbars anywhere in favorites and collections */
+/* FAVORITES CONTAINER STYLES */
+.container-favorites {
   overflow-x: hidden;
-  width: 100%;
+  width: 100%; /* Use full width */
   display: flex;
   gap: 20px;
   height: 100%;
+  position: relative;
+  left: 16px;
+  justify-content: space-between; /* Force sections to fill space */
+  align-items: flex-start;
+  box-sizing: border-box;
+  max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
 }
 
-.favorites-container .media-library-movie-grid {
-    overflow-x: hidden;
+/* COLLECTIONS CONTAINER STYLES */
+.container-collections {
+  overflow-x: hidden;
+  width: 100%; /* Use full width */
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  position: relative;
+  left: 16px;
+  justify-content: space-between; /* Force sections to fill space */
+  align-items: flex-start;
+  box-sizing: border-box;
+  max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
+}
+
+.favorites-container .media-library-movie-grid,
+.collections-container .media-library-movie-grid {
+    /* overflow-x: hidden; */
     max-width: 100%;
     position: relative;
-    right: 20px;
+    /* Removed right: 20px to center the content */
 }
 
-/* HEART ICON FIXES - Improved z-index and positioning */
-.favorite-btn {
-    padding: 0 0 2px 0 !important;
-    z-index: 99999 !important; /* Much higher z-index */
-    position: relative !important;
-    pointer-events: auto !important;
-    cursor: pointer !important;
-    background: rgba(255, 255, 255, 0.9) !important; /* Semi-transparent background */
-    border-radius: 4px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* Heart overlay for improved clickability */
-.heart-overlay {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+/* Ensure main Movies page grid is not affected by Favorites CSS */
+.media-library-modal-content.movies .media-library-movie-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    gap: 15px !important;
+    justify-items: center !important;
+    align-items: start !important;
     width: 100% !important;
-    height: 100% !important;
-    background: transparent !important;
-    z-index: 999999 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    overflow-x: visible !important;
+}
+
+/* Ensure main TV Shows page grid is not affected by Favorites CSS */
+.media-library-modal-content.tvshows .media-library-tvshow-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    /* gap: 26px !important; */
+    justify-items: center !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    overflow-x: visible !important;
+}
+
+/* Ensure poster selector buttons work on main Movies page */
+.media-library-modal-content.movies .poster-selector-btn {
+    border: 1px solid #3a7bd5 !important;
+    padding: 10px 0px 8px 0 !important;
+    margin-bottom: 4px !important;
+    font-size: 1.4em !important;
     cursor: pointer !important;
-    pointer-events: auto !important;
-    border-radius: 4px !important;
-}
-
-/* Transparent overlay for heart icon clicks */
-.media-card-actions-movies {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 84%;
-    text-align: center;
-    margin-left: 14px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
-}
-.media-card-actions-tvshows {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 70%;
-    text-align: center;
-    margin: 0 auto 0 auto;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
-}
-
-.media-card-actions-favorites {
-    position: relative;
-    z-index: 99999 !important;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    width: 84%;
-    text-align: center;
-    margin-left: 6px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    backdrop-filter: blur(2px);
-}
-
-/* Ensure heart icons are always clickable */
-.media-library-card .favorite-btn,
-.media-library-movie-card .favorite-btn,
-.media-library-movie-card-movies .favorite-btn,
-.media-library-movie-card-tvshows .favorite-btn {
+    line-height: .5 !important;
+    z-index: 9999999  !important;
     position: relative !important;
-    z-index: 99999 !important;
     pointer-events: auto !important;
-    cursor: pointer !important;
     background: rgba(255, 255, 255, 0.9) !important;
     border-radius: 4px !important;
     min-width: 24px !important;
@@ -3077,39 +3323,18 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 1.2em !important;
-    transition: all 0.2s ease !important;
+    user-select: none !important;
 }
 
-/* Hover effects for heart icons */
-.media-library-card .favorite-btn:hover,
-.media-library-movie-card .favorite-btn:hover,
-.media-library-movie-card-movies .favorite-btn:hover,
-.media-library-movie-card-tvshows .favorite-btn:hover {
-    background: rgba(255, 255, 255, 1) !important;
-    transform: scale(1.1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-/* Ensure heart icons are above all other elements */
-.media-library-card,
-.media-library-movie-card,
-.media-library-movie-card-movies,
-.media-library-movie-card-tvshows {
-    position: relative;
-    overflow: visible !important; /* Allow heart icons to be visible outside card bounds */
-}
-
-/* Additional z-index boost for TV show cards specifically */
-.media-library-card.poster .media-card-actions {
-    z-index: 999999 !important;
+/* Force poster selector buttons to be clickable */
+.poster-selector-btn {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
     position: relative !important;
+    user-select: none !important;
 }
 
-<<<<<<< FIXES/general-fixes
-/* No video overlay for episodes without video files */
-.media-library-no-video-overlay {
-=======
 /* Responsive grid for favorites */
 @media (max-width: 1200px) {
   .favorites-movies-section .media-library-movie-grid,
@@ -4412,71 +4637,85 @@ color: #fff;
 }
 
 .collections-modal-divider-line {
->>>>>>> local
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 0, 0, 0.7);
-    color: white;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #444;
+}
+
+.collections-modal-divider-text {
+    background: #1a1a1a;
+    padding: 0 15px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Modal Loading Overlay */
+.media-library-modal-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(67, 67, 67, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
+    z-index: 2147483647;
+    border-radius: 0;
 }
 
-.media-library-card.no-video {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.media-library-card.no-video:hover {
-    opacity: 0.8;
-    transform: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.tv-show-no-video-text {
-    color: #ff4444;
-    font-size: 0.8em;
-    font-weight: bold;
+.media-library-modal-loading-content {
     text-align: center;
-    margin-top: 4px;
-}
-
-/* Media Library Error Display */
-.media-library-error-display {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #ff4444;
     color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 10001;
-    max-width: 80%;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    display: none;
-    animation: slideUp 0.3s ease-out;
+    position: relative;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateX(-50%) translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
+.media-library-modal-spinner {
+    width: 64px;
+    height: 64px;
+    border: 8px solid rgba(255, 255, 255, 0.3);
+    border-top: 8px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
 }
+
+.media-library-modal-loading-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Grid Spinner Overlay */
+.media-library-grid-spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.7);
+    z-index: 1000000000000;
+}
+
+.media-library-grid-spinner {
+    width: 64px;
+    height: 64px;
+    border: 8px solid rgba(0, 0, 0, 0.1);
+    border-top: 8px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Removed duplicate definition - using the main one above */

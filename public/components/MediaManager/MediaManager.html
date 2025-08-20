@@ -1,14 +1,8 @@
 <!--
   MEDIAMANAGER.HTML
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 -->
 <div class="media-manager-overlay">
@@ -88,7 +82,7 @@
                     data-tooltip="Fetches info from TMDB for the entered title or ID. Example: Enter 'Batman: The Movie' or '2661' and click Fetch Info."><span
                       class="media-manager-info-icon-inner"></span></span>
                 </button>
-                <button class="media-manager-scan-movies-btn" type="button">SCAN Movie folders for NEW Movies
+                <button class="media-manager-scan-movies-btn" type="button">SCAN for NEW Movies
                   <span class="media-manager-info-icon"
                     data-tooltip="Runs the SCAN_media_library_movies.js script to find new movies in your library folders."><span
                       class="media-manager-info-icon-inner"></span></span>
@@ -203,35 +197,28 @@
                 <div class="media-manager-field-error-tv media-manager-field-error-hidden" id="tv-path-error">Show Path is required</div>
               </div>
 
-              <div class="media-manager-action-buttons">
-                <button class="media-manager-fetch-btn-tv" type="button">Fetch Info
-                  <span class="media-manager-info-icon"
-                    data-tooltip="Fetches info from TMDB for the entered title or ID. Example: Enter 'Breaking Bad' or '79501' and click Fetch Info."><span
-                      class="media-manager-info-icon-inner"></span></span>
-                </button>
-                <button class="media-manager-browse-tv-shows-btn" type="button">Browse TV Shows
-                  <span class="media-manager-info-icon"
-                    data-tooltip="Browse and select from your available TV show folders"><span
-                      class="media-manager-info-icon-inner"></span></span>
-                </button>
+              <!-- STEP 1: Basic Info -->
+              <div class="media-manager-step-section">
+                <h3 class="media-manager-step-title">STEP 1: Basic Info</h3>
+                <div class="media-manager-action-buttons">
+                  <button class="media-manager-fetch-btn-tv" type="button">Fetch Info from TMDB
+                    <span class="media-manager-info-icon"
+                      data-tooltip="Fetches basic info (poster, description, cast) from TMDB"><span
+                        class="media-manager-info-icon-inner"></span></span>
+                  </button>
+                </div>
               </div>
 
-              <div class="media-manager-tv-action-buttons">
-                <button class="media-manager-force-refresh-btn-tv" type="button">Force Refresh from TMDB
+              <!-- STEP 2: Season & Episode Images -->
+              <div class="media-manager-step-section">
+                <h3 class="media-manager-step-title">STEP 2: Season & Episode Images</h3>
+                <div class="media-manager-tv-action-buttons">
+                                  <button class="media-manager-manage-seasons-btn" type="button">View Seasons & Episodes
                   <span class="media-manager-info-icon"
-                    data-tooltip="Force refresh data from TMDB API"><span
+                    data-tooltip="View and manage seasons, episodes, and their images"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </button>
-                <button class="media-manager-get-images-btn-tv" type="button" disabled>Get Season & Episode Images
-                  <span class="media-manager-info-icon"
-                    data-tooltip="Get poster images for all seasons and episodes"><span
-                      class="media-manager-info-icon-inner"></span></span>
-                </button>
-                <button class="media-manager-manage-seasons-btn" type="button">Manage Seasons & Episodes
-                  <span class="media-manager-info-icon"
-                    data-tooltip="Manage seasons, episodes, and their metadata"><span
-                      class="media-manager-info-icon-inner"></span></span>
-                </button>
+                </div>
               </div>
             </div>
 
@@ -464,20 +451,6 @@
           </div>
         </div>
 
-        <!-- TV Shows Browser Modal -->
-        <div class="media-manager-tv-shows-browser-modal-overlay" style="display: none;">
-          <div class="media-manager-tv-shows-browser-modal">
-            <div class="media-manager-tv-shows-browser-header">
-              <h3>Browse TV Shows</h3>
-              <button class="media-manager-tv-shows-browser-close-btn" type="button">&times;</button>
-            </div>
-            <div class="media-manager-tv-shows-browser-search">
-              <input type="text" class="media-manager-tv-shows-search-input" placeholder="Search TV shows...">
-            </div>
-            <div class="media-manager-tv-shows-browser-content">
-              <!-- TV shows list will be rendered here -->
-            </div>
-          </div>
-        </div>
+
 </div>
 </div>

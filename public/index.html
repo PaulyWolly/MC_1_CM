@@ -1,14 +1,8 @@
 <!--
   INDEX.html
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 -->
 
@@ -17,23 +11,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<<<<<<< FIXES/general-fixes
-    <title>MultiChat_Chatty [v10]</title>
-=======
     <title>MultiChat_Chatty MC_1_CM [v20]</title>
->>>>>>> local
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/png" href="chat-1.png" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="components/MyJokesManager/MyJokesManager.css">
     <link rel="stylesheet" href="components/YouTubeSearch/YouTubeSearchManager.css">
     <link rel="stylesheet" href="components/VideoPlayer/VideoPlayer.css">
-<<<<<<< FIXES/general-fixes
-=======
     <!-- LoginManager CSS - Loaded dynamically when needed -->
 
     <link rel="stylesheet" href="components/EpisodeModal/EpisodeModal.css">
->>>>>>> local
     <link rel="stylesheet" href="components/MediaLibrary/MediaLibrary.css">
     <link rel="stylesheet" href="components/CustomTooltip/CustomTooltip.css">
     <!-- Video.js CSS -->
@@ -60,11 +47,7 @@
           <option value="phi-3-mini-4k-instruct">Phi-3-mini-4k-instruct</option>
         </select>
 
-<<<<<<< FIXES/general-fixes
-        <h3 class="top-bar-title" style="order: 2;">MultiChat_Chatty [v10] 7/30/2025 @12:35PM</h3>
-=======
         <h3 class="top-bar-title" style="order: 2;">MultiChat_Chatty MC_1_CM [v20] 8/19/2025 @10:00AM</h3>
->>>>>>> local
 
         <div id="user-profile-menu">
           <img src="assets/img/user-default.png" alt="User" id="user-profile-icon" class="user-profile-icon" />
@@ -201,18 +184,22 @@
     <script type="module">
         window.appConfig = window.configExport.default;
     </script>
+    <!-- NormalizationService is now loaded as ES6 module in app.js -->
+    
     <!-- Load all manager modules as ES6 modules -->
     <script type="module" src="components/ToastManager.js"></script>
     <script type="module" src="components/ConfirmModal/ConfirmModal.js"></script>
     <script type="module" src="components/PlaylistManager.js"></script>
     <script type="module" src="components/QuotaMonitor/QuotaMonitor.js"></script>
-    <script type="module" src="components/AudioManager.js"></script>
+    <script type="module" src="components/AudioManager/AudioManager.js"></script>
     <script type="module" src="components/MyJokesManager/MyJokesManager.js"></script>
     <!-- Admin Components - Loaded dynamically when needed -->
     <!-- <script src="components/Admin/LoginManager/LoginManager.js"></script> -->
     <!-- Video Player Configuration -->
     <script type="module" src="components/VideoPlayer/video-player-config.js"></script>
     <script type="module" src="components/VideoPlayer/VideoPlayer.js"></script>
+    <!-- Episode Modal -->
+    <script src="components/EpisodeModal/EpisodeModal.js"></script>
     
     <!-- Load PosterSelector globally for modal support -->
     <script src="components/PosterSelector/PosterSelector.js"></script>

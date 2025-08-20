@@ -1,14 +1,8 @@
 /*
   QUOTAMONITOR.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
   Version: 20
   AppName: MultiChat_Chatty MC_1_CM [v20]
   Updated: 8/19/2025 @10:00AM
->>>>>>> local
   Created by Paul Welby
 */
 
@@ -352,7 +346,7 @@ export default class QuotaMonitor {
         // Update restored
         const restored = document.getElementById('quota-dashboard-restored');
         if (restored) {
-            console.log('[DEBUG - QUOTA] Updating restored dashboard HTML');
+    
             restored.innerHTML = `
                 <div class="quota-header">
                     <span class="quota-drag-handle" title="Drag to move">⠿</span>
@@ -392,7 +386,7 @@ export default class QuotaMonitor {
                     </div>
                 </div>
             `;
-            console.log('[DEBUG - QUOTA] Dashboard HTML updated, calling attachDashboardEvents');
+    
             // Toggle visibility
             restored.classList.toggle('hidden', isMinimized);
         }
@@ -416,10 +410,10 @@ export default class QuotaMonitor {
      * Attach event listeners for both dashboard elements
      */
     attachDashboardEvents() {
-        console.log('[DEBUG - QUOTA] attachDashboardEvents called');
+
         const restored = document.getElementById('quota-dashboard-restored');
         const minimized = document.getElementById('quota-dashboard-minimized');
-        console.log('[DEBUG - QUOTA] Dashboard elements found:', { restored: !!restored, minimized: !!minimized });
+
         
         if (restored) {
             // Minimize button
@@ -457,7 +451,7 @@ export default class QuotaMonitor {
             if (testBtn) testBtn.onclick = () => this.testWarnings();
             
             // Script runner functionality
-            console.log('[DEBUG - QUOTA] Calling attachScriptRunnerEvents');
+    
             this.attachScriptRunnerEvents(restored);
             
             // Drag handle
@@ -480,18 +474,14 @@ export default class QuotaMonitor {
         const toggleBtn = container.querySelector('.quota-script-toggle-btn');
         const scriptPanel = container.querySelector('.quota-script-panel');
         
-        console.log('[DEBUG - QUOTA] Script runner elements found:', { 
-            toggleBtn: !!toggleBtn, 
-            scriptPanel: !!scriptPanel,
-            scriptPanelClasses: scriptPanel ? scriptPanel.className : 'N/A'
-        });
+        
         
         if (toggleBtn && scriptPanel) {
-            console.log('[DEBUG - QUOTA] Setting up toggle button event listener');
+    
             toggleBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('[DEBUG - QUOTA] Toggle button clicked');
+
                 const wasHidden = scriptPanel.classList.contains('hidden');
                 scriptPanel.classList.toggle('hidden');
                 const isNowHidden = scriptPanel.classList.contains('hidden');
@@ -512,7 +502,7 @@ export default class QuotaMonitor {
                     if (e.target !== toggleBtn) {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('[DEBUG - QUOTA] Script header clicked');
+        
                         const wasHidden = scriptPanel.classList.contains('hidden');
                         scriptPanel.classList.toggle('hidden');
                         const isNowHidden = scriptPanel.classList.contains('hidden');
@@ -526,15 +516,12 @@ export default class QuotaMonitor {
                 };
             }
         } else {
-            console.warn('[DEBUG - QUOTA] Script runner elements not found:', { 
-                toggleBtn: !!toggleBtn, 
-                scriptPanel: !!scriptPanel 
-            });
+            
         }
         
         // Script buttons
         const scriptBtns = container.querySelectorAll('.quota-script-btn');
-        console.log('[DEBUG - QUOTA] Found script buttons:', scriptBtns.length);
+
         scriptBtns.forEach(btn => {
             btn.onclick = () => this.runQuotaScript(btn.dataset.script);
         });
