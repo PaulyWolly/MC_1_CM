@@ -1,0 +1,122 @@
+/*
+  LOGINMANAGER.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* LoginManager Modal Styles */
+.login-manager-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.7);
+  z-index: 30000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-manager-modal-content {
+  background: #23263a;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.35);
+  width: 400px;
+  max-width: 95vw;
+  padding: 32px 28px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.login-manager-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 1;
+}
+#login-manager-title {
+  margin: 0 0 18px 0;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #fff;
+}
+.login-manager-field {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.login-manager-field label {
+  margin-bottom: 6px;
+  font-size: 1rem;
+  color: #cbd5e1;
+}
+.login-manager-field input {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #3b4252;
+  background: #181a20;
+  color: #e2e8f0;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+}
+.login-manager-field input:focus {
+  border: 1.5px solid #7dd3fc;
+}
+.login-manager-btn {
+  width: 100%;
+  padding: 12px 0;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.login-manager-btn:hover {
+  background: #1e40af;
+}
+.login-manager-message {
+  min-height: 22px;
+  margin-bottom: 10px;
+  color: #f87171;
+  text-align: center;
+  font-size: 1rem;
+}
+.login-manager-message.success {
+  color: #4ade80;
+}
+.login-manager-links {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.login-manager-links a {
+  color: #7dd3fc;
+  font-size: 0.98rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.login-manager-links a:hover {
+  color: #38bdf8;
+} 

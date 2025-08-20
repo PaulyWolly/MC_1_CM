@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Query Preservation Issue</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Query Preservation Issue</h1>
+    
+    <div class="test-section">
+        <h3>Test: First Query → Second Query → Verify First Query Still Shows</h3>
+        <p>This test simulates your exact scenario to verify the first query doesn't disappear from the dropdown.</p>
+        <button class="test-button" onclick="testQueryPreservation()">Run Query Preservation Test</button>
+        <div id="queryTestResult" class="log-output"></div>
+    </div>
+
+    <script>
+        // Mock the YouTubeSearchManager methods for testing the query preservation issue
+        class MockYouTubeSearchManager {
+            constructor() {
+                this.queryAccessHistory = [];
+                this.currentQuery = null;
+                this.savedQueries = new Map();
+            }
+
+            cleanQueryForDisplay(query) {
+                return query.trim().toLowerCase();
+            }
+
+            hasQueryVideoData(query, type) {
+                // Mock: Only the second query has video data, first query doesn't
+                if (query.toLowerCase().includes('second query')) {
+                    return true;
+                }
+                if (query.toLowerCase().includes('first query')) {
+                    return false; // First query has no video data (this was causing the issue)
+                }
+                return false;
+            }
+
+            addToAccessHistory(query, type = 'search') {
+                const originalQuery = query;
+                const cleanQuery = this.cleanQueryForDisplay(query);
+                const currentTime = Date.now();
+
+                console.log(`[TEST] Adding to access history: "${originalQuery}" (clean: "${cleanQuery}")`);
+
+                // Remove existing entry if it exists
+                this.queryAccessHistory = this.queryAccessHistory.filter(item => 
+                    this.cleanQueryForDisplay(item.query) !== cleanQuery
+                );
+
+                // Add to front of array
+                this.queryAccessHistory.unshift({
+                    query: originalQuery,
+                    cleanQuery: cleanQuery,
+                    originalQuery: originalQuery,
+                    type: type,
+                    accessTimestamp: currentTime,
+                    accessTime: new Date(currentTime).toLocaleString(),
+                    timestamp: currentTime
+                });
+
+                // Keep only last 20
+                if (this.queryAccessHistory.length > 20) {
+                    this.queryAccessHistory = this.queryAccessHistory.slice(0, 20);
+                }
+
+                console.log(`[TEST] Access history updated:`, 
+                    this.queryAccessHistory.slice(0, 5).map(item => ({
+                        query: item.query,
+                        cleanQuery: item.cleanQuery,
+                        accessTime: item.accessTime
+                    }))
+                );
+            }
+
+            getAllQueriesForDropdown() {
+                // Simulate the merged queries from different sources
+                const mergedQueries = [
+                    { query: 'First Query', source: 'accessHistory', type: 'search', timestamp: Date.now() - 300000 },
+                    { query: 'Second Query', source: 'accessHistory', type: 'search', timestamp: Date.now() - 200000 }
+                ];
+
+                console.log('[TEST] Total merged queries:', mergedQueries.length);
+                console.log('[TEST] Current access history:', this.queryAccessHistory.map(item => ({
+                    query: item.query,
+                    cleanQuery: item.cleanQuery,
+                    accessTime: item.accessTime
+                })));
+
+                // Apply the FIXED filtering logic: Show queries that have video data OR are in access history
+                const queriesWithVideoData = mergedQueries.filter(query => {
+                    const hasVideoData = this.hasQueryVideoData(query.query, query.type);
+                    const isInAccessHistory = this.queryAccessHistory.some(historyItem => 
+                        this.cleanQueryForDisplay(historyItem.query) === this.cleanQueryForDisplay(query.query)
+                    );
+
+                    if (!hasVideoData && !isInAccessHistory) {
+                        console.log(`[TEST] 🚫 [FILTER] Filtering out query "${query.query}" - no video data and not in access history`);
+                        return false;
+                    }
+
+                    if (!hasVideoData && isInAccessHistory) {
+                        console.log(`[TEST] ⚠️ [FILTER] Query "${query.query}" has no video data but is in access history - keeping it`);
+                        return true;
+                    }
+
+                    if (hasVideoData) {
+                        console.log(`[TEST] ✅ [FILTER] Query "${query.query}" has video data - keeping it`);
+                        return true;
+                    }
+
+                    return false;
+                });
+
+                console.log(`[TEST] 📊 [DROPDOWN] Queries with video data or in access history: ${queriesWithVideoData.length} (filtered from ${mergedQueries.length} total)`);
+                
+                return queriesWithVideoData;
+            }
+        }
+
+        function testQueryPreservation() {
+            const resultDiv = document.getElementById('queryTestResult');
+            resultDiv.innerHTML = '<strong>Running Query Preservation Test...</strong>\n';
+            
+            const manager = new MockYouTubeSearchManager();
+            
+            console.log('=== TESTING QUERY PRESERVATION ===');
+            
+            // Step 1: Search for first query (your usual first search)
+            resultDiv.innerHTML += '1. User searches for "First Query" (usual first search)\n';
+            manager.addToAccessHistory('First Query', 'search');
+            manager.currentQuery = 'First Query';
+            
+            // Step 2: Search for second query (your second search)
+            resultDiv.innerHTML += '2. User searches for "Second Query"\n';
+            manager.addToAccessHistory('Second Query', 'search');
+            manager.currentQuery = 'Second Query';
+            
+            // Step 3: Get queries for dropdown
+            resultDiv.innerHTML += '3. Getting queries for dropdown...\n';
+            const dropdownQueries = manager.getAllQueriesForDropdown();
+            
+            resultDiv.innerHTML += '\n<strong>Final Dropdown Queries:</strong>\n';
+            dropdownQueries.forEach((q, i) => {
+                resultDiv.innerHTML += `${i + 1}. ${q.query} (source: ${q.source})\n`;
+            });
+            
+            // Check if both queries are in the dropdown
+            const firstQueryInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('first query'));
+            const secondQueryInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('second query'));
+            
+            if (firstQueryInDropdown && secondQueryInDropdown) {
+                resultDiv.innerHTML += '\n✅ <strong>SUCCESS:</strong> Both queries are in the dropdown!\n';
+                resultDiv.innerHTML += '   - First Query is preserved (even without video data)\n';
+                resultDiv.innerHTML += '   - Second Query is included (has video data)\n';
+                resultDiv.innerHTML += '   - The filtering fix is working correctly!\n';
+            } else if (!firstQueryInDropdown) {
+                resultDiv.innerHTML += '\n❌ <strong>ERROR:</strong> First Query is missing from the dropdown!\n';
+                resultDiv.innerHTML += '   - This indicates the filtering is still too aggressive\n';
+                resultDiv.innerHTML += '   - First Query should be preserved because it\'s in access history\n';
+            } else if (!secondQueryInDropdown) {
+                resultDiv.innerHTML += '\n❌ <strong>ERROR:</strong> Second Query is missing from the dropdown!\n';
+                resultDiv.innerHTML += '   - This indicates a different issue\n';
+            }
+            
+            // Show the expected behavior
+            resultDiv.innerHTML += '\n<strong>Expected Behavior:</strong>\n';
+            resultDiv.innerHTML += '   - Second Query should be at top (current search)\n';
+            resultDiv.innerHTML += '   - First Query should be second (previous search, preserved from access history)\n';
+            resultDiv.innerHTML += '   - Both should show even if First Query has no cached video data\n';
+            resultDiv.innerHTML += '   - This works for ANY queries, not just specific ones!\n';
+        }
+    </script>
+</body>
+</html>

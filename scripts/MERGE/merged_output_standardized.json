@@ -1,0 +1,46 @@
+[
+  {
+    "_id": {
+      "$oid": "68411b94e82c70f5e8c05c7d"
+    },
+    "query": "Santana",
+    "userId": "default-user",
+    "displayName": "Santana",
+    "totalPages": 10,
+    "cacheKeys": [
+      "yt_YouTube search Santana_search_5",
+      "yt_YouTube search Santana_search_9",
+      "yt_YouTube search Santana_search_3",
+      "yt_YouTube search Santana_search_1",
+      "yt_YouTube search Santana_search_8",
+      "yt_YouTube search Santana_search_7",
+      "yt_YouTube search Santana_search_10",
+      "yt_YouTube search Santana_search_2",
+      "yt_YouTube search Santana_search_6",
+      "yt_YouTube search Santana_search_4",
+      "yt_search_santana_p1_none",
+      "yt_search_santana_p2_none",
+      "yt_search_santana_p3_none",
+      "yt_search_santana_p4_none",
+      "yt_search_santana_p5_none",
+      "yt_search_santana_p6_none",
+      "yt_search_santana_p7_none",
+      "yt_search_santana_p8_none"
+    ],
+    "videoCount": 12,
+    "searchMetadata": {
+      "searchType": "search",
+      "lastPageViewed": 1,
+      "totalResults": 100
+    },
+    "lastSearched": {
+      "$date": "2025-06-05T04:22:44.047Z"
+    },
+    "dateCreated": {
+      "$date": "2025-06-05T04:22:44.047Z"
+    },
+    "__v": 0,
+    "isSaved": null,
+    "timestamp": null
+  }
+]

@@ -1,0 +1,248 @@
+{
+  "timestamp": "2025-07-26T00:58:22.914Z",
+  "totalFiles": 10,
+  "problematicFiles": [
+    {
+      "title": "Prehistoric.Planet.(2022).S01E01.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E01.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "prehistoric.planet.(2022).S01E02.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\prehistoric.planet.(2022).S01E02.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E03.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E03.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E04.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E04.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E05.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E05.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E02.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E02.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E03.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E03.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E04.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E04.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E05.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E05.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E01.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E01.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    }
+  ],
+  "allFiles": [
+    {
+      "title": "Prehistoric.Planet.(2022).S01E01.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E01.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "prehistoric.planet.(2022).S01E02.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\prehistoric.planet.(2022).S01E02.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E03.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E03.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E04.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E04.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S01E05.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 01\\Prehistoric.Planet.(2022).S01E05.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E02.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E02.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E03.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E03.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E04.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E04.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E05.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E05.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    },
+    {
+      "title": "Prehistoric.Planet.(2022).S02E01.mkv",
+      "path": "S:\\MEDIA\\TV-SHOWS\\Prehistoric Planet\\Season 02\\Prehistoric.Planet.(2022).S02E01.mkv",
+      "hasAudio": true,
+      "codecs": [
+        "eac3"
+      ],
+      "hasIncompatibleCodec": true,
+      "incompatibleCodecs": [
+        "eac3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+/*
+  CUSTOMTOOLTIP.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+.custom-tooltip {
+  position: absolute;
+  z-index: 99999;
+  background: #23272f;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 1.08em;
+  font-family: inherit;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+  border: 1.5px solid #4a90e2;
+  pointer-events: none;
+  min-width: 320px;
+  max-width: 520px;
+  width: 420px;
+  text-align: left;
+  line-height: 1.4;
+  transition: opacity 0.18s;
+  opacity: 0.97;
+  white-space: pre-line;
+}
+
+.media-manager-info-icon {
+  color: #4a90e2;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: pointer;
+  vertical-align: middle;
+  user-select: none;
+  transition: color 0.2s;
+}
+.media-manager-info-icon:hover {
+  color: #e67e22;
+}
+
+.media-manager-info-icon-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4a90e2;
+    color: #fff;
+    font-size: .8em;
+    font-weight: normal !important;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+    margin-left: 0;
+    margin-right: 0;
+    position: relative;
+}
+
+.media-manager-info-icon-inner::after {
+  content: 'i';
+  font-size: 1em;
+  font-weight: normal !important;
+  color: #fff;
+  display: block;
+  line-height: 1;
+  font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  top: 0.5px;
+} 

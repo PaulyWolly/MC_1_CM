@@ -1,0 +1,64 @@
+[
+  {
+    "path": "movies/The Matrix",
+    "title": "The Matrix",
+    "name": "The Matrix",
+    "currentTime": 1800,
+    "duration": 8160,
+    "lastWatched": 1753904129520,
+    "type": "movie"
+  },
+  {
+    "path": "tv-shows/Breaking Bad/Season 01/Breaking Bad S01E02.mp4",
+    "title": "Breaking Bad S01E02",
+    "name": "Breaking Bad S01E02",
+    "currentTime": 600,
+    "duration": 3600,
+    "lastWatched": 1753904129521,
+    "type": "tv-show",
+    "filePath": "/media/tv-shows/Breaking Bad/Season 01/Breaking Bad S01E02.mp4",
+    "relPath": "Breaking Bad/Season 01/Breaking Bad S01E02.mp4"
+  },
+  {
+    "path": "movies/Inception",
+    "title": "Inception",
+    "name": "Inception",
+    "currentTime": 2400,
+    "duration": 8880,
+    "lastWatched": 1753904129521,
+    "type": "movie"
+  },
+  {
+    "path": "TV-SHOWS/Breaking Bad/Season 01/Breaking Bad S01E01.mp4",
+    "title": "Breaking Bad S01E01",
+    "name": "Breaking Bad S01E01",
+    "currentTime": 1500,
+    "duration": 3600,
+    "lastWatched": 1753904129521,
+    "type": "tv-show",
+    "filePath": "S:/MEDIA/TV-SHOWS/Breaking Bad/Season 01/Breaking Bad S01E01.mp4",
+    "relPath": "Breaking Bad\\Season 01\\Breaking Bad S01E01.mp4"
+  },
+  {
+    "path": "TV-SHOWS/The Big Bang Theory (2007)/Season 01/The.Big.Bang.Theory.S01E01.Pilot.mp4",
+    "title": "The Big Bang Theory S01E01",
+    "name": "The Big Bang Theory S01E01",
+    "currentTime": 1200,
+    "duration": 3600,
+    "lastWatched": 1753904129522,
+    "type": "tv-show",
+    "filePath": "S:/MEDIA/TV-SHOWS/The Big Bang Theory (2007)/Season 01/The.Big.Bang.Theory.S01E01.Pilot.mp4",
+    "relPath": "The Big Bang Theory (2007)\\Season 01\\The.Big.Bang.Theory.S01E01.Pilot.mp4"
+  },
+  {
+    "path": "TV-SHOWS/Curb Your Enthusiasm (2000)/Season 05/Curb Your Enthusiasm S05E06 The Smoking Jacket.mp4",
+    "title": "Curb Your Enthusiasm S05E06",
+    "name": "Curb Your Enthusiasm S05E06",
+    "currentTime": 1800,
+    "duration": 3600,
+    "lastWatched": 1753904129523,
+    "type": "tv-show",
+    "filePath": "S:/MEDIA/TV-SHOWS/Curb Your Enthusiasm (2000)/Season 05/Curb Your Enthusiasm S05E06 The Smoking Jacket.mp4",
+    "relPath": "Curb Your Enthusiasm (2000)\\Season 05\\Curb Your Enthusiasm S05E06 The Smoking Jacket.mp4"
+  }
+]

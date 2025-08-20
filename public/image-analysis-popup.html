@@ -1,0 +1,37 @@
+<!--
+  IMAGE-ANALYSIS-POPUP.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en" style="background:#000; height:100%;">
+<head>
+    <meta charset="UTF-8">
+    <title>Image</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        window.onload = function() {
+            const data = JSON.parse(sessionStorage.getItem('imageAnalysisPopupData') || '{}');
+            if (data && data.src) {
+                document.title = 'Image: ' + (data.name || 'Image Preview');
+                document.getElementById('image-title-overlay').textContent = 'Image: ' + (data.name || 'Image Preview');
+                document.getElementById('popup-image').src = data.src;
+                document.getElementById('popup-image').alt = data.name || 'Image Preview';
+            }
+        };
+    </script>
+</head>
+<body style="background:#000; margin:0; padding:0; height:100%;">
+    <div class="image-title-overlay" id="image-title-overlay">Image:</div>
+    <img id="popup-image" class="image-analysis-dialog" src="" alt="Image Preview">
+</body>
+</html> 

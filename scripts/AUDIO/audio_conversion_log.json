@@ -1,0 +1,122 @@
+{
+  "timestamp": "2025-06-28T04:00:06.731Z",
+  "totalFiles": 18,
+  "converted": 8,
+  "failed": 10,
+  "results": [
+    {
+      "path": "S:\\MEDIA\\MOVIES\\A.Star.Is.Born.2018.Encore.Edition.1080p.BluRay.x265-RARBG\\A.Star.Is.Born.2018.Encore.Edition.1080p.BluRay.x265-RARBG.mp4",
+      "title": "A.Star.Is.Born.2018.Encore.Edition.1080p.BluRay.x265-RARBG.mp4",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\MOVIES\\A.Star.Is.Born.2018.Encore.Edition.1080p.BluRay.x265-RARBG\\A.Star.Is.Born.2018.Encore.Edition.1080p.BluRay.x265-RARBG.mp4\"\n",
+      "skipped": true
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\Goosebumps 2015 1080p BluRay x264 DTS-JYK\\Goosebumps 2015 1080p BluRay x264 DTS-JYK.mkv",
+      "title": "Goosebumps 2015 1080p BluRay x264 DTS-JYK.mkv",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\Goosebumps 2015 1080p BluRay x264 DTS-JYK\\Goosebumps 2015 1080p BluRay x264 DTS-JYK_backup.mkv"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The.Grey.Man.2022.720p.WEB.h264-KOGi\\The.Grey.Man.2022.720p.WEB.h264-KOGi.mkv",
+      "title": "The.Grey.Man.2022.720p.WEB.h264-KOGi.mkv",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\The.Grey.Man.2022.720p.WEB.h264-KOGi\\The.Grey.Man.2022.720p.WEB.h264-KOGi_backup.mkv"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\Tomorrowland 2015 1080p BRRip x264 DTS-JYK\\Tomorrowland 2015 1080p BRRip x264 DTS-JYK.mkv",
+      "title": "Tomorrowland 2015 1080p BRRip x264 DTS-JYK.mkv",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\Tomorrowland 2015 1080p BRRip x264 DTS-JYK\\Tomorrowland 2015 1080p BRRip x264 DTS-JYK_backup.mkv"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\Night at the Museum (2006) [1080p]\\Night.at.the.Museum.2006.1080p.BrRip.x264.YIFY.mp4",
+      "title": "Night.at.the.Museum.2006.1080p.BrRip.x264.YIFY.mp4",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\Night at the Museum (2006) [1080p]\\Night.at.the.Museum.2006.1080p.BrRip.x264.YIFY_backup.mp4"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The.Puppet.Masters.1994.720p.BluRay.x264-PSYCHD [PublicHD]\\the.puppet.masters.1994.720p.bluray.x264-psychd.mkv",
+      "title": "the.puppet.masters.1994.720p.bluray.x264-psychd.mkv",
+      "success": false,
+      "error": "Command failed: ren \"S:\\MEDIA\\MOVIES\\The.Puppet.Masters.1994.720p.BluRay.x264-PSYCHD [PublicHD]\\the.puppet.masters.1994.720p.bluray.x264-psychd_temp.mkv\" \"the.puppet.masters.1994.720p.bluray.x264-psychd.mkv\"\nA duplicate file name exists, or the file\r\ncannot be found.\r\n"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The Bourne Ultimatum (2007) [1080p]\\The.Bourne.Ultimatum.2007.1080p.BrRip.x264.YIFY.mp4",
+      "title": "The.Bourne.Ultimatum.2007.1080p.BrRip.x264.YIFY.mp4",
+      "success": false,
+      "error": "Command failed: ren \"S:\\MEDIA\\MOVIES\\The Bourne Ultimatum (2007) [1080p]\\The.Bourne.Ultimatum.2007.1080p.BrRip.x264.YIFY_temp.mp4\" \"The.Bourne.Ultimatum.2007.1080p.BrRip.x264.YIFY.mp4\"\nA duplicate file name exists, or the file\r\ncannot be found.\r\n"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The Bourne Supremacy (2004) [1080p]\\The.Bourne.Supremacy.2004.1080p.BrRip.x264.YIFY.mp4",
+      "title": "The.Bourne.Supremacy.2004.1080p.BrRip.x264.YIFY.mp4",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\The Bourne Supremacy (2004) [1080p]\\The.Bourne.Supremacy.2004.1080p.BrRip.x264.YIFY_backup.mp4"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\Twister (1996) [1080p]\\Twister.1996.1080p.BrRip.x264.YIFY.mp4",
+      "title": "Twister.1996.1080p.BrRip.x264.YIFY.mp4",
+      "success": false,
+      "error": "Command failed: ren \"S:\\MEDIA\\MOVIES\\Twister (1996) [1080p]\\Twister.1996.1080p.BrRip.x264.YIFY_temp.mp4\" \"Twister.1996.1080p.BrRip.x264.YIFY.mp4\"\nA duplicate file name exists, or the file\r\ncannot be found.\r\n"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB\\The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB.mkv",
+      "title": "The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB.mkv",
+      "success": false,
+      "error": "Command failed: ren \"S:\\MEDIA\\MOVIES\\The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB\\The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB_temp.mkv\" \"The Thinking Game 2024 1080p AMZN WEB-DL DD 5 1 H 264-playWEB.mkv\"\nA duplicate file name exists, or the file\r\ncannot be found.\r\n"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\The Flintstones Meet Rockula and Frankenstone 1979 Web-dl 1080p x264\\The Flintstones Meet Rockula and Frankenstone 1979 Web-dl 1080p x264.mkv",
+      "title": "The Flintstones Meet Rockula and Frankenstone 1979 Web-dl 1080p x264.mkv",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\The Flintstones Meet Rockula and Frankenstone 1979 Web-dl 1080p x264\\The Flintstones Meet Rockula and Frankenstone 1979 Web-dl 1080p x264_backup.mkv"
+    },
+    {
+      "path": "S:\\MEDIA\\MOVIES\\Let It Ride - Comedy 1989 Eng Rus Multi-Subs 720p [H264-mp4]\\Let It Ride - Comedy 1989 Eng Rus Multi-Subs 720p [H264-mp4].mp4",
+      "title": "Let It Ride - Comedy 1989 Eng Rus Multi-Subs 720p [H264-mp4].mp4",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\MOVIES\\Let It Ride - Comedy 1989 Eng Rus Multi-Subs 720p [H264-mp4]\\Let It Ride - Comedy 1989 Eng Rus Multi-Subs 720p [H264-mp4]_backup.mp4"
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\RV [2006]DvDrip.AC3[Eng]\\RV[2006]DvDrip.AC3[Eng]-aXXo.avi",
+      "title": "RV[2006]DvDrip.AC3[Eng]-aXXo.avi",
+      "success": true,
+      "backupPath": "S:\\MEDIA\\FROM-G\\MOVIES\\RV [2006]DvDrip.AC3[Eng]\\RV[2006]DvDrip.AC3[Eng]-aXXo_backup.avi"
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\Terminal.Velocity.1994.UNCUT.1080p.BluRay.H264.AAC-RARBG\\Terminal.Velocity.1994.UNCUT.1080p.BluRay.H264.AAC-RARBG.mp4",
+      "title": "Terminal.Velocity.1994.UNCUT.1080p.BluRay.H264.AAC-RARBG.mp4",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\FROM-G\\MOVIES\\Terminal.Velocity.1994.UNCUT.1080p.BluRay.H264.AAC-RARBG\\Terminal.Velocity.1994.UNCUT.1080p.BluRay.H264.AAC-RARBG.mp4\"\n",
+      "skipped": true
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG.avi",
+      "title": "The Tourist[2010]R5 Line XviD-ExtraTorrentRG.avi",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\FROM-G\\MOVIES\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG.avi\"\n",
+      "skipped": true
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG\\SaMple.avi",
+      "title": "SaMple.avi",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\FROM-G\\MOVIES\\The Tourist[2010]R5 Line XviD-ExtraTorrentRG\\SaMple.avi\"\n",
+      "skipped": true
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\The.Cable.Guy[1996]Jim.Carrey.DVDRip\\The.Cable.Guy[1996]Jim.Carrey.DVDRip-PsyCoSys.avi",
+      "title": "The.Cable.Guy[1996]Jim.Carrey.DVDRip-PsyCoSys.avi",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\FROM-G\\MOVIES\\The.Cable.Guy[1996]Jim.Carrey.DVDRip\\The.Cable.Guy[1996]Jim.Carrey.DVDRip-PsyCoSys.avi\"\n",
+      "skipped": true
+    },
+    {
+      "path": "S:\\MEDIA\\FROM-G\\MOVIES\\TRON Legacy (2010) DVDRip XviD\\TRON Legacy (2010) DVDRip XviD.avi",
+      "title": "TRON Legacy (2010) DVDRip XviD.avi",
+      "success": false,
+      "error": "Command failed: ffprobe -v quiet -print_format json -show_streams \"S:\\MEDIA\\FROM-G\\MOVIES\\TRON Legacy (2010) DVDRip XviD\\TRON Legacy (2010) DVDRip XviD.avi\"\n",
+      "skipped": true
+    }
+  ]
+}

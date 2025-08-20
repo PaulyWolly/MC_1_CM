@@ -1,0 +1,76 @@
+/*
+  TVSHOWSEASONSPAGE.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* TVShowSeasonsPage.css - EMBY-style layout for TV Show Seasons page */
+
+.media-library-show-details-flex {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.media-library-show-poster img {
+    width: 220px;
+    height: 330px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+.media-library-show-meta {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.media-library-show-description {
+    font-size: 1.1em;
+    color: #e0e0e0;
+    margin-bottom: 8px;
+}
+
+.media-library-cast-section {
+    margin-bottom: 24px;
+}
+
+.media-library-cast-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.media-library-cast-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90px;
+}
+
+.media-library-cast-avatar {
+    width: 64px;
+    height: 64px;
+    background: #222;
+    border-radius: 50%;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
+.media-library-cast-name {
+    font-size: 0.95em;
+    color: #fff;
+    text-align: center;
+    word-break: break-word;
+} 

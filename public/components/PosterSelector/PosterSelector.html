@@ -1,0 +1,48 @@
+<!--
+  POSTERSELECTOR.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!-- PosterSelector.html -->
+<div class="poster-selector-overlay">
+  <div id="poster-selector-container" class="poster-selector-modal" style="display:none;">
+    <div class="poster-selector-content">
+      <div class="poster-selector-header">
+        <h2 class="poster-selector-title">Select Poster</h2>
+        <div class="poster-selector-source-container" style="margin-bottom: 16px;">
+          <label class="poster-selector-source-label" for="poster-selector-source" style="font-weight:600;margin-right:8px;">Image Source:</label>
+          <select class="poster-selector-source-select" id="poster-selector-source" style="padding:4px 10px;font-size:1em;">
+            <option value="tmdb" selected>TMDB</option>
+            <option value="imdb">IMDB (stub)</option>
+            <option value="other">Other (stub)</option>
+          </select>
+        </div>
+        <input id="poster-selector-query" type="text" placeholder="Search by name..." style="width:180px;max-width:30vw;padding:8px;margin:0 8px;" />
+        <input id="poster-selector-tmdbid" type="text" placeholder="TMDB ID (optional)" style="width:110px;max-width:20vw;padding:8px;margin:0 8px;" />
+        <button id="poster-selector-search" class="poster-selector-search-btn">Search</button>
+        <button id="poster-selector-close" class="poster-selector-close">&times;</button>
+      </div>
+      <div class="poster-selector-body">
+        <div id="poster-selector-spinner" class="poster-selector-spinner" style="display:none;"></div>
+        <div id="poster-selector-feedback" style="margin:10px 0;color:#c00;"></div>
+        <div class="poster-selector-results-bg">
+          <div id="poster-selector-grid" class="poster-selector-grid"></div>
+          <button id="poster-selector-use-btn" class="poster-selector-use-btn" style="display:none;margin-top:18px;">
+            <span class="use-btn-spinner" style="display:none;"></span>
+            <span class="use-btn-label">Use Image</span>
+          </button>
+          <div id="poster-selector-use-complete" class="poster-selector-use-complete" style="display:none;margin-top:18px;font-size:1.1em;color:#0c0;">Your Image is now in Use</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

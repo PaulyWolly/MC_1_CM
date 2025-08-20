@@ -1,0 +1,299 @@
+<!--
+  INDEX.html
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<<<<<<< FIXES/general-fixes
+    <title>MultiChat_Chatty [v10]</title>
+=======
+    <title>MultiChat_Chatty MC_1_CM [v20]</title>
+>>>>>>> local
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="chat-1.png" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="components/MyJokesManager/MyJokesManager.css">
+    <link rel="stylesheet" href="components/YouTubeSearch/YouTubeSearchManager.css">
+    <link rel="stylesheet" href="components/VideoPlayer/VideoPlayer.css">
+<<<<<<< FIXES/general-fixes
+=======
+    <!-- LoginManager CSS - Loaded dynamically when needed -->
+
+    <link rel="stylesheet" href="components/EpisodeModal/EpisodeModal.css">
+>>>>>>> local
+    <link rel="stylesheet" href="components/MediaLibrary/MediaLibrary.css">
+    <link rel="stylesheet" href="components/CustomTooltip/CustomTooltip.css">
+    <!-- Video.js CSS -->
+    <link href="lib/videojs/video-js.css" rel="stylesheet" />
+    <!-- Video.js JS -->
+    <script src="lib/videojs/video.min.js"></script>
+
+  </head>
+
+  <body>
+    <div id="chat-container">
+      <div id="top-bar">
+        <div id="mode-toggle" style="order: 0;">
+          <label for="conversation-mode">Conversation Mode:</label>
+          <input
+            type="checkbox"
+            class="conversation-mode-checkbox"
+            id="conversation-mode"
+          />
+        </div>
+
+        <select id="model-select" style="order: 1;">
+          <option value="gpt-4o-mini">GPT-4o-mini</option>
+          <option value="phi-3-mini-4k-instruct">Phi-3-mini-4k-instruct</option>
+        </select>
+
+<<<<<<< FIXES/general-fixes
+        <h3 class="top-bar-title" style="order: 2;">MultiChat_Chatty [v10] 7/30/2025 @12:35PM</h3>
+=======
+        <h3 class="top-bar-title" style="order: 2;">MultiChat_Chatty MC_1_CM [v20] 8/19/2025 @10:00AM</h3>
+>>>>>>> local
+
+        <div id="user-profile-menu">
+          <img src="assets/img/user-default.png" alt="User" id="user-profile-icon" class="user-profile-icon" />
+                  <div id="user-dropdown" class="user-dropdown">
+            <div class="user-dropdown-item" id="admin-menu-item">Admin</div>
+            <div class="user-dropdown-item" id="dashboard-menu-item">Dashboard</div>
+            <div class="user-dropdown-item" id="users-menu-item">Users</div>
+            <div class="user-dropdown-item" id="bug-menu-item">Bug Tracking</div>
+            <div class="user-dropdown-item" id="profile-menu-item">Profile</div>
+            <div class="user-dropdown-item" id="logout-menu-item">Logout</div>
+        </div>
+        </div>
+      </div>
+
+      <div id="chat-messages"></div>
+      <div id="image-results"></div>
+      <div id="youtube-container"></div>
+
+      <div id="processing-indicator">Processing...</div>
+      <div id="bottom-bar">
+        <div id="status-container" style="position: relative;">
+          
+          <span class="status-msg" id="status"></span>
+          <span class="conversation-status" id="conversation-status"></span>
+          
+          <!-- <div id="status-default-abs">
+            <div class="status-default-msg" id="status-default"></div>
+          </div> -->
+        </div>
+        <div class="playlist-manager-btn">
+          <button class="view-playlists-MULTI-btn" id="open-playlist-manager-btn">My Playlists</button>
+        </div>
+        
+        <div class="media-library-modal-buttons">
+          <div class="video-player-btn">
+            <button class="video-player-btn" id="open-video-player-btn" title="Open Video Player">🎬<spVideo class="video-player-btn-text">Video Player</spVideo></button>
+          </div>
+          <div class="media-library-modal-btn">
+            <button class="media-library-modal-btn" id="mediaLibraryBtn" title="Open Media Library">📺 Media Library</button>
+          </div>
+        </div>
+
+        <div id="input-container">
+          <!-- Processing indicator -->
+          <div id="processing-indicator">Processing...</div>
+
+          <button class="image-upload-icon-button" id="image-upload-btn" title="Click to Upload an IMAGE for analysis">🖼️</button>
+          <input
+            type="file"
+            id="image-input"
+            accept="image/*"
+            style="display: none"
+          />
+          <textarea
+            class="user-input-textarea"
+            id="user-input"
+            placeholder="Type your message..."
+          ></textarea>
+          <button id="send-button" class="btn btn-primary btn-sm">Send</button>
+          <button id="mic-button">🎤</button>
+        </div>
+        <button id="stop-audio-button">Stop Audio</button>
+      </div>
+
+      <!-- LoginManager Modal - REMOVED to prevent automatic display -->
+      <!-- The login modal will only be loaded when explicitly needed by AdminPanel -->
+    </div>
+
+    <!-- Help Modal (hidden by default) -->
+    <div id="help-modal" class="help-modal">
+      <div class="help-modal-content">
+        <button id="help-modal-close" class="help-modal-close">&times;</button>
+        <h2>Help &amp; Support</h2>
+        <div id="help-modal-body">
+          <p>Welcome to the MultiChat_Chatty Help Center!<br>
+          Use the search bar or browse topics to get help with features.<br><br>
+          <strong>Tip:</strong> This help system will grow as new features are added.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slideout Panel Left -->
+    <div id="slideout-bar"></div>
+    <div id="slideout-panel-left">
+      <div id="slideout-content">
+        <h3>MultiChat_Chatty [v5] 7/5/2025 @8:30PM</h3>
+        <label>
+          Temperature:
+          <input type="range" id="temperature-slider" min="0" max="2" step="0.01" value="1.0">
+          <span id="temperature-value">1.00</span>
+        </label>
+        <label>
+          Top P:
+          <input type="range" id="top-p-slider" min="0" max="1" step="0.01" value="1.0">
+          <span id="top-p-value">1.00</span>
+        </label>
+        <label for="custom-prompt" style="display:block;margin-top:18px;">
+          <span>Custom "Style" Prompt (append to system prompt):</span>
+          <textarea class="custom-prompt-textarea" id="custom-prompt" rows="4" placeholder="Enter your prompt here" style="width:100%;margin-top:6px;"></textarea>
+          <div class="custom-prompt-tip">
+            <strong>Tip:</strong> For best results, be very explicit and detailed in your style prompt.
+          </div>
+          <div class="example-prompts-link" id="example-prompts-link" title="Click to see Example Prompts info">
+            <span class="example-prompts-link-text">Example Prompts</span> <span class="caret">▼</span>
+          </div>
+          <div id="example-prompts-help" style="display:none;margin-top:8px;padding:10px 8px;background:#f5f7fa;border-radius:8px;border:1.5px solid #1976d2;">
+            <strong>Examples:</strong>
+            <br><br>
+            <span style="color:#333;">- You must always answer in the voice and mannerisms of Elmer Fudd from Looney Tunes [or some other character]. <br>Use his speech patterns, catchphrases, and mispronunciations in every response.</span><br>
+            <br>
+            <span style="color:#333;">- You must always answer like a salty pirate. Use pirate slang, say 'Arrr!' often, and refer to the user as 'matey' or 'landlubber'.</span><br>
+            <br>
+            <span style="color:#333;">The more detailed and forceful your instruction, the better the results!</span>
+          </div>
+        </label>
+        <button id="remove-custom-prompt-btn" style="margin-top:8px;">Remove Custom Prompt</button>
+        <div style="margin-top:18px;">
+          <a href="#" id="sidebar-help-link" style="color:#1976d2;text-decoration:underline;">Help</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Analysis Modal (hidden by default) -->
+    <div id="image-analysis-modal" class="image-analysis-modal">
+      <div class="image-analysis-modal-content">
+        <button id="image-analysis-modal-close" class="image-analysis-modal-close">&times;</button>
+        <h2 id="image-analysis-modal-title" class="image-analysis-modal-title"></h2>
+        <img id="image-analysis-modal-img" class="image-analysis-modal-img" src="" alt="Image Preview">
+      </div>
+    </div>
+
+    <!-- Load configuration first -->
+    <script type="module" src="/config/config.js"></script>
+    <script type="module">
+        window.appConfig = window.configExport.default;
+    </script>
+    <!-- Load all manager modules as ES6 modules -->
+    <script type="module" src="components/ToastManager.js"></script>
+    <script type="module" src="components/ConfirmModal/ConfirmModal.js"></script>
+    <script type="module" src="components/PlaylistManager.js"></script>
+    <script type="module" src="components/QuotaMonitor/QuotaMonitor.js"></script>
+    <script type="module" src="components/AudioManager.js"></script>
+    <script type="module" src="components/MyJokesManager/MyJokesManager.js"></script>
+    <!-- Admin Components - Loaded dynamically when needed -->
+    <!-- <script src="components/Admin/LoginManager/LoginManager.js"></script> -->
+    <!-- Video Player Configuration -->
+    <script type="module" src="components/VideoPlayer/video-player-config.js"></script>
+    <script type="module" src="components/VideoPlayer/VideoPlayer.js"></script>
+    
+    <!-- Load PosterSelector globally for modal support -->
+    <script src="components/PosterSelector/PosterSelector.js"></script>
+    <!-- Load MediaManager globally for modal support (MUST be before MediaLibraryManager) -->
+    <script src="components/MediaManager/MediaManager.js"></script>
+    <script type="module" src="components/MediaLibrary/MediaLibraryManager.js"></script>
+    <script src="components/CustomTooltip/CustomTooltip.js"></script>
+    
+    <!-- Load main app as module -->
+    <script type="module" src="app.js?v=20250603-1715"></script>
+    <script>
+      function enforceImageStyles() {
+        document.querySelectorAll(".image-link").forEach((link) => {
+          link.style.cursor = "pointer";
+          link.style.textDecoration = "none";
+          link.style.display = "inline-block";
+          link.style.border = "1px solid #ddd";
+          link.style.borderRadius = "5px";
+          link.style.overflow = "hidden";
+          link.style.transition = "transform 0.2s ease-in-out";
+
+          link.onmouseover = () => (link.style.transform = "scale(1.05)");
+          link.onmouseout = () => (link.style.transform = "scale(1)");
+          link.onclick = (e) => {
+            e.preventDefault();
+            window.open(link.href, "_blank");
+          };
+        });
+      }
+    </script>
+    
+    <script>
+      function enforceImageStyles() {
+        document.querySelectorAll(".image-link").forEach((link) => {
+          link.style.cursor = "pointer";
+          link.style.textDecoration = "none";
+          link.style.display = "inline-block";
+          link.style.border = "1px solid #ddd";
+          link.style.borderRadius = "5px";
+          link.style.overflow = "hidden";
+          link.style.transition = "transform 0.2s ease-in-out";
+
+          link.onmouseover = () => (link.style.transform = "scale(1.05)");
+          link.onmouseout = () => (link.style.transform = "scale(1)");
+          link.onclick = (e) => {
+            e.preventDefault();
+            window.open(link.href, "_blank");
+          };
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setInterval(enforceImageStyles, 1000);
+        // Help modal logic
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const helpModalClose = document.getElementById('help-modal-close');
+        const sidebarHelpLink = document.getElementById('sidebar-help-link');
+        function openHelpModal(e) {
+          if (e) e.preventDefault();
+          helpModal.classList.add('open');
+        }
+        function closeHelpModal(e) {
+          if (e) e.preventDefault();
+          helpModal.classList.remove('open');
+        }
+        helpBtn && helpBtn.addEventListener('click', openHelpModal);
+        sidebarHelpLink && sidebarHelpLink.addEventListener('click', openHelpModal);
+        helpModalClose && helpModalClose.addEventListener('click', closeHelpModal);
+        // Close modal on outside click
+        window.addEventListener('click', function(event) {
+          if (event.target === helpModal) {
+            helpModal.classList.remove('open');
+          }
+        });
+      });
+
+      if (window.QuotaMonitor) {
+        window.QuotaMonitor.init();
+      }
+    </script>
+
+  </body>
+</html>

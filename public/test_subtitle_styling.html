@@ -1,0 +1,283 @@
+<!--
+  TEST_SUBTITLE_STYLING.HTML
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtitle Styling Test</title>
+    <link rel="stylesheet" href="components/VideoPlayer/VideoPlayer.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        
+        .subtitle-demo {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(45deg, #333, #666);
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .demo-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ff6b35;
+        }
+        
+        .style-info {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .control-btn:hover {
+            background: #e55a2b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎨 Subtitle Styling Test Page</h1>
+        
+        <div class="test-section">
+            <h2>Available Subtitle Styling Classes</h2>
+            <p>This page demonstrates all the CSS classes available for styling video subtitles. You can target these classes in the DOM to customize subtitle appearance.</p>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Size Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text small">Small subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.small</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text">Default subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text large">Large subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.large</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Weight & Style Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text bold">Bold subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.bold</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text italic">Italic subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.italic</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text underline">Underlined subtitle text</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.underline</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Effect Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text outline">Outline effect subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.outline</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text glow">Glow effect subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.glow</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Theme Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text dark-theme">Dark theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.dark-theme</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text light-theme">Light theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.light-theme</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text blue-theme">Blue theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.blue-theme</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text green-theme">Green theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.green-theme</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text red-theme">Red theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.red-theme</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text yellow-theme">Yellow theme subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.yellow-theme</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Position Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container top">
+                    <div class="video-subtitle-text">Top positioned subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-container.top</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container left">
+                    <div class="video-subtitle-text">Left positioned subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-container.left</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container right">
+                    <div class="video-subtitle-text">Right positioned subtitle</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-container.right</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Animation Classes</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text fade-in">Fade in animation</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.fade-in</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text slide-up">Slide up animation</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.slide-up</code></div>
+            
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container">
+                    <div class="video-subtitle-text slide-down">Slide down animation</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Class: <code>.video-subtitle-text.slide-down</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Combined Styles</div>
+            <div class="subtitle-demo">
+                <div class="video-subtitle-container top">
+                    <div class="video-subtitle-text large bold outline glow">Combined styles example</div>
+                </div>
+            </div>
+            <div class="style-info">CSS Classes: <code>.video-subtitle-text.large.bold.outline.glow</code> + <code>.video-subtitle-container.top</code></div>
+        </div>
+        
+        <div class="test-section">
+            <div class="demo-title">Usage Instructions</div>
+            <div class="style-info">
+                <h3>In Video Player:</h3>
+                <ul>
+                    <li>Click the 🎨 button in the video control bar to cycle through preset styles</li>
+                    <li>Use <code>window.videoPlayer.applySubtitleStyling('large bold outline')</code> in console</li>
+                    <li>Use <code>window.videoPlayer.setSubtitleStyling({size: 'large', theme: 'blue'})</code> for custom styling</li>
+                </ul>
+                
+                <h3>Available Options:</h3>
+                <ul>
+                    <li><strong>Sizes:</strong> default, large, small</li>
+                    <li><strong>Weights:</strong> default, bold</li>
+                    <li><strong>Styles:</strong> default, italic, underline</li>
+                    <li><strong>Effects:</strong> default, outline, glow</li>
+                    <li><strong>Themes:</strong> default, dark, light, blue, green, red, yellow</li>
+                    <li><strong>Positions:</strong> default, top, left, right</li>
+                    <li><strong>Animations:</strong> default, fade-in, fade-out, slide-up, slide-down</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

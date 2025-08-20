@@ -1,0 +1,558 @@
+<!--
+  CURRENT_WATCH_LATER_TABLE.HTML
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Data Table - current_watch_later.json</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            background: rgba(255,255,255,0.2);
+            padding: 15px 25px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat .number {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .search-box input {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 250px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .export-btn {
+            padding: 8px 16px;
+            border: 2px solid #1976d2;
+            background: white;
+            color: #1976d2;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        
+        .export-btn:hover {
+            background: #1976d2;
+            color: white;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        thead {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            z-index: 10;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        
+        th:hover {
+            background: #e9ecef;
+        }
+        
+        th.sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .data-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }
+        
+        .data-type.string {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .data-type.number {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .data-type.boolean {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .data-type.object {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .data-type.array {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+        
+        .data-type.null {
+            background: #f5f5f5;
+            color: #757575;
+        }
+        
+        .json-preview {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .header .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box input {
+                width: 100%;
+            }
+            
+            .export-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 JSON Data Table</h1>
+            <p>File: current_watch_later.json - Generated on 7/31/2025, 2:08:08 PM</p>
+            <div class="stats">
+                <div class="stat">
+                    <span class="number">18</span>
+                    <span class="label">Total Items</span>
+                </div>
+                <div class="stat">
+                    <span class="number">19</span>
+                    <span class="label">Columns</span>
+                </div>
+                <div class="stat">
+                    <span class="number">Array</span>
+                    <span class="label">Data Type</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="search-box">
+                <label for="search">🔍 Search:</label>
+                <input type="text" id="search" placeholder="Search any field...">
+            </div>
+            <div class="export-buttons">
+                <button class="export-btn" onclick="exportToCSV()">📄 Export CSV</button>
+                <button class="export-btn" onclick="exportToJSON()">📋 Export JSON</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table id="jsonTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="_id">_id <span class="data-type string">string</span></th><th class="sortable" data-sort="addedAt">Added At <span class="data-type date">date</span></th><th class="sortable" data-sort="createdAt">Created At <span class="data-type date">date</span></th><th class="sortable" data-sort="currentTime">Current Time <span class="data-type number">number</span></th><th class="sortable" data-sort="duration">Duration <span class="data-type number">number</span></th><th class="sortable" data-sort="episode">Episode <span class="data-type null">null</span></th><th class="sortable" data-sort="episodeTitle">Episode Title <span class="data-type null">null</span></th><th class="sortable" data-sort="fileName">File Name <span class="data-type string">string</span></th><th class="sortable" data-sort="filePath">File Path <span class="data-type string">string</span></th><th class="sortable" data-sort="lastUpdated">Last Updated <span class="data-type date">date</span></th><th class="sortable" data-sort="lastWatched">Last Watched <span class="data-type date">date</span></th><th class="sortable" data-sort="mediaId">Media Id <span class="data-type string">string</span></th><th class="sortable" data-sort="mediaType">Media Type <span class="data-type string">string</span></th><th class="sortable" data-sort="posterPath">Poster Path <span class="data-type string">string</span></th><th class="sortable" data-sort="quality">Quality <span class="data-type string">string</span></th><th class="sortable" data-sort="season">Season <span class="data-type null">null</span></th><th class="sortable" data-sort="title">Title <span class="data-type string">string</span></th><th class="sortable" data-sort="updatedAt">Updated At <span class="data-type date">date</span></th><th class="sortable" data-sort="year">Year <span class="data-type number">number</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td>688bd5714da5caee2bfd138e</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>0</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>Above The Law (1988) [1080p]</td><td>Above The Law (1988) [1080p]</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Above_The_Law_Above_The_Law_(1988)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>Above The Law</td><td>7/31/2025, 1:43:29 PM</td><td>1,988</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5714da5caee2bfd1392</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>1,204.178</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>Aloha (2015) [1080p]</td><td>Aloha (2015) [1080p]</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Aloha_Aloha_(2015)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>Aloha</td><td>7/31/2025, 1:43:29 PM</td><td>2,015</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5714da5caee2bfd1397</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>0</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>War of the Worlds (2005) [1080p]</td><td>War of the Worlds (2005) [1080p]</td><td>7/31/2025, 1:43:29 PM</td><td>7/31/2025, 1:43:29 PM</td><td>War_of_the_Worlds_War_of_the_Worlds_(2005)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>War of the Worlds</td><td>7/31/2025, 1:43:29 PM</td><td>2,005</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5724da5caee2bfd139d</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:30 PM</td><td>0</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>A Star Is Born (2018) [1080p]</td><td>A Star Is Born (2018) [1080p]</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:29 PM</td><td>A_Star_Is_Born_A_Star_Is_Born_(2018)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>A Star Is Born</td><td>7/31/2025, 1:43:30 PM</td><td>2,018</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5724da5caee2bfd13a4</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:30 PM</td><td>0</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>John Carter (2012) [1080p]</td><td>John Carter (2012) [1080p]</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:29 PM</td><td>John_Carter_John_Carter_(2012)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>John Carter (2012) [1080p]</td><td>7/31/2025, 1:43:30 PM</td><td>2,012</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5724da5caee2bfd13ac</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:30 PM</td><td>0</td><td>0</td><td>2</td><td>Chuck Versus the Three Words</td><td>Chuck - S03E02 - Chuck Versus the Three Words.mkv</td><td>Chuck (2007)/Season 03/Chuck - S03E02 - Chuck Versus the Three Words.mkv</td><td>7/31/2025, 1:43:30 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Chuck_-_S03E02_-_Chuck_Versus_the_Three_Words_Chuck_(2007)/Season_03/Chuck_-_S03E02_-_Chuck_Versus_the_Three_Words.mkv">Chuck_-_S03E02_-_Chuck_Versus_the_Three_Words_Chuck_(2007)/Season_03/Chuck_-_S03E02_-_Chuck_Versus_t...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>3</td><td>Chuck - S03E02 - Chuck Versus the Three Words</td><td>7/31/2025, 1:43:30 PM</td><td>2,007</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5734da5caee2bfd13b5</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:31 PM</td><td>0</td><td>0</td><td>10</td><td>Hello</td><td>Another Life - S01E10 - Hello.mkv</td><td>Another Life (2019)/Season 01/Another Life - S01E10 - Hello.mkv</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Another_Life_-_S01E10_-_Hello_Another_Life_(2019)/Season_01/Another_Life_-_S01E10_-_Hello.mkv</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Another Life - S01E10 - Hello</td><td>7/31/2025, 1:43:31 PM</td><td>2,019</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5734da5caee2bfd13bf</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:31 PM</td><td>0</td><td>0</td><td><span style="color: #999; font-style: italic;">null</span></td><td><span style="color: #999; font-style: italic;">null</span></td><td>13 Going On 30 (2004) [1080p]</td><td>13 Going On 30 (2004) [1080p]</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:29 PM</td><td>13_Going_On_30_13_Going_On_30_(2004)_[1080p]</td><td>movie</td><td>/assets/img/placeholder-poster.jpg</td><td>1080p</td><td><span style="color: #999; font-style: italic;">null</span></td><td>13 Going On 30 (2004) [1080p]</td><td>7/31/2025, 1:43:31 PM</td><td>2,004</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5734da5caee2bfd13ca</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:31 PM</td><td>0</td><td>0</td><td>5</td><td>Episode 5</td><td>Devs.(2020).S01E05.mp4</td><td>Devs (2020)/Season 01/Devs.(2020).S01E05.mp4</td><td>7/31/2025, 1:43:31 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Devs.(2020).S01E05_Devs_(2020)/Season_01/Devs.(2020).S01E05.mp4</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Devs.(2020).S01E05</td><td>7/31/2025, 1:43:31 PM</td><td>2,020</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5744da5caee2bfd13d6</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:32 PM</td><td>0</td><td>0</td><td>3</td><td>Snow Falls</td><td>Once Upon a Time (2011) - S01E03 - Snow Falls.mp4</td><td>Once Upon a Time (2011)/Season 01/Once Upon a Time (2011) - S01E03 - Snow Falls.mp4</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Once_Upon_a_Time_(2011)_-_S01E03_-_Snow_Falls_Once_Upon_a_Time_(2011)/Season_01/Once_Upon_a_Time_(2011)_-_S01E03_-_Snow_Falls.mp4">Once_Upon_a_Time_(2011)_-_S01E03_-_Snow_Falls_Once_Upon_a_Time_(2011)/Season_01/Once_Upon_a_Time_(20...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Once Upon a Time (2011) - S01E03 - Snow Falls</td><td>7/31/2025, 1:43:32 PM</td><td>2,011</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5744da5caee2bfd13e3</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:32 PM</td><td>0</td><td>0</td><td>2</td><td>Episode 2</td><td>Based.on.a.True.Story.S01E02.[720p].mp4</td><td>Based on a True Story (2023)/Season 01/Based.on.a.True.Story.S01E02.[720p].mp4</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Based.on.a.True.Story.S01E02_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E02.[720p].mp4">Based.on.a.True.Story.S01E02_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E02.[72...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td>720p</td><td>1</td><td>Based.on.a.True.Story.S01E02</td><td>7/31/2025, 1:43:32 PM</td><td>2,023</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5744da5caee2bfd13f1</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:32 PM</td><td>0</td><td>0</td><td>1</td><td>The Risen</td><td>Glitch (2015) - S01E01 - The Risen.mkv</td><td>Glitch (2015)/Season 01/Glitch (2015) - S01E01 - The Risen.mkv</td><td>7/31/2025, 1:43:32 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Glitch_(2015)_-_S01E01_-_The_Risen_Glitch_(2015)/Season_01/Glitch_(2015)_-_S01E01_-_The_Risen.mkv</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Glitch (2015) - S01E01 - The Risen</td><td>7/31/2025, 1:43:32 PM</td><td>2,015</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5754da5caee2bfd1400</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:33 PM</td><td>0</td><td>0</td><td>2</td><td>Pilot</td><td>Lost - S01E02 - Pilot.mkv</td><td>LOST (2004)/Season 01/Lost - S01E02 - Pilot.mkv</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Lost_-_S01E02_-_Pilot_LOST_(2004)/Season_01/Lost_-_S01E02_-_Pilot.mkv</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Lost - S01E02 - Pilot</td><td>7/31/2025, 1:43:33 PM</td><td>2,004</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5754da5caee2bfd1410</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:33 PM</td><td>0</td><td>0</td><td>5</td><td>White Rabbit</td><td>Lost - S01E05 - White Rabbit.mkv</td><td>LOST (2004)/Season 01/Lost - S01E05 - White Rabbit.mkv</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:29 PM</td><td>Lost_-_S01E05_-_White_Rabbit_LOST_(2004)/Season_01/Lost_-_S01E05_-_White_Rabbit.mkv</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Lost - S01E05 - White Rabbit</td><td>7/31/2025, 1:43:33 PM</td><td>2,004</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5754da5caee2bfd1421</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:33 PM</td><td>0</td><td>0</td><td>1</td><td>Pilot</td><td>La Brea - S01E01 - Pilot.mp4</td><td>La Brea (2021)/Season 01/La Brea - S01E01 - Pilot.mp4</td><td>7/31/2025, 1:43:33 PM</td><td>7/31/2025, 1:43:29 PM</td><td>La_Brea_-_S01E01_-_Pilot_La_Brea_(2021)/Season_01/La_Brea_-_S01E01_-_Pilot.mp4</td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>La Brea - S01E01 - Pilot</td><td>7/31/2025, 1:43:33 PM</td><td>2,021</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5764da5caee2bfd1433</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:34 PM</td><td>0</td><td>0</td><td>1</td><td>Across the Universe</td><td>Another Life - S01E01 - Across the Universe.mkv</td><td>Another Life (2019)/Season 01/Another Life - S01E01 - Across the Universe.mkv</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Another_Life_-_S01E01_-_Across_the_Universe_Another_Life_(2019)/Season_01/Another_Life_-_S01E01_-_Across_the_Universe.mkv">Another_Life_-_S01E01_-_Across_the_Universe_Another_Life_(2019)/Season_01/Another_Life_-_S01E01_-_Ac...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Another Life - S01E01 - Across the Universe</td><td>7/31/2025, 1:43:34 PM</td><td>2,019</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5764da5caee2bfd1446</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:34 PM</td><td>0</td><td>0</td><td>4</td><td>Episode 4</td><td>Based.on.a.True.Story.S01E04.[720p].mp4</td><td>Based on a True Story (2023)/Season 01/Based.on.a.True.Story.S01E04.[720p].mp4</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Based.on.a.True.Story.S01E04_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E04.[720p].mp4">Based.on.a.True.Story.S01E04_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E04.[72...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td>720p</td><td>1</td><td>Based.on.a.True.Story.S01E04</td><td>7/31/2025, 1:43:34 PM</td><td>2,023</td>
+        </tr>
+    
+        <tr>
+            <td>688bd5764da5caee2bfd145a</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:34 PM</td><td>0</td><td>0</td><td>1</td><td>Stockholm Syndrome</td><td>Bored to Death - S01E01 - Stockholm Syndrome.mkv</td><td>Bored to Death (2009)/Season 01/Bored to Death - S01E01 - Stockholm Syndrome.mkv</td><td>7/31/2025, 1:43:34 PM</td><td>7/31/2025, 1:43:29 PM</td><td><span title="Bored_to_Death_-_S01E01_-_Stockholm_Syndrome_Bored_to_Death_(2009)/Season_01/Bored_to_Death_-_S01E01_-_Stockholm_Syndrome.mkv">Bored_to_Death_-_S01E01_-_Stockholm_Syndrome_Bored_to_Death_(2009)/Season_01/Bored_to_Death_-_S01E01...</span></td><td>tv-show</td><td>/assets/img/placeholder-poster.jpg</td><td><span style="color: #999; font-style: italic;">null</span></td><td>1</td><td>Bored to Death - S01E01 - Stockholm Syndrome</td><td>7/31/2025, 1:43:34 PM</td><td>2,009</td>
+        </tr>
+    
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>Generated on 7/31/2025, 2:08:08 PM | Total Items: 18 | Columns: 19</p>
+        </div>
+    </div>
+
+    <script>
+        // Table functionality
+        let currentData = [{"mediaId":"Above_The_Law_Above_The_Law_(1988)_[1080p]","mediaType":"movie","title":"Above The Law","filePath":"Above The Law (1988) [1080p]","fileName":"Above The Law (1988) [1080p]","currentTime":0,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":1988,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.084Z","_id":"688bd5714da5caee2bfd138e","addedAt":"2025-07-31T20:43:29.307Z","lastUpdated":"2025-07-31T20:43:29.307Z","createdAt":"2025-07-31T20:43:29.312Z","updatedAt":"2025-07-31T20:43:29.312Z"},{"mediaId":"Aloha_Aloha_(2015)_[1080p]","mediaType":"movie","title":"Aloha","filePath":"Aloha (2015) [1080p]","fileName":"Aloha (2015) [1080p]","currentTime":1204.178051,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":2015,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5714da5caee2bfd1392","addedAt":"2025-07-31T20:43:29.678Z","lastUpdated":"2025-07-31T20:43:29.678Z","createdAt":"2025-07-31T20:43:29.679Z","updatedAt":"2025-07-31T20:43:29.679Z"},{"mediaId":"War_of_the_Worlds_War_of_the_Worlds_(2005)_[1080p]","mediaType":"movie","title":"War of the Worlds","filePath":"War of the Worlds (2005) [1080p]","fileName":"War of the Worlds (2005) [1080p]","currentTime":0,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":2005,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5714da5caee2bfd1397","addedAt":"2025-07-31T20:43:29.996Z","lastUpdated":"2025-07-31T20:43:29.996Z","createdAt":"2025-07-31T20:43:29.996Z","updatedAt":"2025-07-31T20:43:29.996Z"},{"mediaId":"A_Star_Is_Born_A_Star_Is_Born_(2018)_[1080p]","mediaType":"movie","title":"A Star Is Born","filePath":"A Star Is Born (2018) [1080p]","fileName":"A Star Is Born (2018) [1080p]","currentTime":0,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":2018,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5724da5caee2bfd139d","addedAt":"2025-07-31T20:43:30.316Z","lastUpdated":"2025-07-31T20:43:30.316Z","createdAt":"2025-07-31T20:43:30.317Z","updatedAt":"2025-07-31T20:43:30.317Z"},{"mediaId":"John_Carter_John_Carter_(2012)_[1080p]","mediaType":"movie","title":"John Carter (2012) [1080p]","filePath":"John Carter (2012) [1080p]","fileName":"John Carter (2012) [1080p]","currentTime":0,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":2012,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5724da5caee2bfd13a4","addedAt":"2025-07-31T20:43:30.618Z","lastUpdated":"2025-07-31T20:43:30.618Z","createdAt":"2025-07-31T20:43:30.619Z","updatedAt":"2025-07-31T20:43:30.619Z"},{"mediaId":"Chuck_-_S03E02_-_Chuck_Versus_the_Three_Words_Chuck_(2007)/Season_03/Chuck_-_S03E02_-_Chuck_Versus_the_Three_Words.mkv","mediaType":"tv-show","title":"Chuck - S03E02 - Chuck Versus the Three Words","filePath":"Chuck (2007)/Season 03/Chuck - S03E02 - Chuck Versus the Three Words.mkv","fileName":"Chuck - S03E02 - Chuck Versus the Three Words.mkv","currentTime":0,"duration":0,"season":3,"episode":2,"episodeTitle":"Chuck Versus the Three Words","posterPath":"/assets/img/placeholder-poster.jpg","year":2007,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5724da5caee2bfd13ac","addedAt":"2025-07-31T20:43:30.936Z","lastUpdated":"2025-07-31T20:43:30.936Z","createdAt":"2025-07-31T20:43:30.940Z","updatedAt":"2025-07-31T20:43:30.940Z"},{"mediaId":"Another_Life_-_S01E10_-_Hello_Another_Life_(2019)/Season_01/Another_Life_-_S01E10_-_Hello.mkv","mediaType":"tv-show","title":"Another Life - S01E10 - Hello","filePath":"Another Life (2019)/Season 01/Another Life - S01E10 - Hello.mkv","fileName":"Another Life - S01E10 - Hello.mkv","currentTime":0,"duration":0,"season":1,"episode":10,"episodeTitle":"Hello","posterPath":"/assets/img/placeholder-poster.jpg","year":2019,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5734da5caee2bfd13b5","addedAt":"2025-07-31T20:43:31.240Z","lastUpdated":"2025-07-31T20:43:31.240Z","createdAt":"2025-07-31T20:43:31.243Z","updatedAt":"2025-07-31T20:43:31.243Z"},{"mediaId":"13_Going_On_30_13_Going_On_30_(2004)_[1080p]","mediaType":"movie","title":"13 Going On 30 (2004) [1080p]","filePath":"13 Going On 30 (2004) [1080p]","fileName":"13 Going On 30 (2004) [1080p]","currentTime":0,"duration":0,"season":null,"episode":null,"episodeTitle":null,"posterPath":"/assets/img/placeholder-poster.jpg","year":2004,"quality":"1080p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5734da5caee2bfd13bf","addedAt":"2025-07-31T20:43:31.556Z","lastUpdated":"2025-07-31T20:43:31.556Z","createdAt":"2025-07-31T20:43:31.557Z","updatedAt":"2025-07-31T20:43:31.557Z"},{"mediaId":"Devs.(2020).S01E05_Devs_(2020)/Season_01/Devs.(2020).S01E05.mp4","mediaType":"tv-show","title":"Devs.(2020).S01E05","filePath":"Devs (2020)/Season 01/Devs.(2020).S01E05.mp4","fileName":"Devs.(2020).S01E05.mp4","currentTime":0,"duration":0,"season":1,"episode":5,"episodeTitle":"Episode 5","posterPath":"/assets/img/placeholder-poster.jpg","year":2020,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5734da5caee2bfd13ca","addedAt":"2025-07-31T20:43:31.868Z","lastUpdated":"2025-07-31T20:43:31.868Z","createdAt":"2025-07-31T20:43:31.869Z","updatedAt":"2025-07-31T20:43:31.869Z"},{"mediaId":"Once_Upon_a_Time_(2011)_-_S01E03_-_Snow_Falls_Once_Upon_a_Time_(2011)/Season_01/Once_Upon_a_Time_(2011)_-_S01E03_-_Snow_Falls.mp4","mediaType":"tv-show","title":"Once Upon a Time (2011) - S01E03 - Snow Falls","filePath":"Once Upon a Time (2011)/Season 01/Once Upon a Time (2011) - S01E03 - Snow Falls.mp4","fileName":"Once Upon a Time (2011) - S01E03 - Snow Falls.mp4","currentTime":0,"duration":0,"season":1,"episode":3,"episodeTitle":"Snow Falls","posterPath":"/assets/img/placeholder-poster.jpg","year":2011,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5744da5caee2bfd13d6","addedAt":"2025-07-31T20:43:32.205Z","lastUpdated":"2025-07-31T20:43:32.205Z","createdAt":"2025-07-31T20:43:32.210Z","updatedAt":"2025-07-31T20:43:32.210Z"},{"mediaId":"Based.on.a.True.Story.S01E02_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E02.[720p].mp4","mediaType":"tv-show","title":"Based.on.a.True.Story.S01E02","filePath":"Based on a True Story (2023)/Season 01/Based.on.a.True.Story.S01E02.[720p].mp4","fileName":"Based.on.a.True.Story.S01E02.[720p].mp4","currentTime":0,"duration":0,"season":1,"episode":2,"episodeTitle":"Episode 2","posterPath":"/assets/img/placeholder-poster.jpg","year":2023,"quality":"720p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5744da5caee2bfd13e3","addedAt":"2025-07-31T20:43:32.535Z","lastUpdated":"2025-07-31T20:43:32.535Z","createdAt":"2025-07-31T20:43:32.536Z","updatedAt":"2025-07-31T20:43:32.536Z"},{"mediaId":"Glitch_(2015)_-_S01E01_-_The_Risen_Glitch_(2015)/Season_01/Glitch_(2015)_-_S01E01_-_The_Risen.mkv","mediaType":"tv-show","title":"Glitch (2015) - S01E01 - The Risen","filePath":"Glitch (2015)/Season 01/Glitch (2015) - S01E01 - The Risen.mkv","fileName":"Glitch (2015) - S01E01 - The Risen.mkv","currentTime":0,"duration":0,"season":1,"episode":1,"episodeTitle":"The Risen","posterPath":"/assets/img/placeholder-poster.jpg","year":2015,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5744da5caee2bfd13f1","addedAt":"2025-07-31T20:43:32.862Z","lastUpdated":"2025-07-31T20:43:32.862Z","createdAt":"2025-07-31T20:43:32.863Z","updatedAt":"2025-07-31T20:43:32.863Z"},{"mediaId":"Lost_-_S01E02_-_Pilot_LOST_(2004)/Season_01/Lost_-_S01E02_-_Pilot.mkv","mediaType":"tv-show","title":"Lost - S01E02 - Pilot","filePath":"LOST (2004)/Season 01/Lost - S01E02 - Pilot.mkv","fileName":"Lost - S01E02 - Pilot.mkv","currentTime":0,"duration":0,"season":1,"episode":2,"episodeTitle":"Pilot","posterPath":"/assets/img/placeholder-poster.jpg","year":2004,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5754da5caee2bfd1400","addedAt":"2025-07-31T20:43:33.178Z","lastUpdated":"2025-07-31T20:43:33.178Z","createdAt":"2025-07-31T20:43:33.181Z","updatedAt":"2025-07-31T20:43:33.181Z"},{"mediaId":"Lost_-_S01E05_-_White_Rabbit_LOST_(2004)/Season_01/Lost_-_S01E05_-_White_Rabbit.mkv","mediaType":"tv-show","title":"Lost - S01E05 - White Rabbit","filePath":"LOST (2004)/Season 01/Lost - S01E05 - White Rabbit.mkv","fileName":"Lost - S01E05 - White Rabbit.mkv","currentTime":0,"duration":0,"season":1,"episode":5,"episodeTitle":"White Rabbit","posterPath":"/assets/img/placeholder-poster.jpg","year":2004,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5754da5caee2bfd1410","addedAt":"2025-07-31T20:43:33.510Z","lastUpdated":"2025-07-31T20:43:33.510Z","createdAt":"2025-07-31T20:43:33.511Z","updatedAt":"2025-07-31T20:43:33.511Z"},{"mediaId":"La_Brea_-_S01E01_-_Pilot_La_Brea_(2021)/Season_01/La_Brea_-_S01E01_-_Pilot.mp4","mediaType":"tv-show","title":"La Brea - S01E01 - Pilot","filePath":"La Brea (2021)/Season 01/La Brea - S01E01 - Pilot.mp4","fileName":"La Brea - S01E01 - Pilot.mp4","currentTime":0,"duration":0,"season":1,"episode":1,"episodeTitle":"Pilot","posterPath":"/assets/img/placeholder-poster.jpg","year":2021,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5754da5caee2bfd1421","addedAt":"2025-07-31T20:43:33.831Z","lastUpdated":"2025-07-31T20:43:33.831Z","createdAt":"2025-07-31T20:43:33.839Z","updatedAt":"2025-07-31T20:43:33.839Z"},{"mediaId":"Another_Life_-_S01E01_-_Across_the_Universe_Another_Life_(2019)/Season_01/Another_Life_-_S01E01_-_Across_the_Universe.mkv","mediaType":"tv-show","title":"Another Life - S01E01 - Across the Universe","filePath":"Another Life (2019)/Season 01/Another Life - S01E01 - Across the Universe.mkv","fileName":"Another Life - S01E01 - Across the Universe.mkv","currentTime":0,"duration":0,"season":1,"episode":1,"episodeTitle":"Across the Universe","posterPath":"/assets/img/placeholder-poster.jpg","year":2019,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5764da5caee2bfd1433","addedAt":"2025-07-31T20:43:34.134Z","lastUpdated":"2025-07-31T20:43:34.134Z","createdAt":"2025-07-31T20:43:34.135Z","updatedAt":"2025-07-31T20:43:34.135Z"},{"mediaId":"Based.on.a.True.Story.S01E04_Based_on_a_True_Story_(2023)/Season_01/Based.on.a.True.Story.S01E04.[720p].mp4","mediaType":"tv-show","title":"Based.on.a.True.Story.S01E04","filePath":"Based on a True Story (2023)/Season 01/Based.on.a.True.Story.S01E04.[720p].mp4","fileName":"Based.on.a.True.Story.S01E04.[720p].mp4","currentTime":0,"duration":0,"season":1,"episode":4,"episodeTitle":"Episode 4","posterPath":"/assets/img/placeholder-poster.jpg","year":2023,"quality":"720p","lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5764da5caee2bfd1446","addedAt":"2025-07-31T20:43:34.459Z","lastUpdated":"2025-07-31T20:43:34.459Z","createdAt":"2025-07-31T20:43:34.466Z","updatedAt":"2025-07-31T20:43:34.466Z"},{"mediaId":"Bored_to_Death_-_S01E01_-_Stockholm_Syndrome_Bored_to_Death_(2009)/Season_01/Bored_to_Death_-_S01E01_-_Stockholm_Syndrome.mkv","mediaType":"tv-show","title":"Bored to Death - S01E01 - Stockholm Syndrome","filePath":"Bored to Death (2009)/Season 01/Bored to Death - S01E01 - Stockholm Syndrome.mkv","fileName":"Bored to Death - S01E01 - Stockholm Syndrome.mkv","currentTime":0,"duration":0,"season":1,"episode":1,"episodeTitle":"Stockholm Syndrome","posterPath":"/assets/img/placeholder-poster.jpg","year":2009,"quality":null,"lastWatched":"2025-07-31T20:43:29.085Z","_id":"688bd5764da5caee2bfd145a","addedAt":"2025-07-31T20:43:34.762Z","lastUpdated":"2025-07-31T20:43:34.762Z","createdAt":"2025-07-31T20:43:34.766Z","updatedAt":"2025-07-31T20:43:34.766Z"}];
+        let filteredData = [...currentData];
+        let currentSort = { column: null, direction: 'asc' };
+        let columns = [{"key":"_id","label":"_id","type":"string"},{"key":"addedAt","label":"Added At","type":"date"},{"key":"createdAt","label":"Created At","type":"date"},{"key":"currentTime","label":"Current Time","type":"number"},{"key":"duration","label":"Duration","type":"number"},{"key":"episode","label":"Episode","type":"null"},{"key":"episodeTitle","label":"Episode Title","type":"null"},{"key":"fileName","label":"File Name","type":"string"},{"key":"filePath","label":"File Path","type":"string"},{"key":"lastUpdated","label":"Last Updated","type":"date"},{"key":"lastWatched","label":"Last Watched","type":"date"},{"key":"mediaId","label":"Media Id","type":"string"},{"key":"mediaType","label":"Media Type","type":"string"},{"key":"posterPath","label":"Poster Path","type":"string"},{"key":"quality","label":"Quality","type":"string"},{"key":"season","label":"Season","type":"null"},{"key":"title","label":"Title","type":"string"},{"key":"updatedAt","label":"Updated At","type":"date"},{"key":"year","label":"Year","type":"number"}];
+        
+        // Search functionality
+        document.getElementById('search').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            filterAndRenderTable();
+        });
+        
+        // Sort functionality
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const column = this.dataset.sort;
+                if (currentSort.column === column) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = 'asc';
+                }
+                
+                // Update sort indicators
+                document.querySelectorAll('th').forEach(header => {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                });
+                this.classList.add(`sort-${currentSort.direction}`);
+                
+                filterAndRenderTable();
+            });
+        });
+        
+        function filterAndRenderTable() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            // Filter data
+            filteredData = currentData.filter(item => {
+                return columns.some(col => {
+                    const value = getNestedValue(item, col.key);
+                    if (value === null || value === undefined) return false;
+                    return value.toString().toLowerCase().includes(searchTerm);
+                });
+            });
+            
+            // Sort data
+            if (currentSort.column) {
+                filteredData.sort((a, b) => {
+                    let aVal = getNestedValue(a, currentSort.column);
+                    let bVal = getNestedValue(b, currentSort.column);
+                    
+                    // Handle different data types
+                    if (aVal === null || aVal === undefined) aVal = '';
+                    if (bVal === null || bVal === undefined) bVal = '';
+                    
+                    if (typeof aVal === 'string') {
+                        aVal = aVal.toLowerCase();
+                        bVal = bVal.toLowerCase();
+                    }
+                    
+                    if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            renderTable();
+        }
+        
+        function renderTable() {
+            const tbody = document.querySelector('#jsonTable tbody');
+            tbody.innerHTML = filteredData.map((item, index) => generateTableRow(item, columns, index)).join('');
+        }
+        
+        function generateTableRow(item, columns, index) {
+            return `
+                <tr>
+                    ${columns.map(col => {
+                        const value = getNestedValue(item, col.key);
+                        return `<td>${formatCellValue(value, col.type)}</td>`;
+                    }).join('')}
+                </tr>
+            `;
+        }
+        
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((current, key) => {
+                return current && current[key] !== undefined ? current[key] : null;
+            }, obj);
+        }
+        
+        function formatCellValue(value, type) {
+            if (value === null || value === undefined) {
+                return '<span style="color: #999; font-style: italic;">null</span>';
+            }
+            
+            switch (type) {
+                case 'string':
+                    return value.length > 100 ? 
+                        `<span title="${value}">${value.substring(0, 100)}...</span>` : 
+                        value;
+                case 'number':
+                    return typeof value === 'number' ? value.toLocaleString() : value;
+                case 'boolean':
+                    return `<span style="color: ${value ? '#2e7d32' : '#c62828'}">${value ? '✓' : '✗'}</span>`;
+                case 'object':
+                case 'array':
+                    return `<div class="json-preview">${JSON.stringify(value, null, 2)}</div>`;
+                default:
+                    return value;
+            }
+        }
+        
+        function exportToCSV() {
+            const headers = columns.map(col => col.key).join(',');
+            const rows = filteredData.map(item => 
+                columns.map(col => {
+                    const value = getNestedValue(item, col.key);
+                    return value !== null && value !== undefined ? 
+                        `"${value.toString().replace(/"/g, '""')}"` : '';
+                }).join(',')
+            ).join('\n');
+            
+            const csv = `${headers}\n${rows}`;
+            downloadFile(csv, 'data.csv', 'text/csv');
+        }
+        
+        function exportToJSON() {
+            const json = JSON.stringify(filteredData, null, 2);
+            downloadFile(json, 'data.json', 'application/json');
+        }
+        
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

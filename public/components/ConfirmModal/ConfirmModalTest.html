@@ -1,0 +1,58 @@
+<!--
+  CONFIRMMODALTEST.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ConfirmModal Test</title>
+  <link rel="stylesheet" href="./ConfirmModal/ConfirmModal.css">
+  <style>
+    body { font-family: Arial, sans-serif; background: #181a20; color: #fff; margin: 0; padding: 40px; }
+    #test-list { max-width: 400px; margin: 40px auto; background: #23263a; border-radius: 10px; padding: 24px; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #333; }
+    li:last-child { border-bottom: none; }
+    .remove-btn { background: #e53e3e; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; cursor: pointer; font-size: 14px; }
+    .remove-btn:hover { background: #c53030; }
+  </style>
+</head>
+<body>
+  <h2>ConfirmModal Standalone Test</h2>
+  <div id="test-list">
+    <ul id="item-list">
+      <li id="item-1">Test Item 1 <button class="remove-btn" onclick="removeItem('item-1')">Remove</button></li>
+      <li id="item-2">Test Item 2 <button class="remove-btn" onclick="removeItem('item-2')">Remove</button></li>
+      <li id="item-3">Test Item 3 <button class="remove-btn" onclick="removeItem('item-3')">Remove</button></li>
+    </ul>
+  </div>
+
+  <script src="./ConfirmModal/ConfirmModal.js"></script>
+  <script>
+    async function removeItem(itemId) {
+      await window.ConfirmModal.init();
+      window.ConfirmModal.open({
+        message: "Are you sure you want to remove this item?",
+        onConfirm: () => {
+          const el = document.getElementById(itemId);
+          if (el) el.remove();
+        },
+        onCancel: () => {
+          // No action needed
+        }
+      });
+    }
+  </script>
+</body>
+</html> 

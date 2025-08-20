@@ -1,0 +1,1339 @@
+/*
+  CLEANED_STYLES.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    color: #000 !important;
+}
+
+#chat-container {
+    position: relative;
+    width: 98%;
+    height: 95vh;
+    border: 1px solid #a9a3a3;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+#top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    background: #d5e4f6;
+    height: 45px;
+}
+
+#model-select,
+#voice-select {
+    padding: 5px;
+    font-size: 16px;
+}
+
+#mode-toggle {
+    display: flex;
+    align-items: center;
+}
+
+#mode-toggle label {
+    margin-right: 10px;
+    font-weight: 700;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#bottom-bar {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    height: 50px;
+    align-items: center;
+}
+
+#status-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    max-width: 50vw;
+    height: 100%;
+}
+
+status {
+    color: #0451f8;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    line-height: 1.2;
+    font-size: 2.3vh;
+    white-space: pre-wrap;
+    text-align: left;
+    margin: 5px 0;
+}
+
+#conversation-status {
+    color: #666;
+    font-style: italic;
+    padding-left: 20px;
+    border-left: 2px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 1.9vh;
+    font-weight: 400;
+    max-width: 65%;
+}
+
+#input-container {
+    display: flex;
+    align-items: center;
+    background-color: #f5f5f5;
+    padding: 0px 5px 0px 20px;
+    border-radius: 8px;
+    width: 35vw;
+    height: 6.5vh;
+    margin-left: 200px;
+}
+
+#send-button,
+#mic-button {
+    padding: 5px 10px;
+    margin-left: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 32px;
+    line-height: 22px;
+    font-size: 14px;
+}
+
+#send-button:hover,
+#mic-button:hover {
+    background-color: #0056b3;
+}
+
+#image-upload-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    height: 40px;
+    width: 40px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#stop-audio-button {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 99999;
+    padding: 5px 10px;
+    margin-left: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: none;
+    width: 110px;
+    height: 32px;
+}
+
+button {
+    padding: 4px 8px 4px 8px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+.message {
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin: 2px 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.user {
+    background-color: #007bff3b;
+    align-self: flex-end;
+    margin-left: auto;
+    border: 1px solid #bbdefb;
+}
+
+.assistant {
+    background-color: #f0f0f0;
+    align-self: flex-start;
+    width: max-content;
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.message.assistant .message-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Special handling for recipes and multi-paragraph content */
+.message.assistant:has(.recipe-content),
+.message.assistant:has(br),
+.message.assistant .message-content:has(br) {
+    width: 80%;
+}
+
+/* Base metadata style for all responses */
+.metadata {
+    font-size: 0.8em;
+    color: #666;
+}
+
+/* Style for regular responses (with border/padding/margin) */
+.message.assistant .metadata {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 6px;
+}
+
+/* Style for special bubbles (greeting/exit) */
+.system-bubble .metadata {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.time-date-bubble {
+    font-style: italic;
+    color: #888;
+    text-align: center;
+    margin: 10px 0;
+    font-size: 1.7vh;
+}
+
+.greeting-bubble .metadata,
+.exit-bubble .metadata {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.model-info {
+    font-weight: bold;
+    display: block;
+}
+
+.message.assistant[data-model="system"] .metadata {
+    border-bottom: none;
+}
+
+.message.assistant[data-model="system"] .model-info {
+    font-weight: normal;
+    font-style: italic;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    padding: 10px 15px;
+    border-radius: 15px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.message-text:has(br),
+.message-text:has(p) {
+    padding: 0;
+}
+
+.response-time {
+    font-style: italic;
+    color: #888;
+}
+
+#stop-audio-button:hover {
+    background-color: #c82333;
+}
+
+.message.exit {
+    align-self: center;
+    font-style: italic;
+    color: #777;
+    margin: 10px 0;
+    padding: 5px 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    background: #f0f0f0;
+    height: 40px;
+    position: relative;
+    z-index: 10;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-left: 0;
+    padding: 0 10px;
+}
+
+#send-button,
+#mic-button {
+    padding: 5px 10px;
+    margin-left: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    height: 40px;
+}
+
+#send-button:hover,
+#mic-button:hover {
+    background-color: #0056b3;
+}
+
+#image-upload-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    height: 40px;
+    width: 40px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#stop-audio-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 5px 10px;
+    margin-left: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: none;
+}
+
+#stop-audio-button:hover {
+    background-color: #c82333;
+}
+
+.metadata-label {
+    font-weight: bold;
+}
+
+.metadata-value {
+    color: #555;
+}
+
+#processing-indicator {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+}
+
+#image-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.search-result-image {
+    width: 100%;
+    height: auto;
+    cursor: pointer;
+}
+
+.image-section {
+    margin-bottom: 20px;
+}
+
+.image-heading {
+    margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+}
+
+.image-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.image-container a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.image-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.image-link:hover {
+    transform: translateY(-5px);
+}
+
+.image-container a:hover {
+    transform: scale(1.05);
+}
+
+.image-container img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.image-container p {
+    padding: 10px;
+    margin: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+}
+
+#image-results img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.message.assistant .message-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+    padding: 10px 15px;
+    border-radius: 15px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.message-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    padding: 10px 15px;
+    border-radius: 15px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.message.assistant {
+    width: auto;
+}
+
+.message.assistant p {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+.message.assistant .message-content {
+    padding: 10px 15px;
+}
+
+@media (max-width: 768px) {
+    .input-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #user-input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    #send-button,
+    #mic-button {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .message-content {
+        max-width: 100%;
+        padding: 5px;
+    }
+}
+
+.message.assistant:has(.message-content > p:nth-child(2)),
+.message.assistant:has(.message-content > div:nth-child(2)) {
+    width: 80%;
+}
+
+.icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #555;
+    padding: 5px;
+}
+
+.image-upload-icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    color: #007bff;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-button:hover {
+    color: #000;
+}
+
+.image-preview-container {
+    position: relative;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.image-preview-container img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 4px;
+}
+
+.message.user .image-preview-container {
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+#selected-image {
+    max-width: 100px;
+    max-height: 100px;
+    margin-right: 10px;
+    border-radius: 4px;
+}
+
+#image-preview-container {
+    position: relative;
+    display: none;
+    margin-right: 10px;
+    background-color: #f0f0f0;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+#image-upload-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+#image-upload-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    color: #007bff;
+    margin-right: 10px;
+}
+
+#image-preview-container {
+    position: relative;
+    margin-right: 10px;
+}
+
+#selected-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.upload-btn {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#image-preview {
+    margin-top: 10px;
+    position: relative;
+}
+
+#remove-image {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+}
+
+#preview-image {
+    max-width: 100px;
+    border-radius: 5px;
+}
+
+.uploaded-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.message.user .message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.message.assistant .message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.image-results-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.image-result {
+    position: relative;
+}
+
+.image-result img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.image-result img:hover {
+    transform: scale(1.05);
+}
+
+.ai-message-bubble {
+    background-color: #f1f0f0;
+    border-radius: 15px;
+    padding: 10px 15px;
+    max-width: 70%;
+    word-wrap: break-word;
+    align-self: flex-start;
+}
+
+.ai-message-container {
+    display: flex;
+    justify-content: flex-start;
+    margin: 5px 0;
+}
+
+.message.assistant-mock {
+    background-color: #f0f0f0;
+    align-self: flex-start;
+    width: max-content;
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.conversation-mode-checkbox {
+    margin-right: 15px;
+    font-size: 1.8vh;
+}
+
+@media screen and (min-width: 1200px) {
+    .message-bubble.ai {
+        font-size: 16px;
+        padding: 12px 18px;
+    }
+}
+
+.greeting-bubble {
+    background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+    align-self: center;
+}
+
+.exit-bubble {
+    background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+    align-self: center;
+    color: #ad1457;
+}
+
+.greeting-bubble .metadata,
+.exit-bubble .metadata {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.analysis-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.analysis-popup {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 90%;
+    max-height: 90%;
+    overflow: auto;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.analysis-popup-image, .popup-image {
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+    margin: 0 auto;
+    border-radius: 4px;
+}
+
+.analysis-preview-image:hover {
+    cursor: zoom-in;
+    outline: 2px solid #007bff;
+}
+
+.fixed-size-popup {
+    width: 80vw;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.popup-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
+}
+
+.popup-close-button:hover {
+    background-color: #cc0000;
+}
+
+.popup-image-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.popup-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.analysis-preview-image {
+    cursor: pointer;
+}
+
+.analysis-preview-image:hover {
+    opacity: 0.8;
+}
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.search-results h1 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.search-results h2 {
+    font-size: 1.2em;
+    margin-top: 1em;
+}
+
+.search-results hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 1em 0;
+}
+
+.metadata-separator {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+.message.assistant .metadata-separator {
+    display: none;
+}
+
+.message.greeting .metadata,
+.message.exit .metadata {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.message.user .metadata-separator,
+.message.user .response-time {
+    display: none;
+}
+
+.message.search-results {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+}
+
+.message.search-results .message-content {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.message.search-results .message-content p {
+    margin-bottom: 1em;
+    line-height: 1.6;
+}
+
+.message.search-results .message-content ol {
+    padding-left: 20px;
+}
+
+.message.search-results .message-content li {
+    margin-bottom: 0.5em;
+}
+
+.message.search-results a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.message.search-results a:hover {
+    text-decoration: underline;
+}
+
+.message.search-results .message-content strong {
+    font-weight: bold;
+    color: #343a40;
+}
+
+.message.search-results hr {
+    border: none;
+    border-top: 1px solid #ced4da;
+    margin: 1.5em 0;
+}
+
+#input-container button,
+#mic-button,
+#send-button {
+    height: 40px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#input-container button:hover,
+#mic-button:hover,
+#send-button:hover {
+    opacity: 0.9;
+}
+
+.search-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.metadata-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.metadata-item::before {
+    content: '•';
+    margin-right: 5px;
+    color: #007bff;
+}
+
+.related-links {
+    margin-top: 1em;
+    border-top: 1px solid #eee;
+    padding-top: 1em;
+}
+
+.link-item {
+    margin-bottom: 0.5em;
+}
+
+.link-item a {
+    color: #0056b3;
+    font-weight: 500;
+}
+
+.link-item a:hover {
+    text-decoration: underline;
+}
+
+/* =================================== */
+/* --- NEW CSS --- */
+/* =================================== */
+.message.assistant {
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: #f0f0f0;
+    align-self: flex-start;
+}
+
+.message.assistant .message-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message.assistant:has(p + p),
+.message.assistant:has(.recipe-content) {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message.assistant:has(p + p) .message-content,
+.message.assistant:has(.recipe-content) .message-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message.assistant:has(p + p) .message-text,
+.message.assistant:has(.recipe-content) .message-text {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+    padding: 10px 15px;
+    border-radius: 15px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.metadata:empty {
+    display: none;
+}
+
+.system-bubble .metadata {
+    border-bottom: none;
+}
+
+.message {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.user .message-content {
+    align-items: flex-end;
+}
+
+.assistant .message-content {
+    align-items: flex-start;
+}
+
+.message.assistant .message-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.6;
+    padding: 10px 15px;
+    border-radius: 15px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+/* =================================== */
+/* --- RECIPE STYLES --- */
+/* =================================== */
+
+/* The main container for the entire recipe block */
+.recipe-container {
+    display: block;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+
+/* The main title of the recipe */
+.recipe-title {
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+    text-transform: none !important;
+}
+
+/* The short description under the title */
+.recipe-description {
+    display: block;
+    font-style: italic;
+    margin-bottom: 1.5em;
+    color: #666;
+}
+
+/* Section headings (Ingredients, Instructions) */
+.recipe-section-heading {
+    display: block;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 1em 0 0.5em 0;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.3em;
+}
+
+/* Container for ingredients list */
+.recipe-ingredients-container {
+    display: block;
+    margin: 1em 0;
+}
+
+/* The ingredients list itself */
+.recipe-ingredients-list {
+    display: block;
+    list-style-type: disc;
+    margin-left: 1.5em;
+    padding: 0;
+}
+
+/* Individual ingredient items */
+.recipe-ingredient-item {
+    display: list-item;
+    margin-bottom: 0.5em;
+    line-height: 1.4;
+}
+
+/* Container for instructions list */
+.recipe-instructions-container {
+    display: block;
+    margin: 1em 0;
+}
+
+/* The instructions list itself */
+.recipe-instructions-list {
+    display: block;
+    list-style-type: decimal;
+    margin-left: 1.5em;
+    padding: 0;
+}
+
+/* Individual instruction items */
+.recipe-instruction-item {
+    display: list-item;
+    margin-bottom: 0.8em;
+    line-height: 1.5;
+}
+
+/* Print icon styling */
+.print-icon-topright {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.print-icon-topright:hover {
+    background: #0056b3;
+}
+
+/* Recipe container styling */
+.recipe-container {
+    position: relative;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+}
+
+.recipe-title {
+    color: #333;
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+.recipe-description {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+.recipe-section {
+    margin: 20px 0;
+}
+
+.recipe-section-title {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.recipe-ingredients {
+    margin: 15px 0;
+}
+
+.recipe-ingredient {
+    margin: 5px 0;
+    padding: 5px 0;
+}
+
+.recipe-instructions {
+    margin: 15px 0;
+}
+
+.recipe-instruction {
+    margin: 10px 0;
+    padding: 5px 0;
+    line-height: 1.6;
+}
+
+.message-content .recipe-container {
+    max-width: 100%;
+    margin: 10px 0;
+}
+
+/* Recipe styling for message content */
+.recipe-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.recipe-ingredients, .recipe-instructions {
+    margin: 15px 0;
+}
+
+.recipe-container {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+    position: relative;
+}
+
+.recipe-title {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.recipe-description {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.recipe-ingredients-container {
+    margin: 20px 0;
+}
+
+.recipe-instructions-container {
+    margin: 20px 0;
+}
+
+.recipe-ingredients-heading,
+.recipe-instructions-heading {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+
+.recipe-ingredients-items {
+    list-style-type: disc;
+    margin-left: 20px;
+    padding: 0;
+}
+
+.recipe-instructions-items {
+    list-style-type: decimal;
+    margin-left: 20px;
+    padding: 0;
+}
+
+.recipe-ingredient-item {
+    margin: 8px 0;
+    line-height: 1.4;
+}
+
+.recipe-instruction-item {
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.recipe-enjoy-text {
+    font-style: italic;
+    color: #666;
+    text-align: center;
+    margin-top: 20px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+} 

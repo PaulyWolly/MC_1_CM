@@ -1,0 +1,140 @@
+<!--
+  AMPLIFYMANAGER.HTML
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+  Created by Paul Welby
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmplifyManager Component</title>
+    <link rel="stylesheet" href="AmplifyManager.css">
+</head>
+<body>
+    <div id="amplify-manager-demo">
+        <h1>AmplifyManager Component Demo</h1>
+        <p>This is a standalone audio amplification component for video players.</p>
+        
+        <!-- Demo container for testing -->
+        <div id="demo-container" style="position: relative; width: 800px; height: 600px; background: #333; margin: 20px auto;">
+            <div id="video-player-container" class="video-player-container">
+                <!-- Video player would go here -->
+                <div style="color: white; text-align: center; padding-top: 250px;">
+                    Video Player Container (Demo)
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin: 20px; text-align: center;">
+            <button onclick="testAmplifyManager()">Test AmplifyManager</button>
+            <button onclick="destroyAmplifyManager()">Destroy AmplifyManager</button>
+        </div>
+        
+        <div id="demo-info" style="margin: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <h3>Component Features:</h3>
+            <ul>
+                <li>🔊 AMPLIFY button (grey by default, turns red when active)</li>
+                <li>🎚️ Slider with gradient colors (green → orange → red)</li>
+                <li>💡 LED indicator (always visible, shows amplification status)</li>
+                <li>📊 Percentage display showing current amplification level</li>
+                <li>🎵 Web Audio API integration for real audio processing</li>
+                <li>🔄 Automatic reset when loading new videos</li>
+                <li>📱 Responsive design for mobile devices</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { AmplifyManager } from './AmplifyManager.js';
+        
+        let amplifyManager = null;
+        
+        // Mock video player for demo
+        const mockVideoPlayer = {
+            on: (event, callback) => {
+                console.log(`[DEMO] Mock video player listening for: ${event}`);
+            },
+            off: (event) => {
+                console.log(`[DEMO] Mock video player stopped listening for: ${event}`);
+            },
+            el: () => ({
+                querySelector: (selector) => {
+                    if (selector === 'video') {
+                        return document.createElement('video');
+                    }
+                    return null;
+                }
+            })
+        };
+        
+        function testAmplifyManager() {
+            if (amplifyManager) {
+                console.log('[DEMO] AmplifyManager already exists');
+                return;
+            }
+            
+            const container = document.getElementById('video-player-container');
+            if (!container) {
+                console.error('[DEMO] Video player container not found');
+                return;
+            }
+            
+            try {
+                amplifyManager = new AmplifyManager(container, mockVideoPlayer);
+                console.log('[DEMO] AmplifyManager created successfully');
+                
+                // Update demo info
+                document.getElementById('demo-info').innerHTML = `
+                    <h3>✅ AmplifyManager Active!</h3>
+                    <p>Click the 🔊 AMPLIFY button to test the audio amplification feature.</p>
+                    <ul>
+                        <li>🔊 AMPLIFY button (grey by default, turns red when active)</li>
+                        <li>🎚️ Slider with gradient colors (green → orange → red)</li>
+                        <li>💡 LED indicator (always visible, shows amplification status)</li>
+                        <li>📊 Percentage display showing current amplification level</li>
+                        <li>🎵 Web Audio API integration for real audio processing</li>
+                        <li>🔄 Automatic reset when loading new videos</li>
+                        <li>📱 Responsive design for mobile devices</li>
+                    </ul>
+                `;
+            } catch (error) {
+                console.error('[DEMO] Failed to create AmplifyManager:', error);
+            }
+        }
+        
+        function destroyAmplifyManager() {
+            if (amplifyManager) {
+                amplifyManager.destroy();
+                amplifyManager = null;
+                console.log('[DEMO] AmplifyManager destroyed');
+                
+                // Reset demo info
+                document.getElementById('demo-info').innerHTML = `
+                    <h3>Component Features:</h3>
+                    <ul>
+                        <li>🔊 AMPLIFY button (grey by default, turns red when active)</li>
+                        <li>🎚️ Slider with gradient colors (green → orange → red)</li>
+                        <li>💡 LED indicator (always visible, shows amplification status)</li>
+                        <li>📊 Percentage display showing current amplification level</li>
+                        <li>🎵 Web Audio API integration for real audio processing</li>
+                        <li>🔄 Automatic reset when loading new videos</li>
+                        <li>📱 Responsive design for mobile devices</li>
+                    </ul>
+                `;
+            } else {
+                console.log('[DEMO] No AmplifyManager to destroy');
+            }
+        }
+        
+        // Make functions globally available
+        window.testAmplifyManager = testAmplifyManager;
+        window.destroyAmplifyManager = destroyAmplifyManager;
+        
+        console.log('[DEMO] AmplifyManager demo page loaded');
+    </script>
+</body>
+</html>

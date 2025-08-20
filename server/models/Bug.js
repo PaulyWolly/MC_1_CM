@@ -1,0 +1,33 @@
+/*
+  BUG.JS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+const mongoose = require('mongoose');
+
+const commentSchema = new mongoose.Schema({
+  author: String,
+  message: String,
+  date: { type: Date, default: Date.now }
+});
+
+const bugSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  submittedBy: { type: String, required: true }, // user email or id
+  created: { type: Date, default: Date.now },
+  severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Low' },
+  status: { type: String, enum: ['Open', 'In Progress', 'Fixed', 'Closed'], default: 'Open' },
+  comments: [commentSchema]
+});
+
+module.exports = mongoose.model('Bug', bugSchema); 

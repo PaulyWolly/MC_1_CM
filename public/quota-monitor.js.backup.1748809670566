@@ -1,0 +1,712 @@
+// === YOUTUBE QUOTA MONITORING SYSTEM ===
+
+const QuotaMonitor = {
+    // YouTube API quota settings (adjust based on your plan)
+    dailyLimit: 10000, // Standard free tier daily quota
+    warningThresholds: {
+        yellow: 0.7,   // 70% - Show warning
+        orange: 0.85,  // 85% - Show caution  
+        red: 0.95      // 95% - Show critical warning
+    },
+    
+    // Initialize quota monitoring
+    init() {
+        console.log('🎯 [QUOTA] Initializing YouTube API quota monitoring');
+        this.checkDailyReset();
+        this.displayQuotaStatus();
+        this.injectCSS();
+        
+        // Check if dashboard should start minimized
+        const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+        if (isMinimized) {
+            console.log('🎯 [QUOTA] Starting in minimized state');
+        }
+        
+        this.addQuotaDashboard();
+    },
+    
+    // Inject CSS styles for dashboard states
+    injectCSS() {
+        if (document.getElementById('quota-dashboard-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'quota-dashboard-styles';
+        style.textContent = `
+            .quota-dashboard {
+                position: fixed;
+                background: rgba(0,0,0,0.9);
+                color: white;
+                border-radius: 8px;
+                font-size: 12px;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                cursor: move;
+                user-select: none;
+                border: 2px solid rgba(255,255,255,0.1);
+                transition: box-shadow 0.2s ease, transform 0.2s ease;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                will-change: transform; /* Optimize for animations */
+            }
+
+            .quota-toggle-cache-mode-btn {
+                background:rgb(27, 156, 20);
+                width: 100%;
+                font-size: 12px;
+            }
+
+            .quota-reset-counter-btn {
+                background: #2196f3;
+                width: 100%;
+                font-size: 12px;
+            }
+            /* SMOOTH DRAG ENHANCEMENTS */
+            .quota-dashboard.dragging {
+                cursor: grabbing !important;
+                transition: none !important; /* Remove transitions during drag for smoothness */
+                will-change: transform, left, top; /* Optimize for drag performance */
+            }
+            
+            .quota-dashboard:hover {
+                box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            }
+            
+            .quota-dashboard:active {
+                cursor: grabbing;
+            }
+            
+            .minimized-dashboard {
+                height: 24px;
+                width: 15px;
+                padding: 8px 12px;
+                border-radius: 6px;
+                border: 1px solid rgba(255,255,255,0.1);
+                min-width: 150px;
+                max-width: 150px;
+                cursor: default;
+            }
+            
+            /* Default positioning for minimized (only when not custom positioned) */
+            .minimized-dashboard:not(.custom-position) {
+                bottom: 37px;
+                left: 43%;
+                transform: translateX(-50%);
+            }
+            
+            .restored-dashboard {
+                height: 150px;
+                width: 240px;
+                padding: 12px;
+                min-width: 240px;
+                max-width: 240px;
+                cursor: grab; /* Indicate draggable */
+            }
+            
+            .restored-dashboard:active {
+                cursor: grabbing;
+            }
+            
+            /* Default positioning for restored (only when not custom positioned) */
+            .restored-dashboard:not(.custom-position) {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .restored-dashboard.custom-position {
+                /* When dragged, override ALL positioning and transforms */
+                top: auto;
+                right: auto;
+                bottom: auto;
+                left: auto;
+                transform: none;
+            }
+            
+            .minimized-dashboard.custom-position {
+                /* Allow minimized dashboard to be repositioned if needed */
+                bottom: auto;
+                left: auto;
+                transform: none;
+            }
+            
+            .quota-minimize-restore-btn {
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                padding: 3px 2px;
+                border: none;
+                border-radius: 3px;
+                font-size: 11px;
+                cursor: pointer;
+                color: white;
+                line-height: 1;
+                font-weight: bold;
+                z-index: 1;
+                transition: opacity 0.2s ease, transform 0.2s ease;
+            }
+            
+            .quota-minimize-btn {
+                background: #ff9800;
+            }
+            
+            .quota-restore-btn {
+                background: #2196f3;
+            }
+            
+            .quota-minimize-restore-btn:hover {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+            
+            .quota-content-minimized {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                height: 24px;
+                line-height: 24px;
+                padding-right: 35px;
+            }
+            
+            .quota-content-restored {
+                height: 116px;
+                padding-right: 35px;
+                padding-top: 14px;
+                cursor: grab; /* Entire content area is draggable */
+            }
+            
+            .quota-content-restored:active {
+                cursor: grabbing;
+            }
+            
+            .quota-drag-handle {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                color: rgba(255,255,255,0.5);
+                font-size: 10px;
+                line-height: 8px;
+                cursor: grab;
+                padding: 2px;
+                pointer-events: auto;
+                transition: color 0.2s ease;
+            }
+            
+            .quota-drag-handle:hover {
+                color: rgba(255,255,255,0.8);
+            }
+            
+            .quota-drag-handle:active {
+                cursor: grabbing;
+            }
+            
+            /* Hide drag handle on minimized dashboard since it stays in footer */
+            .minimized-dashboard .quota-drag-handle {
+                display: none;
+            }
+            
+            /* Show drag handle only on restored dashboard */
+            .restored-dashboard .quota-drag-handle {
+                display: block;
+            }
+            
+            /* Disable dragging on minimized dashboard */
+            .minimized-dashboard {
+                pointer-events: auto;
+            }
+            
+            .minimized-dashboard * {
+                pointer-events: auto;
+            }
+            
+            /* PERFORMANCE OPTIMIZATIONS for smooth dragging */
+            .quota-dashboard.dragging * {
+                pointer-events: none; /* Prevent interference during drag */
+            }
+            
+            .quota-dashboard.dragging .quota-minimize-restore-btn {
+                pointer-events: auto; /* But allow buttons to work */
+            }
+        `;
+        document.head.appendChild(style);
+    },
+    
+    // Check if we need to reset daily counter
+    checkDailyReset() {
+        const today = new Date().toDateString();
+        const lastReset = localStorage.getItem('youtube_quota_last_reset');
+        
+        if (lastReset !== today) {
+            console.log('🔄 [QUOTA] New day detected - resetting daily counter');
+            localStorage.setItem('youtube_quota_daily_count', '0');
+            localStorage.setItem('youtube_quota_last_reset', today);
+            this.showToast('🔄 Daily YouTube quota counter reset', 'info');
+        }
+    },
+    
+    // Get current quota usage
+    getCurrentUsage() {
+        const dailyCount = parseInt(localStorage.getItem('youtube_quota_daily_count') || '0');
+        const percentage = (dailyCount / this.dailyLimit) * 100;
+        const remaining = this.dailyLimit - dailyCount;
+        
+        return {
+            used: dailyCount,
+            remaining: remaining,
+            percentage: percentage,
+            limit: this.dailyLimit
+        };
+    },
+    
+    // Increment quota counter when API call is made
+    incrementUsage() {
+        const current = this.getCurrentUsage();
+        const newCount = current.used + 1;
+        
+        localStorage.setItem('youtube_quota_daily_count', newCount.toString());
+        console.log(`📊 [QUOTA] API call made: ${newCount}/${this.dailyLimit} (${((newCount/this.dailyLimit)*100).toFixed(1)}%)`);
+        
+        this.checkThresholds(newCount);
+        
+        // Throttle dashboard updates to prevent interference with dragging
+        clearTimeout(this.updateTimeout);
+        this.updateTimeout = setTimeout(() => {
+            this.updateQuotaDashboard();
+        }, 100);
+        
+        return this.getCurrentUsage();
+    },
+    
+    // Check if we've hit warning thresholds
+    checkThresholds(currentCount) {
+        const percentage = currentCount / this.dailyLimit;
+        const remaining = this.dailyLimit - currentCount;
+        
+        if (percentage >= this.warningThresholds.red) {
+            this.showCriticalWarning(remaining);
+        } else if (percentage >= this.warningThresholds.orange) {
+            this.showCautionWarning(remaining);
+        } else if (percentage >= this.warningThresholds.yellow) {
+            this.showWarning(remaining);
+        }
+    },
+    
+    // Show different warning levels
+    showWarning(remaining) {
+        this.showToast(`🟡 YouTube API Warning: ${remaining} calls remaining today (70% used)`, 'warning', 8000);
+    },
+    
+    showCautionWarning(remaining) {
+        this.showToast(`🟠 YouTube API Caution: Only ${remaining} calls left today (85% used)`, 'error', 10000);
+    },
+    
+    showCriticalWarning(remaining) {
+        this.showToast(`🔴 CRITICAL: Only ${remaining} YouTube API calls remaining today! Consider cache-only mode.`, 'error', 15000);
+        
+        // Auto-enable cache-only mode if very close to limit
+        if (remaining <= 5) {
+            this.enableCacheOnlyMode();
+        }
+    },
+    
+    // Enable cache-only mode
+    enableCacheOnlyMode() {
+        console.log('🔒 [QUOTA] Enabling cache-only mode to preserve remaining quota');
+        localStorage.setItem('youtube_cache_only_mode', 'true');
+        this.showToast('🔒 Cache-only mode enabled to preserve quota. Only cached results will be shown.', 'info', 10000);
+        this.updateQuotaDashboard();
+    },
+    
+    // Disable cache-only mode
+    disableCacheOnlyMode() {
+        console.log('🔓 [QUOTA] Disabling cache-only mode');
+        localStorage.removeItem('youtube_cache_only_mode');
+        this.showToast('🔓 Cache-only mode disabled. API calls re-enabled.', 'success');
+        this.updateQuotaDashboard();
+    },
+    
+    // Check if cache-only mode is active
+    isCacheOnlyMode() {
+        return localStorage.getItem('youtube_cache_only_mode') === 'true';
+    },
+    
+    // Display current quota status
+    displayQuotaStatus() {
+        const usage = this.getCurrentUsage();
+        console.log(`📊 [QUOTA] Current usage: ${usage.used}/${usage.limit} (${usage.percentage.toFixed(1)}%) - ${usage.remaining} remaining`);
+        
+        if (this.isCacheOnlyMode()) {
+            console.log('🔒 [QUOTA] Cache-only mode is active');
+        }
+    },
+    
+    // Add quota dashboard to UI
+    addQuotaDashboard() {
+        // Check if dashboard already exists
+        if (document.getElementById('quota-dashboard')) return;
+        
+        const dashboard = document.createElement('div');
+        dashboard.id = 'quota-dashboard';
+        dashboard.className = 'quota-dashboard';
+        dashboard.innerHTML = this.getQuotaDashboardHTML();
+        
+        // Apply state-specific class
+        this.applyDashboardClass(dashboard);
+        
+        document.body.appendChild(dashboard);
+        this.attachDashboardEvents(dashboard);
+        this.makeDraggable(dashboard);
+    },
+    
+    // Apply appropriate CSS class based on minimized state
+    applyDashboardClass(dashboard) {
+        const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+        
+        // Remove existing state classes
+        dashboard.classList.remove('minimized-dashboard', 'restored-dashboard');
+        
+        // Add appropriate state class
+        if (isMinimized) {
+            dashboard.classList.add('minimized-dashboard');
+        } else {
+            dashboard.classList.add('restored-dashboard');
+        }
+    },
+    
+    // Get quota dashboard HTML
+    getQuotaDashboardHTML() {
+        const usage = this.getCurrentUsage();
+        const cacheOnlyMode = this.isCacheOnlyMode();
+        const progressColor = this.getProgressColor(usage.percentage);
+        const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+        
+        if (isMinimized) {
+            // Minimized view - single line with essential info
+            return `
+                <button id="quota-restore-btn" class="quota-minimize-restore-btn quota-restore-btn" title="Restore dashboard">[ ○ ]</button>
+                <div class="quota-content-minimized">
+                    <span style="font-weight: bold;">📊</span>
+                    <span style="font-size: 11px;">${usage.used}/${usage.limit}</span>
+                    <span style="color: ${progressColor}; font-weight: bold;">${usage.percentage.toFixed(0)}%</span>
+                    ${cacheOnlyMode ? '<span style="color: #f44336;">🔒</span>' : ''}
+                </div>
+            `;
+        } else {
+            // Full view - complete dashboard
+            return `
+                <button id="quota-minimize-btn" class="quota-minimize-restore-btn quota-minimize-btn" title="Minimize dashboard">[ − ]</button>
+                <div class="quota-content-restored">
+                    <div style="font-weight: bold; margin-bottom: 12px; font-size: 13px;">📊 YouTube API Quota</div>
+                    
+                    <div style="margin-bottom: 8px; line-height: 1.3;">
+                        <div>${usage.used}/${usage.limit} calls</div>
+                        <div style="color: ${progressColor}; font-weight: bold;">${usage.percentage.toFixed(1)}% used</div>
+                        <div>${usage.remaining} remaining</div>
+                    </div>
+                    
+                    <div style="background: #333; height: 6px; border-radius: 3px; margin: 8px 0; overflow: hidden;">
+                        <div style="width: ${Math.min(usage.percentage, 100)}%; height: 100%; background-color: ${progressColor}; transition: width 0.3s ease;"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 6px; margin-top: 8px;">
+                        <button class="quota-toggle-cache-mode-btn" id="quota-toggle-cache-mode" style="flex: 1; padding: 6px 8px; border: none; border-radius: 4px; font-size: 10px; cursor: pointer; background: ${cacheOnlyMode ? '#f44336' : '#4caf50'}; color: white;">
+                            ${cacheOnlyMode ? '🔒 Cache-Only ON' : '🔓 Cache-Only OFF'}
+                        </button>
+                        <button class="quota-reset-counter-btn" id="quota-reset-counter" style="flex: 1; padding: 6px 8px; border: none; border-radius: 4px; font-size: 10px; cursor: pointer; background: #2196f3; color: white;">
+                            🔄 Reset
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    },
+    
+    // Get color based on usage percentage
+    getProgressColor(percentage) {
+        if (percentage >= 95) return '#f44336'; // Red
+        if (percentage >= 85) return '#ff9800'; // Orange  
+        if (percentage >= 70) return '#ffeb3b'; // Yellow
+        return '#4caf50'; // Green
+    },
+    
+    // Update quota dashboard
+    updateQuotaDashboard() {
+        const dashboard = document.getElementById('quota-dashboard');
+        if (dashboard) {
+            // Don't update if currently being dragged
+            if (dashboard.classList.contains('dragging')) {
+                console.log('🎯 [QUOTA] Skipping update - dashboard is being dragged');
+                return;
+            }
+            
+            const wasMinimized = dashboard.classList.contains('minimized-dashboard');
+            const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+            
+            // Save current position before updating
+            const currentLeft = dashboard.style.left;
+            const currentTop = dashboard.style.top;
+            const currentBottom = dashboard.style.bottom;
+            const currentRight = dashboard.style.right;
+            
+            // Get the new content
+            const newContent = this.getQuotaDashboardHTML();
+            
+            // Update the entire content safely
+            dashboard.innerHTML = newContent;
+            
+            // Apply appropriate CSS class for current state
+            this.applyDashboardClass(dashboard);
+            
+            // Handle position restoration based on state change
+            if (wasMinimized === isMinimized) {
+                // Same state - restore previous position if custom positioned
+                if (currentLeft && currentTop) {
+                    dashboard.style.left = currentLeft;
+                    dashboard.style.top = currentTop;
+                    dashboard.style.right = 'auto';
+                    dashboard.style.bottom = 'auto';
+                } else if (currentRight && currentBottom && isMinimized) {
+                    dashboard.style.right = currentRight;
+                    dashboard.style.bottom = currentBottom;
+                    dashboard.style.left = 'auto';
+                    dashboard.style.top = 'auto';
+                }
+            } else {
+                // State changed - reset positioning and custom class
+                dashboard.style.left = '';
+                dashboard.style.top = '';
+                dashboard.style.right = '';
+                dashboard.style.bottom = '';
+                dashboard.classList.remove('custom-position');
+                
+                console.log('🎯 [QUOTA] Dashboard state changed to:', isMinimized ? 'minimized' : 'restored');
+            }
+            
+            // Re-attach events and dragging
+            this.attachDashboardEvents(dashboard);
+            this.makeDraggable(dashboard);
+        }
+    },
+    
+    // Attach event handlers to dashboard
+    attachDashboardEvents(dashboard) {
+        const toggleBtn = dashboard.querySelector('#quota-toggle-cache-mode');
+        const resetBtn = dashboard.querySelector('#quota-reset-counter');
+        const minimizeBtn = dashboard.querySelector('#quota-minimize-btn');
+        const restoreBtn = dashboard.querySelector('#quota-restore-btn');
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                if (this.isCacheOnlyMode()) {
+                    this.disableCacheOnlyMode();
+                } else {
+                    this.enableCacheOnlyMode();
+                }
+            });
+        }
+        
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetDailyCounter();
+            });
+        }
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                localStorage.setItem('quota_dashboard_minimized', 'true');
+                this.updateQuotaDashboard();
+            });
+        }
+        
+        if (restoreBtn) {
+            restoreBtn.addEventListener('click', () => {
+                localStorage.removeItem('quota_dashboard_minimized');
+                this.updateQuotaDashboard();
+            });
+        }
+    },
+    
+    // Reset daily counter (admin function)
+    resetDailyCounter() {
+        if (confirm('Reset daily quota counter? This should only be done if you have a new API quota.')) {
+            localStorage.setItem('youtube_quota_daily_count', '0');
+            this.showToast('🔄 Daily quota counter manually reset', 'success');
+            this.updateQuotaDashboard();
+            console.log('🔄 [QUOTA] Daily counter manually reset');
+        }
+    },
+    
+    // Show toast notification
+    showToast(message, type = 'info', duration = 5000) {
+        if (window.showToast) {
+            window.showToast(message, type, duration);
+        } else {
+            console.log(`[QUOTA-TOAST] ${message}`);
+        }
+    },
+    
+    // Check if API call should be blocked
+    shouldBlockAPICall() {
+        if (this.isCacheOnlyMode()) {
+            console.log('🔒 [QUOTA] API call blocked - cache-only mode active');
+            this.showToast('🔒 API call blocked - cache-only mode active. Using cached data only.', 'warning');
+            return true;
+        }
+        
+        const usage = this.getCurrentUsage();
+        if (usage.remaining <= 0) {
+            console.log('🚫 [QUOTA] API call blocked - daily quota exceeded');
+            this.showToast('🚫 Daily YouTube quota exceeded. Please try again tomorrow.', 'error');
+            return true;
+        }
+        
+        return false;
+    },
+    
+    // Make dashboard draggable
+    makeDraggable(dashboard) {
+        // Remove existing event listeners to prevent duplicates
+        dashboard.removeEventListener('mousedown', dashboard._dragStart);
+        document.removeEventListener('mousemove', dashboard._drag);
+        document.removeEventListener('mouseup', dashboard._dragEnd);
+        
+        // Only make draggable if in restored state
+        const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+        if (isMinimized) {
+            console.log('🎯 [QUOTA] Skipping drag setup - dashboard is minimized');
+            return;
+        }
+        
+        // Add drag handle visual indicator if it doesn't exist
+        if (!dashboard.querySelector('.quota-drag-handle')) {
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'quota-drag-handle';
+            dragHandle.innerHTML = '⋮⋮';
+            dashboard.appendChild(dragHandle);
+        }
+        
+        // SMOOTH DRAG IMPLEMENTATION (matching pagination bar pattern)
+        let offsetX = 0, offsetY = 0;
+        
+        dashboard.onmousedown = function(e) {
+            // Prevent dragging if clicking on buttons
+            if (e.target.tagName === 'BUTTON') return;
+            
+            // Only allow dragging on restored dashboard
+            if (dashboard.classList.contains('minimized-dashboard')) return;
+            
+            // Only drag if clicking on dashboard area or drag handle
+            if (e.target === dashboard || e.target.closest('.quota-content-restored') || e.target.classList.contains('quota-drag-handle')) {
+                e.preventDefault();
+                
+                // Calculate offset from mouse to dashboard top-left (ONCE during mousedown)
+                const rect = dashboard.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                
+                // Add visual feedback
+                dashboard.classList.add('dragging');
+                dashboard.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+                dashboard.style.transform = 'scale(1.02)';
+                dashboard.style.zIndex = '10001';
+                
+                console.log('🎯 [QUOTA] Smooth drag started - offset:', offsetX, offsetY);
+                
+                // Local functions for better performance (matching pagination bar pattern)
+                function onMouseMove(e) {
+                    // Direct calculation: mouse position minus the fixed offset
+                    const newLeft = e.clientX - offsetX;
+                    const newTop = e.clientY - offsetY;
+                    
+                    // Constrain to viewport boundaries
+                    const clampedLeft = Math.max(0, Math.min(newLeft, window.innerWidth - dashboard.offsetWidth));
+                    const clampedTop = Math.max(0, Math.min(newTop, window.innerHeight - dashboard.offsetHeight));
+                    
+                    // Apply position directly
+                    dashboard.style.left = clampedLeft + 'px';
+                    dashboard.style.top = clampedTop + 'px';
+                    dashboard.style.right = 'auto';
+                    dashboard.style.bottom = 'auto';
+                    dashboard.style.transform = 'scale(1.02)'; // Keep scale during drag
+                    
+                    // Mark as custom positioned
+                    dashboard.classList.add('custom-position');
+                }
+                
+                function onMouseUp() {
+                    // Remove visual feedback
+                    dashboard.classList.remove('dragging');
+                    dashboard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                    dashboard.style.transform = 'none';
+                    dashboard.style.zIndex = '10000';
+                    
+                    // Save final position
+                    const finalRect = dashboard.getBoundingClientRect();
+                    localStorage.setItem('quota_dashboard_x', finalRect.left.toString());
+                    localStorage.setItem('quota_dashboard_y', finalRect.top.toString());
+                    
+                    console.log('🎯 [QUOTA] Smooth drag ended, position saved:', finalRect.left, finalRect.top);
+                    
+                    // Remove event listeners
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+                
+                // Add event listeners using the local functions
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        };
+        
+        // Restore saved position for restored dashboard
+        this.restoreDashboardPosition(dashboard);
+    },
+    
+    // Restore dashboard position from localStorage
+    restoreDashboardPosition(dashboard) {
+        const isMinimized = localStorage.getItem('quota_dashboard_minimized') === 'true';
+        
+        if (isMinimized) {
+            // Minimized dashboard stays in footer - no position restoration needed
+            console.log('🎯 [QUOTA] Minimized dashboard positioned in footer');
+            return;
+        }
+        
+        // Only restore position for restored dashboard
+        const savedX = localStorage.getItem('quota_dashboard_x');
+        const savedY = localStorage.getItem('quota_dashboard_y');
+        
+        if (savedX !== null && savedY !== null) {
+            const x = parseInt(savedX);
+            const y = parseInt(savedY);
+            
+            // Ensure position is still within viewport (window might have resized)
+            const maxX = window.innerWidth - dashboard.offsetWidth;
+            const maxY = window.innerHeight - dashboard.offsetHeight;
+            
+            const constrainedX = Math.min(Math.max(0, x), maxX);
+            const constrainedY = Math.min(Math.max(0, y), maxY);
+            
+            // Apply custom position
+            dashboard.style.left = constrainedX + 'px';
+            dashboard.style.top = constrainedY + 'px';
+            dashboard.style.right = 'auto';
+            dashboard.style.bottom = 'auto';
+            dashboard.classList.add('custom-position');
+            
+            console.log('🎯 [QUOTA] Restored dashboard position:', constrainedX, constrainedY);
+        } else {
+            // No saved position - use CSS default (top-right)
+            console.log('🎯 [QUOTA] Using default position for restored dashboard');
+        }
+    }
+};
+
+// Initialize quota monitoring when app loads
+if (typeof window !== 'undefined') {
+    window.QuotaMonitor = QuotaMonitor;
+    
+    // Initialize after DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => QuotaMonitor.init());
+    } else {
+        QuotaMonitor.init();
+    }
+} 

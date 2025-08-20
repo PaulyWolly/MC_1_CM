@@ -1,0 +1,45 @@
+<!--
+  LOGINMANAGER.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!-- LoginManager Modal -->
+<div id="login-manager-modal" class="login-manager-modal" style="display:none;">
+  <div class="login-manager-modal-content">
+    <button id="close-login-manager-modal" class="login-manager-modal-close" style="display:none;">&times;</button>
+    <h3 id="login-manager-title">Admin Login</h3>
+    <form id="login-manager-form">
+      <div id="login-manager-message" class="login-manager-message"></div>
+      <div class="login-manager-field">
+        <label for="login-manager-email">Email</label>
+        <input type="email" id="login-manager-email" required autocomplete="username" />
+      </div>
+      <div class="login-manager-field">
+        <label for="login-manager-password">Password</label>
+        <input type="password" id="login-manager-password" required autocomplete="current-password" />
+      </div>
+      <div class="login-manager-field" id="login-manager-confirm-password-field" style="display:none;">
+        <label for="login-manager-confirm-password">Confirm Password</label>
+        <input type="password" id="login-manager-confirm-password" autocomplete="new-password" />
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; justify-content: flex-end; margin-top: 12px;">
+        <button type="submit" id="login-manager-submit" class="login-manager-btn">Login</button>
+        <button type="button" id="login-manager-cancel" class="login-manager-btn" style="background:#888;">Cancel</button>
+      </div>
+    </form>
+    <div class="login-manager-links">
+      <a href="#" id="login-manager-switch-register">Don't have an account? Register</a>
+      <a href="#" id="login-manager-switch-login" style="display:none;">Already have an account? Login</a>
+      <a href="#" id="login-manager-switch-forgot">Forgot password?</a>
+    </div>
+  </div>
+</div> 

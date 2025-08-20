@@ -1,0 +1,515 @@
+/*
+  SCRIPTMANAGER.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* Script Manager Modal Styles */
+.script-manager-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 30000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.script-manager-modal-content {
+    background: #23263a;
+    color: #fff;
+    border-radius: 12px;
+    border: 3px solid red;
+    box-shadow: 0 6px 32px rgba(0, 0, 0, 0.35);
+    width: 90vw;
+    max-width: 1500px;
+    height: 85vh;
+    max-height: 800px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.script-manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #3b4252;
+}
+
+.script-manager-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.script-manager-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.script-manager-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.script-manager-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Categories Sidebar */
+.script-categories {
+    width: 200px;
+    background: #181a20;
+    border-right: 1px solid #3b4252;
+    padding: 16px 0;
+    overflow-y: auto;
+}
+
+.category-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: #cbd5e1;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.category-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.category-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* Scripts Container */
+.scripts-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.scripts-header {
+    margin-bottom: 24px;
+}
+
+.scripts-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.3rem;
+    color: #fff;
+}
+
+.scripts-header p {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.scripts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 16px;
+}
+
+/* Script Cards */
+.script-card {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+    width: 360px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.script-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.script-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.script-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.script-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: .9em;
+}
+
+.script-info h4 {
+    margin: 0 0 4px 0;
+    font-size: .9em;
+    color: #fff;
+    font-weight: 600;
+}
+
+.script-category {
+    font-size: 12px;
+    color: #a0aec0;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.script-card-body {
+    margin-bottom: 16px;
+}
+
+.script-card-body p {
+    margin: 0 0 8px 0;
+    color: #cbd5e1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.script-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #a0aec0;
+}
+
+.script-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.script-run-btn,
+.script-view-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.script-run-btn {
+    background: #48bb78;
+    color: #fff;
+}
+
+.script-run-btn:hover {
+    background: #38a169;
+}
+
+.script-param-btn {
+    background: #059669;
+    margin: 2px;
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.script-param-btn:hover {
+    background: #047857;
+}
+
+.script-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.script-view-btn {
+    background: #4299e1;
+    color: #fff;
+}
+
+.script-view-btn:hover {
+    background: #3182ce;
+}
+
+/* Script Viewer Modal */
+.script-viewer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 31000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.script-viewer-modal-content {
+    background: #1a202c;
+    border-radius: 8px;
+    width: 90vw;
+    max-width: 1000px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.script-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.script-viewer-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.script-viewer-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.script-viewer-body {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+}
+
+.script-viewer-body pre {
+    margin: 0;
+    color: #e2e8f0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Script Log Modal */
+.script-log-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 31000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.script-log-modal-content {
+    background: #1a202c;
+    border-radius: 8px;
+    width: 80vw;
+    max-width: 1300px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.script-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.script-log-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.script-log-scriptname {
+    color: #90cdf4;
+    font-size: 1em;
+    font-weight: 400;
+    margin-left: 8px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.script-log-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.script-log-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 20px;
+}
+
+.script-log {
+    height: 650px;
+    max-height: 75vh;
+    overflow-y: auto;
+    background: #2d3748;
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.log-message {
+    margin-bottom: 4px;
+    padding: 4px 0;
+}
+
+.log-timestamp {
+    color: #a0aec0;
+    font-weight: 500;
+}
+
+.log-info {
+    color: #e2e8f0;
+}
+
+.log-success {
+    color: #48bb78;
+}
+
+.log-error {
+    color: #f56565;
+}
+
+.log-output {
+    color: #90cdf4;
+    background: rgba(144, 205, 244, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+    margin: 4px 0;
+    white-space: pre-wrap;
+}
+
+.log-content {
+    margin: 0;
+    color: #e2e8f0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 3px solid #90cdf4;
+    border-top: 3px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .script-manager-modal-content {
+        width: 95vw;
+        height: 90vh;
+    }
+    
+    .script-manager-body {
+        flex-direction: column;
+    }
+    
+    .script-categories {
+        width: 100%;
+        height: auto;
+        max-height: 120px;
+        border-right: none;
+        border-bottom: 1px solid #3b4252;
+    }
+    
+    .scripts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .script-card-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 1300px) {
+  .scripts-grid {
+    grid-template-columns: repeat(2, minmax(400px, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .scripts-grid {
+    grid-template-columns: 1fr;
+  }
+  .script-card {
+    width: 100%;
+  }
+} 

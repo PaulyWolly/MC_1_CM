@@ -1,0 +1,108 @@
+/*
+  POSTERSELECTOR.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* Watch Later Layout */
+.watch-later-flex-container {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  width: 100%;
+  height: 480px;
+}
+.watch-later-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.watch-later-section-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.watch-later-section-divider {
+  margin: 0 0 12px 0;
+}
+.watch-later-scroll {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 420px;
+}
+.watch-later-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.watch-later-card {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  padding: 8px 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.watch-later-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.watch-later-title {
+  font-size: 1em;
+  margin: 0 0 4px 0;
+  text-align: center;
+}
+.watch-later-btn-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.watch-later-resume-btn, .watch-later-delete-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 1em;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  transition: background 0.2s;
+}
+.watch-later-delete-btn {
+  background: #e53935;
+}
+.watch-later-resume-btn:hover {
+  background: #1251a3;
+}
+.watch-later-delete-btn:hover {
+  background: #b71c1c;
+}
+.watch-later-empty {
+  color: #888;
+  grid-column: 1/-1;
+  text-align: center;
+  margin: 12px 0;
+}
+@media (max-width: 900px) {
+  .watch-later-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .watch-later-flex-container {
+    flex-direction: column;
+    height: auto;
+  }
+} 

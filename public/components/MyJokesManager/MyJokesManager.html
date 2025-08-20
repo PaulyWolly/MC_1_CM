@@ -1,0 +1,65 @@
+<!--
+  MYJOKESMANAGER.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!-- MyJokesManager Component Template -->
+<div id="my-jokes-text-input-panel" class="my-jokes-text-input-panel">
+  <div class="my-jokes-text-input-content">
+    <div class="my-jokes-text-input-header">
+      <h3>Add New Joke</h3>
+      <button class="my-jokes-text-input-close" id="my-jokes-close-btn" aria-label="Close panel">×</button>
+    </div>
+    
+    <div class="my-jokes-text-input-body">
+      <div class="my-jokes-input-group">
+        <label for="my-jokes-title-input" class="my-jokes-label">Joke Title (Optional)</label>
+        <input 
+          type="text" 
+          id="my-jokes-title-input" 
+          class="my-jokes-title-input" 
+          placeholder="Enter a title for your joke..."
+        />
+        <div class="my-jokes-char-counter" id="my-jokes-title-counter">0</div>
+      </div>
+      
+      <div class="my-jokes-input-group">
+        <label for="my-jokes-content-input" class="my-jokes-label">Joke Content *</label>
+        <textarea 
+          id="my-jokes-content-input" 
+          class="my-jokes-content-input" 
+          placeholder="Enter your joke here..."
+          rows="6"
+          required
+        ></textarea>
+        <div class="my-jokes-char-counter" id="my-jokes-content-counter">0</div>
+      </div>
+      
+      <div class="my-jokes-actions">
+        <button id="my-jokes-test-btn" class="my-jokes-test-btn" title="Test how your joke sounds (Ctrl+T)">
+          <span class="btn-icon">🔊</span>
+          Test Output
+        </button>
+        <button id="my-jokes-submit-btn" class="my-jokes-submit-btn" title="Save your joke (Ctrl+Enter)">
+          <span class="btn-icon">💾</span>
+          Submit Your Joke
+        </button>
+      </div>
+      
+      <div class="my-jokes-shortcuts">
+        <small>
+          <kbd>Esc</kbd> Close • <kbd>Ctrl+T</kbd> Test Audio • <kbd>Ctrl+Enter</kbd> Submit
+        </small>
+      </div>
+    </div>
+  </div>
+</div> 

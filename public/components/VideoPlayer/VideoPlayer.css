@@ -1,0 +1,672 @@
+/*
+  VIDEOPLAYER.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* VideoPlayer Component Styles */
+
+.video-player-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    height: 90vh;
+    background: #000;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    z-index: 10002;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.video-player-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.video-player-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.video-player-play-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+.video-player-play-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.video-player-progress {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+}
+
+.video-player-progress:hover {
+    background: rgba(255,255,255,0.4);
+}
+
+.video-player-time {
+    color: white;
+    font-size: 14px;
+    font-family: monospace;
+    min-width: 120px;
+}
+
+.video-player-volume {
+    width: 80px;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.video-player-volume:hover {
+    background: rgba(255,255,255,0.4);
+}
+
+.video-player-fullscreen-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.3s;
+}
+
+.video-player-fullscreen-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+<<<<<<< FIXES/general-fixes
+=======
+/* AMPLIFY LED Indicator */
+.amplify-led-indicator {
+    position: absolute;
+    bottom: 25px;
+    left: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #333;
+    border: 2px solid #666;
+    box-shadow: 
+        inset 0 0 8px rgba(0,0,0,0.8),
+        0 0 4px rgba(0,0,0,0.5);
+    z-index: 1000000001;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.amplify-led-indicator.active {
+    background: #ff0000;
+    border-color: #ff3333;
+    box-shadow: 
+        inset 0 0 8px rgba(255,0,0,0.6),
+        0 0 8px rgba(255,0,0,0.8),
+        0 0 16px rgba(255,0,0,0.4);
+    opacity: 1;
+    animation: led-pulse 2s infinite;
+}
+
+@keyframes led-pulse {
+    0%, 100% { 
+        box-shadow: 
+            inset 0 0 8px rgba(255,0,0,0.6),
+            0 0 8px rgba(255,0,0,0.8),
+            0 0 16px rgba(255,0,0,0.4);
+    }
+    50% { 
+        box-shadow: 
+            inset 0 0 8px rgba(255,0,0,0.8),
+            0 0 12px rgba(255,0,0,1),
+            0 0 24px rgba(255,0,0,0.6);
+    }
+}
+
+/* Video.js Control Styling - Volume and Fullscreen */
+.video-js .vjs-volume-panel .vjs-icon-placeholder,
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon {
+    /* Volume control icon styling */
+    color: #fff;
+    font-size: 18px;
+}
+
+.video-js .vjs-volume-panel .vjs-icon-placeholder:hover,
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon:hover {
+    color: #ff6b6b;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder,
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon {
+    /* Fullscreen control icon styling */
+    color: #fff;
+    font-size: 18px;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder:hover,
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon:hover {
+    color: #4ecdc4;
+}
+
+/* Ensure proper alignment of volume and fullscreen controls */
+.video-js .vjs-volume-panel,
+.video-js .vjs-fullscreen-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+/* Position volume control to the right side */
+.video-js .vjs-volume-panel {
+    margin-left: auto !important;
+    margin-right: 10px !important;
+}
+
+/* Volume slider area styling - show at 80% width */
+.video-js .vjs-volume-panel .vjs-volume-control {
+    width: 80% !important;
+    max-width: 80% !important;
+}
+
+.video-js .vjs-volume-panel .vjs-volume-bar {
+    width: 80% !important;
+    max-width: 80% !important;
+}
+
+/* Custom volume and fullscreen icon classes for DOM targeting */
+.video-js .vjs-volume-panel .vjs-icon-placeholder.volume-icon {
+    /* Additional volume-specific styling */
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder.fullscreen-icon {
+    /* Additional fullscreen-specific styling */
+    background: rgba(78, 205, 196, 0.1);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+/* CC Button (Closed Captions) Alignment Fix */
+.video-js .vjs-subs-caps-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+}
+
+.video-js .vjs-subs-caps-button .vjs-control-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+.video-js .vjs-subs-caps-button .vjs-icon-placeholder {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+}
+
+/* Ensure consistent sizing with other control buttons */
+.video-js .vjs-subs-caps-button {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    width: 32px !important;
+    font-size: 1.3em !important;
+}
+
+/* Removed .video-player-fullscreen-btn - not part of AMPLIFY feature */
+
+>>>>>>> local
+.video-player-file-btn {
+    position: absolute;
+    top: 2px !important;
+    left: 0px !important;
+    padding: 12px 20px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 10001;
+    transition: background 0.3s;
+}
+
+.video-player-file-btn:hover {
+    background: rgba(0,0,0,0.9);
+}
+
+.video-player-close-btn {
+    position: absolute;
+    top: 8px !important;
+    right: 20px;
+    width: 32px !important;
+    height: 32px !important;
+    line-height: .8;
+    font-weight: bold !important;
+    background: rgba(255, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 10001;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* Remove padding for perfect centering */
+    line-height: 1; /* Normal line height */
+}
+
+.video-player-close-btn:hover {
+    background: rgba(255,0,0,1);
+}
+
+/* Hide file and close buttons unless hovering over the video player */
+.video-player-file-btn,
+.video-player-close-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.video-player-container:hover .video-player-file-btn,
+.video-player-container:hover .video-player-close-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Episode info header styling */
+.video-player-episode-info {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.video-player-container:hover .video-player-episode-info {
+    opacity: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .video-player-container {
+        width: 95vw;
+        height: 95vh;
+        border-radius: 8px;
+    }
+    
+    .video-player-controls {
+        padding: 15px;
+        gap: 10px;
+    }
+    
+    .video-player-play-btn {
+        font-size: 20px;
+        padding: 6px;
+    }
+    
+    .video-player-time {
+        font-size: 12px;
+        min-width: 100px;
+    }
+    
+    .video-player-volume {
+        width: 60px;
+    }
+    
+    .video-player-file-btn {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+    
+    .video-player-close-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .video-player-episode-info {
+        font-size: 14px;
+        padding: 8px 16px;
+        max-width: 80%;
+    }
+}
+
+/* Fullscreen styles */
+.video-player-container:fullscreen {
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.video-player-container:-webkit-full-screen {
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+.video-player-container:-moz-full-screen {
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Animation for showing/hiding */
+@keyframes videoPlayerFadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes videoPlayerFadeOut {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+}
+
+.video-player-container.show {
+    animation: videoPlayerFadeIn 0.3s ease-out;
+}
+
+.video-player-container.hide {
+    animation: videoPlayerFadeOut 0.3s ease-in;
+}
+
+.vjs-tech, .vjs-poster, .vjs-player {
+    cursor: pointer !important;
+} 
+
+/* Custom Video.js Seek Buttons */
+.vjs-back10-button, .vjs-forward10-button {
+  z-index: 10010 !important;
+  background: #222 !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  margin: 0 4px !important;
+  border: none !important;
+  font-size: 1.2em !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  transition: background 0.2s, color 0.2s;
+}
+.vjs-back10-button:hover, .vjs-forward10-button:hover {
+  background: #1976d2 !important;
+  color: #fff !important;
+}
+.vjs-back10-icon, .vjs-forward10-icon {
+  font-size: 1.3em;
+  vertical-align: middle;
+  margin-right: 2px;
+  margin-left: 2px;
+  pointer-events: none;
+} 
+
+/* Base Video.js Player Styles */
+
+.video-js, .video-js .vjs-control-bar {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #181818 !important;
+  color: #fff !important;
+}
+
+.video-js {
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.vjs-control-bar {
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 8px 16px;
+  border-radius: 0 0 10px 10px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vjs-control {
+  color: #fff !important;
+  background: none !important;
+  border: none !important;
+  font-size: 1.1em;
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: background 0.2s, color 0.2s;
+}
+.vjs-control:hover, .vjs-control:focus {
+  background: #1976d2 !important;
+  color: #fff !important;
+}
+
+.vjs-progress-control {
+  max-width: 350px !important;
+  min-width: 120px;
+  flex: 0 1 auto !important;
+  margin: 0 12px !important;
+  margin-left: 165px !important;
+}
+
+.vjs-play-progress, .vjs-load-progress {
+  border-radius: 3px;
+}
+
+.vjs-play-progress {
+  background: #ff1744 !important;
+}
+
+.vjs-load-progress {
+  background: #fff3 !important;
+}
+
+.vjs-current-time, .vjs-duration, .vjs-remaining-time {
+  font-family: monospace;
+  font-size: 1em;
+  color: #fff !important;
+  min-width: 60px;
+  text-align: center;
+}
+
+.vjs-volume-panel {
+  min-width: 80px;
+}
+
+.vjs-fullscreen-control {
+  font-size: 1.2em;
+}
+
+/* Responsive: allow timeline to grow a bit on small screens */
+@media (max-width: 600px) {
+  .vjs-progress-control {
+    max-width: 60vw !important;
+    min-width: 80px;
+  }
+  .vjs-control-bar {
+    padding: 6px 4px;
+    min-height: 36px;
+  }
+} 
+
+/* --- CLEANED Video.js Control Icon Sizing and Spacing --- */
+.vjs-control-bar .vjs-control,
+.vjs-back10-button, .vjs-forward10-button, .vjs-playpause-toggle-button, .vjs-save-later-button, .vjs-fullscreen-control, .vjs-fullscreen-toggle {
+  font-size: 1.3em !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  width: 32px !important;
+}
+.vjs-control-bar {
+  gap: 6px;
+  padding: 6px 10px;
+}
+.custom-save-later {
+  margin-left: auto !important;
+  margin-right: 12px !important;
+  order: 99 !important;
+  color: #1976d2 !important;
+} 
+
+.video-player-skip-intro-btn {
+  bottom: 35px;
+}
+
+/* Skip to Next Episode Button Styles */
+.video-player-skip-to-next-btn {
+  position: absolute;
+  bottom: 160px;
+  right: 40px;
+  z-index: 10002;
+  background: rgba(0,0,0,0.9);
+  color: white;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 280px;
+  transition: all 0.3s ease;
+  animation: skipToNextFadeIn 0.5s ease-out;
+}
+
+.video-player-skip-to-next-btn:hover {
+  background: rgba(0,0,0,0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.video-player-skip-to-next-btn .skip-to-next-text {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.video-player-skip-to-next-btn .skip-to-next-text div:first-child {
+  color: #43a047;
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.video-player-skip-to-next-btn .skip-to-next-text div:nth-child(2) {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 8px;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-player-skip-to-next-btn .skip-to-next-text div:last-child {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* Progress bar styles */
+.video-player-skip-to-next-btn > div:last-child {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.video-player-skip-to-next-btn #skip-to-next-progress {
+  height: 100%;
+  background: #43a047;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+
+/* Animation for skip to next button */
+@keyframes skipToNextFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design for skip to next button */
+@media (max-width: 768px) {
+  .video-player-skip-to-next-btn {
+    bottom: 120px;
+    right: 20px;
+    left: 20px;
+    min-width: auto;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .video-player-skip-to-next-btn .skip-to-next-text div:first-child {
+    font-size: 16px;
+  }
+  
+  .video-player-skip-to-next-btn .skip-to-next-text div:nth-child(2) {
+    font-size: 12px;
+    max-width: 200px;
+  }
+}

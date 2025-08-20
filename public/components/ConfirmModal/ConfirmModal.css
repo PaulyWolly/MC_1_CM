@@ -1,0 +1,95 @@
+/*
+  CONFIRMMODAL.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/* ConfirmModal Styles */
+.confirm-modal-container {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+}
+.confirm-modal-content {
+  background: #23263a;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  min-width: 320px;
+  max-width: 95vw;
+  width: 400px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.confirm-modal-header {
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #3b4252;
+  background: #23263a;
+}
+.confirm-modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+.confirm-modal-body {
+  padding: 24px;
+  text-align: center;
+}
+.confirm-modal-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 16px 0 24px 0;
+  border-top: 1px solid #3b4252;
+  background: #23263a;
+}
+.confirm-modal-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.confirm-modal-btn-primary {
+  background: #e53e3e;
+  color: #fff;
+}
+.confirm-modal-btn-primary:hover {
+  background: #c53030;
+}
+.confirm-modal-btn-secondary {
+  background: #4a5568;
+  color: #fff;
+}
+.confirm-modal-btn-secondary:hover {
+  background: #2d3748;
+}
+@media (max-width: 600px) {
+  .confirm-modal-content {
+    width: 95vw;
+    min-width: unset;
+  }
+  .confirm-modal-body {
+    padding: 16px;
+  }
+  .confirm-modal-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+} 

@@ -1,0 +1,212 @@
+/*
+  COMPONENTTEMPLATE.CSS
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+*/
+
+/**
+ * ComponentTemplate Styles
+ * 
+ * Template CSS for creating modular Angular-like components.
+ * Use this as a starting point for new component styles.
+ * 
+ * @version 1.0.0
+ * @author MultiChat_Chatty
+ */
+
+/* Component Container */
+.component-template-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+/* Component Content */
+.component-template-content {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Header */
+.component-template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.component-template-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Close Button */
+.component-template-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.component-template-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Body */
+.component-template-body {
+  padding: 24px;
+}
+
+.component-template-section {
+  margin-bottom: 20px;
+}
+
+.component-template-section p {
+  margin: 0 0 12px 0;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Actions */
+.component-template-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Buttons */
+.component-template-btn-primary,
+.component-template-btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.component-template-btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.component-template-btn-primary:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.component-template-btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.component-template-btn-secondary:hover {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+.component-template-btn-primary:disabled,
+.component-template-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .component-template-content {
+    width: 95%;
+    margin: 20px 0;
+    max-height: calc(100vh - 40px);
+  }
+
+  .component-template-header,
+  .component-template-body {
+    padding: 16px;
+  }
+
+  .component-template-actions {
+    flex-direction: column;
+  }
+
+  .component-template-btn-primary,
+  .component-template-btn-secondary {
+    width: 100%;
+  }
+}
+
+/* Dark Mode Support (Future Enhancement) */
+@media (prefers-color-scheme: dark) {
+  .component-template-content {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  .component-template-header {
+    background: #4a5568;
+    border-bottom-color: #4a5568;
+  }
+
+  .component-template-header h3 {
+    color: #e2e8f0;
+  }
+
+  .component-template-close {
+    color: #a0aec0;
+  }
+
+  .component-template-close:hover {
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .component-template-section p {
+    color: #cbd5e0;
+  }
+
+  .component-template-actions {
+    border-top-color: #4a5568;
+  }
+}

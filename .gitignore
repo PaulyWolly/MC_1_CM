@@ -1,0 +1,55 @@
+\old
+.env
+.env_full
+\node_modules
+
+# Reference repositories
+ref_repo-DEBUG_778400e_MultiChat/
+ref_repo-MultiChat_v2/
+perfect_styles_99764aa/
+ref_repo-MultiChat_Chatty_GOLDEN-img-analysis/
+__REF_REPO-TEST-SAVE-LATER__/
+_ref_repo-DEV1/
+__REF-REPO_MCC-TEST__/
+_ref_repo-DEV1/
+
+# Archive folder
+archive/
+
+# Backup files with potential secrets
+backups/*.env*
+backups/.env*
+*.env.backup*
+.env.backup*
+/backups/
+/__ARCHIVE__/
+
+
+# Any files containing API keys or tokens
+*api*key*
+*token*
+*secret*__REF_REPO-MCC_TEST__/
+__REF_REPO-BEFORE-RESTORE__
+
+# Data, logs, and backup folders
+/public/data/
+/public/components/MediaLibrary/data/
+/public/components/MediaLibrary/bkup/
+/public/components/MediaLibrary/data/*.bak*
+/scripts/SANDBOX/
+/scripts/logs/
+/server/data/bkup/
+/localStorage*.json
+
+# Log and backup files
+*.log
+*.bak*
+*.tmp
+*.temp
+
+# Scripts directory (excluded from git)
+/scripts/
+
+# System files
+.DS_Store
+Thumbs.db

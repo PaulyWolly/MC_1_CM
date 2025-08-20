@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Access History Click</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Access History Click Behavior</h1>
+    
+    <div class="test-section">
+        <h3>Component Status</h3>
+        <div id="componentStatus" class="log-output">
+            <strong>Checking component availability...</strong>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test: Click Query from Dropdown → Verify Access History Update</h3>
+        <p>This test simulates clicking on a query from the dropdown to verify the access history is updated correctly.</p>
+        <button class="test-button" onclick="testAccessHistoryClick()" disabled>Run Access History Click Test</button>
+        <div id="accessHistoryClickResult" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test: Santana Disappearing Issue (INITIAL SEARCH)</h3>
+        <p>This test simulates the EXACT sequence where Santana gets lost during INITIAL search:</p>
+        <ol>
+            <li>Search for "Santana" (should appear at top)</li>
+            <li>Click on "Americas Got Talent" from search results → <strong>Santana should STAY visible</strong></li>
+            <li>Check if Santana is still visible in dropdown → <strong>This is where it currently FAILS</strong></li>
+        </ol>
+        <button class="test-button" onclick="testSantanaInitialSearchIssue()" disabled>Run Santana Initial Search Test</button>
+        <div id="santanaInitialTestResult" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test: Santana Disappearing Issue (DROPDOWN CLICK)</h3>
+        <p>This test simulates the sequence that WORKS (clicking from dropdown):</p>
+        <ol>
+            <li>Search for "Santana" (should appear at top)</li>
+            <li>Click "Americas Got Talent" from DROPDOWN → <strong>Santana should move to 2nd position</strong></li>
+            <li>Check if Santana is still visible in dropdown → <strong>This currently works fine</strong></li>
+        </ol>
+        <button class="test-button" onclick="testSantanaDropdownClick()" disabled>Run Santana Dropdown Click Test</button>
+        <div id="santanaDropdownTestResult" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Debug: Module Loading</h3>
+        <p>If ES6 module loading fails, we can try alternative approaches:</p>
+        <button class="test-button" onclick="tryAlternativeLoading()">Try Alternative Loading</button>
+        <button class="test-button" onclick="checkGlobalAvailability()">Check Global Availability</button>
+        <div id="debugOutput" class="log-output"></div>
+    </div>
+
+    <script type="module">
+        // Try to import the YouTubeSearchManager component as ES6 module
+        let YouTubeSearchManager = null;
+        let youtubeSearchManagerInstance = null;
+        let isInitialized = false;
+        
+        async function initializeComponent() {
+            try {
+                const statusDiv = document.getElementById('componentStatus');
+                statusDiv.innerHTML = '<strong>🔄 Attempting ES6 module import...</strong>\n';
+                
+                console.log('Starting ES6 module import...');
+                
+                // Try to import the component from the correct port
+                const module = await import('http://127.0.0.1:4800/components/YouTubeSearch/YouTubeSearchManager.js');
+                YouTubeSearchManager = module.default;
+                
+                console.log('ES6 import successful:', YouTubeSearchManager);
+                
+                // Create instance
+                youtubeSearchManagerInstance = new YouTubeSearchManager();
+                console.log('Instance created:', youtubeSearchManagerInstance);
+                
+                // Initialize it
+                await youtubeSearchManagerInstance.init();
+                console.log('Init completed, isInitialized:', youtubeSearchManagerInstance.isInitialized);
+                
+                // Make it globally available
+                window.YouTubeSearchManager = YouTubeSearchManager;
+                window.youtubeSearchManager = youtubeSearchManagerInstance;
+                isInitialized = true;
+                
+                statusDiv.innerHTML = '<div class="success">✅ YouTubeSearchManager successfully loaded via ES6 module!</div>';
+                statusDiv.innerHTML += `<strong>Component Details:</strong>\n`;
+                statusDiv.innerHTML += `- Class: ${YouTubeSearchManager.name}\n`;
+                statusDiv.innerHTML += `- Instance: ${youtubeSearchManagerInstance ? 'Created' : 'Failed'}\n`;
+                statusDiv.innerHTML += `- Initialized: ${youtubeSearchManagerInstance?.isInitialized ? 'Yes' : 'No'}\n`;
+                statusDiv.innerHTML += `- Global Access: ${window.youtubeSearchManager ? 'Available' : 'Not Available'}\n`;
+                
+                console.log('YouTubeSearchManager loaded successfully:', youtubeSearchManagerInstance);
+                console.log('Global access check:', window.youtubeSearchManager);
+                
+                // Enable test buttons
+                enableTestButtons();
+                
+            } catch (error) {
+                console.error('ES6 module import failed:', error);
+                
+                const statusDiv = document.getElementById('componentStatus');
+                statusDiv.innerHTML = `<div class="warning">⚠️ ES6 module import failed: ${error.message}</div>`;
+                statusDiv.innerHTML += `<strong>Error details:</strong>\n`;
+                statusDiv.innerHTML += `- Type: ${error.name}\n`;
+                statusDiv.innerHTML += `- Message: ${error.message}\n`;
+                statusDiv.innerHTML += `- Stack: ${error.stack}\n`;
+                statusDiv.innerHTML += `\n<strong>💡 Trying alternative loading methods...</strong>\n`;
+                
+                // Try alternative loading methods
+                await tryAlternativeLoading();
+            }
+        }
+        
+        function enableTestButtons() {
+            const buttons = document.querySelectorAll('.test-button');
+            buttons.forEach(button => {
+                button.disabled = false;
+            });
+            
+            // Update status to show tests are ready
+            const statusDiv = document.getElementById('componentStatus');
+            statusDiv.innerHTML += '\n<strong>🎯 Tests are now ready to run!</strong>\n';
+            statusDiv.innerHTML += '<strong>🔍 Run the "Santana Initial Search Test" to reproduce the issue!</strong>\n';
+        }
+        
+        // Initialize when the page loads
+        document.addEventListener('DOMContentLoaded', initializeComponent);
+        
+        // Also try to initialize immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeComponent);
+        } else {
+            initializeComponent();
+        }
+    </script>
+
+    <script>
+        // Alternative loading methods
+        async function tryAlternativeLoading() {
+            const debugDiv = document.getElementById('debugOutput');
+            debugDiv.innerHTML = '<strong>🔄 Trying alternative loading methods...</strong>\n';
+            
+            // Method 1: Check if component is already loaded globally
+            if (window.youtubeSearchManager) {
+                debugDiv.innerHTML += '✅ Found YouTubeSearchManager in global scope!\n';
+                enableTestButtons();
+                return;
+            }
+            
+            // Method 2: Try to load via script tag
+            debugDiv.innerHTML += '📥 Attempting to load via script tag...\n';
+            
+            try {
+                const script = document.createElement('script');
+                script.src = 'http://127.0.0.1:4800/components/YouTubeSearch/YouTubeSearchManager.js';
+                script.type = 'text/javascript';
+                
+                script.onload = function() {
+                    debugDiv.innerHTML += '✅ Script loaded successfully!\n';
+                    checkGlobalAvailability();
+                };
+                
+                script.onerror = function() {
+                    debugDiv.innerHTML += '❌ Script loading failed\n';
+                    debugDiv.innerHTML += '💡 Component may need to be loaded differently\n';
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                debugDiv.innerHTML += `❌ Script loading error: ${error.message}\n`;
+            }
+        }
+        
+        function checkGlobalAvailability() {
+            const debugDiv = document.getElementById('debugOutput');
+            debugDiv.innerHTML += '\n<strong>🔍 Checking global availability...</strong>\n';
+            
+            // Check various possible global names
+            const possibleNames = [
+                'youtubeSearchManager',
+                'YouTubeSearchManager', 
+                'YouTubeSearch',
+                'youtubeManager'
+            ];
+            
+            let found = false;
+            possibleNames.forEach(name => {
+                if (window[name]) {
+                    debugDiv.innerHTML += `✅ Found: window.${name}\n`;
+                    found = true;
+                    
+                    // Make it available as youtubeSearchManager
+                    if (name !== 'youtubeSearchManager') {
+                        window.youtubeSearchManager = window[name];
+                        debugDiv.innerHTML += `📋 Mapped to window.youtubeSearchManager\n`;
+                    }
+                }
+            });
+            
+            if (found) {
+                debugDiv.innerHTML += '\n<strong>🎯 Component found! Tests should now work.</strong>\n';
+                enableTestButtons();
+            } else {
+                debugDiv.innerHTML += '\n<strong>❌ Component not found in global scope</strong>\n';
+                debugDiv.innerHTML += '💡 Try refreshing the page or check the main app.js\n';
+            }
+        }
+        
+        // Test functions that will run after the component is loaded
+        function testAccessHistoryClick() {
+            const resultDiv = document.getElementById('accessHistoryClickResult');
+            
+            if (!window.youtubeSearchManager) {
+                resultDiv.innerHTML = '<div class="error">❌ YouTubeSearchManager not loaded yet. Please wait for initialization.</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<strong>Running Access History Click Test...</strong>\n';
+            
+            const manager = window.youtubeSearchManager;
+            
+            console.log('=== TESTING ACCESS HISTORY CLICK BEHAVIOR ===');
+            
+            // Step 1: Add some initial queries to access history
+            resultDiv.innerHTML += '1. Adding initial queries to access history...\n';
+            manager.addToAccessHistory('Santana', 'search');
+            manager.addToAccessHistory('Animal Planet', 'search');
+            manager.addToAccessHistory('Goo Goo Dolls', 'search');
+            
+            resultDiv.innerHTML += '2. Initial access history:\n';
+            manager.queryAccessHistory.forEach((item, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${item.query}\n`;
+            });
+            
+            // Step 2: Simulate clicking on "Americas Got Talent" from dropdown
+            resultDiv.innerHTML += '\n3. Simulating click on "Americas Got Talent" from dropdown...\n';
+            manager.moveQueryToTop('Americas Got Talent', 'search');
+            
+            resultDiv.innerHTML += '4. Access history after clicking Americas Got Talent:\n';
+            manager.queryAccessHistory.forEach((item, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${item.query}\n`;
+            });
+            
+            // Step 3: Get queries for dropdown
+            resultDiv.innerHTML += '\n5. Getting queries for dropdown...\n';
+            const dropdownQueries = manager.getAllQueriesForDropdown();
+            
+            resultDiv.innerHTML += '6. Final dropdown queries:\n';
+            dropdownQueries.forEach((q, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${q.query} (source: ${q.source})\n`;
+            });
+            
+            // Check if both queries are in the dropdown
+            const santanaInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('santana'));
+            const americasGotTalentInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('americas got talent'));
+            
+            if (santanaInDropdown && americasGotTalentInDropdown) {
+                resultDiv.innerHTML += '\n<div class="success">✅ <strong>SUCCESS:</strong> Both queries are in the dropdown!</div>\n';
+                resultDiv.innerHTML += '   - Americas Got Talent is at the top (current search)\n';
+                resultDiv.innerHTML += '   - Santana is preserved in the dropdown\n';
+            } else if (!santanaInDropdown) {
+                resultDiv.innerHTML += '\n<div class="error">❌ <strong>ERROR:</strong> Santana is missing from the dropdown!</div>\n';
+                resultDiv.innerHTML += '   - This indicates the filtering is still too aggressive\n';
+            } else if (!americasGotTalentInDropdown) {
+                resultDiv.innerHTML += '\n<div class="error">❌ <strong>ERROR:</strong> Americas Got Talent is missing from the dropdown!</div>\n';
+            }
+            
+            // Show the expected behavior
+            resultDiv.innerHTML += '\n<strong>Expected Behavior:</strong>\n';
+            resultDiv.innerHTML += '   - Americas Got Talent should be at top (clicked from dropdown)\n';
+            resultDiv.innerHTML += '   - Santana should be second (previous search)\n';
+            resultDiv.innerHTML += '   - Both should show even without video data\n';
+        }
+
+        function testSantanaInitialSearchIssue() {
+            const resultDiv = document.getElementById('santanaInitialTestResult');
+            
+            if (!window.youtubeSearchManager) {
+                resultDiv.innerHTML = '<div class="error">❌ YouTubeSearchManager not loaded yet. Please wait for initialization.</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<strong>Running Santana Initial Search Test...</strong>\n';
+            
+            const manager = window.youtubeSearchManager;
+            
+            console.log('=== TESTING SANTANA INITIAL SEARCH ISSUE ===');
+            
+            // Step 1: Search for "Santana" (should appear at top)
+            resultDiv.innerHTML += '1. Searching for "Santana"...\n';
+            manager.addToAccessHistory('Santana', 'search');
+            resultDiv.innerHTML += '   ✅ Santana added to access history\n';
+            
+                         // Step 2: Click on "Americas Got Talent" from search results (this should NOT move Santana)
+             resultDiv.innerHTML += '\n2. Clicking on "Americas Got Talent" from search results...\n';
+             // This simulates clicking on a search result, which should NOT affect Santana's visibility
+             // We need to find the actual method that handles search result clicks
+             if (manager.handleSearchResultClick) {
+                 manager.handleSearchResultClick('Americas Got Talent');
+                 resultDiv.innerHTML += '   ✅ Called handleSearchResultClick for Americas Got Talent\n';
+             } else if (manager.selectSearchResult) {
+                 manager.selectSearchResult('Americas Got Talent');
+                 resultDiv.innerHTML += '   ✅ Called selectSearchResult for Americas Got Talent\n';
+             } else {
+                 // Fallback: just add to access history to simulate the action
+                 manager.addToAccessHistory('Americas Got Talent', 'search');
+                 resultDiv.innerHTML += '   ✅ Added Americas Got Talent to access history (fallback)\n';
+             }
+            
+            // Step 3: Check if Santana is still visible in dropdown
+            resultDiv.innerHTML += '\n3. Checking dropdown state...\n';
+            const dropdownQueries = manager.getAllQueriesForDropdown();
+            
+            resultDiv.innerHTML += '   Current dropdown queries:\n';
+            dropdownQueries.forEach((q, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${q.query}\n`;
+            });
+            
+            // Check if Santana is still there
+            const santanaInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('santana'));
+            
+            if (santanaInDropdown) {
+                resultDiv.innerHTML += '\n<div class="error">❌ <strong>ISSUE CONFIRMED:</strong> Santana disappeared from the dropdown after initial search!</div>\n';
+                resultDiv.innerHTML += '   - This confirms the original problem\n';
+                resultDiv.innerHTML += '   - Need to investigate the filtering logic\n';
+            } else {
+                resultDiv.innerHTML += '\n<div class="success">✅ <strong>SUCCESS:</strong> Santana is still visible in the dropdown after initial search!</div>\n';
+                resultDiv.innerHTML += '   - The issue has been resolved\n';
+            }
+            
+            // Show access history for debugging
+            resultDiv.innerHTML += '\n<strong>Current Access History:</strong>\n';
+            manager.queryAccessHistory.forEach((item, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${item.query} (${item.accessTime})\n`;
+            });
+        }
+
+        function testSantanaDropdownClick() {
+            const resultDiv = document.getElementById('santanaDropdownTestResult');
+            
+            if (!window.youtubeSearchManager) {
+                resultDiv.innerHTML = '<div class="error">❌ YouTubeSearchManager not loaded yet. Please wait for initialization.</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<strong>Running Santana Dropdown Click Test...</strong>\n';
+            
+            const manager = window.youtubeSearchManager;
+            
+            console.log('=== TESTING SANTANA DROPDOWN CLICK BEHAVIOR ===');
+            
+            // Step 1: Search for "Santana" (should appear at top)
+            resultDiv.innerHTML += '1. Searching for "Santana"...\n';
+            manager.addToAccessHistory('Santana', 'search');
+            resultDiv.innerHTML += '   ✅ Santana added to access history\n';
+            
+            // Step 2: Click "Americas Got Talent" from DROPDOWN
+            resultDiv.innerHTML += '\n2. Clicking on "Americas Got Talent" from DROPDOWN...\n';
+            manager.moveQueryToTop('Americas Got Talent', 'search');
+            resultDiv.innerHTML += '   ✅ Americas Got Talent moved to top\n';
+            
+            // Step 3: Check if Santana is still visible in dropdown
+            resultDiv.innerHTML += '\n3. Checking dropdown state...\n';
+            const dropdownQueries = manager.getAllQueriesForDropdown();
+            
+            resultDiv.innerHTML += '   Current dropdown queries:\n';
+            dropdownQueries.forEach((q, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${q.query}\n`;
+            });
+            
+            // Check if Santana is still there
+            const santanaInDropdown = dropdownQueries.some(q => q.query.toLowerCase().includes('santana'));
+            
+            if (santanaInDropdown) {
+                resultDiv.innerHTML += '\n<div class="success">✅ <strong>SUCCESS:</strong> Santana is still visible in the dropdown after dropdown click!</div>\n';
+                resultDiv.innerHTML += '   - The issue has been resolved\n';
+            } else {
+                resultDiv.innerHTML += '\n<div class="error">❌ <strong>ISSUE CONFIRMED:</strong> Santana disappeared from the dropdown after dropdown click!</div>\n';
+                resultDiv.innerHTML += '   - This confirms the original problem\n';
+                resultDiv.innerHTML += '   - Need to investigate the filtering logic\n';
+            }
+            
+            // Show access history for debugging
+            resultDiv.innerHTML += '\n<strong>Current Access History:</strong>\n';
+            manager.queryAccessHistory.forEach((item, i) => {
+                resultDiv.innerHTML += `   ${i + 1}. ${item.query} (${item.accessTime})\n`;
+            });
+        }
+    </script>
+</body>
+</html>

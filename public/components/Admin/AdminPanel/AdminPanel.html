@@ -1,0 +1,404 @@
+<!--
+  ADMINPANEL.HTML
+<<<<<<< FIXES/general-fixes
+  Version: 10
+  AppName: MultiChat_Chatty [v10]
+  Updated: 7/30/2025 @12:35PM
+=======
+  Version: 20
+  AppName: MultiChat_Chatty MC_1_CM [v20]
+  Updated: 8/19/2025 @10:00AM
+>>>>>>> local
+  Created by Paul Welby
+-->
+
+<!-- Admin Panel Container -->
+<div id="admin-panel-container" class="admin-panel-container dark-mode">
+  <div class="admin-panel-content">
+    <!-- Header -->
+    <div class="admin-panel-header">
+      <h2>🔧 Admin Panel</h2>
+      <div id="admin-welcome" class="admin-welcome"></div>
+      <div class="admin-header-actions">
+        <button id="admin-theme-toggle" class="admin-theme-toggle" title="Toggle dark/light mode">
+          <span id="admin-theme-icon">🌙</span> <span id="admin-theme-label">Dark Mode</span>
+        </button>
+        <button id="admin-back-btn" class="admin-back-btn">← Back to Chat</button>
+      </div>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="dashboard">
+        <span class="tab-icon">📊</span>
+        Dashboard
+      </button>
+      <button class="admin-tab" data-tab="script-runner">
+        <span class="tab-icon">⚡</span>
+        Process Manager
+      </button>
+      <button class="admin-tab" data-tab="system-status">
+        <span class="tab-icon">📊</span>
+        System Status
+      </button>
+      <button class="admin-tab" data-tab="config-manager">
+        <span class="tab-icon">⚙️</span>
+        Configuration
+      </button>
+      <button class="admin-tab" data-tab="log-viewer">
+        <span class="tab-icon">📋</span>
+        Log Viewer
+      </button>
+      <button class="admin-tab" data-tab="database-tools">
+        <span class="tab-icon">🗄️</span>
+        Database Tools
+      </button>
+      <button class="admin-tab" data-tab="user-management">
+        <span class="tab-icon">👥</span>
+        User Management
+      </button>
+    </div>
+    
+    <!-- Tab Content -->
+    <div class="admin-content">
+      <!-- Dashboard Tab -->
+      <div id="dashboard" class="admin-tab-content active">
+        <!-- Fixed Header - No Scrolling -->
+        <div class="tab-header dashboard-header">
+          <div class="dashboard-title-section">
+            <h3>📊 Dashboard</h3>
+            <p>Application overview and key metrics</p>
+          </div>
+          <div class="dashboard-controls">
+            <button id="scan-media-btn" class="scan-media-btn" title="Scan and count media files">
+              🔍 Scan Media
+            </button>
+            <button id="refresh-dashboard-btn" class="refresh-dashboard-btn" title="Refresh dashboard data">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+        
+        <!-- Scrollable Content Area -->
+        <div class="dashboard-scrollable-content">
+          <div class="dashboard-grid">
+            <!-- Media Statistics -->
+            <div class="dashboard-section">
+              <h4 class="section-title">
+                <span class="section-icon">📺</span>
+                Media Statistics
+              </h4>
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <div class="metric-value" id="total-movies">0</div>
+                  <div class="metric-label">TOTAL MOVIES</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="total-tv-shows">0</div>
+                  <div class="metric-label">TOTAL TV SHOWS</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="total-episodes">0</div>
+                  <div class="metric-label">TOTAL EPISODES</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="total-watch-time">0h 0m</div>
+                  <div class="metric-label">TOTAL WATCH TIME</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Amplification Usage -->
+            <div class="dashboard-section">
+              <div class="section-header-with-controls">
+                <h4 class="section-title">
+                  <span class="section-icon">🔊</span>
+                  Amplification Usage
+                </h4>
+                <button id="refresh-amplify-btn" class="activity-control-btn" title="Refresh amplification data">
+                  🔄
+                </button>
+              </div>
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <div class="metric-value" id="times-used">0</div>
+                  <div class="metric-label">TIMES USED</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="avg-level">100%</div>
+                  <div class="metric-label">AVG LEVEL</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="max-level">100%</div>
+                  <div class="metric-label">MAX LEVEL</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- System Performance -->
+            <div class="dashboard-section">
+              <h4 class="section-title">
+                <span class="section-icon">⚡</span>
+                System Performance
+              </h4>
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <div class="metric-value" id="memory-usage">102 MB</div>
+                  <div class="metric-label">MEMORY USAGE</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="api-calls">0</div>
+                  <div class="metric-label">API CALLS TODAY</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-value" id="errors-today">0</div>
+                  <div class="metric-label">ERRORS TODAY</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="dashboard-section">
+              <div class="section-header-with-controls">
+                <h4 class="section-title">
+                  <span class="section-icon">🕐</span>
+                  Recent Activity
+                </h4>
+                <div class="activity-controls">
+                  <button id="refresh-activity-btn" class="activity-control-btn" title="Refresh activity data">
+                    🔄
+                  </button>
+                  <button id="clear-activity-btn" class="activity-control-btn" title="Clear all activity history">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div class="activity-container">
+                <div class="activity-list" id="recent-activity">
+                  <div class="activity-item">
+                    <span class="activity-time">1:48 PM</span>
+                    <span class="activity-text">Video played: Captain Marvel (2019)</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:45 PM</span>
+                    <span class="activity-text">Dashboard data refreshed</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:42 PM</span>
+                    <span class="activity-text">User logged in: Pwelby</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:40 PM</span>
+                    <span class="activity-text">System backup completed</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:38 PM</span>
+                    <span class="activity-text">Cache cleared successfully</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:35 PM</span>
+                    <span class="activity-text">New user registered: TestUser</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:32 PM</span>
+                    <span class="activity-text">Database optimization completed</span>
+                  </div>
+                  <div class="activity-item">
+                    <span class="activity-time">1:30 PM</span>
+                    <span class="activity-text">API quota reset</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Script Manager Tab -->
+      <div id="script-runner" class="admin-tab-content">
+        <div class="tab-header">
+          <h3>⚡ Process Manager</h3>
+          <p>Access and manage all scripts and system processes in categorized folders</p>
+        </div>
+        <div class="script-grid">
+          <div class="script-card">
+            <div class="script-icon">📁</div>
+            <h4>Script Manager</h4>
+            <p>Access and manage all scripts in categorized folders</p>
+            <button class="script-btn" id="open-script-manager">Open Script Manager</button>
+          </div>
+          <div class="script-card">
+            <div class="script-icon">🗑️</div>
+            <h4>Cache Clear</h4>
+            <p>Clear all cached data and temporary files</p>
+            <button class="script-btn" data-script="cache-clear">Clear Cache</button>
+          </div>
+          <div class="script-card">
+            <div class="script-icon">💾</div>
+            <h4>System Backup</h4>
+            <p>Create backup of current system state</p>
+            <button class="script-btn" data-script="system-backup">Create Backup</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- System Status Tab -->
+      <div id="system-status" class="admin-tab-content">
+        <div class="tab-header" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h3>📊 System Status</h3>
+            <p>Real-time system health and performance metrics</p>
+          </div>
+          <button id="system-status-refresh-btn" class="log-btn" style="margin-left: 16px;">🔄 Refresh</button>
+        </div>
+        
+        <div class="status-grid">
+          <div class="status-card">
+            <div class="status-icon">🟢</div>
+            <h4>Server Status</h4>
+            <div id="server-status" class="status-indicator">Loading...</div>
+          </div>
+          
+          <div class="status-card">
+            <div class="status-icon">💾</div>
+            <h4>Memory Usage</h4>
+            <div id="memory-usage" class="status-indicator">Loading...</div>
+          </div>
+          
+          <div class="status-card">
+            <div class="status-icon">⏱️</div>
+            <h4>Uptime</h4>
+            <div id="uptime" class="status-indicator">Loading...</div>
+          </div>
+          
+          <div class="status-card">
+            <div class="status-icon">📈</div>
+            <h4>CPU Usage</h4>
+            <div id="cpu-usage" class="status-indicator">Loading...</div>
+          </div>
+        </div>
+        
+        <div class="status-charts">
+          <div class="chart-container">
+            <h4>Performance Metrics</h4>
+            <div id="performance-chart" class="chart-placeholder">
+              Charts coming soon...
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Configuration Tab -->
+      <div id="config-manager" class="admin-tab-content">
+        <div class="tab-header">
+          <h3>⚙️ Configuration Manager</h3>
+          <p>View and edit application settings</p>
+        </div>
+        
+        <div class="config-section">
+          <h4>Application Settings</h4>
+          <div id="config-content" class="config-content">
+            <div class="config-loading">Loading configuration...</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Log Viewer Tab -->
+      <div id="log-viewer" class="admin-tab-content">
+        <div class="tab-header" style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h3>📋 Log Viewer</h3>
+            <p>Real-time server logs and error tracking</p>
+          </div>
+          <button id="show-browser-console-btn" class="log-btn" style="margin-left: 16px;">🖥️ Show My Browser Console</button>
+        </div>
+        
+        <div class="log-controls">
+          <button class="log-btn" data-log="server">Server Logs</button>
+          <button class="log-btn" data-log="error">Error Logs</button>
+          <button class="log-btn" data-log="access">Access Logs</button>
+          <button class="log-btn" data-log="debug">Debug Logs</button>
+        </div>
+        
+        <div id="log-content" class="log-content">
+          <div class="log-loading">Select a log type to view...</div>
+        </div>
+      </div>
+      
+      <!-- Browser Console Modal -->
+      <div id="browser-console-modal" class="browser-console-modal" style="display:none;">
+        <div class="browser-console-modal-content">
+          <button id="close-browser-console-modal" class="browser-console-modal-close">&times;</button>
+          <h3>🖥️ My Browser Console</h3>
+          <div id="browser-console-log-area" class="browser-console-log-area"></div>
+        </div>
+      </div>
+      
+      <!-- Database Tools Tab -->
+      <div id="database-tools" class="admin-tab-content">
+        <div class="tab-header">
+          <h3>🗄️ Database Tools</h3>
+          <p>Database maintenance and management tools</p>
+        </div>
+        
+        <div class="db-tools-grid">
+          <div class="db-tool-card">
+            <div class="tool-icon">📊</div>
+            <h4>Database Stats</h4>
+            <p>View database statistics and performance</p>
+            <button class="db-tool-btn" data-tool="stats">View Stats</button>
+          </div>
+          
+          <div class="db-tool-card">
+            <div class="tool-icon">🔍</div>
+            <h4>Query Tool</h4>
+            <p>Execute custom database queries</p>
+            <button class="db-tool-btn" data-tool="query">Open Query Tool</button>
+          </div>
+          
+          <div class="db-tool-card">
+            <div class="tool-icon">🔄</div>
+            <h4>Backup & Restore</h4>
+            <p>Manage database backups</p>
+            <button class="db-tool-btn" data-tool="backup">Backup Tools</button>
+          </div>
+          
+          <div class="db-tool-card">
+            <div class="tool-icon">🧹</div>
+            <h4>Database Cleanup</h4>
+            <p>Remove malformed entries and optimize database</p>
+            <button class="db-tool-btn" data-script="db-cleanup">Run Cleanup</button>
+          </div>
+        </div>
+        
+        <div id="db-content" class="db-content">
+          <div class="db-placeholder">Select a tool to get started...</div>
+        </div>
+      </div>
+      
+      <!-- User Management Tab -->
+      <div id="user-management" class="admin-tab-content">
+        <div class="tab-header">
+          <h3>👥 User Management</h3>
+          <p>View, add, edit, and remove users and admins.</p>
+        </div>
+        <div class="user-management-controls" style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+          <input id="user-search" class="user-search" type="text" placeholder="Search users..." style="flex:1;max-width:300px;">
+          <button id="add-user-btn" class="db-tool-btn">+ Add User</button>
+        </div>
+        <div id="user-management-content">
+          <table class="user-table">
+            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="user-table-body">
+              <!-- User rows will be rendered here by JS -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Add/Edit User Modal -->
+        <div id="user-modal" class="user-modal" style="display:none;"></div>
+        <!-- Delete Confirmation Modal -->
+        <div id="delete-user-modal" class="delete-user-modal" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div> 

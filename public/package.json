@@ -1,0 +1,25 @@
+{
+  "name": "multichat-chatty-frontend",
+  "version": "2.0.0",
+  "description": "Frontend client for MultiChat Chatty application",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server . -p 5500 -c-1 --cors --proxy http://localhost:5501",
+    "dev": "http-server . -p 5500 -c-1 --cors --proxy http://localhost:5501",
+    "build": "echo 'Frontend build process would go here'",
+    "lint": "echo 'Frontend linting would go here'",
+    "test": "echo 'Frontend tests would go here'"
+  },
+  "author": "Paul Welby",
+  "license": "ISC",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
