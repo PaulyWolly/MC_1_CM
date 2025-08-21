@@ -9151,45 +9151,24 @@ class MediaLibraryManager {
         }
     }
 
-    async removeResumeProgress(path) {
-        console.log('[REMOVE-RESUME-PROGRESS] Starting removal for path:', path);
+        async removeResumeProgress(path) {
+        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Starting removal for path:', path);
+        
+        // Temporarily pause auto-backup to prevent conflicts during deletion
+        if (window.watchLaterSync) {
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Pausing auto-backup during deletion...');
+            window.watchLaterSync.pauseAutoBackup();
+        }
         
         let resumeList = JSON.parse(localStorage.getItem('mediaLibraryResumeList') || '[]');
-        console.log('[REMOVE-RESUME-PROGRESS] Original resume list count:', resumeList.length);
-        console.log('[REMOVE-RESUME-PROGRESS] Resume list items:', resumeList.map(item => ({
-            title: item.title,
-            path: item.path,
-            type: item.type
-        })));
+        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Original resume list count:', resumeList.length);
         
         // Normalize the target path
         const normalizedPath = path.replace(/\\/g, '/').toLowerCase().trim();
-        console.log('[REMOVE-RESUME-PROGRESS] Normalized path:', normalizedPath);
+        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Normalized path:', normalizedPath);
         
-        // Find the item to remove (for MongoDB removal)
-        const itemToRemove = resumeList.find(item => {
-            const itemPaths = [
-                item.path,
-                item.relPath,
-                item.filePath,
-                item.absPath
-            ].filter(p => p).map(p => p.replace(/\\/g, '/').toLowerCase().trim());
-            
-            console.log('[REMOVE-RESUME-PROGRESS] Checking item:', {
-                title: item.title,
-                path: item.path,
-                itemPaths: itemPaths,
-                normalizedPath: normalizedPath
-            });
-            
-            const match = itemPaths.some(itemPath => itemPath === normalizedPath);
-            if (match) {
-                console.log('[REMOVE-RESUME-PROGRESS] Found matching item:', item);
-            }
-            return match;
-        });
-        
-        console.log('[REMOVE-RESUME-PROGRESS] Item to remove found:', !!itemToRemove);
+        // Find the item to remove (for MongoDB removal) - we'll update this as we find items
+        let itemToRemove = null;
         
         // Remove items that match the path (check all possible path properties)
         const originalCount = resumeList.length;
@@ -9204,28 +9183,24 @@ class MediaLibraryManager {
             const shouldRemove = itemPaths.some(itemPath => itemPath === normalizedPath);
             
             if (shouldRemove) {
-                console.log('[REMOVE-RESUME-PROGRESS] Removing item:', {
-                    title: item.title,
-                    path: item.path,
-                    itemPaths: itemPaths,
-                    normalizedPath: normalizedPath
-                });
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removing item by path:', item.title);
+                itemToRemove = item; // Set this for MongoDB removal
             }
             
             return !shouldRemove;
         });
         
         let removedCount = originalCount - resumeList.length;
-        console.log('[REMOVE-RESUME-PROGRESS] Removed', removedCount, 'items from localStorage');
+        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removed', removedCount, 'items from localStorage by path');
         
         // If no items were removed by path matching, try to find by title as fallback
         if (removedCount === 0) {
-            console.log('[REMOVE-RESUME-PROGRESS] No items removed by path, trying title fallback...');
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 No items removed by path, trying title fallback...');
             
             // Try to find and remove by title as a fallback
             const titleToRemove = path.split(/[\\/]/).pop()?.replace(/\.[^/.]+$/, ''); // Extract filename without extension
             if (titleToRemove) {
-                console.log('[REMOVE-RESUME-PROGRESS] Trying to remove by title:', titleToRemove);
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Trying to remove by title:', titleToRemove);
                 
                 const beforeCount = resumeList.length;
                 resumeList = resumeList.filter(item => {
@@ -9237,7 +9212,8 @@ class MediaLibraryManager {
                                      itemFilename === titleToRemove.toLowerCase();
                     
                     if (titleMatch) {
-                        console.log('[REMOVE-RESUME-PROGRESS] Found item by title fallback:', item);
+                        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Found item by title fallback:', item.title);
+                        itemToRemove = item; // Set this for MongoDB removal
                     }
                     
                     return !titleMatch;
@@ -9245,21 +9221,21 @@ class MediaLibraryManager {
                 
                 const afterCount = resumeList.length;
                 if (afterCount < beforeCount) {
-                    console.log('[REMOVE-RESUME-PROGRESS] Removed', beforeCount - afterCount, 'items by title fallback');
+                    console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removed', beforeCount - afterCount, 'items by title fallback');
                     removedCount = beforeCount - afterCount;
                 }
             }
             
             // If still no items removed, try a more aggressive approach - find by show name and episode
             if (removedCount === 0) {
-                console.log('[REMOVE-RESUME-PROGRESS] Still no items removed, trying show/episode matching...');
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Still no items removed, trying show/episode matching...');
                 
                 // Extract show name and episode from the path
                 const pathParts = path.split(/[\\/]/);
                 const showName = pathParts[0] || '';
                 const episodeFile = pathParts[pathParts.length - 1] || '';
                 
-                console.log('[REMOVE-RESUME-PROGRESS] Extracted show name:', showName, 'episode file:', episodeFile);
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Extracted show name:', showName, 'episode file:', episodeFile);
                 
                 const beforeCount = resumeList.length;
                 resumeList = resumeList.filter(item => {
@@ -9273,7 +9249,8 @@ class MediaLibraryManager {
                                        itemEpisode.includes(episodeFile.toLowerCase());
                     
                     if (showMatch || episodeMatch) {
-                        console.log('[REMOVE-RESUME-PROGRESS] Found item by show/episode matching:', item);
+                        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Found item by show/episode matching:', item.title);
+                        itemToRemove = item; // Set this for MongoDB removal
                     }
                     
                     return !(showMatch || episodeMatch);
@@ -9281,39 +9258,47 @@ class MediaLibraryManager {
                 
                 const afterCount = resumeList.length;
                 if (afterCount < beforeCount) {
-                    console.log('[REMOVE-RESUME-PROGRESS] Removed', beforeCount - afterCount, 'items by show/episode matching');
+                    console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removed', beforeCount - afterCount, 'items by show/episode matching');
                     removedCount = beforeCount - afterCount;
                 }
             }
         }
         
+        console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Item to remove found:', !!itemToRemove);
+        
         // Update localStorage
         localStorage.setItem('mediaLibraryResumeList', JSON.stringify(resumeList));
         
-        // Also remove from MongoDB if we found the item
-        if (itemToRemove && itemToRemove.mediaId && itemToRemove.mediaType) {
-            console.log('[REMOVE-RESUME-PROGRESS] Removing from MongoDB:', itemToRemove.mediaId, itemToRemove.mediaType);
-            await this.removeFromMongoDB(itemToRemove.mediaId, itemToRemove.mediaType);
+        // Remove from MongoDB using path-based approach (more reliable than mediaId/mediaType)
+        if (itemToRemove) {
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removing from MongoDB using path-based approach');
+            await this.removeFromMongoDBByPath(path, itemToRemove);
         } else {
-            console.log('[REMOVE-RESUME-PROGRESS] No MongoDB removal - missing mediaId or mediaType');
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 No item found for MongoDB removal');
         }
         
         // Refresh the Watch Later content if we're currently on that tab
         if (this.currentTab === 'watchlater') {
-            console.log('[REMOVE-RESUME-PROGRESS] Refreshing Watch Later grid');
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Refreshing Watch Later grid');
             
-                    // Force a refresh even if no items were removed
-        if (removedCount === 0) {
-            console.log('[REMOVE-RESUME-PROGRESS] No items removed, forcing grid refresh to ensure UI consistency');
-            
-            // Try to force a complete rebuild of the Watch Later grid
-            console.log('[REMOVE-RESUME-PROGRESS] Attempting to force rebuild of Watch Later grid...');
-        }
+            // Force a refresh even if no items were removed
+            if (removedCount === 0) {
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 No items removed, forcing grid refresh to ensure UI consistency');
+                
+                // Try to force a complete rebuild of the Watch Later grid
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Attempting to force rebuild of Watch Later grid...');
+            }
             
             // Use setTimeout to avoid potential recursion issues
             setTimeout(() => {
                 this.updateWatchLaterGrid();
             }, 100);
+        }
+        
+        // Resume auto-backup after deletion is complete
+        if (window.watchLaterSync) {
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Resuming auto-backup after deletion...');
+            window.watchLaterSync.resumeAutoBackup();
         }
     }
 
@@ -9339,6 +9324,83 @@ class MediaLibraryManager {
             
         } catch (error) {
             console.error('[MEDIA-LIBRARY] MongoDB remove error:', error);
+            // Don't throw - we want localStorage removal to still work if MongoDB fails
+        }
+    }
+
+    // Helper method to remove item from MongoDB using path-based approach
+    async removeFromMongoDBByPath(path, item) {
+        try {
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Removing from MongoDB by path:', path);
+            
+            // Try multiple approaches to remove from MongoDB
+            const removePromises = [];
+            
+            // Approach 1: Use the existing remove endpoint if mediaId/mediaType exist
+            if (item.mediaId && item.mediaType) {
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Trying mediaId/mediaType removal:', item.mediaId, item.mediaType);
+                removePromises.push(
+                    fetch('/api/watch-later/remove', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mediaId: item.mediaId, mediaType: item.mediaType })
+                    })
+                );
+            }
+            
+            // Approach 2: Use path-based removal
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Trying path-based removal:', path);
+            removePromises.push(
+                fetch('/api/watch-later/remove-by-path', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        path: path,
+                        title: item.title,
+                        type: item.type,
+                        mediaType: item.mediaType || 'unknown'
+                    })
+                })
+            );
+            
+            // Approach 3: Use title-based removal as fallback
+            if (item.title) {
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Trying title-based removal:', item.title);
+                removePromises.push(
+                    fetch('/api/watch-later/remove-by-title', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            title: item.title,
+                            type: item.type,
+                            mediaType: item.mediaType || 'unknown'
+                        })
+                    })
+                );
+            }
+            
+            // Execute all removal attempts
+            console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Executing', removePromises.length, 'MongoDB removal approaches...');
+            const results = await Promise.allSettled(removePromises);
+            let successCount = 0;
+            
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled' && result.value.ok) {
+                    successCount++;
+                    console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 MongoDB removal approach', index + 1, 'succeeded');
+                } else {
+                    console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 MongoDB removal approach', index + 1, 'failed:', result);
+                }
+            });
+            
+            if (successCount > 0) {
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 Successfully removed from MongoDB using', successCount, 'approach(es)');
+            } else {
+                console.log('🚨 [REMOVE-RESUME-PROGRESS] 🚨 All MongoDB removal approaches failed');
+            }
+            
+        } catch (error) {
+            console.error('🚨 [REMOVE-RESUME-PROGRESS] 🚨 MongoDB removal error:', error);
             // Don't throw - we want localStorage removal to still work if MongoDB fails
         }
     }
