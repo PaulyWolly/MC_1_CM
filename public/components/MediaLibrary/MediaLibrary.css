@@ -155,7 +155,7 @@
 .media-library-movie-card {
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -2703,7 +2703,7 @@
 
 .media-library-poster.poster {
   max-width: 150px;
-  width: 100%;
+  width: 90%;
   height: auto;
 }
 
@@ -3142,6 +3142,10 @@
 }
 .media-library-toast.error {
     background: #e53935;
+}
+
+.media-library-tv-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 /* FAVORITES COLUMN LAYOUT AND SCROLLING */
