@@ -155,7 +155,7 @@
 .media-library-movie-card {
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1057,6 +1057,52 @@
 .media-library-card.season {
   /* season-specific properties here */
 }
+
+/* Specials card styling */
+.media-library-card.specials {
+  background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
+  border: 2px solid #ff7043;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+  margin: 12px 0 12px 0;
+  padding: 0 0 15px 0;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+  width: 160px;
+}
+
+.media-library-card.specials:hover {
+  box-shadow: 0 4px 16px rgba(255, 87, 34, 0.4);
+}
+
+.media-library-card.specials .media-library-card-poster {
+  /* Inherit from base season card styling */
+}
+
+.media-library-card.specials .media-library-card-info {
+  /* Inherit from base season card styling */
+}
+
+.media-library-card.specials .media-library-card-info h3 {
+  color: #ffffff;
+  font-size: .90em;
+  /* margin: 8px 0 0 0; */
+  text-align: center;
+  word-break: break-word;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 75);
+}
+
+.media-library-card.specials .media-library-card-info p {
+  color: #fff3e0;
+  font-size: .75em;
+  margin: 0;
+  text-align: center;
+  opacity: 0.9;
+}
 /* Episode-specific styles */
 .media-library-card.episode {
   /* episode-specific properties here */
@@ -1102,26 +1148,28 @@
 }
 
 .media-library-episodes-scroll {
-    max-height: 66.4vh;
-    /* overflow-y: auto; */
+    max-height: 180px;
+    overflow-y: hidden;
     padding-right: 8px;
+    /* Override conflicting flex behavior */
+    flex: none !important;
+    display: block !important;
 }
 
 .media-library-episodes-scroll .media-library-grid {
-    display: flex
-;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    /* gap: 18px; */
-    width: 1270px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 15px;
+    width: 100%;
     position: relative;
     min-width: 418px;
-    /* max-width: 1200px; */
-    position: absolute;
-    top: 160px;
-    right: 150px;
+    max-width: none;
     overflow-x: auto !important;
     white-space: nowrap;
+    padding: 15px 20px;
+    /* Ensure horizontal layout */
+    flex: none !important;
 }
 
 .media-library-resume-row {
@@ -2703,7 +2751,7 @@
 
 .media-library-poster.poster {
   max-width: 150px;
-  width: 90%;
+  width: 100%;
   height: auto;
 }
 
@@ -2784,6 +2832,7 @@
     position: absolute;
     right: 30px;
     top: 116px;
+    margin-left: 50px;
     border-radius: 8px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
@@ -2796,6 +2845,7 @@
   justify-content: flex-start;
   margin-top: 45px;
   position: static;
+  margin-left: 50px;
 }
 
 .media-library-seasons-grid {
@@ -2843,13 +2893,15 @@
 
 /* Cast row below posters */
 .media-library-cast-horizontal-row {
-    display: flex;
-    flex-direction: row;
-    gap: 14px;
-    margin-top: 10px;
-    margin-bottom: 0;
-    align-items: flex-end;
-    justify-content: flex-start;
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  margin-top: 10px;
+  /* margin-left: 100px; */
+  margin-bottom: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+      /* width: 100%;*/
 }
 
 /* Responsive: stack header row on mobile */
@@ -2970,23 +3022,23 @@
 }
 
 .media-library-episodes-grid {
-  min-width: 174px;
-  max-width: 200px;
-  flex: 0 0 160px;
-  margin: 0;
-  box-sizing: border-box;
-  column-gap: 10px;
-  gap: 2px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-  overflow: hidden;
-  padding: 10px 6px 12px 6px;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
+    /* min-width: 174px; */
+    /* max-width: 200px; */
+    flex: 0 0 160px;
+    margin: 0;
+    box-sizing: border-box;
+    column-gap: 10px;
+    gap: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    overflow-y: hidden;
+    padding: 10px 6px 12px 6px;
+    transition: box-shadow 0.2s;
+    cursor: pointer;
 }
 .center-episodes {
   justify-content: center !important;
@@ -3142,10 +3194,6 @@
 }
 .media-library-toast.error {
     background: #e53935;
-}
-
-.media-library-tv-card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
 /* FAVORITES COLUMN LAYOUT AND SCROLLING */

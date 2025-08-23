@@ -92,6 +92,11 @@ export default class YouTubeSearchManager {
               `⚠️ [CACHE] localStorage quota exceeded, clearing old cache entries`
             );
 
+            // Show warning to user before deleting data
+            if (window.showToast) {
+              window.showToast(`⚠️ localStorage quota exceeded. Clearing old cache entries to make space...`, 'warning', 8000);
+            }
+
             this.clearOldCacheEntries();
 
             // Try again after clearing
@@ -102,11 +107,19 @@ export default class YouTubeSearchManager {
               console.log(
                 `✅ [CACHE] Saved to localStorage after cleanup: ${key}`
               );
+              
+              if (window.showToast) {
+                window.showToast(`✅ Cache cleanup completed. Data saved successfully.`, 'success', 5000);
+              }
             } catch (retryError) {
               console.error(
                 `❌ [CACHE] Still failed after cleanup: ${key}`,
                 retryError
               );
+              
+              if (window.showToast) {
+                window.showToast(`❌ Cache cleanup failed. Data could not be saved.`, 'error', 8000);
+              }
             }
           } else {
             console.error(
@@ -138,7 +151,7 @@ export default class YouTubeSearchManager {
           })
           .sort((a, b) => a.timestamp - b.timestamp);
 
-        const toRemove = Math.ceil(cacheEntries.length * 0.25);
+         const toRemove = Math.ceil(cacheEntries.length * 0.10);
 
         for (let i = 0; i < toRemove; i++) {
           localStorage.removeItem(cacheEntries[i].key);
@@ -4183,7 +4196,7 @@ export default class YouTubeSearchManager {
 
         deleteIcon.className = "history-action-icon delete-icon";
 
-        deleteIcon.innerHTML = "🗑️";
+        deleteIcon.innerHTML = "❌";
 
         deleteIcon.title = "Delete from history";
 
@@ -4811,7 +4824,7 @@ export default class YouTubeSearchManager {
 
       deleteIcon.className = "history-action-icon delete-icon";
 
-      deleteIcon.innerHTML = "🗑️";
+      deleteIcon.innerHTML = "❌";
 
       deleteIcon.title = "Delete from history";
 
@@ -6261,29 +6274,33 @@ export default class YouTubeSearchManager {
         refreshBtn.disabled = true;
 
         try {
-          // Force refresh from MongoDB
-
-          await this.loadSavedQueries();
-
-          // Get all queries including database ones
-
-          const allQueries = this.getAllQueriesForDropdown();
-
-          // Re-render dropdown with fresh data
-
-          await this.renderQueryDropdown(allQueries, subject);
-
-          console.log(
-            "✅ [REFRESH] Successfully refreshed dropdown with",
-            allQueries.length,
-            "queries from MongoDB"
-          );
-
-          if (window.showToast) {
-            window.showToast(
-              `Refreshed: ${allQueries.length} queries loaded from database`,
-              "success"
+          // Force refresh from MongoDB - RESTORE ACTUAL VIDEO DATA!
+          console.log("🔄 [REFRESH] Calling restoreAllCacheFromMongoDB to get REAL video data...");
+          
+          const restoreResult = await window.restoreAllCacheFromMongoDB();
+          
+          if (restoreResult && restoreResult.restoredCount > 0) {
+            console.log(
+              "✅ [REFRESH] Successfully restored",
+              restoreResult.restoredCount,
+              "queries with REAL video data from MongoDB"
             );
+            
+            if (window.showToast) {
+              window.showToast(
+                `Restored ${restoreResult.restoredCount} queries with REAL video data from MongoDB!`,
+                "success"
+              );
+            }
+          } else {
+            console.log("⚠️ [REFRESH] No video data restored from MongoDB");
+            
+            if (window.showToast) {
+              window.showToast(
+                "No video data found in MongoDB. Check your database!",
+                "warning"
+              );
+            }
           }
         } catch (error) {
           console.error("❌ [REFRESH] Error refreshing from MongoDB:", error);
