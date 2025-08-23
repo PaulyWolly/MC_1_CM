@@ -407,11 +407,16 @@
     gap: 4px;
     min-width: 60px;
     justify-content: center;
-    height: 20px;
+    height: 26px;
     z-index: 1002 !important;
     position: relative;
     top: 35px;
     width: 98%;
+}
+
+.query-col.query-col-delete {
+    position: relative;
+    right: 10px;
 }
 
 .query-history-btn:hover:not(:disabled) {
@@ -535,7 +540,8 @@
 }
 
 .query-history-list {
-    padding: 4px 0;
+    padding: 4px 0px;
+    margin-right: 2px;
 }
 
 .query-history-item {
@@ -663,6 +669,27 @@
 .history-action-icon.disabled:hover {
     opacity: 0.3;
     transform: none;
+}
+
+/* Make delete icon red and more prominent in dropdown */
+.history-action-icon.delete-icon {
+    color: #dc3545 !important;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(220, 53, 69, 0.5);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.history-action-icon.delete-icon:hover {
+    color: #c82333 !important;
+    text-shadow: 0 0 5px rgba(220, 53, 69, 0.8);
+    transform: scale(1.2);
+    animation: deleteIconPulse 0.6s ease-in-out;
+}
+
+@keyframes deleteIconPulse {
+    0%, 100% { transform: scale(1.2); }
+    50% { transform: scale(1.4); }
 }
 
 .query-history-delete {
@@ -874,7 +901,7 @@
 .query-table .history-action-icon {
     font-size: 14px;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 2.0;
     transition: all 0.2s;
     margin: 0;
 }
@@ -882,6 +909,19 @@
 .query-table .history-action-icon:hover {
     opacity: 1;
     transform: scale(1.1);
+}
+
+/* Make delete icon red and more prominent */
+.query-table .history-action-icon.delete-icon {
+    color: #dc3545 !important;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(220, 53, 69, 0.5);
+}
+
+.query-table .history-action-icon.delete-icon:hover {
+    color: #c82333 !important;
+    text-shadow: 0 0 5px rgba(220, 53, 69, 0.8);
+    transform: scale(1.2);
 }
 
 /* Responsive adjustments */

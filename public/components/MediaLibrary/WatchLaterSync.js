@@ -33,11 +33,7 @@ class WatchLaterSync {
     
     startAutoBackup() {
         setInterval(() => {
-            if (!this.autoBackupPaused) {
-                this.backupToMongoDB();
-            } else {
-                console.log('[WATCH-LATER-SYNC] Auto-backup skipped (paused)');
-            }
+            this.backupToMongoDB();
         }, this.backupInterval);
     }
     
@@ -84,18 +80,6 @@ class WatchLaterSync {
         } finally {
             this.isBackingUp = false;
         }
-    }
-
-    // Method to temporarily disable auto-backup during deletion
-    pauseAutoBackup() {
-        this.autoBackupPaused = true;
-        console.log('[WATCH-LATER-SYNC] Auto-backup paused');
-    }
-
-    // Method to resume auto-backup after deletion
-    resumeAutoBackup() {
-        this.autoBackupPaused = false;
-        console.log('[WATCH-LATER-SYNC] Auto-backup resumed');
     }
     
     async restoreFromMongoDB() {
