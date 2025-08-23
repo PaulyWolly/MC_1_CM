@@ -144,6 +144,7 @@ const youtubeHistoryRoutes = require('./routes/youtubeHistory.routes.js');
 const clickedVideosRoutes = require('./routes/clickedVideos.routes.js');
 const watchLaterRoutes = require('./routes/watchLater.routes.js');
 const lyricsRoutes = require('./routes/lyrics.routes.js');
+const thumbnailsRoutes = require('./routes/thumbnails.js');
 
 // Mount the routes
 app.use('/api/playlists', playlistRoutes);
@@ -152,6 +153,7 @@ app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
 app.use('/api/watch-later', watchLaterRoutes);
 app.use('/api/lyrics', lyricsRoutes);
 app.use('/api/collections', require('./routes/collections.routes'));
+app.use('/', thumbnailsRoutes);
 
 // 1. Serve S:/MEDIA as /media (STATIC)
 app.use('/media', express.static('S:/MEDIA'));
@@ -2908,7 +2910,7 @@ app.get('/api/youtube/saved-searches', async (req, res) => {
         // const savedSearches = await YouTubeSearch.find({ userId })
         const savedSearches = await YouTubeSearch.find({})
             .sort({ lastSearched: -1 })
-            .limit(50); // Limit to 50 most recent searches
+            // NO LIMIT - Get ALL searches!
 
         console.log('📚 [YOUTUBE-DB] Found', savedSearches.length, 'saved searches');
 
@@ -3308,8 +3310,8 @@ app.post('/api/youtube/search', async (req, res) => {
                     thumbnail: video.snippet.thumbnails?.high?.url || ''
                 }));
 
-                // Save to MongoDB for future cache restoration
-                await saveSearchResultToMongoDB(query, 1, videos, 'SINGLE', null, 101);
+                // NOTE: MongoDB saving is now OPTIONAL - only happens when user clicks SAVE button
+                console.log(`🎬 [SEARCH] Single video result saved to localStorage only - use SAVE button to persist to MongoDB`);
 
                 return { 
                     success: true, 
@@ -3457,9 +3459,8 @@ app.post('/api/youtube/search', async (req, res) => {
                     thumbnail: video.snippet.thumbnails?.high?.url || ''
                 }));
 
-                // Save to MongoDB for future cache restoration
-                const actualQuotaCost = (quotaCostMultiplier * 100) + 1; // Each search.list = 100, videos.list = 1
-                await saveSearchResultToMongoDB(query, pageNum, videos, 'MULTI', searchResponse.data.nextPageToken, actualQuotaCost);
+                // NOTE: MongoDB saving is now OPTIONAL - only happens when user clicks SAVE button
+                console.log(`🎬 [SEARCH] Search results saved to localStorage only - use SAVE button to persist to MongoDB`);
 
                 console.log(`💰 [QUOTA] Page ${pageNum} cost: ${actualQuotaCost} quota (${quotaCostMultiplier} search calls + 1 video details call)`);
 
@@ -3667,13 +3668,9 @@ app.post('/api/youtube/search', async (req, res) => {
                     contentType: type // Add content type for frontend display
                 }));
 
-                // Save to MongoDB for cache restoration
-                try {
-                    await saveSearchResultToMongoDB(query, pageNum, videos, 'MULTI', searchResponse.data.nextPageToken, quotaUsed);
-                    console.log(`🎬 [MONGODB] Saved ${type} search results to database`);
-                } catch (mongoError) {
-                    console.error(`🎬 [MONGODB] Failed to save ${type} search results:`, mongoError);
-                }
+                // NOTE: MongoDB saving is now OPTIONAL - only happens when user clicks SAVE button
+                // Search results go to localStorage only (temporary)
+                console.log(`🎬 [SEARCH] Search results saved to localStorage only - use SAVE button to persist to MongoDB`);
                 
                 // Save pageToken for sustainable pagination
                 try {

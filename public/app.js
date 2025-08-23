@@ -74,15 +74,15 @@ window.repopulateCacheFromClicks = (maxQueries = 10) => {
     return window.youtubeSearchManager.repopulateCacheFromClickedVideos(maxQueries);
 };
 
-// Restore cache from MongoDB saved search results (no API calls!)
-window.restoreCacheFromMongoDB = async (maxQueries = 10) => {
+// Restore cache from MongoDB saved search results - FETCHES FROM YOUTUBE API!
+window.restoreCacheFromMongoDB = async (maxQueries = null) => {
     console.log('🔄 [RESTORE] Starting cache restoration from MongoDB...');
     
     try {
-        // Get all database queries
+        // Get all database queries - NO LIMIT!
         const response = await fetch('/api/youtube/history/list');
         const result = await response.json();
-        const dbQueries = result.queries.slice(0, maxQueries);
+        const dbQueries = result.queries; // Remove the slice - get ALL queries!
         
         console.log(`📊 [RESTORE] Will attempt to restore ${dbQueries.length} queries from MongoDB`);
         
@@ -91,29 +91,32 @@ window.restoreCacheFromMongoDB = async (maxQueries = 10) => {
         
         for (const queryObj of dbQueries) {
             try {
-                const restoreResponse = await fetch(`/api/youtube/restore-cache/${encodeURIComponent(queryObj.query)}`);
-                const restoreData = await restoreResponse.json();
+                // Instead of trying to restore non-existent cached data, 
+                // fetch fresh results from YouTube API for each query
+                console.log(`🔄 [RESTORE] Fetching fresh results for: "${queryObj.query}"`);
                 
-                if (restoreData.success && restoreData.pages.length > 0) {
-                    // Restore each page to localStorage
-                    for (const page of restoreData.pages) {
-                        const cacheKey = `yt_search_${queryObj.query.toLowerCase().replace(/\s+/g, '_')}_p${page.page}_none`;
-                        const cacheData = {
-                            videos: page.videos,
-                            page: page.page,
-                            timestamp: new Date(page.timestamp).getTime(),
-                            fromMongoDB: true
-                        };
-                        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-                    }
-                    console.log(`✅ [RESTORE] Restored ${restoreData.pages.length} pages for "${queryObj.query}"`);
+                const searchResponse = await fetch(`/api/youtube/search?q=${encodeURIComponent(queryObj.query)}&type=search&page=1`);
+                const searchData = await searchResponse.json();
+                
+                if (searchData.success && searchData.videos && searchData.videos.length > 0) {
+                    // Store the fresh results in localStorage
+                    const cacheKey = `yt_search_${queryObj.query.toLowerCase().replace(/\s+/g, '.')}_p1_none`;
+                    const cacheData = {
+                        videos: searchData.videos,
+                        page: 1,
+                        timestamp: Date.now(),
+                        fromYouTubeAPI: true
+                    };
+                    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                    
+                    console.log(`✅ [RESTORE] Fetched and cached ${searchData.videos.length} videos for "${queryObj.query}"`);
                     restoredCount++;
                 } else {
-                    console.log(`⚠️ [RESTORE] No MongoDB data found for "${queryObj.query}"`);
+                    console.log(`⚠️ [RESTORE] No YouTube results found for "${queryObj.query}"`);
                     notFoundCount++;
                 }
             } catch (error) {
-                console.error(`❌ [RESTORE] Error restoring "${queryObj.query}":`, error);
+                console.error(`❌ [RESTORE] Error fetching "${queryObj.query}":`, error);
                 notFoundCount++;
             }
         }
@@ -126,9 +129,9 @@ window.restoreCacheFromMongoDB = async (maxQueries = 10) => {
         
         if (window.showToast) {
             if (restoredCount > 0) {
-                window.showToast(`Restored ${restoredCount} queries from MongoDB database`, 'success');
+                window.showToast(`Restored ${restoredCount} queries from YouTube API!`, 'success');
             } else {
-                window.showToast('No cached data found in MongoDB. Start clicking queries to build cache!', 'info');
+                window.showToast('No results found from YouTube API. Check your queries!', 'info');
             }
         }
         
@@ -136,6 +139,82 @@ window.restoreCacheFromMongoDB = async (maxQueries = 10) => {
         
     } catch (error) {
         console.error('❌ [RESTORE] Error during MongoDB restoration:', error);
+        if (window.showToast) {
+            window.showToast('Error restoring cache from MongoDB', 'error');
+        }
+        return { restoredCount: 0, notFoundCount: 0, totalProcessed: 0 };
+    }
+};
+
+// Restore ALL cache from MongoDB (no limit!)
+window.restoreAllCacheFromMongoDB = async () => {
+    console.log('🔄 [RESTORE-ALL] Starting FULL cache restoration from MongoDB...');
+    
+    try {
+        // Get ALL database queries without limit
+        const response = await fetch('/api/youtube/history/list');
+        const result = await response.json();
+        const allDbQueries = result.queries; // No slice limit!
+        
+        console.log(`📊 [RESTORE-ALL] Will attempt to restore ALL ${allDbQueries.length} queries from MongoDB`);
+        
+        let restoredCount = 0;
+        let notFoundCount = 0;
+        
+        for (const queryObj of allDbQueries) {
+            try {
+                const restoreResponse = await fetch(`/api/youtube/restore-cache/${encodeURIComponent(queryObj.query)}`);
+                const restoreData = await restoreResponse.json();
+                
+                console.log(`🔍 [RESTORE-ALL] MongoDB response for "${queryObj.query}":`, restoreData);
+                
+                if (restoreData.success && restoreData.pages && restoreData.pages.length > 0) {
+                    // Restore each page to localStorage
+                    for (const page of restoreData.pages) {
+                        if (page.videos && page.videos.length > 0) {
+                            const cacheKey = `yt_search_${queryObj.query.toLowerCase().replace(/\s+/g, '.')}_p${page.page}_none`;
+                            const cacheData = {
+                                videos: page.videos,
+                                page: page.page,
+                                timestamp: new Date(page.timestamp).getTime(),
+                                fromMongoDB: true
+                            };
+                            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                            console.log(`✅ [RESTORE-ALL] Restored page ${page.page} with ${page.videos.length} videos for "${queryObj.query}"`);
+                        } else {
+                            console.log(`⚠️ [RESTORE-ALL] Page ${page.page} for "${queryObj.query}" has no videos`);
+                        }
+                    }
+                    console.log(`✅ [RESTORE-ALL] Restored ${restoreData.pages.length} pages for "${queryObj.query}"`);
+                    restoredCount++;
+                } else {
+                    console.log(`⚠️ [RESTORE-ALL] No MongoDB data found for "${queryObj.query}"`);
+                    notFoundCount++;
+                }
+            } catch (error) {
+                console.error(`❌ [RESTORE-ALL] Error restoring "${queryObj.query}":`, error);
+                notFoundCount++;
+            }
+        }
+        
+        console.log(`🎯 [RESTORE-ALL] Complete: ${restoredCount} restored, ${notFoundCount} not found out of ${allDbQueries.length} total`);
+        
+        // Refresh dropdown
+        const updatedQueries = window.youtubeSearchManager.getAllQueriesForDropdown();
+        await window.youtubeSearchManager.renderQueryDropdown(updatedQueries, null);
+        
+        if (window.showToast) {
+            if (restoredCount > 0) {
+                window.showToast(`Restored ALL ${restoredCount} queries from MongoDB database!`, 'success');
+            } else {
+                window.showToast('No cached data found in MongoDB. Start clicking queries to build cache!', 'info');
+            }
+        }
+        
+        return { restoredCount, notFoundCount, totalProcessed: allDbQueries.length };
+        
+    } catch (error) {
+        console.error('❌ [RESTORE-ALL] Error during MongoDB restoration:', error);
         if (window.showToast) {
             window.showToast('Error restoring cache from MongoDB', 'error');
         }

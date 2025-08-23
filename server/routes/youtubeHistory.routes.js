@@ -10,7 +10,47 @@ const express = require('express');
 const router = express.Router();
 const YouTubeSearch = require('../models/YouTubeSearch');
 
-// GET all queries (for cache restoration)
+// GET all queries (for cache restoration) - FRONTEND CALLS THIS!
+router.get('/list', async (req, res) => {
+    try {
+        // Check if MongoDB is connected
+        const mongoose = require('mongoose');
+        if (mongoose.connection.readyState !== 1) {
+            console.log('📚 [API] MongoDB not connected, returning empty array');
+            return res.json({ queries: [] });
+        }
+        
+        // Get all documents without requiring sessionId - NO LIMIT!
+        const allQueries = await YouTubeSearch.find({}).sort({ lastSearched: -1 });
+        
+        console.log(`📚 [API] Found ${allQueries.length} total documents in database`);
+        
+        // Return complete search information including type
+        const queries = allQueries.map(item => ({
+            query: item.query,
+            displayName: item.displayName,
+            searchType: item.searchMetadata?.searchType || 'search',
+            timestamp: item.lastSearched || item.dateCreated,
+            totalPages: item.totalPages,
+            videoCount: item.videoCount,
+            cacheKeys: item.cacheKeys || [] // Include cache keys for debugging
+        }));
+        
+        console.log(`📚 [API] Returning ${queries.length} queries from database`);
+        console.log('📚 [API] Sample queries:', queries.slice(0, 5).map(q => ({
+            query: q.query,
+            displayName: q.displayName,
+            cacheKeys: q.cacheKeys?.length || 0
+        })));
+        
+        res.json({ queries: queries }); // Frontend expects { queries: [...] }
+    } catch (error) {
+        console.error('📚 [API] Error loading queries:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// GET all queries (for cache restoration) - ALTERNATIVE ENDPOINT
 router.get('/all', async (req, res) => {
     try {
         // Check if MongoDB is connected
@@ -20,7 +60,7 @@ router.get('/all', async (req, res) => {
             return res.json([]);
         }
         
-        // Get all documents without requiring sessionId
+        // Get all documents without requiring sessionId - NO LIMIT!
         const allQueries = await YouTubeSearch.find({}).sort({ lastSearched: -1 });
         
         console.log(`📚 [API] Found ${allQueries.length} total documents in database`);

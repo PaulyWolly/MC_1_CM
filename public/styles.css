@@ -5322,7 +5322,8 @@ h3.youtube-header-title span {
 .query-history-list {
     max-height: 300px;
     overflow-y: auto;
-    scrollbar-width: thin;
+    overflow-x: hidden;
+    scrollbar-width: auto;
     scrollbar-color: #bbb transparent;
 }
 

@@ -1,0 +1,34 @@
+{
+  "query": "hillsong united",
+  "searchType": "search",
+  "videos": [
+    {
+      "id": "2YXtIS8snno",
+      "title": "Top 100 Hillsong United Songs 2022 Collection - Nonstop Christian Worship",
+      "description": "Best Hillsong United worship songs compilation",
+      "thumbnail": "https://i.ytimg.com/vi/2YXtIS8snno/mqdefault.jpg",
+      "channelTitle": "Hillsong United",
+      "publishedAt": "2022-01-01T00:00:00Z",
+      "duration": "PT1H30M"
+    },
+    {
+      "id": "6Whgn_iE5uc",
+      "title": "Hillsong United - Oceans (Where Feet May Fail) [Live]",
+      "description": "Official live performance of Oceans by Hillsong United",
+      "thumbnail": "https://i.ytimg.com/vi/6Whgn_iE5uc/mqdefault.jpg",
+      "channelTitle": "Hillsong United",
+      "publishedAt": "2013-01-01T00:00:00Z",
+      "duration": "PT8M30S"
+    },
+    {
+      "id": "28E8WKZ614w",
+      "title": "Hillsong United - What A Beautiful Name [Live]",
+      "description": "Live performance of What A Beautiful Name",
+      "thumbnail": "https://i.ytimg.com/vi/28E8WKZ614w/mqdefault.jpg",
+      "channelTitle": "Hillsong United",
+      "publishedAt": "2016-01-01T00:00:00Z",
+      "duration": "PT6M45S"
+    }
+  ],
+  "timestamp": "2025-08-22T20:56:41.431Z"
+}
