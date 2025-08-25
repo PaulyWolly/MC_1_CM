@@ -100,11 +100,25 @@ class EpisodeModal {
 
     // Load episodes for the show
     async loadEpisodes(showName) {
-        console.log('[EPISODE-MODAL] Loading episodes for:', showName);
+        console.log('[EPISODE-MODAL] ==========================================');
+        console.log('[EPISODE-MODAL] 🔍 LOADING EPISODES - DEBUG START');
+        console.log('[EPISODE-MODAL] ==========================================');
+        console.log('[EPISODE-MODAL] Show name received:', showName);
         console.log('[EPISODE-MODAL] Show name type:', typeof showName);
         console.log('[EPISODE-MODAL] Show name length:', showName ? showName.length : 'null');
-        console.log('[EPISODE-MODAL] Show name contains "V":', showName ? showName.includes('V') : 'null');
-        console.log('[EPISODE-MODAL] Show name contains "2009":', showName ? showName.includes('2009') : 'null');
+        console.log('[EPISODE-MODAL] Show name trimmed:', showName ? showName.trim() : 'null');
+        
+        // Check MediaLibraryManager availability
+        console.log('[EPISODE-MODAL] MediaLibraryManager available:', !!window.mediaLibraryManager);
+        if (window.mediaLibraryManager) {
+            console.log('[EPISODE-MODAL] MediaLibraryManager properties:', Object.keys(window.mediaLibraryManager));
+            console.log('[EPISODE-MODAL] unifiedData available:', !!window.mediaLibraryManager.unifiedData);
+            if (window.mediaLibraryManager.unifiedData) {
+                console.log('[EPISODE-MODAL] Unified data keys count:', Object.keys(window.mediaLibraryManager.unifiedData).length);
+                console.log('[EPISODE-MODAL] First 10 unified data keys:', Object.keys(window.mediaLibraryManager.unifiedData).slice(0, 10));
+            }
+        }
+        console.log('[EPISODE-MODAL] ==========================================');
 
         // Set initial content
         this.content.innerHTML = `
@@ -126,137 +140,78 @@ class EpisodeModal {
             this.close();
         };
 
-        // Get episodes from MediaLibraryManager
+        // Get episodes from unified data
         let episodes = [];
         
-        if (window.mediaLibraryManager && window.mediaLibraryManager.tvShowsData) {
-            console.log('[EPISODE-MODAL] Using MediaLibraryManager data');
-            console.log('[EPISODE-MODAL] Raw tvShowsData:', window.mediaLibraryManager.tvShowsData);
+        if (window.mediaLibraryManager && window.mediaLibraryManager.unifiedData) {
+            console.log('[EPISODE-MODAL] 🔍 Using unified data directly');
+            console.log('[EPISODE-MODAL] Available shows in unified data:', Object.keys(window.mediaLibraryManager.unifiedData));
             
-            // Handle both array and object formats for TV shows data
-            let showsArray = [];
-            if (Array.isArray(window.mediaLibraryManager.tvShowsData)) {
-                showsArray = window.mediaLibraryManager.tvShowsData;
-                console.log('[EPISODE-MODAL] Data is array format');
-            } else if (typeof window.mediaLibraryManager.tvShowsData === 'object' && window.mediaLibraryManager.tvShowsData) {
-                showsArray = Object.values(window.mediaLibraryManager.tvShowsData);
-                console.log('[EPISODE-MODAL] Data is object format, converted to array');
-            }
+            // SIMPLE: Normalize show name to lowercase dot notation format
+            const normalizedShowName = this.normalizeShowName(showName);
+            console.log('[EPISODE-MODAL] Normalized show name:', normalizedShowName);
             
-            console.log('[EPISODE-MODAL] TV shows data type:', Array.isArray(window.mediaLibraryManager.tvShowsData) ? 'array' : 'object');
-            console.log('[EPISODE-MODAL] Shows array length:', showsArray.length);
-            console.log('[EPISODE-MODAL] First 10 shows in data:');
-            showsArray.slice(0, 10).forEach((show, index) => {
-                const showTitle = show.TMDBTitle || show.name || show.path || 'unknown';
-                console.log(`[EPISODE-MODAL] ${index + 1}. "${showTitle}" (path: ${show.path}, normalizedKey: ${show.normalizedKey})`);
-            });
+            // Look for the normalized key in unified data
+            let actualKey = null;
+            const availableKeys = Object.keys(window.mediaLibraryManager.unifiedData);
             
-            // Try to get data from getTVShows method if available
-            if (window.mediaLibraryManager.getTVShows) {
-                try {
-                    const getTVShowsResult = window.mediaLibraryManager.getTVShows();
-                    console.log('[EPISODE-MODAL] getTVShows() result:', getTVShowsResult);
-                    console.log('[EPISODE-MODAL] getTVShows() length:', getTVShowsResult.length);
-                    console.log('[EPISODE-MODAL] First 5 shows from getTVShows():');
-                    getTVShowsResult.slice(0, 5).forEach((show, index) => {
-                        console.log(`[EPISODE-MODAL] getTVShows ${index + 1}: "${show.name}" (path: ${show.path}, normalizedKey: ${show.normalizedKey})`);
-                    });
-                    
-                    // Look for Man vs. Bee specifically in getTVShows result
-                    const manVsBeeInGetTVShows = getTVShowsResult.find(show => 
-                        show.name.toLowerCase().includes('man vs bee') || 
-                        show.path.toLowerCase().includes('man vs bee')
-                    );
-                    if (manVsBeeInGetTVShows) {
-                        console.log('[EPISODE-MODAL] *** FOUND MAN VS BEE IN getTVShows() ***');
-                        console.log('[EPISODE-MODAL] Man vs. Bee show object:', manVsBeeInGetTVShows);
-                    } else {
-                        console.log('[EPISODE-MODAL] *** MAN VS BEE NOT FOUND IN getTVShows() ***');
-                    }
-                } catch (error) {
-                    console.error('[EPISODE-MODAL] Error calling getTVShows():', error);
+            // Try exact match with normalized name
+            if (window.mediaLibraryManager.unifiedData[normalizedShowName]) {
+                actualKey = normalizedShowName;
+                console.log('[EPISODE-MODAL] ✅ SUCCESS: Exact match found:', actualKey);
+            } else {
+                console.log('[EPISODE-MODAL] ❌ No exact match for normalized name:', normalizedShowName);
+                
+                // Fallback: search for partial match in case normalization missed something
+                actualKey = availableKeys.find(key => key.includes(normalizedShowName.replace(/\./g, '')));
+                if (actualKey) {
+                    console.log('[EPISODE-MODAL] ✅ SUCCESS: Partial match found:', actualKey);
                 }
             }
             
-            // Find the TV show in the data
-            console.log('[EPISODE-MODAL] Searching for show with name:', showName);
-            console.log('[EPISODE-MODAL] Available shows in data:');
-            showsArray.forEach((show, index) => {
-                const showTitle = show.TMDBTitle || show.name || show.path || '';
-                console.log(`[EPISODE-MODAL] ${index}: "${showTitle}" (path: ${show.path})`);
-            });
-            
-            const tvShow = showsArray.find(show => {
-                const showTitle = show.TMDBTitle || show.name || show.path || '';
-                const showPath = show.path || '';
-                const normalizedKey = show.normalizedKey || '';
+            if (actualKey && window.mediaLibraryManager.unifiedData[actualKey]) {
+                const showData = window.mediaLibraryManager.unifiedData[actualKey];
+                console.log('[EPISODE-MODAL] ✅ SUCCESS: Found show data for:', actualKey);
+                console.log('[EPISODE-MODAL] Show has seasons:', Object.keys(showData.seasons || {}));
                 
-                console.log('[EPISODE-MODAL] Checking show:', showTitle, 'path:', showPath, 'normalizedKey:', normalizedKey);
-                console.log('[EPISODE-MODAL] Against search term:', showName);
-                
-                // Try multiple matching strategies
-                const titleMatch = showTitle.toLowerCase().includes(showName.toLowerCase()) || 
-                                  showName.toLowerCase().includes(showTitle.toLowerCase());
-                const pathMatch = showPath.toLowerCase().includes(showName.toLowerCase()) || 
-                                 showName.toLowerCase().includes(showPath.toLowerCase());
-                const normalizedMatch = normalizedKey.toLowerCase().includes(showName.toLowerCase()) || 
-                                       showName.toLowerCase().includes(normalizedKey.toLowerCase());
-                
-                // NEW: Try matching without year (e.g., "Man vs. Bee" matches "Man vs. Bee (2022)")
-                const showNameWithoutYear = showName.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
-                const showPathWithoutYear = showPath.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
-                const showTitleWithoutYear = showTitle.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
-                const normalizedKeyWithoutYear = normalizedKey.toLowerCase().replace(/\s*\(\d{4}\)$/, '');
-                
-                const yearFlexibleMatch = showNameWithoutYear === showPathWithoutYear || 
-                                         showNameWithoutYear === showTitleWithoutYear || 
-                                         showNameWithoutYear === normalizedKeyWithoutYear;
-                
-                console.log('[EPISODE-MODAL] Matches - Title:', titleMatch, 'Path:', pathMatch, 'Normalized:', normalizedMatch, 'YearFlexible:', yearFlexibleMatch);
-                console.log('[EPISODE-MODAL] Year-flexible comparison:', showNameWithoutYear, 'vs', showPathWithoutYear, showTitleWithoutYear, normalizedKeyWithoutYear);
-                
-                // SPECIAL DEBUG for Man vs. Bee
-                if (showName.toLowerCase().includes('man vs bee') || showPath.toLowerCase().includes('man vs bee') || showTitle.toLowerCase().includes('man vs bee')) {
-                    console.log('[EPISODE-MODAL] *** MAN VS BEE DEBUG ***');
-                    console.log('[EPISODE-MODAL] Show name:', showName);
-                    console.log('[EPISODE-MODAL] Show path:', showPath);
-                    console.log('[EPISODE-MODAL] Show title:', showTitle);
-                    console.log('[EPISODE-MODAL] Normalized key:', normalizedKey);
-                    console.log('[EPISODE-MODAL] Show name without year:', showNameWithoutYear);
-                    console.log('[EPISODE-MODAL] Show path without year:', showPathWithoutYear);
-                    console.log('[EPISODE-MODAL] Show title without year:', showTitleWithoutYear);
-                    console.log('[EPISODE-MODAL] Normalized key without year:', normalizedKeyWithoutYear);
-                    console.log('[EPISODE-MODAL] Year-flexible match result:', yearFlexibleMatch);
-                }
-                
-                return titleMatch || pathMatch || normalizedMatch || yearFlexibleMatch;
-            });
-            
-            if (tvShow) {
-                console.log('[EPISODE-MODAL] Found TV show:', tvShow.path);
-                
-                // Access the actual show data through the data property
-                const showData = tvShow.data || tvShow;
-                console.log('[EPISODE-MODAL] Show data structure:', showData);
-                
-                // Check if episodes are in folders structure
-                if (showData.folders && showData.folders.length > 0) {
-                    console.log('[EPISODE-MODAL] Seasons found:', showData.folders.length);
-                    
-                    // Collect all episodes from all seasons
-                    showData.folders.forEach(season => {
-                        if (season.files && season.files.length > 0) {
-                            console.log('[EPISODE-MODAL] Season', season.path || season.name, 'has', season.files.length, 'episodes');
-                            episodes.push(...season.files);
+                // Collect all episodes from all seasons
+                if (showData.seasons) {
+                    Object.entries(showData.seasons).forEach(([seasonNum, seasonData]) => {
+                        if (seasonData.episodes) {
+                            console.log('[EPISODE-MODAL] Season', seasonNum, 'has', Object.keys(seasonData.episodes).length, 'episodes');
+                            
+                            // Convert unified episode data to the expected format
+                            Object.entries(seasonData.episodes).forEach(([episodeNum, episode]) => {
+                                // Construct proper path for video playback
+                                let absPath = "";
+                                if (episode.path) {
+                                    // Use the relative path from unified data
+                                    absPath = episode.path;
+                                }
+                                
+                                episodes.push({
+                                    name: episode.title || `Episode ${episodeNum}`,
+                                    filename: episode.title || `Episode ${episodeNum}`,
+                                    path: episode.path || "",
+                                    relPath: episode.path || "",
+                                    filePath: absPath,
+                                    absPath: absPath,
+                                    still: episode.still || "",
+                                    thumbnail: episode.still || "",
+                                    generated: false,
+                                    timestamp: "",
+                                    episodeNumber: episodeNum,
+                                    seasonNumber: seasonNum
+                                });
+                            });
                         }
                     });
                 }
             } else {
-                console.log('[EPISODE-MODAL] TV show not found. Available shows:');
-                showsArray.slice(0, 5).forEach(show => {
-                    console.log('[EPISODE-MODAL] -', show.TMDBTitle || show.name || show.path || 'unknown');
-                });
+                console.log('[EPISODE-MODAL] ❌ FAILURE: No matching show found in unified data');
             }
+        } else {
+            console.log('[EPISODE-MODAL] MediaLibraryManager or unifiedData not available');
         }
 
         console.log('[EPISODE-MODAL] Total episodes found:', episodes.length);
@@ -277,26 +232,29 @@ class EpisodeModal {
             return;
         }
 
-        // Sort episodes by season and episode number
+        // Sort episodes by season and episode number using the already-extracted data
         const sortedEpisodes = episodes.sort((a, b) => {
-            const aInfo = this.extractEpisodeInfo(a.name || a.path);
-            const bInfo = this.extractEpisodeInfo(b.name || b.path);
+            // Use the already-extracted seasonNumber and episodeNumber properties
+            const aSeason = parseInt(a.seasonNumber) || 1;
+            const bSeason = parseInt(b.seasonNumber) || 1;
+            const aEpisode = parseInt(a.episodeNumber) || 1;
+            const bEpisode = parseInt(b.episodeNumber) || 1;
             
-            if (aInfo.seasonNumber !== bInfo.seasonNumber) {
-                return aInfo.seasonNumber - bInfo.seasonNumber;
+            if (aSeason !== bSeason) {
+                return aSeason - bSeason;
             }
-            return aInfo.episodeNumber - bInfo.episodeNumber;
+            return aEpisode - bEpisode;
         });
 
         // Get current episode info for highlighting
         const currentEpisodeInfo = this.getCurrentEpisodeInfo();
         console.log('[EPISODE-MODAL] Current episode info for comparison:', currentEpisodeInfo);
 
-        // Group episodes by season
+        // Group episodes by season using the already-extracted data
         const episodesBySeason = {};
         sortedEpisodes.forEach((episode, index) => {
-            const epInfo = this.extractEpisodeInfo(episode.name || episode.path);
-            const seasonKey = epInfo.seasonNumber;
+            // Use the already-extracted seasonNumber property
+            const seasonKey = parseInt(episode.seasonNumber) || 1;
             
             if (!episodesBySeason[seasonKey]) {
                 episodesBySeason[seasonKey] = [];
@@ -328,12 +286,14 @@ class EpisodeModal {
             
             // Add episodes for this season
             seasonEpisodes.forEach(({ episode, index }) => {
-                const epInfo = this.extractEpisodeInfo(episode.name || episode.path);
-                const episodeLabel = `S${epInfo.seasonNumber.toString().padStart(2, '0')}E${epInfo.episodeNumber.toString().padStart(2, '0')}`;
+                // Use the already-extracted seasonNumber and episodeNumber properties
+                const seasonNum = parseInt(episode.seasonNumber) || 1;
+                const episodeNum = parseInt(episode.episodeNumber) || 1;
+                const episodeLabel = `S${seasonNum.toString().padStart(2, '0')}E${episodeNum.toString().padStart(2, '0')}`;
                 
                 const isCurrentEpisode = currentEpisodeInfo && 
-                    currentEpisodeInfo.seasonNumber === epInfo.seasonNumber && 
-                    currentEpisodeInfo.episodeNumber === epInfo.episodeNumber;
+                    currentEpisodeInfo.seasonNumber === seasonNum && 
+                    currentEpisodeInfo.episodeNumber === episodeNum;
                 
                 console.log('[EPISODE-MODAL] Episode', episodeLabel, 'isCurrentEpisode:', isCurrentEpisode);
                 
@@ -344,7 +304,7 @@ class EpisodeModal {
                 let playingText = '';
                 if (isCurrentEpisode) {
                     const episodeTitle = this.extractEpisodeTitle(episode.name);
-                    playingText = `Playing: S${epInfo.seasonNumber.toString().padStart(2, '0')} E${epInfo.episodeNumber.toString().padStart(2, '0')} ${episodeTitle}`;
+                    playingText = `Playing: S${seasonNum.toString().padStart(2, '0')} E${episodeNum.toString().padStart(2, '0')} ${episodeTitle}`;
                 }
                 
                 episodeButtons += `
@@ -481,6 +441,32 @@ class EpisodeModal {
         
         console.log('[EPISODE-MODAL] No current episode info found');
         return null;
+    }
+
+    // Normalize show name to lowercase dot notation format
+    normalizeShowName(showName) {
+        if (!showName) return '';
+        
+        // Convert to lowercase
+        let normalized = showName.toLowerCase();
+        
+        // Remove year in parentheses if present
+        normalized = normalized.replace(/\s*\(\d{4}\)$/, '');
+        
+        // Replace spaces and special characters with dots
+        normalized = normalized.replace(/[^a-z0-9]+/g, '.');
+        
+        // Remove leading/trailing dots
+        normalized = normalized.replace(/^\.+|\.+$/g, '');
+        
+        // Add year back if it was in the original name
+        const yearMatch = showName.match(/\((\d{4})\)/);
+        if (yearMatch) {
+            normalized += `.(${yearMatch[1]})`;
+        }
+        
+        console.log(`[EPISODE-MODAL] Normalized "${showName}" -> "${normalized}"`);
+        return normalized;
     }
 }
 

@@ -4225,6 +4225,27 @@ app.get('/api/video', (req, res) => {
       console.log('🎬 [VIDEO] Tried paths:', possiblePaths);
       return res.status(404).send('File not found');
     }
+  } else if (!videoPath.includes(':') && !videoPath.startsWith('/') && !videoPath.startsWith('\\')) {
+    // Handle relative paths (like "Lucifer (2016)/Season 06/...")
+    // These are relative paths that need to be converted to absolute paths
+    console.log('🎬 [VIDEO] Processing relative path:', videoPath);
+    
+    const possiblePaths = [
+      path.join('S:/MEDIA/TV-SHOWS', videoPath),
+      path.join('S:/MEDIA/MOVIES', videoPath),
+      path.join('S:\\MEDIA\\TV-SHOWS', videoPath),
+      path.join('S:\\MEDIA\\MOVIES', videoPath)
+    ];
+    
+    resolvedPath = possiblePaths.find(p => fs.existsSync(p));
+    
+    if (!resolvedPath) {
+      console.log('🎬 [VIDEO] File not found in any media root for relative path:', videoPath);
+      console.log('🎬 [VIDEO] Tried paths:', possiblePaths);
+      return res.status(404).send('File not found');
+    }
+    
+    console.log('🎬 [VIDEO] Resolved relative path to:', resolvedPath);
   } else {
     // Handle absolute paths (from movies)
     resolvedPath = path.resolve(videoPath);

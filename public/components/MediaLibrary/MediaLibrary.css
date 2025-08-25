@@ -2045,7 +2045,7 @@
     width: 180px;
     margin-left: 14px;
     padding: 10px;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
   }
   
   .media-library-movie-card-movies-collections {
