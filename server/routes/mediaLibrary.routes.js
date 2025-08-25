@@ -25,16 +25,38 @@ const MEDIA_ROOTS = [
 // Serve any file under /media/* from the configured roots
 router.get('/media/*', (req, res) => {
     const relPath = req.params[0];
-    for (const root of MEDIA_ROOTS) {
-        const absPath = path.join(root, relPath);
-        if (fs.existsSync(absPath)) {
-            return res.sendFile(absPath, err => {
-                if (err && !res.headersSent) {
-                    return res.status(500).send('Error sending file: ' + err.message);
-                }
-            });
-        }
+    
+    // Handle the case where the path includes 'movies/' or 'tv-shows/' prefix
+    let actualRelPath = relPath;
+    let mediaRoot = 'S:/MEDIA/MOVIES'; // Default to movies
+    
+    if (relPath.startsWith('movies/')) {
+        actualRelPath = relPath.substring(7); // Remove 'movies/' prefix
+        mediaRoot = 'S:/MEDIA/MOVIES';
+    } else if (relPath.startsWith('tv-shows/')) {
+        actualRelPath = relPath.substring(10); // Remove 'tv-shows/' prefix
+        mediaRoot = 'S:/MEDIA/TV-SHOWS';
     }
+    
+    const absPath = path.join(mediaRoot, actualRelPath);
+    
+    console.log('[MEDIA ROUTE] Serving file:', {
+        originalPath: relPath,
+        actualRelPath: actualRelPath,
+        mediaRoot: mediaRoot,
+        absPath: absPath
+    });
+    
+    if (fs.existsSync(absPath)) {
+        return res.sendFile(absPath, err => {
+            if (err && !res.headersSent) {
+                console.error('[MEDIA ROUTE] Error sending file:', err.message);
+                return res.status(500).send('Error sending file: ' + err.message);
+            }
+        });
+    }
+    
+    console.log('[MEDIA ROUTE] File not found:', absPath);
     return res.status(404).send('File not found');
 });
 

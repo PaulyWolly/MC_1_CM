@@ -36,6 +36,7 @@
     "microsoft-cognitiveservices-speech-sdk": "^1.41.0",
     "mongodb": "^6.10.0",
     "mongoose": "^8.8.3",
+    "multer": "^2.0.2",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.7.0",
     "open": "^10.1.2",

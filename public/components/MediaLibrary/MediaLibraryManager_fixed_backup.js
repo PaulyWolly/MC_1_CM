@@ -10,6 +10,9 @@ import VideoPlayer from "../VideoPlayer/VideoPlayer.js";
 class MediaLibraryManager {
   constructor() {
     this.mediaLibrary = [];
+    this.embyPosters = [];
+    this.moviePosters = {};
+    this.tvPosters = {};
     this.currentTab = "movies";
     this.currentTabFlag = "movies"; // Track current tab for return location
     this.lastActiveTab = "movies"; // Track last active tab
@@ -20,8 +23,10 @@ class MediaLibraryManager {
     this.nextVideo = null;
     this.isModalOpen = false;
     this.currentCollectionView = null;
-    // Single unified data storage for all media
-    this.unifiedData = {};
+    // Separate data storage for movies and TV shows
+    this.moviesData = [];
+    this.tvShowsData = [];
+    this.mediaLibraryRaw = []; // Keep for backward compatibility
     // Search and sort properties
     this.searchTerm = "";
     this.sortBy = "asc";
@@ -63,9 +68,18 @@ class MediaLibraryManager {
       const response = await fetch(
         "/components/MediaLibrary/data/watch_later/watch_later.json"
       );
+      const data = await response.json();
+      console.log("Local watch later data:", data);
+      localStorage.setItem(
+        "mediaLibraryResumeList",
+        JSON.stringify(data.items)
+      );
+      this.updateWatchLaterGrid();
+      this.showToast(
+        `Loaded ${data.items.length} items from watch later data`,
+        "green"
+      );
     };
-    // Make cleanup methods available globally for debugging
-    window.cleanupWatchLaterPaths = () => this.cleanupWatchLaterPaths();
     // Debug method for A-Z sidebar flag
     window.checkAZSidebarFlag = () => {
       console.log(
@@ -152,8 +166,6 @@ class MediaLibraryManager {
     this.debugLocalStorageCollections();
     // Add global error handler to prevent stuck spinners
     this.setupGlobalErrorHandler();
-    // Make cleanup methods available globally for debugging
-    window.cleanupWatchLaterPaths = () => this.cleanupWatchLaterPaths();
   }
   async init() {
     this.isLoading = false;
@@ -178,14 +190,9 @@ class MediaLibraryManager {
   async continueInit() {
     await this.loadAllMediaData();
     await this.loadEmbyPosters();
-    // Movie posters are now loaded from unified data
-    // await this.loadMoviePosters();
+    await this.loadMoviePosters();
     await this.loadTVPosters();
     await this.loadSeasonEpisodeImages();
-    
-    // Clean up existing Watch Later items with absolute paths
-    await this.cleanupWatchLaterPaths();
-    
     this.setupEventListeners();
     this.setupVoiceCommandIntegration();
     this.setupTextCommandIntegration();
@@ -198,14 +205,83 @@ class MediaLibraryManager {
     }
     // In the constructor or init, load the normalized genres file
     this.loadMovieGenres();
-    // TV genres are now loaded from unified JSON
+    this.loadTVGenres();
   }
   async loadAllMediaData() {
     console.log(
-      "🎬 [MEDIA-LIBRARY] All media data now loaded from unified JSON..."
+      "🎬 [MEDIA-LIBRARY] Loading all media data (movies and TV shows)..."
     );
-    // Movies and TV shows are now loaded from unified data in loadSeasonEpisodeImages
-    // No separate loading needed
+    try {
+      // Load movies data
+      console.log("🎬 [MEDIA-LIBRARY] Loading movies data...");
+      const moviesResponse = await fetch(
+        "/components/MediaLibrary/data/movies/media-library-movies_normalized.json"
+      );
+      const moviesResult = await moviesResponse.json();
+      let moviesRaw = null;
+      if (moviesResult && Array.isArray(moviesResult.folders)) {
+        moviesRaw = moviesResult.folders;
+      } else if (Array.isArray(moviesResult)) {
+        moviesRaw = moviesResult;
+      } else {
+        throw new Error("Unrecognized movies media library format");
+      }
+      this.moviesData = moviesRaw;
+      this.mediaLibraryRaw = moviesRaw; // Set for backward compatibility
+      console.log(
+        "🎬 [MEDIA-LIBRARY] Movies data loaded:",
+        this.moviesData ? this.moviesData.length : "undefined",
+        "movies"
+      );
+      console.log(
+        "🎬 [MEDIA-LIBRARY] Sample movie data:",
+        this.moviesData ? this.moviesData.slice(0, 2) : "none"
+      );
+      // Load TV shows data
+      console.log("🎬 [MEDIA-LIBRARY] Loading TV shows data...");
+      const tvShowsResponse = await fetch(
+        "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json"
+      );
+      const tvShowsResult = await tvShowsResponse.json();
+      let tvShowsRaw = null;
+      if (Array.isArray(tvShowsResult)) {
+        tvShowsRaw = tvShowsResult;
+      } else if (tvShowsResult && Array.isArray(tvShowsResult.folders)) {
+        tvShowsRaw = tvShowsResult.folders;
+      } else if (
+        typeof tvShowsResult === "object" &&
+        !Array.isArray(tvShowsResult)
+      ) {
+        // Handle object format with numeric keys (current format)
+        tvShowsRaw = tvShowsResult;
+      } else {
+        throw new Error("Unrecognized tvshows media library format");
+      }
+      this.tvShowsData = tvShowsRaw;
+      console.log(
+        "🎬 [MEDIA-LIBRARY] TV shows data loaded:",
+        this.tvShowsData ? this.tvShowsData.length : "undefined",
+        "TV shows"
+      );
+      // Set mediaLibraryRaw to current tab's data for backward compatibility
+      if (this.currentTab === "movies") {
+        this.mediaLibraryRaw = this.moviesData;
+      } else if (this.currentTab === "tvshows") {
+        this.mediaLibraryRaw = this.tvShowsData;
+      }
+      console.log("🎬 [MEDIA-LIBRARY] All media data loaded successfully!");
+      console.log(
+        "🎬 [MEDIA-LIBRARY] Movies:",
+        this.moviesData ? this.moviesData.length : 0
+      );
+      console.log(
+        "🎬 [MEDIA-LIBRARY] TV Shows:",
+        this.tvShowsData ? this.tvShowsData.length : 0
+      );
+    } catch (error) {
+      this.showError("Failed to load media library.");
+      console.error("🎬 [MEDIA-LIBRARY] Error loading media data:", error);
+    }
   }
   async loadMediaLibrary() {
     try {
@@ -215,9 +291,9 @@ class MediaLibraryManager {
         endpoint =
           "/components/MediaLibrary/data/movies/media-library-movies_normalized.json";
       } else if (this.currentTab === "tvshows") {
-        // TV shows data is loaded from unified JSON
-        console.log("[MEDIA-LIBRARY] TV shows use unified JSON data");
-        return;
+        // Use the normalized tv-shows file
+        endpoint =
+          "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json";
       } else if (this.currentTab === "favorites") {
         // FAVORITES IS INDEPENDENT - no data loading needed
         return;
@@ -289,8 +365,24 @@ class MediaLibraryManager {
         "🎬 [MEDIA-LIBRARY] Extracted media array length:",
         raw ? raw.length : "undefined"
       );
-      // Unified data is now loaded in loadSeasonEpisodeImages
-      console.log("🎬 [MEDIA-LIBRARY] Raw data loaded, but using unified data structure");
+      // Store data in the appropriate property based on current tab
+      if (this.currentTab === "movies") {
+        this.moviesData = raw;
+        this.mediaLibraryRaw = raw; // Keep for backward compatibility
+        console.log("🎬 [MEDIA-LIBRARY] Set moviesData to:", this.moviesData);
+        console.log(
+          "🎬 [MEDIA-LIBRARY] moviesData length:",
+          this.moviesData ? this.moviesData.length : "undefined"
+        );
+      } else if (this.currentTab === "tvshows") {
+        this.tvShowsData = raw;
+        this.mediaLibraryRaw = raw; // Keep for backward compatibility
+        console.log("🎬 [MEDIA-LIBRARY] Set tvShowsData to:", this.tvShowsData);
+        console.log(
+          "🎬 [MEDIA-LIBRARY] tvShowsData length:",
+          this.tvShowsData ? this.tvShowsData.length : "undefined"
+        );
+      }
     } catch (error) {
       this.showError("Failed to load media library.");
       console.error(error);
@@ -317,186 +409,216 @@ class MediaLibraryManager {
       this.removeSpinner();
     }
   }
-  // Movie posters are now loaded from unified JSON in loadSeasonEpisodeImages
   async loadMoviePosters() {
-    console.log('🎬 [MEDIA-LIBRARY] Movie posters loaded from unified JSON...');
+    try {
+      // console.log('🎬 [MEDIA-LIBRARY] Loading movie posters...');
+      let response = await fetch(
+        "/components/MediaLibrary/data/movies/movie_posters_normalized.json?t=" +
+          Date.now()
+      );
+      if (response.ok) {
+        this.moviePosters = await response.json();
+        const keys = Object.keys(this.moviePosters);
+        // console.log('✅ [MEDIA-LIBRARY - normalized JSON used] Loaded movie_posters_normalized.json');
+      } else {
+        // console.error('❌ [MEDIA-LIBRARY] Failed to load movie_posters_normalized.json');
+        this.moviePosters = {};
+      }
+    } catch (error) {
+      // console.error('❌ [MEDIA-LIBRARY] Error loading movie_posters_normalized.json:', error);
+      this.moviePosters = {};
+    }
+    if (this.currentTab === "movies") {
+      this.renderMediaGrid();
+    }
   }
   async loadTVPosters() {
-    // TV show posters are now loaded from unified JSON in loadSeasonEpisodeImages
-    console.log('📺 [MEDIA-LIBRARY] TV show posters loaded from unified JSON...');
-    // this.tvPosters is populated in loadSeasonEpisodeImages from unified data
+    try {
+      // console.log('📺 [MEDIA-LIBRARY] Loading TV show posters...');
+      const response = await fetch(
+        "/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json"
+      );
+      if (response.ok) {
+        this.tvPosters = await response.json();
+        // console.log(`✅ [MEDIA-LIBRARY] Loaded ${Object.keys(this.tvPosters).length} TV show posters`);
+      } else {
+        // console.warn('⚠️ [MEDIA-LIBRARY] Could not load TV show posters');
+        this.tvPosters = {};
+      }
+    } catch (error) {
+      console.warn("⚠️ [MEDIA-LIBRARY] Error loading TV show posters:", error);
+      this.tvPosters = {};
+    }
   }
   async loadSeasonEpisodeImages() {
     try {
-      console.log('🎬 [MEDIA-LIBRARY] Loading unified media data...');
+      console.log('🎬 [MEDIA-LIBRARY] Loading unified TV shows data...');
       
-      // NormalizationService should be available from app initialization
-      if (!window.isNormalizationServiceReady()) {
-        console.error('❌ [MEDIA-LIBRARY] NormalizationService not available! This should not happen.');
-        throw new Error('NormalizationService not loaded - check app initialization order');
-      }
-      
-      console.log('✅ [MEDIA-LIBRARY] NormalizationService is available');
-      
-      // Load TV shows unified data
-      const tvShowsResponse = await fetch(
+      // Load unified TV shows data (now contains ALL data including metadata)
+      const unifiedResponse = await fetch(
         "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json"
       );
-      
-      if (!tvShowsResponse.ok) {
-        throw new Error(`Failed to load TV shows unified data: ${tvShowsResponse.status}`);
+      let unifiedData = {};
+      if (unifiedResponse.ok) {
+        unifiedData = await unifiedResponse.json();
+        console.log(
+          `✅ [MEDIA-LIBRARY] Loaded unified data for ${Object.keys(unifiedData).length} shows`
+        );
+      } else {
+        console.warn("⚠️ [MEDIA-LIBRARY] Could not load unified data");
+        unifiedData = {};
       }
       
-      const tvShowsData = await tvShowsResponse.json();
-      console.log(`✅ [MEDIA-LIBRARY] Loaded TV shows unified data for ${Object.keys(tvShowsData).length} shows`);
-      
-      // Load movies unified data
-      const moviesResponse = await fetch(
-        "/components/MediaLibrary/data/movies/movies-unified.json"
-      );
-      
-      if (!moviesResponse.ok) {
-        throw new Error(`Failed to load movies unified data: ${moviesResponse.status}`);
-      }
-      
-      const moviesData = await moviesResponse.json();
-      console.log(`✅ [MEDIA-LIBRARY] Loaded movies unified data for ${Object.keys(moviesData).length} movies`);
-      
-      // Combine both data sources into unified data
-      this.unifiedData = { ...tvShowsData, ...moviesData };
-      console.log(`✅ [MEDIA-LIBRARY] Combined unified data for ${Object.keys(this.unifiedData).length} total media items`);
-      
-      // Debug: Log some sample data
-      const movieCount = Object.values(this.unifiedData).filter(item => item.isMovie).length;
-      const tvShowCount = Object.values(this.unifiedData).filter(item => !item.isMovie).length;
-      console.log(`🔍 [MEDIA-LIBRARY] DEBUG: Movies: ${movieCount}, TV Shows: ${tvShowCount}`);
-      console.log(`🔍 [MEDIA-LIBRARY] DEBUG: Sample movie keys:`, Object.keys(this.unifiedData).filter(key => this.unifiedData[key].isMovie).slice(0, 5));
-      console.log(`🔍 [MEDIA-LIBRARY] DEBUG: Sample TV show keys:`, Object.keys(this.unifiedData).filter(key => !this.unifiedData[key].isMovie).slice(0, 5));
+      // Store unified data for Watch Later image lookup
+      this.unifiedData = unifiedData;
+      console.log(`✅ [MEDIA-LIBRARY] Stored unified data for Watch Later: ${Object.keys(this.unifiedData).length} shows`);
       
       // Initialize seasonEpisodeImages from unified data for backward compatibility
       this.seasonEpisodeImages = {};
       
-      // Initialize tvShowsData for the getTVShows() method
-      this.tvShowsData = [];
-      
-      // Initialize tvPosters for the getPosterPath method
-      this.tvPosters = {};
-      
-      // Process unified data directly - no more merging needed
-      for (const showName in this.unifiedData) {
-        const show = this.unifiedData[showName];
-        
-        if (show.seasons) {
-          // Use the original showName key from unified data to match the lookup
-          // This ensures the key matches exactly what's in the unified data
-          const storageKey = showName;
-          console.log(`🔍 [SEASON-DEBUG] Using storage key "${storageKey}" for show "${showName}"`);
-          this.seasonEpisodeImages[storageKey] = { seasons: {} };
+      // Process unified data (no more merging needed - everything is already consolidated)
+      for (const showName in unifiedData) {
+        if (unifiedData[showName].seasons) {
+          this.seasonEpisodeImages[showName] = { seasons: {} };
           
-          console.log(`🔍 [SEASON-DEBUG] Processing show: "${showName}" with storage key: "${storageKey}"`);
-          console.log(`🔍 [SEASON-DEBUG] Show has ${Object.keys(show.seasons).length} seasons`);
-          console.log(`🔍 [SEASON-DEBUG] Available seasons:`, Object.keys(show.seasons));
-          
-          for (const seasonNum in show.seasons) {
-            const season = show.seasons[seasonNum];
-            
-            // Initialize episodes object for this season
-            const seasonEpisodes = {};
-            if (season.episodes) {
-              console.log(`🔍 [SEASON-DEBUG] Season ${seasonNum} has ${Object.keys(season.episodes).length} episodes`);
-              console.log(`🔍 [SEASON-DEBUG] Episode keys:`, Object.keys(season.episodes));
-              for (const episodeNum in season.episodes) {
-                const episode = season.episodes[episodeNum];
-                seasonEpisodes[episodeNum] = {
-                  still: episode.still || null,
-                  path: episode.path || null,
-                  title: episode.title || null,
-                  duration: episode.duration || null,
-                  isSpecials: episode.isSpecials || false,
-                  videoFormat: episode.videoFormat || null,
-                  supportsVideo: episode.supportsVideo || false
-                };
-              }
-            } else {
-              console.log(`⚠️ [SEASON-DEBUG] Season ${seasonNum} has NO episodes object!`);
-              console.log(`⚠️ [SEASON-DEBUG] Season data:`, season);
-            }
-            
-            this.seasonEpisodeImages[storageKey].seasons[seasonNum] = {
-              poster: season.poster || null,
-              episodes: seasonEpisodes,
+          for (const seasonNum in unifiedData[showName].seasons) {
+            this.seasonEpisodeImages[showName].seasons[seasonNum] = {
+              poster: unifiedData[showName].seasons[seasonNum].poster || null,
+              episodes: unifiedData[showName].seasons[seasonNum].episodes || {},
               isSpecials: seasonNum === "Specials",
               specialsCategory: seasonNum === "Specials" ? "Specials" : null,
             };
           }
-          
-          // Unified data already contains all necessary information
-          // No need to populate separate data structures
-        } else {
-          console.log(`⚠️ [SEASON-DEBUG] Show "${showName}" has NO seasons object!`);
         }
       }
       
-      // Debug: Show what was actually built
-      console.log(`🔍 [SEASON-DEBUG] Final seasonEpisodeImages structure:`, this.seasonEpisodeImages);
-      
-      console.log(`✅ [MEDIA-LIBRARY] Processed unified data for ${Object.keys(this.seasonEpisodeImages).length} shows`);
-      console.log('✅ [MEDIA-LIBRARY] Using unified data as single source of truth');
-      
-      // Debug season and episode data
-      const firstShow = Object.keys(this.seasonEpisodeImages)[0];
-      if (firstShow) {
-        const firstShowData = this.seasonEpisodeImages[firstShow];
-        console.log(`✅ [MEDIA-LIBRARY] Sample season data for "${firstShow}":`, {
-          seasons: Object.keys(firstShowData.seasons),
-          firstSeason: firstShowData.seasons[Object.keys(firstShowData.seasons)[0]]
-        });
-      }
-      
+      console.log('✅ [MEDIA-LIBRARY] Unified data processing complete - no external merging required');
       console.log('✅ All metadata (posters, cast, descriptions, genres) is now included in the unified JSON');
-      
-      // Add debug method to check current state
-      window.debugMediaLibraryState = () => {
-        console.log('🔍 [DEBUG] MediaLibraryManager State:');
-        console.log('  - NormalizationService available:', !!window.normalizeKey);
-        console.log('  - Unified data loaded:', !!this.unifiedData);
-        console.log('  - Unified data count:', this.unifiedData ? Object.keys(this.unifiedData).length : 0);
-        console.log('  - Season episode images loaded:', !!this.seasonEpisodeImages);
-        console.log('  - Season episode images count:', this.seasonEpisodeImages ? Object.keys(this.seasonEpisodeImages).length : 0);
-        if (this.seasonEpisodeImages && Object.keys(this.seasonEpisodeImages).length > 0) {
-          const firstKey = Object.keys(this.seasonEpisodeImages)[0];
-          console.log('  - First season key:', firstKey);
-          console.log('  - First season data:', this.seasonEpisodeImages[firstKey]);
-        }
-      };
-      
-      // Add specific debug method for Bored to Death
-      window.debugBoredToDeath = () => {
-        console.log('🔍 [DEBUG] Bored to Death Specific Debug:');
-        const showKey = 'bored.to.death.(2009)';
-        if (this.seasonEpisodeImages && this.seasonEpisodeImages[showKey]) {
-          console.log('✅ Found Bored to Death data:', this.seasonEpisodeImages[showKey]);
-          console.log('✅ Seasons available:', Object.keys(this.seasonEpisodeImages[showKey].seasons));
-          console.log('✅ Season 01 data:', this.seasonEpisodeImages[showKey].seasons['01']);
-          if (this.seasonEpisodeImages[showKey].seasons['01']) {
-            console.log('✅ Season 01 episodes count:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes).length);
-            console.log('✅ Season 01 episodes keys:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes));
-          }
-        } else {
-          console.log('❌ Bored to Death data NOT found in seasonEpisodeImages');
-          console.log('❌ Available keys:', Object.keys(this.seasonEpisodeImages || {}));
-        }
-      };
+      console.log('✅ No more need to merge from multiple supporting files');
       
     } catch (error) {
-      console.error('❌ [MEDIA-LIBRARY] Error loading unified data:', error);
+      console.error('❌ Error loading unified data:', error);
+    }
+  };
+      if (unifiedResponse.ok) {
+        unifiedData = await unifiedResponse.json();
+        console.log(
+          `✅ [MEDIA-LIBRARY] Loaded unified data for ${Object.keys(unifiedData).length} shows`
+        );
+      } else {
+        console.warn("⚠️ [MEDIA-LIBRARY] Could not load unified data");
+        unifiedData = {};
+      }
+
+      // Load season images from separate JSON
+      console.log('🎬 [MEDIA-LIBRARY] Loading season images...');
+      const seasonImagesResponse = await fetch(
+        "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json"
+      );
+      let seasonImagesData = {};
+      if (seasonImagesResponse.ok) {
+        seasonImagesData = await seasonImagesResponse.json();
+        console.log(
+          `✅ [MEDIA-LIBRARY] Loaded season images for ${Object.keys(seasonImagesData).length} shows`
+        );
+      } else {
+        console.warn("⚠️ [MEDIA-LIBRARY] Could not load season images");
+        seasonImagesData = {};
+      }
+
+      // Load episode images from separate JSON
+      console.log('🎬 [MEDIA-LIBRARY] Loading episode images...');
+      const episodeImagesResponse = await fetch(
+        "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json"
+      );
+      let episodeImagesData = {};
+      if (episodeImagesResponse.ok) {
+        episodeImagesData = await episodeImagesResponse.json();
+        console.log(
+          `✅ [MEDIA-LIBRARY] Loaded episode images for ${Object.keys(episodeImagesData).length} shows`
+        );
+      } else {
+        console.warn("⚠️ [MEDIA-LIBRARY] Could not load episode images");
+        episodeImagesData = {};
+      }
+      
+      // Store unified data for Watch Later image lookup
+      this.unifiedData = unifiedData;
+      console.log(`✅ [MEDIA-LIBRARY] Stored unified data for Watch Later: ${Object.keys(this.unifiedData).length} shows`);
+      
+      // Initialize seasonEpisodeImages from unified data for backward compatibility
       this.seasonEpisodeImages = {};
-      this.unifiedData = {};
+      
+      // Process unified data and merge with season/episode images
+      for (const showName in unifiedData) {
+        if (unifiedData[showName].seasons) {
+          this.seasonEpisodeImages[showName] = { seasons: {} };
+          
+          for (const seasonNum in unifiedData[showName].seasons) {
+            this.seasonEpisodeImages[showName].seasons[seasonNum] = {
+              poster: null, // Will be populated from season images
+              episodes: {},
+              isSpecials: seasonNum === "Specials",
+              specialsCategory: seasonNum === "Specials" ? "Specials" : null,
+            };
+            
+            // Merge season poster from season images JSON
+            if (seasonImagesData[showName] && seasonImagesData[showName].seasons && seasonImagesData[showName].seasons[seasonNum]) {
+              const seasonPoster = seasonImagesData[showName].seasons[seasonNum].poster;
+              if (seasonPoster) {
+                this.seasonEpisodeImages[showName].seasons[seasonNum].poster = seasonPoster;
+                console.log(`[DEBUG - SEASON IMAGES] Merged season ${seasonNum} poster for ${showName}: ${seasonPoster}`);
+              }
+            }
+            
+            // Add episode data from unified data
+            if (unifiedData[showName].seasons[seasonNum].episodes) {
+              this.seasonEpisodeImages[showName].seasons[seasonNum].episodes =
+                unifiedData[showName].seasons[seasonNum].episodes;
+            }
+
+            // Merge episode images from episode images JSON (only if no FFmpeg thumbnail exists)
+            if (episodeImagesData[showName] && episodeImagesData[showName].seasons && episodeImagesData[showName].seasons[seasonNum]) {
+              const jsonSeason = episodeImagesData[showName].seasons[seasonNum];
+              if (jsonSeason.episodes) {
+                for (const episodeKey in jsonSeason.episodes) {
+                  const jsonEpisode = jsonSeason.episodes[episodeKey];
+                  if (jsonEpisode.thumbnail && this.seasonEpisodeImages[showName].seasons[seasonNum].episodes[episodeKey]) {
+                    // Only use episode images JSON if no FFmpeg thumbnail exists
+                    const unifiedEpisode = this.seasonEpisodeImages[showName].seasons[seasonNum].episodes[episodeKey];
+                    if (!unifiedEpisode.still || unifiedEpisode.still === "/assets/img/placeholder-poster.jpg") {
+                      // Update the episode with the thumbnail from episode images JSON
+                      this.seasonEpisodeImages[showName].seasons[seasonNum].episodes[episodeKey].thumbnail = jsonEpisode.thumbnail;
+                      console.log(`[DEBUG - EPISODE IMAGES] Merged episode ${episodeKey} thumbnail for ${showName} S${seasonNum}: ${jsonEpisode.thumbnail}`);
+                    } else {
+                      console.log(`[DEBUG - EPISODE IMAGES] Skipping episode ${episodeKey} for ${showName} S${seasonNum} - FFmpeg thumbnail already exists: ${unifiedEpisode.still}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`[DEBUG - INIT] Processed ${Object.keys(this.seasonEpisodeImages).length} shows from unified data with merged season/episode images`);
+      
+      // console.log(`✅ [MEDIA-LIBRARY] Merged season/episode images for ${Object.keys(this.seasonEpisodeImages).length} shows`);
+      // console.log(`🎬 [MEDIA-LIBRARY] Final merged keys:`, Object.keys(this.seasonEpisodeImages));
+      if (this.seasonEpisodeImages["Terra.Nova.(2011)"]) {
+        // console.log(`🎬 [MEDIA-LIBRARY] Final Terra Nova data:`, this.seasonEpisodeImages['Terra.Nova.(2011)']);
+      }
+      if (this.seasonEpisodeImages["citadel.(2023)"]) {
+        // console.log(`🎬 [MEDIA-LIBRARY] Final Citadel data:`, this.seasonEpisodeImages['citadel.(2023)']);
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ [MEDIA-LIBRARY] Error loading season episode images:",
+        error
+      );
+      this.seasonEpisodeImages = {};
     }
   }
-  
-
-  
   renderSpinner() {
     // Don't show spinner during refresh operations
     if (this.isRefreshing) return;
@@ -1375,11 +1497,11 @@ class MediaLibraryManager {
                 <div class="media-info"><h3>${displayTitle}</h3></div>
             `;
       // Ensure favorite and collection buttons do not trigger card click
-      card.querySelector(".favorites-only-heart-btn").onclick = (e) => {
+      card.querySelector(".favorite-btn").onclick = (e) => {
         e.stopPropagation();
         // Determine type: if current tab is 'tvshows', use 'tv', else 'movie'
         const type = this.currentTab === "tvshows" ? "tv" : "movie";
-        this.toggleFavorite(item, type);
+        this.toggleFavorite(item.path, type);
         // Force immediate heart icon update
         setTimeout(() => this.updateHeartIcons(), 50);
       };
@@ -1421,17 +1543,32 @@ class MediaLibraryManager {
       "[DEBUG] getItemsForCurrentTab called, currentTab:",
       this.currentTab
     );
-    
+    console.log(
+      "[DEBUG] moviesData length:",
+      this.moviesData ? this.moviesData.length : "undefined"
+    );
+    console.log(
+      "[DEBUG] tvShowsData length:",
+      this.tvShowsData ? this.tvShowsData.length : "undefined"
+    );
     if (this.currentTab === "movies") {
-      // Get movies from unified data
-      console.log("[MOVIE DEBUG] unifiedData available:", !!this.unifiedData);
-      console.log("[MOVIE DEBUG] unifiedData keys count:", this.unifiedData ? Object.keys(this.unifiedData).length : 0);
-      items = Object.values(this.unifiedData || {}).filter(item => item.isMovie);
-      console.log("[MOVIE DEBUG] Movies from unified data:", items.length);
-      console.log("[MOVIE DEBUG] First few movie titles:", items.slice(0, 3).map(m => m.title || m.TMDBTitle || "Unknown"));
-      console.log("[MOVIE DEBUG] First movie item structure:", items[0]);
-      console.log("[MOVIE DEBUG] First movie normalizedKey:", items[0]?.normalizedKey);
-      console.log("[MOVIE DEBUG] First movie path:", items[0]?.path);
+      items = this.moviesData || [];
+      console.log("[MOVIE DEBUG] Raw movies array:", items.slice(0, 2));
+      console.log("[MOVIE DEBUG] Total movies found:", items.length);
+      console.log(
+        "[MOVIE DEBUG] First few movie titles:",
+        items
+          .slice(0, 3)
+          .map(
+            (m) =>
+              m.TMDBTitle ||
+              m.title ||
+              m.name ||
+              m.filename ||
+              m.path ||
+              "Unknown"
+          )
+      );
     } else if (this.currentTab === "tvshows") {
       items = this.getTVShows();
     } else if (this.currentTab === "favorites") {
@@ -1455,17 +1592,6 @@ class MediaLibraryManager {
      * PRIORITY 3: MongoDB (if we add database poster storage)
      */
   getPosterPath(mediaItem) {
-    console.log('[DEBUG - GET-POSTER-PATH] Called with mediaItem:', {
-      name: mediaItem?.name,
-      title: mediaItem?.title,
-      path: mediaItem?.path,
-      poster: mediaItem?.poster,
-      type: mediaItem?.type,
-      isMovie: mediaItem?.isMovie
-    });
-    console.log('[DEBUG - GET-POSTER-PATH] Current tab:', this.currentTab);
-    console.log('[DEBUG - GET-POSTER-PATH] Unified data available:', !!this.unifiedData);
-    console.log('[DEBUG - GET-POSTER-PATH] Unified data count:', this.unifiedData ? Object.keys(this.unifiedData).length : 0);
     // Debug: Log the call stack to see where this is being called from
     const stack = new Error().stack;
     const caller = stack.split("\n")[2] || "unknown";
@@ -1513,8 +1639,14 @@ class MediaLibraryManager {
         // console.log('[COLLECTIONS_DEBUG] Unknown mediaItem.type:', mediaItem.type, 'using path fallback, isTV:', isTV);
         break;
     }
-    // Use unified data for all media types
-    const posterMap = this.unifiedData;
+    // Get the correct poster map - try multiple sources to handle different loading scenarios
+    let posterMap = null;
+    if (isTV) {
+      // Try tvPosters first, then tvShowPosters as fallback (for collections)
+      posterMap = this.tvPosters || this.tvShowPosters;
+    } else {
+      posterMap = this.moviePosters;
+    }
     // console.log('[COLLECTIONS_DEBUG] getPosterPath called for:', mediaItem.title || mediaItem.name);
     // console.log('[COLLECTIONS_DEBUG] mediaItem.type:', mediaItem.type);
     // console.log('[COLLECTIONS_DEBUG] currentTab:', this.currentTab);
@@ -1524,7 +1656,7 @@ class MediaLibraryManager {
     // console.log('[COLLECTIONS_DEBUG] posterMap keys count:', posterMap ? Object.keys(posterMap).length : 0);
     // For TV shows in Media Manager format, check if poster is directly available
     if (isTV && mediaItem.poster && mediaItem.poster.trim() !== "") {
-      console.log('[DEBUG - GET-POSTER-PATH] Found direct poster URL for TV show:', mediaItem.title || mediaItem.name, '->', mediaItem.poster);
+      // console.log('[MEDIA-LIBRARY] Found direct poster URL for TV show:', mediaItem.poster);
       return mediaItem.poster;
     }
     if (!posterMap) {
@@ -1568,25 +1700,11 @@ class MediaLibraryManager {
         }
       }
     } else {
-      // For movies, we need to find the actual key in unifiedData
-      // First try to find by path match
-      if (mediaItem.path) {
-        const pathKey = mediaItem.path.split(/[\\/]/).pop();
-        // Look for exact path match in unifiedData
-        for (const key in this.unifiedData) {
-          const item = this.unifiedData[key];
-          if (item.isMovie && item.path === mediaItem.path) {
-            showName = key; // Use the actual key from unifiedData
-            console.log('[DEBUG - GET-POSTER-PATH] Found movie by path match, using key:', key);
-            break;
-          }
-        }
-        // If no path match, try to extract folder name
-        if (!showName) {
-          showName = pathKey;
-        }
-      } else if (mediaItem.normalizedKey) {
+      // For movies, use the normalizedKey if available, otherwise extract folder name from path
+      if (mediaItem.normalizedKey) {
         showName = mediaItem.normalizedKey;
+      } else if (mediaItem.path) {
+        showName = mediaItem.path.split(/[\\/]/).pop();
       }
     }
     if (!showName) {
@@ -1594,16 +1712,12 @@ class MediaLibraryManager {
       return "/assets/img/placeholder-poster.jpg";
     }
     // For TV shows, if we already have a normalizedKey, use it directly
-    let dotKey;
-    if (isTV) {
-      dotKey = mediaItem.normalizedKey || window.normalizeKey(showName);
-    } else {
-      // For movies, use the showName directly (which should be the actual key from unifiedData)
-      dotKey = showName;
-    }
+    let dotKey = isTV
+      ? mediaItem.normalizedKey || window.normalizeKey(showName)
+      : mediaItem.normalizedKey || window.normalizeKey(showName);
     // For both movies and TV shows, try the normalizedKey first, then fallback to derived keys
     let possibleKeys = [dotKey];
-    if (isTV && !mediaItem.normalizedKey) {
+    if (!mediaItem.normalizedKey) {
       possibleKeys = [
         dotKey, // "Tera.Nova"
         window.normalizeKey(showName + " (2011)"), // "Tera.Nova.(2011)"
@@ -1634,57 +1748,33 @@ class MediaLibraryManager {
         window.normalizeKey(showName.replace(/Tera/g, "Terra") + " (2015)"),
       ];
     }
-    
-    console.log('[DEBUG - GET-POSTER-PATH] Looking for poster with keys:', possibleKeys, 'for show:', showName);
-    console.log('[DEBUG - GET-POSTER-PATH] First few available keys in posterMap:', Object.keys(posterMap).slice(0, 10));
-    
-    // PRIORITY 1: Look up poster from unified data (both movies and TV shows have .poster property)
+    // console.log('[COLLECTIONS_DEBUG] Looking for poster with keys:', possibleKeys, 'for show:', showName, 'in posterMap:', Object.keys(posterMap).slice(0, 10));
+    // console.log('[COLLECTIONS_DEBUG] First few available keys in posterMap:', Object.keys(posterMap).slice(0, 5));
+    // PRIORITY 1: JSON files (normalized lowercase dot notation) - MOST RELIABLE
     // Try exact match first
     for (const key of possibleKeys) {
-      let url = null;
-      
-      // Both movies and TV shows now have .poster property in unified data
-      if (posterMap[key] && posterMap[key].poster) {
-        url = posterMap[key].poster;
-      }
-      
-      if (url) {
+      if (posterMap[key]) {
+        let url = posterMap[key];
         if (this.cacheBusters && this.cacheBusters[key]) {
           url +=
             (url.includes("?") ? "&" : "?") + "t=" + this.cacheBusters[key];
         }
-        console.log(`[MEDIA-LIBRARY] Found poster with key: ${key}, URL: ${url}, Type: ${isTV ? 'TV Show' : 'Movie'}`);
+        // console.log('[MEDIA-LIBRARY] Found poster with key:', key, 'URL:', url);
         return url;
       }
     }
-    
     // Case-insensitive fallback for all possible keys
     for (const possibleKey of possibleKeys) {
       const lowerPossibleKey = possibleKey.toLowerCase();
       for (const key of Object.keys(posterMap)) {
         if (key.toLowerCase() === lowerPossibleKey) {
-          let url = null;
-          
-          if (isTV) {
-            // For TV shows: posterMap[key].poster (unified data structure)
-            if (posterMap[key] && posterMap[key].poster) {
-              url = posterMap[key].poster;
-            }
-          } else {
-            // For movies: posterMap[key].poster (unified data structure)
-            if (posterMap[key] && posterMap[key].poster) {
-              url = posterMap[key].poster;
-            }
-          }
-          
-          if (url) {
+          let url = posterMap[key];
           if (this.cacheBusters && this.cacheBusters[key]) {
             url +=
               (url.includes("?") ? "&" : "?") + "t=" + this.cacheBusters[key];
           }
-            console.log(`[MEDIA-LIBRARY] Found poster with case-insensitive match for key: ${possibleKey}, URL: ${url}, Type: ${isTV ? 'TV Show' : 'Movie'}`);
+          // console.log('[MEDIA-LIBRARY] Found poster with case-insensitive match for key:', possibleKey, 'URL:', url);
           return url;
-          }
         }
       }
     }
@@ -1718,10 +1808,10 @@ class MediaLibraryManager {
       );
       return "/assets/img/placeholder-poster.jpg";
     }
-    // Use unified data for TV show posters
-    const posterMap = this.unifiedData;
+    // Always use TV posters for this method
+    const posterMap = this.tvPosters;
     if (!posterMap) {
-      console.warn("[MEDIA-LIBRARY] No unified data available");
+      console.warn("[MEDIA-LIBRARY] No TV poster map available");
       return "/assets/img/placeholder-poster.jpg";
     }
     // For TV-Shows, prefer the name property, then fallback to path extraction
@@ -1770,27 +1860,27 @@ class MediaLibraryManager {
       "mediaItem:",
       mediaItem
     );
-    // PRIORITY 1: Unified data (normalized lowercase dot notation) - MOST RELIABLE
+    // PRIORITY 1: JSON files (normalized lowercase dot notation) - MOST RELIABLE
     // Try exact match first
-    if (posterMap[showKey] && posterMap[showKey].poster) {
-      let url = posterMap[showKey].poster;
+    if (posterMap[showKey]) {
+      let url = posterMap[showKey];
       if (this.cacheBusters && this.cacheBusters[showKey]) {
         url +=
           (url.includes("?") ? "&" : "?") + "t=" + this.cacheBusters[showKey];
       }
-      console.log('[MEDIA-LIBRARY] Found TV poster in unified data with exact match:', url);
+      // console.log('[MEDIA-LIBRARY] Found TV poster with exact match:', url);
       return url;
     }
     // Case-insensitive fallback
     const lowerShowKey = showKey.toLowerCase();
     for (const key of Object.keys(posterMap)) {
-      if (key.toLowerCase() === lowerShowKey && posterMap[key].poster) {
-        let url = posterMap[key].poster;
+      if (key.toLowerCase() === lowerShowKey) {
+        let url = posterMap[key];
         if (this.cacheBusters && this.cacheBusters[key]) {
           url +=
             (url.includes("?") ? "&" : "?") + "t=" + this.cacheBusters[key];
         }
-        console.log('[MEDIA-LIBRARY] Found TV poster in unified data with case-insensitive match:', url);
+        // console.log('[MEDIA-LIBRARY] Found TV poster with case-insensitive match:', url);
         return url;
       }
     }
@@ -1800,13 +1890,13 @@ class MediaLibraryManager {
     // This would be implemented if we add MongoDB poster storage in the future
     // Log a warning if no poster found
     console.warn(
-      "[MEDIA-LIBRARY] No TV poster found in unified data for:",
+      "[MEDIA-LIBRARY] No TV poster found for:",
       mediaItem,
       "Tried standardized key:",
       showKey
     );
     console.warn(
-      "[MEDIA-LIBRARY] Available unified data keys (first 10):",
+      "[MEDIA-LIBRARY] Available TV poster keys (first 10):",
       Object.keys(posterMap).slice(0, 10)
     );
     return "/assets/img/placeholder-poster.jpg";
@@ -2580,62 +2670,6 @@ class MediaLibraryManager {
   capitalizeTitle(str) {
     if (!str || typeof str !== "string") return "";
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-  
-  // Utility to convert normalized dot notation to human-readable TV show titles
-  humanizeTVShowTitle(normalizedTitle) {
-    if (!normalizedTitle || typeof normalizedTitle !== "string") return "";
-    
-    // Handle common abbreviations that should keep periods
-    let title = normalizedTitle
-      .replace(/\bU\.S\.\b/gi, "US_ABBREV")
-      .replace(/\bU\.K\.\b/gi, "UK_ABBREV")
-      .replace(/\bU\.N\.\b/gi, "UN_ABBREV")
-      .replace(/\bU\.S\.A\.\b/gi, "USA_ABBREV")
-      .replace(/\bMr\.\b/gi, "MR_ABBREV")
-      .replace(/\bMrs\.\b/gi, "MRS_ABBREV")
-      .replace(/\bDr\.\b/gi, "DR_ABBREV")
-      .replace(/\bProf\.\b/gi, "PROF_ABBREV")
-      .replace(/\bSt\.\b/gi, "ST_ABBREV")
-      .replace(/\bAve\.\b/gi, "AVE_ABBREV")
-      .replace(/\bBlvd\.\b/gi, "BLVD_ABBREV")
-      .replace(/\bRd\.\b/gi, "RD_ABBREV")
-      .replace(/\bLn\.\b/gi, "LN_ABBREV")
-      .replace(/\bCt\.\b/gi, "CT_ABBREV")
-      .replace(/\bCo\.\b/gi, "CO_ABBREV")
-      .replace(/\bInc\.\b/gi, "INC_ABBREV")
-      .replace(/\bLtd\.\b/gi, "LTD_ABBREV")
-      .replace(/\bCorp\.\b/gi, "CORP_ABBREV");
-    
-    // Replace dots with spaces (but preserve the abbreviations we just marked)
-    title = title.replace(/\./g, " ");
-    
-    // Restore abbreviations with proper formatting
-    title = title
-      .replace(/US_ABBREV/gi, "U.S.")
-      .replace(/UK_ABBREV/gi, "U.K.")
-      .replace(/UN_ABBREV/gi, "U.N.")
-      .replace(/USA_ABBREV/gi, "U.S.A.")
-      .replace(/MR_ABBREV/gi, "Mr.")
-      .replace(/MRS_ABBREV/gi, "Mrs.")
-      .replace(/DR_ABBREV/gi, "Dr.")
-      .replace(/PROF_ABBREV/gi, "Prof.")
-      .replace(/ST_ABBREV/gi, "St.")
-      .replace(/AVE_ABBREV/gi, "Ave.")
-      .replace(/BLVD_ABBREV/gi, "Blvd.")
-      .replace(/RD_ABBREV/gi, "Rd.")
-      .replace(/LN_ABBREV/gi, "Ln.")
-      .replace(/CT_ABBREV/gi, "Ct.")
-      .replace(/CO_ABBREV/gi, "Co.")
-      .replace(/INC_ABBREV/gi, "Inc.")
-      .replace(/LTD_ABBREV/gi, "Ltd.")
-      .replace(/CORP_ABBREV/gi, "Corp.");
-    
-    // Clean up extra spaces and capitalize
-    title = title.replace(/\s+/g, " ").trim();
-    title = this.capitalizeTitle(title);
-    
-    return title;
   }
   // Utility to clean up movie titles for display
   cleanMovieTitle(filename) {
@@ -3527,78 +3561,58 @@ class MediaLibraryManager {
       // console.log('[DEBUG - WATCH-LATER] getTvShowLabel called with path:', path);
       // console.log('[DEBUG - WATCH-LATER] tvShowsData available:', this.tvShowsData ? 'YES' : 'NO');
       // console.log('[DEBUG - WATCH-LATER] tvShowsData length:', this.tvShowsData ? this.tvShowsData.length : 'N/A');
-      // First, try to find the show data from the unified data to get the year
-      // Use the new unified data structure instead of old tvShowsData
+      // First, try to find the show data from the JSON to get the year
+      // Handle both array and object formats for tvShowsData
       let tvShowsArray = [];
-      if (this.unifiedData) {
-        // Convert unified data to array format for processing
-        tvShowsArray = Object.entries(this.unifiedData)
-          .filter(([key, item]) => !item.isMovie && item.seasons)
-          .map(([key, item]) => ({
-            path: item.path || item.absPath,
-            normalizedKey: key,
-            title: item.title || item.TMDBTitle || item.name,
-            poster: item.poster || item.posterUrl || item.image
-          }));
+      if (Array.isArray(this.tvShowsData)) {
+        tvShowsArray = this.tvShowsData;
+      } else if (typeof this.tvShowsData === "object" && this.tvShowsData) {
+        tvShowsArray = Object.values(this.tvShowsData);
       }
-      
       if (tvShowsArray.length > 0) {
-        console.log('[DEBUG - WATCH-LATER] Searching through', tvShowsArray.length, 'TV shows for path:', path);
+        // console.log('[DEBUG - WATCH-LATER] Searching through', tvShowsArray.length, 'TV shows for path:', path);
         for (const tvShow of tvShowsArray) {
           // Check if this episode belongs to this show by matching the path
-          if (tvShow.path) {
-            const showPath = (tvShow.path || "").replace(/\\/g, "/").trim();
-            const searchPath = path.replace(/\\/g, "/").trim();
-            
-            // USE THE WORKING BACKUP APPROACH: Extract show name from path and match normalizedKey
-            const showNameFromPath = searchPath.split('/')[0]; // Get show name before first slash
-            
-            // Convert to normalized key format (same as backup system)
-            const normalizedShowName = showNameFromPath
-              .toLowerCase()
-              .replace(/[^a-z0-9\s]/g, '.')  // Replace special chars with dots
-              .replace(/\s+/g, '.')           // Replace spaces with dots
-              .replace(/\.+/g, '.')           // Clean up multiple dots
-              .replace(/^\.|\.$/g, '')        // Remove leading/trailing dots
-              .replace(/\.(\d{4})/, '.($1)'); // Ensure year has dot before it: "2018" -> ".(2018)"
-            
-            const normalizedShowKey = tvShow.normalizedKey ? tvShow.normalizedKey.toLowerCase() : null;
-            
-            // Check if the show name matches the show's normalized key
-            if (normalizedShowKey && normalizedShowName === normalizedShowKey.replace(/^tv-shows\//, '')) {
-              console.log('[DEBUG - WATCH-LATER] Found matching episode!');
-              console.log('[DEBUG - WATCH-LATER] Show path:', tvShow.path);
-              console.log('[DEBUG - WATCH-LATER] Show normalizedKey:', tvShow.normalizedKey);
-              console.log('[DEBUG - WATCH-LATER] Path comparison:', {
-                originalShowPath: showPath,
-                originalSearchPath: searchPath,
-                normalizedShowPath,
-                normalizedSearchPath,
-                matchType: normalizedSearchPath.includes(normalizedShowPath) ? 'search-contains-show' : 'show-contains-search'
-              });
-              // Found the show! Extract year from the normalizedKey
-              if (tvShow.normalizedKey) {
-                const yearMatch = tvShow.normalizedKey.match(/\((\d{4})\)/);
-                if (yearMatch) {
-                  year = yearMatch[1];
+          if (tvShow.folders) {
+            for (const season of tvShow.folders) {
+              if (season.files) {
+                for (const episode of season.files) {
+                  const epPath = (episode.relPath || episode.path || "")
+                    .replace(/\\/g, "/")
+                    .trim();
+                  const searchPath = path.replace(/\\/g, "/").trim();
+                  if (epPath === searchPath) {
+                    // console.log('[DEBUG - WATCH-LATER] Found matching episode!');
+                    // console.log('[DEBUG - WATCH-LATER] Show path:', tvShow.path);
+                    // console.log('[DEBUG - WATCH-LATER] Show normalizedKey:', tvShow.normalizedKey);
+                    // Found the show! Extract year from the normalizedKey
+                    if (tvShow.normalizedKey) {
+                      const yearMatch =
+                        tvShow.normalizedKey.match(/\((\d{4})\)/);
+                      if (yearMatch) {
+                        year = yearMatch[1];
+                      }
+                      // Extract show name from normalizedKey (remove the year part)
+                      show = tvShow.normalizedKey
+                        .replace(/\.\(\d{4}\)$/, "")
+                        .replace(/\./g, " ")
+                        .trim();
+                    } else {
+                      // Fallback to path parsing if no normalizedKey
+                      const yearMatch = tvShow.path.match(/\((\d{4})\)/);
+                      if (yearMatch) {
+                        year = yearMatch[1];
+                      }
+                      show = tvShow.path.replace(/\s*\(\d{4}\)\s*$/, "").trim();
+                    }
+                    break;
+                  }
                 }
-                // Extract show name from normalizedKey (remove the year part)
-                show = tvShow.normalizedKey
-                  .replace(/\.\(\d{4}\)$/, "")
-                  .replace(/\./g, " ")
-                  .trim();
-              } else {
-                // Fallback to path parsing if no normalizedKey
-                const yearMatch = tvShow.path.match(/\((\d{4})\)/);
-                if (yearMatch) {
-                  year = yearMatch[1];
-                }
-                show = tvShow.path.replace(/\s*\(\d{4}\)\s*$/, "").trim();
+                if (year) break;
               }
-              break;
             }
+            if (year) break;
           }
-          if (year) break;
         }
         // Fallback to path parsing if needed
       }
@@ -3688,58 +3702,68 @@ class MediaLibraryManager {
       console.log('[DEBUG - WATCH-LATER] Processing movie item:', item);
       console.log('[DEBUG - WATCH-LATER] Movie item data:', item);
       
-      // UPDATED: Use the unified data structure instead of old moviePosters
-      if (self.unifiedData) {
-        console.log('[DEBUG - WATCH-LATER] Using unified data for movie poster lookup');
+      // SIMPLIFIED: Use the movie posters JSON directly with multiple lookup strategies
+      if (self.moviePosters) {
+        console.log('[DEBUG - WATCH-LATER] Available movie poster keys (first 10):', Object.keys(self.moviePosters).slice(0, 10));
         
         let path = decodeURIComponent(item.path || item.filePath || "");
         console.log('[DEBUG - WATCH-LATER] Movie path:', path);
         
-        // Strategy 1: Try to find movie in unified data by path
-        for (const key in self.unifiedData) {
-          const mediaItem = self.unifiedData[key];
-          if (mediaItem.isMovie && mediaItem.path === path) {
-            console.log('[DEBUG - WATCH-LATER] Found movie in unified data by path:', mediaItem.poster);
-            return mediaItem.poster || "/assets/img/placeholder-poster.jpg";
+        // Strategy 1: Try direct path lookup (most accurate)
+        if (self.moviePosters[path]) {
+          console.log('[DEBUG - WATCH-LATER] Found movie poster by exact path:', self.moviePosters[path]);
+          return self.moviePosters[path];
+        }
+        
+        // Strategy 2: Try path with different slash formats
+        let pathVariations = [
+          path,
+          path.replace(/\\/g, '/'),
+          path.replace(/\//g, '\\')
+        ];
+        
+        for (let pathVar of pathVariations) {
+          if (self.moviePosters[pathVar]) {
+            console.log('[DEBUG - WATCH-LATER] Found movie poster by path variation:', self.moviePosters[pathVar]);
+            return self.moviePosters[pathVar];
           }
         }
         
-        // Strategy 2: Extract movie name and try normalized lookup
+        // Strategy 3: Extract movie name and try normalized lookup
         let movieMatch = path.match(/MOVIES[\\/]([^\\\/]+)/i);
         if (movieMatch) {
           let movieName = movieMatch[1].trim();
           console.log('[DEBUG - WATCH-LATER] Extracted movie name:', movieName);
           
-          // Try to find by movie name in unified data
-          for (const key in self.unifiedData) {
-            const mediaItem = self.unifiedData[key];
-            if (mediaItem.isMovie && mediaItem.title && mediaItem.title.toLowerCase().includes(movieName.toLowerCase())) {
-              console.log('[DEBUG - WATCH-LATER] Found movie in unified data by name match:', mediaItem.poster);
-              return mediaItem.poster || "/assets/img/placeholder-poster.jpg";
+          let normalizedKey = window.normalizeKey ? window.normalizeKey(movieName) : movieName.toLowerCase();
+          console.log('[DEBUG - WATCH-LATER] Normalized key:', normalizedKey);
+          
+          if (self.moviePosters[normalizedKey]) {
+            console.log('[DEBUG - WATCH-LATER] Found movie poster by normalized key:', self.moviePosters[normalizedKey]);
+            return self.moviePosters[normalizedKey];
+          }
+          
+          // Strategy 4: Try case-insensitive search
+          for (let key in self.moviePosters) {
+            if (key.toLowerCase() === normalizedKey.toLowerCase()) {
+              console.log('[DEBUG - WATCH-LATER] Found movie poster by case-insensitive match:', self.moviePosters[key]);
+              return self.moviePosters[key];
             }
           }
         }
         
-        // Strategy 3: Try using item.title if available
+        // Strategy 5: Try using item.title if available
         if (item.title) {
-          for (const key in self.unifiedData) {
-            const mediaItem = self.unifiedData[key];
-            if (mediaItem.isMovie && mediaItem.title && mediaItem.title.toLowerCase() === item.title.toLowerCase()) {
-              console.log('[DEBUG - WATCH-LATER] Found movie in unified data by title match:', mediaItem.poster);
-              return mediaItem.poster || "/assets/img/placeholder-poster.jpg";
-            }
-          }
-        }
-        
-        // Strategy 4: Try using item.normalizedKey if available
-        if (item.normalizedKey) {
-          if (self.unifiedData[item.normalizedKey] && self.unifiedData[item.normalizedKey].isMovie) {
-            console.log('[DEBUG - WATCH-LATER] Found movie in unified data by normalizedKey:', self.unifiedData[item.normalizedKey].poster);
-            return self.unifiedData[item.normalizedKey].poster || "/assets/img/placeholder-poster.jpg";
+          let titleKey = window.normalizeKey ? window.normalizeKey(item.title) : item.title.toLowerCase();
+          console.log('[DEBUG - WATCH-LATER] Trying title key:', titleKey);
+          
+          if (self.moviePosters[titleKey]) {
+            console.log('[DEBUG - WATCH-LATER] Found movie poster by title:', self.moviePosters[titleKey]);
+            return self.moviePosters[titleKey];
           }
         }
       } else {
-        console.log('[DEBUG - WATCH-LATER] No unified data available');
+        console.log('[DEBUG - WATCH-LATER] No moviePosters data available');
       }
       
       console.log('[DEBUG - WATCH-LATER] No movie poster found, using placeholder');
@@ -4083,7 +4107,7 @@ class MediaLibraryManager {
       
       // Handle both normalized paths (lost.(2004)/season.01/lost.s01e02.pilot.mkv) 
       // and human-readable paths (TV-SHOWS/Show Name/Season 01/Show S01E02...)
-      let showName = null, seasonNum = null, episodeNum = null;
+      let showName, seasonNum, episodeNum;
       
       // Try normalized path format first (e.g., "lost.(2004)/season.01/lost.s01e02.pilot.mkv")
       let normalizedMatch = path.match(/^([^\/]+)\/season\.(\d+)\/.*?[Ss](\d+)[Ee](\d+)/i);
@@ -4100,40 +4124,6 @@ class MediaLibraryManager {
           seasonNum = parseInt(humanMatch[2], 10);
           episodeNum = parseInt(humanMatch[4], 10);
           console.log('🔍 [TV-IMAGE-DEBUG] ✅ Human-readable path match:', { showName, seasonNum, episodeNum });
-        } else {
-          // Try the format: "Show Name (Year)/Season XX/Show SXXEXX..."
-          let showSeasonMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/].*?[Ss](\d+)[Ee](\d+)/i);
-          if (showSeasonMatch) {
-            showName = showSeasonMatch[1].trim();
-            seasonNum = parseInt(showSeasonMatch[2], 10);
-            episodeNum = parseInt(showSeasonMatch[4], 10);
-            console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season path match:', { showName, seasonNum, episodeNum });
-          } else {
-            // Try the format: "Show Name (Year)/Season XX/Show Name SXXEXX..."
-            let showSeasonNameMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/]([^\/]+)[ _-]S(\d+)E(\d+)/i);
-            if (showSeasonNameMatch) {
-              showName = showSeasonNameMatch[1].trim();
-              seasonNum = parseInt(showSeasonNameMatch[2], 10);
-              episodeNum = parseInt(showSeasonNameMatch[5], 10);
-              console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Name path match:', { showName, seasonNum, episodeNum });
-            } else {
-              // Try the format: "Show Name (Year)/Season XX/Show Name - SXXEXX - Episode Title.mp4"
-              let showSeasonEpisodeMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/].*?[ _-]S(\d+)E(\d+)/i);
-              if (showSeasonEpisodeMatch) {
-                showName = showSeasonEpisodeMatch[1].trim();
-                seasonNum = parseInt(showSeasonEpisodeMatch[2], 10);
-                episodeNum = parseInt(showSeasonEpisodeMatch[4], 10);
-                console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Episode path match:', { showName, seasonNum, episodeNum });
-              } else {
-                // Final fallback: try to extract just the show name from the first part of the path
-                let pathParts = path.split(/[\\\/]/);
-                if (pathParts.length > 0) {
-                  showName = pathParts[0].trim();
-                  console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Fallback: extracted show name from path:', showName);
-                }
-              }
-            }
-          }
         }
       }
       
@@ -4211,16 +4201,6 @@ class MediaLibraryManager {
       } else {
         console.log('🔍 [TV-IMAGE-DEBUG] ❌ Path regex failed - could not extract show/season/episode from:', path);
       }
-      
-      // Safety check: ensure showName is defined
-      if (!showName) {
-        console.log('🔍 [TV-IMAGE-DEBUG] ⚠️ Show name not extracted, using path fallback');
-        let pathParts = path.split(/[\\\/]/);
-        if (pathParts.length > 0) {
-          showName = pathParts[0].trim();
-          console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Safety fallback: extracted show name from path:', showName);
-        }
-      }
     } else {
       console.log('🔍 [TV-IMAGE-DEBUG] ❌ No unifiedData available');
     }
@@ -4236,30 +4216,13 @@ class MediaLibraryManager {
           showsArray = Object.values(this.tvShowsData);
         }
         
-        // Look for the SPECIFIC show poster, not just any show poster
-        if (showName) {
-          // Try to find the specific show by name
+        // Look for any show with a poster
         for (const show of showsArray) {
-            const showPath = (show.path || "").toLowerCase();
-            const showNameLower = showName.toLowerCase();
-            
-            // Check if this show matches the requested show name
-            if (showPath.includes(showNameLower) || 
-                showNameLower.includes(showPath.replace(/[^a-z0-9]/g, '')) ||
-                (show.normalizedKey && show.normalizedKey.toLowerCase().includes(showNameLower.replace(/[^a-z0-9]/g, '')))) {
-              
           if (show.poster && show.poster !== "/assets/img/placeholder-poster.jpg") {
-                console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Using SPECIFIC show poster fallback:', show.poster, 'for show:', showName);
+            console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Using show poster fallback:', show.poster);
             return show.poster;
           }
         }
-          }
-        } else {
-          console.log('🔍 [TV-IMAGE-DEBUG] ❌ No show name extracted from path, cannot search for specific show poster');
-        }
-        
-        // Only if we can't find the specific show, try a generic fallback
-        console.log('🔍 [TV-IMAGE-DEBUG] ❌ No specific show poster found, using placeholder instead of random show poster');
       }
       
       console.log('🔍 [TV-IMAGE-DEBUG] ❌ No fallback thumbnail found - using placeholder');
@@ -4585,32 +4548,13 @@ class MediaLibraryManager {
       );
       return false;
     }
-    
-    // Check if path exists in movies array (checking object.path property)
-    const isMovieFav = (favs.movies || []).some(item => 
-      (item.path && item.path === path) || 
-      (item.absPath && item.absPath === path)
-    );
-    
-    // Check if path exists in tvshows array (checking object.path property)
-    const isTVShowFav = (favs.tvshows || []).some(item => 
-      (item.path && item.path === path) || 
-      (item.absPath && item.absPath === path)
-    );
-    
-    const isFav = isMovieFav || isTVShowFav;
-    console.log('[DEBUG - FAVORITES] isFavorite check for path:', path, 'result:', isFav, 'movieFav:', isMovieFav, 'tvFav:', isTVShowFav);
+    const isFav =
+      (favs.movies || []).includes(path) || (favs.tvshows || []).includes(path);
+    //console.log('[DEBUG - FAVORITES] isFavorite check for path:', path, 'result:', isFav, 'favs:', favs);
     return isFav;
   }
-  async toggleFavorite(mediaItem, type) {
-    console.log('[DEBUG - FAVORITES] toggleFavorite called with mediaItem:', mediaItem, 'type:', type);
-    
-    // Handle backward compatibility: if mediaItem is a string, it's an old path-based call
-    if (typeof mediaItem === 'string') {
-      console.log('[DEBUG - FAVORITES] Backward compatibility: toggleFavorite called with path string, converting to object');
-      mediaItem = { path: mediaItem };
-    }
-    
+  async toggleFavorite(path, type) {
+    // console.log('[DEBUG - FAVORITES] toggleFavorite called with path:', path, 'type:', type);
     // Initialize favorites storage if needed
     this.initializeFavoritesStorage();
     let favs = JSON.parse(
@@ -4618,70 +4562,35 @@ class MediaLibraryManager {
     );
     if (!favs.movies) favs.movies = [];
     if (!favs.tvshows) favs.tvshows = [];
-    
-    // SIMPLE APPROACH: Use path as the identifier (like the working backup system)
-    const path = mediaItem.path || mediaItem.absPath || '';
-    
-    console.log('[DEBUG - FAVORITES] Current favorites before toggle:', favs);
-    console.log('[DEBUG - FAVORITES] Checking path:', path, 'type:', type);
-    
+    // console.log('[DEBUG - FAVORITES] Current favorites before toggle:', favs);
     const list =
       type === "tv" || type === "tvshow" || type === "tvshows"
         ? favs.tvshows
         : favs.movies;
-    
-    // Check if item is already in favorites by path (simple check like backup system)
-    const isAlreadyFavorited = list.some(item => 
-      (item.path && item.path === path) || 
-      (item.absPath && item.absPath === path)
-    );
-    
-    console.log('[DEBUG - FAVORITES] Is already favorited:', isAlreadyFavorited);
-    
-    if (isAlreadyFavorited) {
+    if (list.includes(path)) {
       // Remove from favorites
-      favs.movies = favs.movies.filter((item) => 
-        !((item.path && item.path === path) || 
-          (item.absPath && item.absPath === path))
-      );
-      favs.tvshows = favs.tvshows.filter((item) => 
-        !((item.path && item.path === path) || 
-          (item.absPath && item.absPath === path))
-      );
+      favs.movies = favs.movies.filter((p) => p !== path);
+      favs.tvshows = favs.tvshows.filter((p) => p !== path);
       console.log("[DEBUG - FAVORITES] Removed from favorites:", path);
     } else {
       // Add to favorites - add to the beginning so they appear at the top
-      // Store the complete media object, not just the path
-      const favoriteItem = {
-        ...mediaItem, // Include all properties
-        favoritedAt: new Date().toISOString() // Add timestamp for sorting
-      };
-      
       if (type === "tv" || type === "tvshow" || type === "tvshows") {
-        favs.tvshows.unshift(favoriteItem);
-        console.log('[DEBUG - FAVORITES] Added TV show to favorites (top):', path);
-        console.log('[DEBUG - FAVORITES] TV show object being saved:', favoriteItem);
-        console.log('[DEBUG - FAVORITES] TV show poster property:', favoriteItem.poster);
+        favs.tvshows.unshift(path);
+        // console.log('[DEBUG - FAVORITES] Added TV show to favorites (top):', path);
       } else {
-        favs.movies.unshift(favoriteItem);
-        console.log('[DEBUG - FAVORITES] Added movie to favorites (top):', path);
+        favs.movies.unshift(path);
+        // console.log('[DEBUG - FAVORITES] Added movie to favorites (top):', path);
       }
     }
-    
     localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(favs));
-    console.log('[DEBUG - FAVORITES] Saved to localStorage, new favs:', favs);
-    
+    // console.log('[DEBUG - FAVORITES] Saved to localStorage, new favs:', favs);
     // Update heart icons immediately
     setTimeout(() => {
       this.updateHeartIcons();
     }, 50);
-    
     // If on favorites tab, refresh the content
     if (this.currentTab === "favorites") {
-      // Force immediate refresh to show the updated favorites
-      setTimeout(() => {
-        this.updateModalContent();
-      }, 100);
+      await this.updateModalContent();
     }
   }
   getFavoritesList() {
@@ -5396,7 +5305,7 @@ class MediaLibraryManager {
       // Load TV show posters JSON into class property
       try {
         const tvResponse = await fetch(
-          "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json?v=" +
+          "/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json?v=" +
             Date.now()
         );
         if (tvResponse.ok) {
@@ -5611,7 +5520,7 @@ class MediaLibraryManager {
       // Load TV show posters JSON into class property
       try {
         const tvResponse = await fetch(
-          "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json?v=" +
+          "/components/MediaLibrary/data/tv-shows/tv_posters_normalized.json?v=" +
             Date.now()
         );
         if (tvResponse.ok) {
@@ -5810,7 +5719,7 @@ class MediaLibraryManager {
                   "[FAVORITES] Remove from favorites button clicked:",
                   { path, type }
                 );
-                await this.toggleFavorite(mediaItem, type);
+                await this.toggleFavorite(path, type);
                 // Remove the item card from the modal
                 const itemCard = e.target.closest(".favorites-modal-item");
                 if (itemCard) {
@@ -6293,13 +6202,31 @@ class MediaLibraryManager {
       if (!this.tvShowsData) {
         console.log("[DATA-LOADING] Loading TV shows data...");
         try {
-          // TV shows data is loaded from unified JSON in loadSeasonEpisodeImages
-          console.log("[DATA-LOADING] ✅ TV shows data loaded from unified JSON");
-          if (!this.unifiedData) {
-            await this.loadSeasonEpisodeImages();
+          const tvShowsResponse = await fetch(
+            "/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json?v=" +
+              Date.now()
+          );
+          if (tvShowsResponse.ok) {
+            this.tvShowsData = await tvShowsResponse.json();
+            console.log(
+              "[DATA-LOADING] ✅ TV shows data loaded:",
+              Object.keys(this.tvShowsData).length,
+              "shows"
+            );
+          } else {
+            console.error(
+              "[DATA-LOADING] ❌ Failed to load TV shows data:",
+              tvShowsResponse.status
+            );
+            throw new Error(
+              `Failed to load TV shows data: ${tvShowsResponse.status}`
+            );
           }
         } catch (error) {
-          console.error("[DATA-LOADING] ❌ Error loading TV shows data:", error);
+          console.error(
+            "[DATA-LOADING] ❌ Error loading TV shows data:",
+            error
+          );
           throw error;
         }
       }
@@ -6796,7 +6723,7 @@ class MediaLibraryManager {
                             <div class="media-library-movie-card-collections" data-path="${path}">
                                 <div class="media-card-actions-collections-collections">
                                     <button class="collection-btn-collections collection-btn-remove-collections" title="Remove from Collection" onclick="window.mediaLibraryManager.removeFromCollection('${collectionName}', '${path}')">➖</button>
-                                    <button class="heart-btn" title="Toggle Favorite" onclick="window.mediaLibraryManager.toggleFavorite(${JSON.stringify(mediaItem)}, 'movie')">❤️</button>
+                                    <button class="heart-btn" title="Toggle Favorite" onclick="window.mediaLibraryManager.toggleFavorite('${path}', 'movie')">❤️</button>
                                 </div>
                                 <div class="media-library-card-poster">
                                     <img src="${posterPath}" alt="${title}" onerror="this.src='assets/img/placeholder-poster.jpg'">
@@ -6848,7 +6775,7 @@ class MediaLibraryManager {
                             <div class="media-library-movie-card-tvshows" data-path="${path}">
                                 <div class="media-card-actions-collections-tvShows-collections">
                                     <button class="collection-btn-collections collection-btn-remove-collections" title="Remove from Collection" onclick="window.mediaLibraryManager.removeFromCollection('${collectionName}', '${path}')">➖</button>
-                                    <button class="heart-btn" title="Toggle Favorite" onclick="window.mediaLibraryManager.toggleFavorite(${JSON.stringify(mediaItem)}, 'tvshow')">❤️</button>
+                                    <button class="heart-btn" title="Toggle Favorite" onclick="window.mediaLibraryManager.toggleFavorite('${path}', 'tvshow')">❤️</button>
                                 </div>
                                 <div class="media-library-card-poster">
                                     <img src="${posterPath}" alt="${title}" onerror="this.src='assets/img/placeholder-poster.jpg'">
@@ -7088,14 +7015,20 @@ class MediaLibraryManager {
       } else {
         console.log("[COLLECTIONS] Current tab items not available or empty");
       }
-      // Don't create incomplete objects - log warning and return null
-      console.warn(
-        "[COLLECTIONS] No complete media item found for path:",
+      // If not found in main data, try to create a basic object with normalized key
+      if (window.normalizeKey) {
+        const title = this.extractTitleFromPath(path);
+        const normalizedKey = window.normalizeKey(title);
+        console.log(
+          "[COLLECTIONS] Created basic media item object for path:",
           path,
-        "type:",
-        type
-      );
-      return null;
+          "title:",
+          title,
+          "normalizedKey:",
+          normalizedKey
+        );
+        return { normalizedKey, title, path };
+      }
       console.log(
         "[COLLECTIONS] No media item found for path:",
         path,
@@ -7492,30 +7425,78 @@ class MediaLibraryManager {
   currentTVSeason = null;
   // --- TV SHOW STRUCTURE ---
   getTVShows() {
-    // Returns array of main TV show objects from unified data
+    // Returns array of main TV show objects from the array structure
     const tvShows = [];
-    
-    if (this.unifiedData && Object.keys(this.unifiedData).length > 0) {
-      console.log('[DEBUG - GET-TV-SHOWS] Using unified data with', Object.keys(this.unifiedData).length, 'shows');
-      
-      Object.entries(this.unifiedData).forEach(([key, show]) => {
-        // Only include entries that have seasons (TV shows)
-        if (show.seasons && typeof show.seasons === 'object') {
-          const name = show.TMDBTitle || show.title || key;
-          const normalizedKey = key;
-          
+    if (this.tvShowsData) {
+      // Handle array format (current format)
+      if (Array.isArray(this.tvShowsData)) {
+        this.tvShowsData.forEach((show) => {
+          // Only include main show entries, not season/episode entries
+          const path = show.path || "";
+          // Skip entries that are season folders (contain backslashes and season patterns)
+          if (
+            path.includes("\\") &&
+            (path.includes("S01") ||
+              path.includes("S02") ||
+              path.includes("S03") ||
+              path.includes("S04") ||
+              path.includes("Season"))
+          ) {
+            return; // Skip this entry
+          }
+          // Check if this is a TV show by looking for seasons or folders
+          const hasSeasons = show.seasons && Array.isArray(show.seasons);
+          const hasFolders = show.folders && Array.isArray(show.folders);
+          const hasFiles = show.files && Array.isArray(show.files);
+          // Consider it a TV show if it has seasons, folders with season-like names, or files with episode patterns
+          const isTVShow = hasSeasons || hasFolders || hasFiles;
+          const name = show.title || show.name || show.path || "";
+          if (name && isTVShow) {
+            // Construct proper full path for TV shows
+            let fullPath = show.path;
+            if (!fullPath || fullPath === name) {
+              // If path is missing or just the display name, construct the full path
+              // Assuming TV shows are in a TV-SHOWS directory structure
+              fullPath = `TV-SHOWS/${name}`;
+            }
+            // console.log('[TV-SHOW-PATH-FIX] Constructed path for:', name, '->', fullPath);
             tvShows.push({
               name,
-            path: `TV-SHOWS/${name}`,
-            normalizedKey,
-            TMDBTitle: show.TMDBTitle,
+              path: fullPath,
+              normalizedKey: show.normalizedKey,
+              TMDBTitle: show.TMDBTitle, // Include TMDBTitle field
               data: show,
             });
           }
         });
+      } else if (
+        typeof this.tvShowsData === "object" &&
+        !Array.isArray(this.tvShowsData)
+      ) {
+        // Object format support (current format)
+        Object.keys(this.tvShowsData).forEach((key) => {
+          const show = this.tvShowsData[key];
+          if (show && (show.path || show.title)) {
+            const name = show.title || show.path || key;
+            // Construct proper full path for TV shows
+            let fullPath = show.path;
+            if (!fullPath || fullPath === name) {
+              // If path is missing or just the display name, construct the full path
+              // Assuming TV shows are in a TV-SHOWS directory structure
+              fullPath = `TV-SHOWS/${name}`;
+            }
+            // console.log('[TV-SHOW-PATH-FIX] Object format - Constructed path for:', name, '->', fullPath);
+            tvShows.push({
+              name: name,
+              path: fullPath,
+              data: show,
+              normalizedKey: show.normalizedKey || key,
+              TMDBTitle: show.TMDBTitle, // Include TMDBTitle field
+            });
+          }
+        });
+      }
     }
-    
-    console.log('[DEBUG - GET-TV-SHOWS] Found', tvShows.length, 'TV shows');
     return tvShows;
   }
   extractShowName(path) {
@@ -7864,162 +7845,6 @@ class MediaLibraryManager {
       console.log("[DEBUG - EPISODES] show is null or undefined");
       return [];
     }
-    
-    // Try to get episodes from the show object first (this is where the data actually exists)
-    if (show && show.seasons) {
-      console.log("[DEBUG - EPISODES] Show object has seasons data, checking for episodes");
-      console.log("[DEBUG - EPISODES] Available seasons in show object:", Object.keys(show.seasons));
-      
-      // Extract season number from seasonPath
-      const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
-      if (seasonMatch) {
-        const seasonNum = seasonMatch[1];
-        console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
-        
-        // Convert to integer and back to string to remove leading zeros
-        // This matches how seasons are stored: "01" -> "1", "02" -> "2", etc.
-        const seasonNumInt = parseInt(seasonNum, 10).toString();
-        console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
-        
-        // Try the integer version first (matches storage format), then fallback to original
-        const seasonKeys = [seasonNumInt, seasonNum];
-        console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
-        console.log("[DEBUG - EPISODES] Available season keys in show object:", Object.keys(show.seasons));
-        
-        let seasonData = null;
-        let foundSeasonKey = null;
-        
-        for (const key of seasonKeys) {
-          console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!show.seasons[key]);
-          if (show.seasons[key]) {
-            seasonData = show.seasons[key];
-            foundSeasonKey = key;
-            console.log("[DEBUG - EPISODES] Found season data for key:", key);
-            break;
-          }
-        }
-        
-        if (seasonData && seasonData.episodes) {
-          console.log("[DEBUG - EPISODES] Found episodes in show object for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
-          
-          // Convert unified episode data to the expected format
-          const episodes = Object.entries(seasonData.episodes).map(([episodeNum, episode]) => {
-            // Construct proper absolute path for video playback
-            let absPath = "";
-            if (episode.path) {
-              // Convert relative path like "Bored to Death (2009)\Season 01\..." to absolute path
-              absPath = `S:\\MEDIA\\TV-SHOWS\\${episode.path}`;
-            }
-            
-            return {
-              name: episode.title || `Episode ${episodeNum}`,
-              filename: episode.title || `Episode ${episodeNum}`,
-              path: episode.path || "",
-              relPath: episode.path || "",
-              filePath: absPath, // Use absolute path for video playback
-              absPath: absPath,  // Use absolute path for video playback
-              still: episode.still || "",
-              thumbnail: episode.still || "",
-              generated: false,
-              timestamp: "",
-              episodeNumber: episodeNum
-            };
-          });
-          
-          console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
-          return episodes;
-        }
-      }
-    }
-    
-    // Fallback: Try to get episodes from seasonEpisodeImages
-    if (this.seasonEpisodeImages && show.name) {
-      console.log("[DEBUG - EPISODES] Fallback: Looking in seasonEpisodeImages for key:", show.name);
-      // Use the original show name as the key (same as used in loadSeasonEpisodeImages)
-      const lookupKey = show.name;
-      console.log("[DEBUG - EPISODES] Available keys in seasonEpisodeImages:", Object.keys(this.seasonEpisodeImages));
-      
-      // Try exact key first, then fallback to finding similar key
-      let actualKey = lookupKey;
-      if (!this.seasonEpisodeImages[lookupKey]) {
-        // Try to find a matching key
-        const availableKeys = Object.keys(this.seasonEpisodeImages);
-        actualKey = availableKeys.find(key => 
-          key.toLowerCase().includes(show.name.toLowerCase()) ||
-          show.name.toLowerCase().includes(key.toLowerCase())
-        );
-        console.log("[DEBUG - EPISODES] Key not found, trying fallback key:", actualKey);
-      }
-      
-      if (this.seasonEpisodeImages[actualKey] && this.seasonEpisodeImages[actualKey].seasons) {
-        console.log("[DEBUG - EPISODES] Found show data for key:", actualKey);
-        console.log("[DEBUG - EPISODES] Available seasons:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
-        console.log("[DEBUG - EPISODES] Looking for season data in:", this.seasonEpisodeImages[actualKey].seasons);
-        
-        // Extract season number from seasonPath
-        const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
-        if (seasonMatch) {
-          const seasonNum = seasonMatch[1];
-          console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
-          
-          // Convert to integer and back to string to remove leading zeros
-          // This matches how seasons are stored: "01" -> "1", "02" -> "2", etc.
-          const seasonNumInt = parseInt(seasonNum, 10).toString();
-          console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
-          
-          // Try the integer version first (matches storage format), then fallback to original
-          const seasonKeys = [seasonNumInt, seasonNum];
-          console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
-          console.log("[DEBUG - EPISODES] Available season keys in data:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
-          
-          let seasonData = null;
-          let foundSeasonKey = null;
-          
-          for (const key of seasonKeys) {
-            console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!this.seasonEpisodeImages[actualKey].seasons[key]);
-            if (this.seasonEpisodeImages[actualKey].seasons[key]) {
-              seasonData = this.seasonEpisodeImages[actualKey].seasons[key];
-              foundSeasonKey = key;
-              console.log("[DEBUG - EPISODES] Found season data for key:", key);
-              break;
-            }
-          }
-          
-          if (seasonData && seasonData.episodes) {
-            console.log("[DEBUG - EPISODES] Found episodes in seasonEpisodeImages for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
-            
-            // Convert unified episode data to the expected format
-            const episodes = Object.entries(seasonData.episodes).map(([episodeNum, episode]) => {
-              // Construct proper absolute path for video playback
-              let absPath = "";
-              if (episode.path) {
-                // Convert relative path like "Lost in Space (2018)\Season 01\..." to absolute path
-                absPath = `S:\\MEDIA\\TV-SHOWS\\${episode.path}`;
-              }
-              
-              return {
-                name: episode.title || `Episode ${episodeNum}`,
-                filename: episode.title || `Episode ${episodeNum}`,
-                path: episode.path || "",
-                relPath: episode.path || "",
-                filePath: absPath, // Use absolute path for video playback
-                absPath: absPath,  // Use absolute path for video playback
-                still: episode.still || "",
-                thumbnail: episode.still || "",
-                generated: false,
-                timestamp: "",
-                episodeNumber: episodeNum
-              };
-            });
-            
-            console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
-            return episodes;
-          }
-        }
-      }
-    }
-    
-    console.log("[DEBUG - EPISODES] No episodes found in unified data, falling back to file system data");
     // Handle the normalized TV shows format with folders structure
     if (
       show.folders &&
@@ -8496,8 +8321,8 @@ class MediaLibraryManager {
       // Extract year from cleanShowName if present
       const yearMatch = cleanShowName.match(/\((\d{4})\)/);
       const year = yearMatch ? yearMatch[1] : null;
-      // Use the original show name as the key (same as used in loadSeasonEpisodeImages)
-      const showKey = cleanShowName;
+      // Create standardized key - use normalizeKey for JSON files (no tvshows prefix)
+      const showKey = window.normalizeKey(cleanShowName);
       console.log("[SEASON IMAGE LOOKUP]", {
         showName,
         cleanShowName,
@@ -8510,7 +8335,7 @@ class MediaLibraryManager {
         return "/assets/img/placeholder-poster.jpg";
       }
       const seasonNum = String(parseInt(seasonMatch[1], 10));
-      // Look up using the original show name key
+      // Look up using the standardized key
       const showData = this.seasonEpisodeImages[showKey];
       if (showData && showData.seasons && showData.seasons[seasonNum]) {
         const seasonData = showData.seasons[seasonNum];
@@ -8659,37 +8484,39 @@ class MediaLibraryManager {
     let showPath =
       typeof showObjOrName === "object" ? showObjOrName.path || "" : "";
     console.log("[TV SHOW DETAILS DEBUG] Loading details for:", showName);
-    // Use unified data instead of separate JSON files
-    if (!this.unifiedData) {
-      console.log("[TV SHOW DETAILS DEBUG] Unified data not loaded, loading now...");
-      await this.loadSeasonEpisodeImages();
-    }
-    
-    // Initialize from unified data
     if (!this.tvShowDescriptions) {
+      try {
+        console.log("[TV SHOW DETAILS DEBUG] Loading descriptions file...");
+        const descResp = await fetch(
+          "/components/MediaLibrary/data/tv-shows/tv-show_descriptions_normalized.json?ts=" +
+            Date.now()
+        );
+        this.tvShowDescriptions = descResp.ok ? await descResp.json() : {};
+        console.log(
+          "[TV SHOW DETAILS DEBUG] Descriptions loaded, keys count:",
+          Object.keys(this.tvShowDescriptions || {}).length
+        );
+      } catch (e) {
+        console.error("[TV SHOW DETAILS DEBUG] Error loading descriptions:", e);
         this.tvShowDescriptions = {};
-      // Populate from unified data
-      for (const showName in this.unifiedData) {
-        const show = this.unifiedData[showName];
-        if (show.description) {
-          const normalizedKey = window.normalizeKey ? window.normalizeKey(showName) : showName;
-          this.tvShowDescriptions[normalizedKey] = show.description;
-        }
       }
-      console.log("[TV SHOW DETAILS DEBUG] Descriptions populated from unified data, keys count:", Object.keys(this.tvShowDescriptions).length);
     }
-    
     if (!this.tvShowCast) {
+      try {
+        console.log("[TV SHOW DETAILS DEBUG] Loading cast file...");
+        const castResp = await fetch(
+          "/components/MediaLibrary/data/tv-shows/tv-show_cast_normalized.json?ts=" +
+            Date.now()
+        );
+        this.tvShowCast = castResp.ok ? await castResp.json() : {};
+        console.log(
+          "[TV SHOW DETAILS DEBUG] Cast loaded, keys count:",
+          Object.keys(this.tvShowCast || {}).length
+        );
+      } catch (e) {
+        console.error("[TV SHOW DETAILS DEBUG] Error loading cast:", e);
         this.tvShowCast = {};
-      // Populate from unified data
-      for (const showName in this.unifiedData) {
-        const show = this.unifiedData[showName];
-        if (show.cast && Array.isArray(show.cast)) {
-          const normalizedKey = window.normalizeKey ? window.normalizeKey(showName) : showName;
-          this.tvShowCast[normalizedKey] = show.cast;
-        }
       }
-      console.log("[TV SHOW DETAILS DEBUG] Cast populated from unified data, keys count:", Object.keys(this.tvShowCast).length);
     }
     // Use the standardized normalization service
     if (!window.normalizeKey) {
@@ -8809,9 +8636,6 @@ class MediaLibraryManager {
     if (showName && (showName.includes("\\") || showName.includes("/"))) {
       cleanShowName = this.extractShowName(showName);
     }
-    
-    // Always humanize the show name for display
-    let displayShowName = this.humanizeTVShowTitle(cleanShowName);
     // Call getSeasonsForShow with the full showPath so it can find the show in TV shows data
     const seasons = this.getSeasonsForShow(showPath);
     console.log(
@@ -8886,13 +8710,13 @@ class MediaLibraryManager {
             <div class="media-library-breadcrumbs">
                 <span class="breadcrumb-link" onclick="mediaLibraryManager.backToTVShows()">TV-Shows</span>
                 <span class="breadcrumb-separator"> > </span>
-                <span>${displayShowName.replace(/^TV-SHOWS\//, "")}</span>
+                <span>${cleanShowName.replace(/^TV-SHOWS\//, "")}</span>
             </div>
             <hr class="media-library-tvshows-hr">
             <div class="media-library-seasons-main-col">
                 <div class="media-library-seasons-header-row">
                                     <div class="media-library-seasons-title">
-                    <h2 class="${displayShowName.toLowerCase().includes("lois & clark") || displayShowName.toLowerCase().includes("lois and clark") ? "media-library-tv-show-title-lois-clark" : "media-library-tv-show-title"}">${displayShowName}</h2>
+                    <h2 class="${cleanShowName.toLowerCase().includes("lois & clark") || cleanShowName.toLowerCase().includes("lois and clark") ? "media-library-tv-show-title-lois-clark" : "media-library-tv-show-title"}">${cleanShowName}</h2>
                     <p>${seasons.length} ${seasons.length === 1 ? "Season" : "Seasons"}</p>
                 </div>
                     <div class="media-library-seasons-description">${description}</div>
@@ -9124,7 +8948,7 @@ class MediaLibraryManager {
                 <div class="media-library-breadcrumbs">
                     <span class="breadcrumb-link" onclick="mediaLibraryManager.backToTVShows()">TV-Shows</span>
                     <span class="breadcrumb-separator"> > </span>
-                    <span class="breadcrumb-link" onclick="mediaLibraryManager.backToSeasons()">${this.humanizeTVShowTitle(showName.replace(/^TV-SHOWS\//, ""))}</span>
+                    <span class="breadcrumb-link" onclick="mediaLibraryManager.backToSeasons()">${showName.replace(/^TV-SHOWS\//, "")}</span>
                 </div>
                 <div class="media-library-season-info">
                     <h2>${seasonName}</h2>
@@ -9520,83 +9344,58 @@ class MediaLibraryManager {
       // Try alternative lookup methods for relative paths
       if (!isAbsolutePath) {
         console.log("[DEBUG - REAL-METHOD] Trying alternative lookup for relative path...");
-        // Try to find the show by name in the unified data instead of old tvShowsData
-        if (this.unifiedData) {
+        // Try to find the show by name in the tvShowsData
+        if (this.tvShowsData) {
           let showsArray = [];
-          // Convert unified data to array format for processing
-          showsArray = Object.entries(this.unifiedData)
-            .filter(([key, item]) => !item.isMovie && item.seasons)
-            .map(([key, item]) => ({
-              name: item.title || item.TMDBTitle || item.name || key, // Use key as fallback
-              path: item.path || item.absPath,
-              normalizedKey: key
-            }));
-          
-          // Debug: Log a few items to see the structure
-          if (showsArray.length > 0) {
-            console.log("[DEBUG - REAL-METHOD] Sample unified data items:", showsArray.slice(0, 3));
+          if (Array.isArray(this.tvShowsData)) {
+            showsArray = this.tvShowsData;
+          } else if (typeof this.tvShowsData === "object" && this.tvShowsData) {
+            showsArray = Object.values(this.tvShowsData);
           }
           
-          console.log("[DEBUG - REAL-METHOD] Searching through", showsArray.length, "shows in unified data for:", showPath);
+          console.log("[DEBUG - REAL-METHOD] Searching through", showsArray.length, "shows for:", showPath);
           console.log("[DEBUG - REAL-METHOD] First few show names:", showsArray.slice(0, 3).map(s => s.name || s.path));
           
-          // USE THE WORKING BACKUP APPROACH: Extract show name from path and match normalizedKey
           const foundShow = showsArray.find(s => {
-            if (!s.normalizedKey) return false;
-            
-            // Extract the show name from the path (before the first slash)
-            // Example: "Chuck (2007)/Season 03/..." -> "Chuck (2007)"
-            const showNameFromPath = showPath.split('/')[0];
-            
-            // Convert to normalized key format (same as backup system)
-            // Example: "Chuck (2007)" -> "chuck.(2007)"
-            const normalizedShowName = showNameFromPath
-              .toLowerCase()
-              .replace(/[^a-z0-9\s]/g, '.')  // Replace special chars with dots
-              .replace(/\s+/g, '.')           // Replace spaces with dots
-              .replace(/\.+/g, '.')           // Clean up multiple dots
-              .replace(/^\.|\.$/g, '')        // Remove leading/trailing dots
-              .replace(/\.(\d{4})/, '.($1)'); // Ensure year has dot before it: "2018" -> ".(2018)"
-            
-            const normalizedUnifiedKey = s.normalizedKey.toLowerCase();
-            
-            const match = normalizedUnifiedKey === normalizedShowName;
-            
-            // ONLY LOG WHEN WE FIND A MATCH OR WHEN IT'S THE FIRST SHOW
+            const showName = s.name || s.path || s.title || "";
+            const match = showName.toLowerCase().includes(showPath.toLowerCase()) || 
+                         showPath.toLowerCase().includes(showName.toLowerCase());
             if (match) {
-              console.log("[WATCH-LATER-MATCH] ✅ FOUND:", {
-                showPath,
-                normalizedShowName,
-                unifiedKey: s.normalizedKey
-              });
-            } else if (s === showsArray[0]) {
-              // Only log first show to see the pattern
-              console.log("[WATCH-LATER-MATCH] 🔍 First show pattern:", {
-                showPath,
-                showNameFromPath,
-                normalizedShowName,
-                unifiedKey: s.normalizedKey,
-                normalizedUnifiedKey
-              });
+              console.log("[DEBUG - REAL-METHOD] Found potential match:", showName, "for", showPath);
             }
-            
             return match;
           });
           
           if (foundShow) {
-            console.log("[DEBUG - REAL-METHOD] Found show via unified data lookup:", foundShow.name);
+            console.log("[DEBUG - REAL-METHOD] Found show via alternative lookup:", foundShow.name);
             return this.createEpisodeObjectFromShow(foundShow, seasonPath, episodeFilename);
           } else {
-            console.log("[DEBUG - REAL-METHOD] No show found in unified data for:", showPath);
+            console.log("[DEBUG - REAL-METHOD] No show found in tvShowsData for:", showPath);
           }
         } else {
-          console.log("[DEBUG - REAL-METHOD] No unified data available");
+          console.log("[DEBUG - REAL-METHOD] No tvShowsData available");
         }
       }
       
-      // Don't create incomplete objects - log warning and return null
-      console.warn("[DEBUG - REAL-METHOD] Cannot create episode object - show not found in unified data for:", showPath);
-      return null;
+      // Final fallback: Create a basic episode object even if show not found
+      // This handles test/dummy shows that don't exist in the real TV shows data
+      console.log("[DEBUG - REAL-METHOD] Creating fallback episode object for:", showPath);
+      const fallbackEpisodeObj = {
+        name: episodeFilename,
+        filename: episodeFilename,
+        path: seasonPath + "/" + episodeFilename,
+        relPath: seasonPath + "/" + episodeFilename,
+        filePath: seasonPath + "/" + episodeFilename,
+        absPath: seasonPath + "/" + episodeFilename,
+        seasonNumber: 1,
+        episodeNumber: 1,
+        showName: showPath,
+        showPath: showPath,
+        isFallback: true
+      };
+      
+      console.log("[DEBUG - REAL-METHOD] Created fallback episode object:", fallbackEpisodeObj);
+      return fallbackEpisodeObj;
     }
     
     console.log('[DEBUG - REAL-METHOD] Found show:', show.name);
@@ -10192,7 +9991,7 @@ class MediaLibraryManager {
         const item = items[index];
         if (!item) return;
         // Attach favorite button handler - specifically target movie favorite buttons
-        const favoriteBtn = card.querySelector(".favorites-only-heart-btn-movie");
+        const favoriteBtn = card.querySelector(".favorite-btn-movie");
         if (favoriteBtn) {
           favoriteBtn.onclick = (e) => {
             e.stopPropagation();
@@ -10220,8 +10019,8 @@ class MediaLibraryManager {
         card.addEventListener("click", async (e) => {
           if (
             e.target.closest(".poster-selector-btn") ||
-            e.target.closest(".favorites-only-heart-btn") ||
-            e.target.closest(".favorites-only-heart-btn-movie") ||
+            e.target.closest(".favorite-btn") ||
+            e.target.closest(".favorite-btn-movie") ||
             e.target.closest(".collection-btn")
           ) {
             return; // Don't trigger card click for action buttons
@@ -10255,86 +10054,14 @@ class MediaLibraryManager {
       const path = card.getAttribute("data-path");
       console.log("[DEBUG] Attaching TV show handler for:", path);
       // Attach favorite button handler
-      const favoriteBtn = card.querySelector(".favorites-only-heart-btn");
+      const favoriteBtn = card.querySelector(".favorite-btn");
       if (favoriteBtn) {
         favoriteBtn.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
           console.log("[DEBUG] Toggling TV show favorite:", path);
-          
-          // FIXED APPROACH: Get working poster from unified data since cards have placeholders!
-          let tvShowObj = null;
-          let workingPosterUrl = null;
-          
-          // Get the working poster URL from unified data (now that it contains poster URLs!)
-          if (this.unifiedData) {
-            // Extract the show name from the favorites path (remove TV-SHOWS/ prefix)
-            const showNameFromPath = path.replace(/^TV-SHOWS\//, '');
-            
-            // Find the show in unified data
-            const show = this.unifiedData[showNameFromPath];
-            if (show && show.poster) {
-              workingPosterUrl = show.poster;
-              console.log("[FAVORITES-POSTER] ✅ Got working poster from unified data:", workingPosterUrl);
-            } else {
-              console.log("[FAVORITES-POSTER] ❌ No poster found in unified data for:", showNameFromPath);
-              // Fallback to DOM extraction if needed
-              const posterImg = card.querySelector('.media-library-poster');
-              if (posterImg && posterImg.src && !posterImg.src.includes('placeholder-poster.jpg')) {
-                workingPosterUrl = posterImg.src;
-                console.log("[FAVORITES-POSTER] ✅ Fallback: Got working poster from DOM:", workingPosterUrl);
-              } else {
-                workingPosterUrl = '/assets/img/placeholder-poster.jpg';
-                console.log("[FAVORITES-POSTER] ❌ Using placeholder poster");
-              }
-            }
-          } else {
-            console.log("[FAVORITES-POSTER] ❌ Unified data not available, using DOM extraction");
-            const posterImg = card.querySelector('.media-library-poster');
-            if (posterImg && posterImg.src && !posterImg.src.includes('placeholder-poster.jpg')) {
-              workingPosterUrl = posterImg.src;
-            } else {
-              workingPosterUrl = '/assets/img/placeholder-poster.jpg';
-            }
-          }
-          
-          // Get the display title from the card
-          const titleElement = card.querySelector('.media-library-tv-show-title');
-          const displayTitle = titleElement ? titleElement.textContent : path.split(/[\\/]/).pop();
-          
-          if (this.unifiedData) {
-            for (const [key, item] of Object.entries(this.unifiedData)) {
-              if (!item.isMovie && item.seasons && 
-                  ((item.path && item.path === path) || 
-                   (item.absPath && item.absPath === path))) {
-                tvShowObj = { ...item };
-                console.log("[DEBUG] Found TV show in unified data:", tvShowObj.name || tvShowObj.title);
-                break;
-              }
-            }
-          }
-          
-          if (tvShowObj) {
-            // Use the working poster URL from the card instead of the broken one in unified data
-            tvShowObj.poster = workingPosterUrl || tvShowObj.poster;
-            tvShowObj.displayTitle = displayTitle;
-            console.log("[DEBUG] Using working poster URL:", tvShowObj.poster);
-            
-            this.toggleFavorite(tvShowObj, "tv");
-          } else {
-            console.warn("[DEBUG] Could not find TV show in unified data for path:", path);
-            // Create a basic object with the working poster from the card
-            const fallbackObj = {
-              path: path,
-              name: displayTitle,
-              type: 'tv',
-              poster: workingPosterUrl || '/assets/img/placeholder-poster.jpg'
-            };
-            console.log("[DEBUG] Created fallback object with working poster:", fallbackObj.poster);
-            this.toggleFavorite(fallbackObj, "tv");
-          }
-          
+          this.toggleFavorite(path, "tv");
           // Force immediate heart icon update
           setTimeout(() => this.updateHeartIcons(), 50);
           return false;
@@ -10363,7 +10090,7 @@ class MediaLibraryManager {
       // Attach card click handler for opening TV shows - using the same mechanism as favorited TV shows
       card.onclick = (e) => {
         if (
-          e.target.closest(".favorites-only-heart-btn") ||
+          e.target.closest(".favorite-btn") ||
           e.target.closest(".poster-selector-btn") ||
           e.target.closest(".collection-btn")
         )
@@ -10396,23 +10123,7 @@ class MediaLibraryManager {
           e.stopPropagation();
           e.stopImmediatePropagation();
           // console.log('[DEBUG - FAVORITES] Removing movie from favorites:', path);
-          
-          // Find the complete movie object from the favorites data
-          const favorites = this.getFavoritesList();
-          const movieObj = favorites.movies.find(item => 
-            (item.path && item.path === path) || 
-            (item.absPath && item.absPath === path)
-          );
-          
-          if (movieObj) {
-            this.toggleFavorite(movieObj, "movie");
-          } else {
-            console.warn('[DEBUG - FAVORITES] Could not find movie object for path:', path);
-            // Don't create incomplete objects - skip this item
-            console.error('[DEBUG - FAVORITES] Skipping incomplete movie object for path:', path);
-            return;
-          }
-          
+          this.toggleFavorite(path, "movie");
           // Force immediate heart icon update
           setTimeout(() => this.updateHeartIcons(), 50);
           return false;
@@ -10435,10 +10146,13 @@ class MediaLibraryManager {
           // console.log('[DEBUG - FAVORITES] Found movie data from JSON:', movieData);
           this.playMedia(movieData);
         } else {
-          console.warn('[DEBUG - FAVORITES] Movie not found in media library JSON:', path);
-          // Don't create incomplete objects - skip this item
-          console.error('[DEBUG - FAVORITES] Cannot play movie with incomplete data for path:', path);
-          return;
+          // console.warn('[DEBUG - FAVORITES] Movie not found in media library JSON:', path);
+          // Fallback: create basic object but with proper type
+          const movieObj = {
+            path: path,
+            type: "movie",
+          };
+          this.playMedia(movieObj);
         }
       };
     });
@@ -10455,59 +10169,8 @@ class MediaLibraryManager {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            
-            // Check if this TV show is already favorited
-            const favorites = this.getFavoritesList();
-            const isAlreadyFavorited = favorites.tvshows.some(item => 
-              (item.path && item.path === path) || 
-              (item.absPath && item.absPath === path)
-            );
-            
-            if (isAlreadyFavorited) {
-              // TV show is already favorited - remove it
-              console.log('[DEBUG - FAVORITES] Removing TV show from favorites:', path);
-              const tvShowObj = favorites.tvshows.find(item => 
-                (item.path && item.path === path) || 
-                (item.absPath && item.absPath === path)
-              );
-              if (tvShowObj) {
-                this.toggleFavorite(tvShowObj, "tv");
-              }
-            } else {
-              // TV show is NOT favorited - add it
-              console.log('[DEBUG - FAVORITES] Adding TV show to favorites:', path);
-              
-              // Find the TV show in unified data to get complete object
-              let tvShowObj = null;
-              if (this.unifiedData) {
-                for (const [key, item] of Object.entries(this.unifiedData)) {
-                  if (!item.isMovie && item.seasons) {
-                    // This is a TV show - check if it matches the path
-                    const showPath = item.path || item.absPath || '';
-                    if (showPath.includes(path.split(/[\\/]/).pop()) || path.includes(showPath.split(/[\\/]/).pop())) {
-                      tvShowObj = { ...item };
-                      console.log('[DEBUG - FAVORITES] Found TV show in unified data:', tvShowObj.name || tvShowObj.title);
-                      break;
-                    }
-                  }
-                }
-              }
-              
-              if (tvShowObj) {
-                this.toggleFavorite(tvShowObj, "tv");
-              } else {
-                console.warn('[DEBUG - FAVORITES] Could not find TV show in unified data for path:', path);
-                // Create a basic object as fallback
-                const fallbackObj = { 
-                  path: path, 
-                  name: path.split(/[\\/]/).pop(), 
-                  type: 'tv',
-                  poster: '/assets/img/placeholder-poster.jpg'
-                };
-                this.toggleFavorite(fallbackObj, "tv");
-              }
-            }
-            
+            // console.log('[DEBUG - FAVORITES] Removing TV show from favorites:', path);
+            this.toggleFavorite(path, "tv");
             // Force immediate heart icon update
             setTimeout(() => this.updateHeartIcons(), 50);
             return false;
@@ -10641,7 +10304,7 @@ class MediaLibraryManager {
       const path = card.getAttribute("data-path");
       if (path) {
         // Attach favorite button handler - specifically target movie favorite buttons
-        const favoriteBtn = card.querySelector(".favorites-only-heart-btn-movie");
+        const favoriteBtn = card.querySelector(".favorite-btn-movie");
         if (favoriteBtn) {
           favoriteBtn.onclick = (e) => {
             e.stopPropagation();
@@ -10651,8 +10314,8 @@ class MediaLibraryManager {
         // Attach card click handler for playing movies
         card.onclick = (e) => {
           if (
-            e.target.closest(".favorites-only-heart-btn") ||
-            e.target.closest(".favorites-only-heart-btn-movie") ||
+            e.target.closest(".favorite-btn") ||
+            e.target.closest(".favorite-btn-movie") ||
             e.target.closest(".poster-selector-btn") ||
             e.target.closest(".collection-btn")
           ) {
@@ -10668,99 +10331,58 @@ class MediaLibraryManager {
     });
   }
   updateHeartIcons() {
-    console.log('[DEBUG - HEART ICONS] Updating heart icons...');
-    
-    // Get current favorites list
-    const favorites = this.getFavoritesList();
-    console.log('[DEBUG - HEART ICONS] Current favorites - Movies:', favorites.movies.length, 'TV Shows:', favorites.tvshows.length);
-    
-    // Update heart icons for TV show cards in TV-Shows tab
+    // console.log('[DEBUG - HEART ICONS] Updating heart icons');
+    // Update heart icons for TV show cards (using the correct selector)
     const tvHearts = document.querySelectorAll(
-      ".media-library-tv-card .favorites-only-heart-btn"
+      ".media-library-tv-card .favorite-btn"
     );
-    console.log('[DEBUG - HEART ICONS] Found TV show heart buttons:', tvHearts.length);
+    // console.log('[DEBUG - HEART ICONS] Found TV show heart buttons:', tvHearts.length);
     tvHearts.forEach((btn) => {
       const card = btn.closest(".media-library-tv-card");
       const path = card ? card.getAttribute("data-path") : null;
       if (path) {
-        const isFav = favorites.tvshows.some(item => 
-          (item.path && item.path === path) || 
-          (item.absPath && item.absPath === path)
-        );
+        const isFav = this.isFavorite(path);
+        const oldText = btn.textContent;
         btn.textContent = isFav ? "❤️" : "🤍";
         btn.title = isFav ? "Remove from Favorites" : "Add to Favorites";
-        console.log('[DEBUG - HEART ICONS] TV show heart updated:', path, 'isFavorite:', isFav, 'heart:', btn.textContent);
+        // console.log('[DEBUG - HEART ICONS] Updated TV show heart:', path, 'isFavorite:', isFav, 'oldText:', oldText, 'newText:', btn.textContent);
       } else {
-        console.warn('[DEBUG - HEART ICONS] No path found for TV show heart button');
+        // console.warn('[DEBUG - HEART ICONS] No path found for TV show heart button');
       }
     });
-    // Update heart icons for movie cards in Movies tab
+    // Update heart icons for movie cards (using the correct class being used)
     const movieHearts = document.querySelectorAll(
-      ".media-library-movie-card-movies .favorites-only-heart-btn"
+      ".media-library-movie-card .favorite-btn-movie"
     );
     // console.log('[DEBUG - HEART ICONS] Found movie heart buttons:', movieHearts.length);
     movieHearts.forEach((btn) => {
-      const card = btn.closest(".media-library-movie-card-movies");
-      const path = card ? card.getAttribute("data-path") : null;
+      const card = btn.closest(".media-library-movie-card");
+      const path = card ? card.getAttribute("data-item-path") : null;
       if (path) {
-        const isFav = favorites.movies.some(item => 
-          (item.path && item.path === path) || 
-          (item.absPath && item.absPath === path)
-        );
+        const isFav = this.isFavorite(path);
+        const oldText = btn.textContent;
         btn.textContent = isFav ? "❤️" : "🤍";
         btn.title = isFav ? "Remove from Favorites" : "Add to Favorites";
-        console.log('[DEBUG - HEART ICONS] Movie heart updated:', path, 'isFavorite:', isFav, 'heart:', btn.textContent);
+        // console.log('[DEBUG - HEART ICONS] Updated movie heart:', path, 'isFavorite:', isFav, 'oldText:', oldText, 'newText:', btn.textContent);
       } else {
-        console.warn('[DEBUG - HEART ICONS] No path found for movie heart button');
+        // console.warn('[DEBUG - HEART ICONS] No path found for movie heart button');
       }
     });
     // Update heart icons for favorites cards (these should always be red since they're in favorites)
-    // ONLY update hearts that are actually IN the favorites tab, not all hearts everywhere!
-    const favoritesTabHearts = document.querySelectorAll(
-      ".media-library-favorites .favorites-only-heart-btn"
-    );
-    console.log('[DEBUG - HEART ICONS] Found favorites tab heart buttons:', favoritesTabHearts.length);
-    favoritesTabHearts.forEach((btn) => {
+    document
+      .querySelectorAll(
+        ".media-library-movie-card-movies .favorite-btn, .media-library-movie-card-tvshows .favorite-btn"
+      )
+      .forEach((btn) => {
         const card = btn.closest("[data-path]");
         const path = card ? card.getAttribute("data-path") : null;
         if (path) {
           btn.textContent = "❤️";
           btn.title = "Remove from Favorites";
-        console.log('[DEBUG - HEART ICONS] Favorites tab heart updated:', path, 'heart:', btn.textContent);
-      }
-    });
-    
-    console.log('[DEBUG - HEART ICONS] Heart icon update complete');
-    
-    // DEBUG: Show current favorites state
-    console.log('[DEBUG - HEART ICONS] Current favorites state:', {
-      movies: favorites.movies.length,
-      tvshows: favorites.tvshows.length,
-      moviePaths: favorites.movies.map(m => m.path || m.absPath).slice(0, 3),
-      tvShowPaths: favorites.tvshows.map(t => t.path || t.absPath).slice(0, 3)
-    });
-  }
-  
-  // DEBUG: Add debug function to window for testing
-  debugHeartSystem() {
-    console.log('🔍 [DEBUG - HEART SYSTEM] Debugging heart system...');
-    
-    // Check current favorites
-    const favorites = this.getFavoritesList();
-    console.log('[DEBUG - HEART SYSTEM] Current favorites:', favorites);
-    
-    // Check TV show hearts
-    const tvHearts = document.querySelectorAll(".media-library-movie-card-tvshows .favorites-only-heart-btn");
-    console.log('[DEBUG - HEART SYSTEM] Found TV show hearts:', tvHearts.length);
-    
-    // Check movie hearts
-    const movieHearts = document.querySelectorAll(".media-library-movie-card-movies .favorites-only-heart-btn");
-    console.log('[DEBUG - HEART SYSTEM] Found movie hearts:', movieHearts.length);
-    
-    // Force update hearts
-    this.updateHeartIcons();
-    
-    console.log('[DEBUG - HEART SYSTEM] Heart system debug complete');
+          // console.log('[DEBUG - HEART ICONS] Updated favorites heart:', path);
+        }
+      });
+    // console.log('[DEBUG - HEART ICONS] Heart icon update complete');
   }
   renderSuggestionsContent() {
     return '<div class="media-library-suggestions-placeholder"><h3>Suggestions coming soon...</h3></div>';
@@ -10818,10 +10440,18 @@ class MediaLibraryManager {
     const addedAnchors = new Set();
     let html = '<div class="media-library-tvshow-grid">';
     sortedShows.forEach((show) => {
-      // Always use humanized titles for display
-      let displayTitle = this.humanizeTVShowTitle(
+      // Use TMDBTitle field if available, otherwise fallback to file system name
+      let displayTitle;
+      if (show.TMDBTitle) {
+        // Use the TMDBTitle field directly
+        displayTitle = show.TMDBTitle;
+      } else {
+        // Fallback to file system name
+        const cleanTitle = this.cleanTVShowTitle(
           show.name || show.title || show.filename || show.path || ""
         );
+        displayTitle = this.capitalizeTitle(cleanTitle);
+      }
       const firstLetter = displayTitle.charAt(0).toUpperCase();
       let anchorAttr = "";
       if (!addedAnchors.has(firstLetter)) {
@@ -10832,7 +10462,7 @@ class MediaLibraryManager {
                 <div class="media-library-tv-card"${anchorAttr} data-path="${show.path}" data-show-name="${show.name || show.title || ""}" data-normalized-key="${show.normalizedKey || ""}">
                   <div class="media-card-actions-tvshows">
                     <button class="poster-selector-btn" title="Change Poster">🖼️</button>
-                    <button class="favorites-only-heart-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? "❤️" : "🤍"}</button>
+                    <button class="favorite-btn" title="Toggle Favorite">${this.isFavorite(show.path) ? "❤️" : "🩷"}</button>
                     <button class="collection-btn collection-btn-add" title="Add to Collection" data-path="${show.path}">➕</button>
                   </div>
                   <img class="media-library-poster poster" src="${this.getPosterPath(show)}" alt="${show.name}" onerror="this.src='/assets/img/placeholder-poster.jpg'">
@@ -10902,72 +10532,6 @@ class MediaLibraryManager {
     return showYear;
   }
   // --- WATCH LATER / RESUME LOGIC ---
-  
-  // Helper function to convert absolute paths to relative paths for TV shows
-  convertToRelativePath(path) {
-    if (!path) return path;
-    
-    // Convert absolute Windows paths to relative paths
-    if (path.startsWith("S:/MEDIA/TV-SHOWS/") || path.startsWith("S:\\MEDIA\\TV-SHOWS\\")) {
-      return path.replace(/^S:[\/\\]MEDIA[\/\\]TV-SHOWS[\/\\]/i, "");
-    }
-    
-    // Convert absolute Linux/Mac paths to relative paths
-    if (path.startsWith("/media/")) {
-      return path.replace(/^\/media\//, "");
-    }
-    
-    // Handle Windows backslashes
-    if (path.includes("\\")) {
-      return path.replace(/\\/g, "/");
-    }
-    
-    return path;
-  }
-  
-  // Function to clean up existing Watch Later items with absolute paths
-  async cleanupWatchLaterPaths() {
-    try {
-      const resumeList = JSON.parse(
-        localStorage.getItem("mediaLibraryResumeList") || "[]"
-      );
-      
-      let hasChanges = false;
-      
-      for (let item of resumeList) {
-        if (item.type === "tv-show" && item.path) {
-          const oldPath = item.path;
-          const newPath = this.convertToRelativePath(oldPath);
-          
-          if (oldPath !== newPath) {
-            console.log(`[WATCH-LATER-CLEANUP] Converting path: ${oldPath} → ${newPath}`);
-            item.path = newPath;
-            item.filePath = newPath; // Update filePath for API compatibility
-            hasChanges = true;
-          }
-        }
-      }
-      
-      if (hasChanges) {
-        localStorage.setItem("mediaLibraryResumeList", JSON.stringify(resumeList));
-        console.log("[WATCH-LATER-CLEANUP] Updated existing Watch Later items with relative paths");
-        
-        // Also update MongoDB if available
-        for (let item of resumeList) {
-          if (item.mediaId && item.mediaType) {
-            try {
-              await this.saveToMongoDB(item);
-            } catch (error) {
-              console.warn("[WATCH-LATER-CLEANUP] Could not update MongoDB:", error.message);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("[WATCH-LATER-CLEANUP] Error cleaning up paths:", error);
-    }
-  }
-  
   async saveResumeProgress(
     mediaItem,
     currentTime,
@@ -11094,8 +10658,14 @@ class MediaLibraryManager {
       let savePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
       // For TV-Shows, ensure we have the correct path format
       if (isTVShow && savePath) {
-        // Convert absolute paths to relative paths for Watch Later compatibility
-        savePath = this.convertToRelativePath(savePath);
+        // If it's an absolute path, convert to relative
+        if (savePath.startsWith("/media/")) {
+          savePath = savePath.replace(/^\/media\//, "");
+        }
+        // Handle Windows paths with backslashes - NORMALIZE ALL PATHS
+        if (savePath.includes("\\")) {
+          savePath = savePath.replace(/\\/g, "/");
+        }
       }
       // If path is missing, try to look up from main media library by filename or title
       if (
@@ -11165,8 +10735,15 @@ class MediaLibraryManager {
               : mediaItem.title || "Unknown",
             // Ensure we have the complete files array
             files: mediaItem.files || [],
-            // Ensure absPath is present for movies - use relative path for API compatibility
-            absPath: savePath, // Use the relative path for API calls (same as filePath)
+            // Ensure absPath is present for movies
+            absPath:
+              mediaItem.absPath ||
+              (mediaItem.files && mediaItem.files.length > 0
+                ? mediaItem.files[0].absPath
+                : null) ||
+              (savePath.startsWith("S:/")
+                ? savePath
+                : `S:/MEDIA/MOVIES/${savePath}`),
           };
         } else {
           // For TV shows, save the complete episode object
@@ -11187,13 +10764,23 @@ class MediaLibraryManager {
             mediaId: this.generateMediaId(mediaItem, "tv-show"),
             // Ensure path is present
             path: savePath,
-            // Ensure filePath is present for TV shows - use relative path for API compatibility
-            filePath: savePath, // Use the relative path for API calls
+            // Ensure filePath is present for TV shows
+            filePath:
+              mediaItem.filePath ||
+              mediaItem.absPath ||
+              (savePath.startsWith("S:/")
+                ? savePath
+                : `S:/MEDIA/TV-SHOWS/${savePath}`),
             fileName: savePath
               ? savePath.split(/[\\/]/).pop()
               : mediaItem.title || "Unknown",
-            // Ensure absPath is present for TV shows - use relative path for API compatibility
-            absPath: savePath, // Use the relative path for API calls (same as filePath)
+            // Ensure absPath is present for TV shows
+            absPath:
+              mediaItem.absPath ||
+              mediaItem.filePath ||
+              (savePath.startsWith("S:/")
+                ? savePath
+                : `S:/MEDIA/TV-SHOWS/${savePath}`),
             // Extract season/episode info for MongoDB
             season: this.extractSeasonNumber(mediaItem),
             episode: this.extractEpisodeNumber(mediaItem),
@@ -12384,9 +11971,7 @@ class MediaLibraryManager {
   }
   // Add methods to get total counts
   getTotalMovieCount() {
-    // Use unified data to count movies
-    if (!this.unifiedData) return 0;
-    return Object.values(this.unifiedData).filter(item => item.isMovie).length;
+    return this.moviesData ? this.moviesData.length : 0;
   }
   getTotalTVShowCount() {
     return this.getTVShows().length;
@@ -12412,7 +11997,27 @@ class MediaLibraryManager {
       console.warn("[DEBUG] Error loading movie_genres_normalized.json:", e);
     }
   }
-
+  async loadTVGenres() {
+    try {
+      const response = await fetch(
+        "/components/MediaLibrary/data/tv-shows/tv_genres_normalized.json?t=" +
+          Date.now()
+      );
+      if (response.ok) {
+        this.tvGenres = await response.json();
+        console.log(
+          "[DEBUG] Loaded tv_genres_normalized.json with keys:",
+          Object.keys(this.tvGenres).slice(0, 5)
+        );
+      } else {
+        this.tvGenres = {};
+        console.warn("[DEBUG] Failed to load tv_genres_normalized.json");
+      }
+    } catch (e) {
+      this.tvGenres = {};
+      console.warn("[DEBUG] Error loading tv_genres_normalized.json:", e);
+    }
+  }
   getTVGenres(show) {
     // Try to get genres from normalized genre file using normalizedKey or name
     if (
@@ -12451,593 +12056,6 @@ class MediaLibraryManager {
     // Return empty array for now - can be implemented later
     return [];
   }
-  // Migrate old path-based favorites to new object-based system
-  migrateFavoritesToObjects(favorites) {
-    console.log('[DEBUG - FAVORITES] Starting migration of favorites data...');
-    
-    const migrated = { movies: [], tvshows: [] };
-    let migratedCount = 0;
-    
-    // Migrate movies
-    if (favorites.movies && Array.isArray(favorites.movies)) {
-      favorites.movies.forEach((item, index) => {
-        if (typeof item === 'string') {
-          // Old path-based format - try to find the movie in unified data
-          const path = item;
-          const folderName = path.split(/[\\/]/).pop() || '';
-          
-          // Look for movie in unified data by path match
-          let foundMovie = null;
-          if (this.unifiedData) {
-            // First try exact path match
-            for (const key in this.unifiedData) {
-              const movieData = this.unifiedData[key];
-              if (movieData.isMovie && movieData.path === folderName) {
-                foundMovie = { ...movieData };
-                break;
-              }
-            }
-            
-            // If no exact match, try partial path matching
-            if (!foundMovie) {
-              for (const key in this.unifiedData) {
-                const movieData = this.unifiedData[key];
-                if (movieData.isMovie && 
-                    (movieData.path && movieData.path.includes(folderName)) ||
-                    (movieData.title && movieData.title.includes(folderName))) {
-                  foundMovie = { ...movieData };
-                  console.log('[DEBUG - FAVORITES] Found movie by partial match:', folderName, '->', movieData.title);
-                  break;
-                }
-              }
-            }
-          }
-          
-          if (foundMovie) {
-            migrated.movies.push(foundMovie);
-            migratedCount++;
-            console.log('[DEBUG - FAVORITES] Migrated movie:', folderName);
-          } else {
-            console.warn('[DEBUG - FAVORITES] Could not migrate movie path:', path);
-          }
-        } else {
-          // Already in new format - validate it's complete
-          if (item.title || item.TMDBTitle || item.name) {
-            if (item.poster) {
-              migrated.movies.push(item);
-            } else {
-              console.warn('[DEBUG - FAVORITES] Skipping movie without poster:', item.title || item.name);
-            }
-          } else {
-            console.warn('[DEBUG - FAVORITES] Skipping movie without title:', item);
-          }
-        }
-      });
-    }
-    
-    // Migrate TV shows
-    if (favorites.tvshows && Array.isArray(favorites.tvshows)) {
-      console.log('[DEBUG - FAVORITES] Starting TV show migration. Found', favorites.tvshows.length, 'TV shows to process');
-      favorites.tvshows.forEach((item, index) => {
-        console.log('[DEBUG - FAVORITES] Processing TV show item', index + 1, ':', item);
-        if (typeof item === 'string') {
-          // Old path-based format - try to find the TV show in unified data
-          const path = item;
-          const pathParts = path.split(/[\\/]/);
-          const tvShowsIndex = pathParts.findIndex((part) =>
-            part.toLowerCase().includes("tv-shows")
-          );
-          let showName = path.split(/[\\/]/).pop() || "";
-          if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
-            showName = pathParts[tvShowsIndex + 1]; // Get the actual show name with year
-          }
-          
-          // Look for TV show in unified data by normalized key
-          let foundShow = null;
-          if (this.unifiedData && window.normalizeKey) {
-            const normalizedKey = window.normalizeKey(showName);
-            if (this.unifiedData[normalizedKey] && !this.unifiedData[normalizedKey].isMovie) {
-              foundShow = { ...this.unifiedData[normalizedKey] };
-            }
-            
-            // If no exact key match, try partial matching
-            if (!foundShow) {
-              for (const key in this.unifiedData) {
-                const showData = this.unifiedData[key];
-                if (!showData.isMovie && 
-                    (showData.name && showData.name.includes(showName)) ||
-                    (showData.title && showData.title.includes(showName))) {
-                  foundShow = { ...showData };
-                  console.log('[DEBUG - FAVORITES] Found TV show by partial match:', showName, '->', showData.title || showData.name);
-                  break;
-                }
-              }
-            }
-          }
-          
-          if (foundShow) {
-            migrated.tvshows.push(foundShow);
-            migratedCount++;
-            console.log('[DEBUG - FAVORITES] ✅ Successfully migrated TV show:', showName, '->', foundShow);
-          } else {
-            console.warn('[DEBUG - FAVORITES] ❌ Could not migrate TV show path:', path);
-            console.warn('[DEBUG - FAVORITES] This TV show will be lost unless it exists in unified data');
-          }
-        } else {
-                  // Already in new format - validate it's complete
-        // TV shows can have different property structures than movies
-        const hasTitle = item.title || item.TMDBTitle || item.name || item.showName;
-        const hasPoster = item.poster || item.posterUrl || item.image;
-        
-        if (hasTitle) {
-          if (hasPoster) {
-            migrated.tvshows.push(item);
-            console.log('[DEBUG - FAVORITES] Added TV show with title:', hasTitle);
-          } else {
-            console.warn('[DEBUG - FAVORITES] Skipping TV show without poster:', hasTitle);
-          }
-        } else {
-          console.warn('[DEBUG - FAVORITES] Skipping TV show without title:', item);
-        }
-        }
-      });
-    }
-    
-    // Save migrated data back to localStorage
-    if (migratedCount > 0) {
-      localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(migrated));
-      console.log('[DEBUG - FAVORITES] Migration completed. Migrated', migratedCount, 'items');
-    }
-    
-    // Clean up any remaining incomplete objects
-    console.log('[DEBUG - FAVORITES] Before cleanup - Movies:', migrated.movies.length, 'TV Shows:', migrated.tvshows.length);
-    
-    const cleanedMovies = migrated.movies.filter(item => 
-      item && typeof item === 'object' && 
-      (item.title || item.TMDBTitle || item.name) && 
-      item.poster
-    );
-    
-    const cleanedTVShows = migrated.tvshows.filter(item => {
-      const hasTitle = item && typeof item === 'object' && 
-        (item.title || item.TMDBTitle || item.name || item.showName);
-      const hasPoster = hasTitle && (item.poster || item.posterUrl || item.image);
-      
-      if (!hasTitle) {
-        console.warn('[DEBUG - FAVORITES] ❌ TV show filtered out - missing title:', item);
-      } else if (!hasPoster) {
-        console.warn('[DEBUG - FAVORITES] ❌ TV show filtered out - missing poster:', item);
-      } else {
-        console.log('[DEBUG - FAVORITES] ✅ TV show passed cleanup:', item.title || item.name || item.showName);
-      }
-      
-      return hasTitle && hasPoster;
-    });
-    
-    const cleaned = { movies: cleanedMovies, tvshows: cleanedTVShows };
-    
-    // Save cleaned data
-    localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(cleaned));
-    console.log('[DEBUG - FAVORITES] Cleanup completed. Final count - Movies:', cleanedMovies.length, 'TV Shows:', cleanedTVShows.length);
-    
-    return cleaned;
-  }
-  
-  // DEBUG FUNCTION: Check localStorage for missing TV shows
-  debugLocalStorageForTVShows() {
-    console.log('🔍 [DEBUG - TV SHOWS] Checking localStorage for missing TV shows...');
-    
-    // Check all localStorage keys
-    const allKeys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      allKeys.push(localStorage.key(i));
-    }
-    console.log('[DEBUG - TV SHOWS] All localStorage keys:', allKeys);
-    
-    // Check for any keys that might contain TV show data
-    const tvRelatedKeys = allKeys.filter(key => 
-      key && (
-        key.toLowerCase().includes('tv') || 
-        key.toLowerCase().includes('show') || 
-        key.toLowerCase().includes('favorite') ||
-        key.toLowerCase().includes('collection')
-      )
-    );
-    
-    console.log('[DEBUG - TV SHOWS] TV-related localStorage keys:', tvRelatedKeys);
-    
-    // Check each TV-related key
-    tvRelatedKeys.forEach(key => {
-      try {
-        const value = JSON.parse(localStorage.getItem(key));
-        console.log(`[DEBUG - TV SHOWS] Key "${key}" contains:`, value);
-        
-        // Look for TV show data in the value
-        if (value && typeof value === 'object') {
-          if (value.tvshows && Array.isArray(value.tvshows)) {
-            console.log(`[DEBUG - TV SHOWS] Found ${value.tvshows.length} TV shows in key "${key}":`, value.tvshows);
-          }
-          if (value.tvShows && Array.isArray(value.tvShows)) {
-            console.log(`[DEBUG - TV SHOWS] Found ${value.tvShows.length} TV shows in key "${key}":`, value.tvShows);
-          }
-        }
-      } catch (e) {
-        const rawValue = localStorage.getItem(key);
-        console.log(`[DEBUG - TV SHOWS] Key "${key}" contains (raw):`, rawValue);
-      }
-    });
-    
-    return tvRelatedKeys;
-  }
-  
-  // QUICK RECOVERY: Check if TV shows exist in unified data that should be favorited
-  quickRecoverTVShowsFromUnifiedData() {
-    console.log('⚡ [QUICK RECOVERY] Checking unified data for TV shows that might be favorites...');
-    
-    if (!this.unifiedData) {
-      console.log('[QUICK RECOVERY] No unified data available');
-      return [];
-    }
-    
-    const potentialFavorites = [];
-    
-    // Look for TV shows in unified data
-    for (const [key, item] of Object.entries(this.unifiedData)) {
-      if (!item.isMovie && item.seasons) {
-        // This is a TV show - check if it has any indication it was favorited
-        const hasFavoriteIndicator = item.favorited || item.isFavorite || item.favorite || 
-                                   item.path?.includes('favorite') || 
-                                   item.name?.toLowerCase().includes('favorite');
-        
-        if (hasFavoriteIndicator) {
-          console.log(`[QUICK RECOVERY] Found TV show with favorite indicator:`, item.name || item.title);
-          potentialFavorites.push(item);
-        }
-      }
-    }
-    
-    if (potentialFavorites.length > 0) {
-      console.log(`[QUICK RECOVERY] Found ${potentialFavorites.length} TV shows that might be favorites`);
-      
-      // Ask user if they want to restore these
-      const shouldRestore = confirm(`Found ${potentialFavorites.length} TV shows that might be your favorites. Restore them?`);
-      
-      if (shouldRestore) {
-        // Get current favorites
-        const currentFavorites = this.getFavoritesList();
-        
-        // Add potential favorites
-        currentFavorites.tvshows = [...potentialFavorites, ...currentFavorites.tvshows];
-        
-        // Save back to localStorage
-        localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(currentFavorites));
-        
-        console.log('[QUICK RECOVERY] TV shows restored!');
-        
-        // Refresh the favorites display
-        if (this.currentTab === "favorites") {
-          this.updateModalContent();
-        }
-        
-        return potentialFavorites;
-      }
-    } else {
-      console.log('[QUICK RECOVERY] No TV shows with favorite indicators found');
-    }
-    
-    return [];
-  }
-  
-  // MANUAL RECOVERY: Let user select TV shows to add to favorites
-  manualRecoverTVShows() {
-    console.log('👤 [MANUAL RECOVERY] Starting manual TV show recovery...');
-    
-    if (!this.unifiedData) {
-      console.log('[MANUAL RECOVERY] No unified data available');
-      return;
-    }
-    
-    // Get all TV shows from unified data
-    const allTVShows = [];
-    for (const [key, item] of Object.entries(this.unifiedData)) {
-      if (!item.isMovie && item.seasons) {
-        allTVShows.push({
-          key: key,
-          name: item.name || item.title || 'Unknown',
-          seasons: Object.keys(item.seasons).length,
-          poster: item.poster || '/assets/img/placeholder-poster.jpg'
-        });
-      }
-    }
-    
-    if (allTVShows.length === 0) {
-      console.log('[MANUAL RECOVERY] No TV shows found in unified data');
-      return;
-    }
-    
-    console.log(`[MANUAL RECOVERY] Found ${allTVShows.length} TV shows available for manual selection`);
-    
-    // Create a simple selection interface
-    const selectionHTML = `
-      <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                  background: white; border: 2px solid #007bff; border-radius: 10px; 
-                  padding: 20px; max-height: 80vh; overflow-y: auto; z-index: 10000;">
-        <h3>Select TV Shows to Add to Favorites</h3>
-        <p>Found ${allTVShows.length} TV shows. Select the ones you want to add back to favorites:</p>
-        <div style="max-height: 400px; overflow-y: auto;">
-          ${allTVShows.map(tvShow => `
-            <label style="display: block; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-              <input type="checkbox" value="${tvShow.key}" style="margin-right: 10px;">
-              <strong>${tvShow.name}</strong> (${tvShow.seasons} seasons)
-            </label>
-          `).join('')}
-        </div>
-        <div style="margin-top: 20px; text-align: center;">
-          <button onclick="window.mediaLibraryManager.confirmManualRecovery()" 
-                  style="background: #007bff; color: white; border: none; padding: 10px 20px; 
-                         border-radius: 5px; margin-right: 10px;">Add Selected to Favorites</button>
-          <button onclick="document.querySelector('[style*=\"position: fixed\"]').remove()" 
-                  style="background: #6c757d; color: white; border: none; padding: 10px 20px; 
-                         border-radius: 5px;">Cancel</button>
-        </div>
-      </div>
-    `;
-    
-    // Add the selection interface to the page
-    document.body.insertAdjacentHTML('beforeend', selectionHTML);
-    
-    // Store the TV shows data for later use
-    this.manualRecoveryData = allTVShows;
-  }
-  
-  // Confirm manual recovery selection
-  confirmManualRecovery() {
-    const selectedKeys = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-      .map(checkbox => checkbox.value);
-    
-    if (selectedKeys.length === 0) {
-      alert('Please select at least one TV show to add to favorites.');
-      return;
-    }
-    
-    console.log(`[MANUAL RECOVERY] User selected ${selectedKeys.length} TV shows:`, selectedKeys);
-    
-    // Get current favorites
-    const currentFavorites = this.getFavoritesList();
-    
-    // Add selected TV shows to favorites
-    const selectedTVShows = selectedKeys.map(key => this.unifiedData[key]);
-    currentFavorites.tvshows = [...selectedTVShows, ...currentFavorites.tvshows];
-    
-    // Save back to localStorage
-    localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(currentFavorites));
-    
-    console.log('[MANUAL RECOVERY] Selected TV shows added to favorites!');
-    
-    // Remove the selection interface
-    document.querySelector('[style*="position: fixed"]').remove();
-    
-    // Refresh the favorites display
-    if (this.currentTab === "favorites") {
-      this.updateModalContent();
-    }
-    
-    alert(`Successfully added ${selectedKeys.length} TV shows to favorites!`);
-  }
-  
-  // RECOVERY FUNCTION: Pull TV shows from all 3 tiers of safety system
-  async recoverTVShowsFromAllSources() {
-    console.log('🚀 [RECOVERY] Starting TV show recovery from all safety tiers...');
-    
-    const recoveredTVShows = [];
-    let recoverySource = 'none';
-    
-    // TIER 1: Check localStorage for any hidden TV show data
-    console.log('🔍 [RECOVERY] TIER 1: Checking localStorage for hidden TV show data...');
-    const localStorageKeys = ['mediaLibraryFavorites', 'favorites', 'tvFavorites', 'tvShowsFavorites', 'mediaCollections'];
-    
-    for (const key of localStorageKeys) {
-      try {
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          const data = JSON.parse(stored);
-          console.log(`[RECOVERY] Found data in key "${key}":`, data);
-          
-          // Look for TV shows in various formats
-          if (data.tvshows && Array.isArray(data.tvshows)) {
-            console.log(`[RECOVERY] Found ${data.tvshows.length} TV shows in localStorage key "${key}"`);
-            recoveredTVShows.push(...data.tvshows);
-            recoverySource = `localStorage:${key}`;
-          }
-          if (data.tvShows && Array.isArray(data.tvShows)) {
-            console.log(`[RECOVERY] Found ${data.tvShows.length} TV shows in localStorage key "${key}"`);
-            recoveredTVShows.push(...data.tvShows);
-            recoverySource = `localStorage:${key}`;
-          }
-          if (data.tv && Array.isArray(data.tv)) {
-            console.log(`[RECOVERY] Found ${data.tv.length} TV shows in localStorage key "${key}"`);
-            recoveredTVShows.push(...data.tv);
-            recoverySource = `localStorage:${key}`;
-          }
-        }
-      } catch (e) {
-        console.log(`[RECOVERY] Key "${key}" not parseable as JSON`);
-      }
-    }
-    
-    // TIER 2: Check MongoDB Collections
-    console.log('🗄️ [RECOVERY] TIER 2: Checking MongoDB collections...');
-    try {
-      // Check multiple MongoDB endpoints for TV show data
-      const endpoints = [
-        '/api/collections',
-        '/api/favorites', 
-        '/api/tvshows',
-        '/api/media'
-      ];
-      
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`[RECOVERY] Checking MongoDB endpoint: ${endpoint}`);
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`[RECOVERY] MongoDB endpoint ${endpoint} returned:`, data);
-            
-            // Look for TV shows in various data structures
-            if (Array.isArray(data)) {
-              // Direct array of items
-              const tvShowItems = data.filter(item => {
-                if (typeof item === 'string') {
-                  return item.toLowerCase().includes('tv-shows') || item.toLowerCase().includes('season');
-                }
-                if (typeof item === 'object') {
-                  return item.path && (item.path.toLowerCase().includes('tv-shows') || item.path.toLowerCase().includes('season'));
-                }
-                return false;
-              });
-              
-              if (tvShowItems.length > 0) {
-                console.log(`[RECOVERY] Found ${tvShowItems.length} TV show items in MongoDB endpoint ${endpoint}`);
-                recoveredTVShows.push(...tvShowItems);
-                recoverySource = `MongoDB:${endpoint}`;
-              }
-            } else if (data && typeof data === 'object') {
-              // Object with nested arrays
-              for (const [key, value] of Object.entries(data)) {
-                if (Array.isArray(value)) {
-                  const tvShowItems = value.filter(item => {
-                    if (typeof item === 'string') {
-                      return item.toLowerCase().includes('tv-shows') || item.toLowerCase().includes('season');
-                    }
-                    if (typeof item === 'object') {
-                      return item.path && (item.path.toLowerCase().includes('tv-shows') || item.path.toLowerCase().includes('season'));
-                    }
-                    return false;
-                  });
-                  
-                  if (tvShowItems.length > 0) {
-                    console.log(`[RECOVERY] Found ${tvShowItems.length} TV show items in MongoDB ${endpoint}.${key}`);
-                    recoveredTVShows.push(...tvShowItems);
-                    recoverySource = `MongoDB:${endpoint}.${key}`;
-                  }
-                }
-              }
-            }
-          } else {
-            console.log(`[RECOVERY] MongoDB endpoint ${endpoint} returned status: ${response.status}`);
-          }
-        } catch (error) {
-          console.log(`[RECOVERY] MongoDB endpoint ${endpoint} failed:`, error.message);
-        }
-      }
-    } catch (error) {
-      console.warn('[RECOVERY] MongoDB fetch failed:', error);
-    }
-    
-    // TIER 3: Check unified data for any TV shows that should be favorited
-    console.log('📁 [RECOVERY] TIER 3: Checking unified data for potential TV show favorites...');
-    if (this.unifiedData) {
-      const potentialTVShows = [];
-      for (const [key, item] of Object.entries(this.unifiedData)) {
-        if (!item.isMovie && item.seasons) {
-          // This is a TV show with seasons - check if it should be favorited
-          potentialTVShows.push(item);
-        }
-      }
-      
-      if (potentialTVShows.length > 0) {
-        console.log(`[RECOVERY] Found ${potentialTVShows.length} TV shows in unified data that could be favorites`);
-        // Don't auto-add them, but log them for manual review
-        console.log('[RECOVERY] Potential TV show favorites:', potentialTVShows.map(t => t.name || t.title));
-      }
-    }
-    
-    // TIER 4: Check local JSON files for favorites data
-    console.log('📄 [RECOVERY] TIER 4: Checking local JSON files for favorites data...');
-    try {
-      // Check if there are any local favorites JSON files
-      const localFavoritesEndpoints = [
-        '/components/MediaLibrary/data/favorites.json',
-        '/components/MediaLibrary/data/tv-shows-favorites.json',
-        '/components/MediaLibrary/data/movies-favorites.json',
-        '/data/favorites.json',
-        '/data/tv-shows-favorites.json'
-      ];
-      
-      for (const endpoint of localFavoritesEndpoints) {
-        try {
-          console.log(`[RECOVERY] Checking local JSON file: ${endpoint}`);
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`[RECOVERY] Local JSON file ${endpoint} contains:`, data);
-            
-            // Look for TV shows in the local JSON data
-            if (data && typeof data === 'object') {
-              // Check various possible structures
-              const possibleTVShowArrays = [
-                data.tvshows, data.tvShows, data.tv, data.shows,
-                data.favorites?.tvshows, data.favorites?.tvShows,
-                data.items?.filter(item => item.type === 'tv' || item.mediaType === 'tv')
-              ].filter(Boolean);
-              
-              for (const tvArray of possibleTVShowArrays) {
-                if (Array.isArray(tvArray) && tvArray.length > 0) {
-                  console.log(`[RECOVERY] Found ${tvArray.length} TV shows in local JSON file ${endpoint}`);
-                  recoveredTVShows.push(...tvArray);
-                  recoverySource = `LocalJSON:${endpoint}`;
-                }
-              }
-            }
-          } else {
-            console.log(`[RECOVERY] Local JSON file ${endpoint} not found (status: ${response.status})`);
-          }
-        } catch (error) {
-          console.log(`[RECOVERY] Local JSON file ${endpoint} failed to load:`, error.message);
-        }
-      }
-    } catch (error) {
-      console.warn('[RECOVERY] Local JSON file check failed:', error);
-    }
-    
-    // Process recovered TV shows
-    if (recoveredTVShows.length > 0) {
-      console.log(`[RECOVERY] Successfully recovered ${recoveredTVShows.length} TV shows from ${recoverySource}`);
-      
-      // Remove duplicates
-      const uniqueTVShows = [];
-      const seenPaths = new Set();
-      
-      recoveredTVShows.forEach(tvShow => {
-        const path = tvShow.path || tvShow.absPath || '';
-        if (path && !seenPaths.has(path)) {
-          seenPaths.add(path);
-          uniqueTVShows.push(tvShow);
-        }
-      });
-      
-      console.log(`[RECOVERY] After deduplication: ${uniqueTVShows.length} unique TV shows`);
-      
-      // Get current favorites
-      const currentFavorites = this.getFavoritesList();
-      
-      // Add recovered TV shows to favorites
-      currentFavorites.tvshows = [...uniqueTVShows, ...currentFavorites.tvshows];
-      
-      // Save back to localStorage
-      localStorage.setItem("mediaLibraryFavoritesByType", JSON.stringify(currentFavorites));
-      
-      console.log('[RECOVERY] TV shows restored to favorites!');
-      console.log('[RECOVERY] New favorites count - Movies:', currentFavorites.movies.length, 'TV Shows:', currentFavorites.tvshows.length);
-      
-      return uniqueTVShows;
-    } else {
-      console.log('[RECOVERY] No TV shows found in any safety tier');
-      return [];
-    }
-  }
-
   renderFavoritesContent() {
     // SIMPLE: Just read from localStorage - NO DEPENDENCIES
     const stored = localStorage.getItem("mediaLibraryFavoritesByType");
@@ -13049,62 +12067,11 @@ class MediaLibraryManager {
         console.error("[DEBUG - FAVORITES] Failed to parse localStorage:", e);
       }
     }
-    
-    // DEBUG: Check ALL localStorage keys for any TV show data
-    console.log('[DEBUG - FAVORITES] Checking ALL localStorage keys for TV show data...');
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.toLowerCase().includes('tv') || key && key.toLowerCase().includes('show')) {
-        console.log('[DEBUG - FAVORITES] Found potential TV show key:', key);
-        try {
-          const value = JSON.parse(localStorage.getItem(key));
-          console.log('[DEBUG - FAVORITES] Key value:', value);
-        } catch (e) {
-          console.log('[DEBUG - FAVORITES] Key value (not JSON):', localStorage.getItem(key));
-        }
-      }
-    }
-    
-    // DEBUG: Check for old favorites keys
-    const oldKeys = ['mediaLibraryFavorites', 'favorites', 'tvFavorites', 'tvShowsFavorites'];
-    oldKeys.forEach(oldKey => {
-      const oldValue = localStorage.getItem(oldKey);
-      if (oldValue) {
-        console.log('[DEBUG - FAVORITES] Found old favorites key:', oldKey, 'with value:', oldValue);
-      }
-    });
-    
-    // Debug: Log the original favorites data before migration
-    console.log('[DEBUG - FAVORITES] Original favorites data:', favorites);
-    console.log('[DEBUG - FAVORITES] Original TV shows count:', favorites.tvshows ? favorites.tvshows.length : 0);
-    
-    // Migrate old path-based favorites to new object-based system
-    favorites = this.migrateFavoritesToObjects(favorites);
-    
-    // Debug: Log the migrated favorites data
-    console.log('[DEBUG - FAVORITES] After migration - Movies:', favorites.movies ? favorites.movies.length : 0, 'TV Shows:', favorites.tvshows ? favorites.tvshows.length : 0);
-    
     const movies = favorites.movies || [];
     const tvshows = favorites.tvshows || [];
     console.log('[DEBUG - FAVORITES] Rendering favorites - Movies:', movies.length, 'TV Shows:', tvshows.length);
     console.log('[DEBUG - FAVORITES] Movies data:', movies);
     console.log('[DEBUG - FAVORITES] TV Shows data:', tvshows);
-    
-    // Debug: Log the structure of TV show objects to understand their properties
-    if (tvshows.length > 0) {
-      console.log('[DEBUG - FAVORITES] First TV show object structure:', tvshows[0]);
-      console.log('[DEBUG - FAVORITES] TV show object keys:', Object.keys(tvshows[0]));
-    }
-    console.log('[DEBUG - FAVORITES] Unified data available:', !!this.unifiedData);
-    console.log('[DEBUG - FAVORITES] Unified data count:', this.unifiedData ? Object.keys(this.unifiedData).length : 0);
-    
-    // Debug: Check if we have old path-based data that needs migration
-    if (movies.length > 0 && typeof movies[0] === 'string') {
-      console.log('[DEBUG - FAVORITES] DETECTED: Old path-based favorites data - need to migrate');
-    }
-    if (tvshows.length > 0 && typeof tvshows[0] === 'string') {
-      console.log('[DEBUG - FAVORITES] DETECTED: Old path-based favorites data - need to migrate');
-    }
     // Build the HTML for the favorites view with proper two-column layout
     let html =
       '<div class="container-favorites" style="display: flex; gap: 20px;">';
@@ -13113,29 +12080,23 @@ class MediaLibraryManager {
     html += '<h3 class="section-title-movies-favorites">MOVIES</h3>';
     if (movies.length > 0) {
       html += '<div class="media-library-movie-grid">';
-      movies.forEach((movieObj) => {
-        // Defensive check: ensure we have a valid movie object with required properties
-        if (!movieObj || typeof movieObj !== 'object') {
-          console.warn('[DEBUG - FAVORITES] Invalid movie object:', movieObj);
+      movies.forEach((path) => {
+        // Defensive check: ensure path is a string
+        if (typeof path !== 'string') {
+          console.warn('[DEBUG - FAVORITES] Invalid path type:', typeof path, path);
           return; // Skip this item
         }
-        
-        // Ensure we have the minimum required properties for a complete movie object
-        if (!movieObj.title && !movieObj.TMDBTitle && !movieObj.name) {
-          console.warn('[DEBUG - FAVORITES] Movie object missing title:', movieObj);
-          return; // Skip incomplete objects
-        }
-        
-        if (!movieObj.poster) {
-          console.warn('[DEBUG - FAVORITES] Movie object missing poster:', movieObj);
-          return; // Skip objects without posters
-        }
-        
-        // Use the complete movie object data
-        const displayTitle = movieObj.title || movieObj.TMDBTitle || movieObj.name;
-        const posterSrc = movieObj.poster;
-        const path = movieObj.path || movieObj.absPath || '';
-        
+        const cleanTitle = this.cleanMovieTitle(
+          path.split(/[\\/]/).pop() || ""
+        );
+        const displayTitle = this.capitalizeTitle(cleanTitle);
+        // Create a simple movie object for poster lookup
+        const movieObj = { path: path, title: displayTitle };
+        // Force movie poster lookup by temporarily setting currentTab
+        const originalTab = this.currentTab;
+        this.currentTab = "movies";
+        const posterSrc = this.getPosterPath(movieObj);
+        this.currentTab = originalTab;
         html += `
                     <div class="media-library-movie-card-movies" data-path="${path}">
                         <div class="favorites-only-heart-container">
@@ -13156,57 +12117,41 @@ class MediaLibraryManager {
     html += '<h3 class="section-title-tvshows-favorites">TV-SHOWS</h3>';
     if (tvshows.length > 0) {
       html += '<div class="media-library-tvshow-grid">';
-      tvshows.forEach((tvShowObj) => {
-        // Defensive check: ensure we have a valid TV show object with required properties
-        if (!tvShowObj || typeof tvShowObj !== 'object') {
-          console.warn('[DEBUG - FAVORITES] Invalid TV show object:', tvShowObj);
+      tvshows.forEach((path) => {
+        // Defensive check: ensure path is a string
+        if (typeof path !== 'string') {
+          console.warn('[DEBUG - FAVORITES] Invalid path type:', typeof path, path);
           return; // Skip this item
         }
-        
-        // Ensure we have the minimum required properties for a complete TV show object
-        // TV shows can have different property structures than movies
-        const hasTitle = tvShowObj.title || tvShowObj.TMDBTitle || tvShowObj.name || tvShowObj.showName;
-        const hasPoster = tvShowObj.poster || tvShowObj.posterUrl || tvShowObj.image;
-        
-        if (!hasTitle) {
-          console.warn('[DEBUG - FAVORITES] TV show object missing title:', tvShowObj);
-          return; // Skip incomplete objects
+        // For TV shows, extract the show name from the full path to preserve the year
+        const pathParts = path.split(/[\\/]/);
+        const tvShowsIndex = pathParts.findIndex((part) =>
+          part.toLowerCase().includes("tv-shows")
+        );
+        let showName = path.split(/[\\/]/).pop() || "";
+        if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
+          showName = pathParts[tvShowsIndex + 1]; // Get the actual show name with year
         }
-        
-        if (!hasPoster) {
-          console.warn('[DEBUG - FAVORITES] TV show object missing poster:', tvShowObj);
-          return; // Skip objects without posters
-        }
-        
-        // Use the complete TV show object data
-        const displayTitle = hasTitle;
-        
-        // Use the poster we saved when favoriting (this should be the working one!)
-        let posterSrc = hasPoster;
-        const path = tvShowObj.path || tvShowObj.absPath || '';
-        
-        console.log('[DEBUG - FAVORITES] TV show object being rendered:', tvShowObj);
-        console.log('[DEBUG - FAVORITES] TV show saved poster:', posterSrc);
-        console.log('[DEBUG - FAVORITES] TV show path:', path);
-        
-        // Only fall back to unified data if we don't have a poster at all
-        if (!posterSrc) {
-          console.log('[DEBUG - FAVORITES] No saved poster, trying unified data fallback...');
-          if (this.unifiedData) {
-            for (const [key, item] of Object.entries(this.unifiedData)) {
-              if (!item.isMovie && item.seasons && 
-                  ((item.path && item.path === path) || 
-                   (item.absPath && item.absPath === path))) {
-                posterSrc = item.poster || item.posterUrl || item.image;
-                console.log('[DEBUG - FAVORITES] Found poster in unified data fallback:', posterSrc);
-                break;
-              }
-            }
-          }
-        } else {
-          console.log('[DEBUG - FAVORITES] Using saved poster (should be working!):', posterSrc);
-        }
-        
+        const displayTitle = this.capitalizeTitle(showName);
+        // Create a proper TV show object for poster lookup
+        const tvShowObj = {
+          path: path,
+          name: showName,
+          normalizedKey: window.normalizeKey
+            ? window.normalizeKey(showName)
+            : null,
+        };
+        // Force TV show poster lookup by temporarily setting currentTab
+        const originalTab = this.currentTab;
+        this.currentTab = "tvshows";
+        const posterSrc = this.getPosterPath(tvShowObj);
+        this.currentTab = originalTab;
+        // console.log('[DEBUG - FAVORITES] TV Show poster lookup for:', showName, {
+        //     path: path,
+        //     showName: showName,
+        //     normalizedKey: tvShowObj.normalizedKey,
+        //     posterSrc: posterSrc
+        // });
         html += `
                     <div class="media-library-movie-card-tvshows" data-path="${path}">
                         <div class="favorites-only-heart-container">
@@ -13225,19 +12170,5 @@ class MediaLibraryManager {
     html += "</div>";
     return html;
   }
-  
-  // Add debug function to window object for testing
-  static addDebugFunctionsToWindow(instance) {
-    window.mediaLibraryManager = instance;
-    window.debugMediaLibraryState = () => instance.debugMediaLibraryState();
-    window.debugBoredToDeath = () => instance.debugBoredToDeath();
-    window.debugLocalStorageForTVShows = () => instance.debugLocalStorageForTVShows();
-    window.recoverTVShowsFromAllSources = () => instance.recoverTVShowsFromAllSources();
-    window.quickRecoverTVShowsFromUnifiedData = () => instance.quickRecoverTVShowsFromUnifiedData();
-    window.manualRecoverTVShows = () => instance.manualRecoverTVShows();
-    window.debugHeartSystem = () => instance.debugHeartSystem();
-  }
 }
 export default MediaLibraryManager;
- 
-

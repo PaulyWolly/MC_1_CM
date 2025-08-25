@@ -575,11 +575,87 @@ router.post('/save', async (req, res) => {
     if (fs.existsSync(MOVIE_CAST_JSON)) castData = JSON.parse(fs.readFileSync(MOVIE_CAST_JSON, 'utf8'));
     castData[normalizedKey] = { title: title || '', year: year || '', cast: cast || [] };
     fs.writeFileSync(MOVIE_CAST_JSON, JSON.stringify(castData, null, 2));
-    // --- Poster mapping ---
+    // --- Poster mapping and download ---
     if (poster && poster.startsWith('http')) {
       try {
         // Compute web-accessible path (simulate as before)
         const webPosterUrl = poster;
+        
+        // --- Download poster to file system with proper naming ---
+        if (absPath) {
+          const movieDir = path.dirname(absPath);
+          
+          // Determine filename for movies: poster.jpg, poster2.jpg, poster3.jpg, etc.
+          let filename = 'poster.jpg';
+          try {
+            // Scan for existing poster files
+            const files = fs.readdirSync(movieDir);
+            const posterFiles = files.filter(f => /^poster(\d*)\.jpg$/i.test(f));
+            let maxNum = 1;
+            posterFiles.forEach(f => {
+              const match = f.match(/^poster(\d*)\.jpg$/i);
+              if (match) {
+                const num = match[1] ? parseInt(match[1], 10) : 1;
+                if (num >= maxNum) maxNum = num;
+              }
+            });
+            // Next poster number
+            filename = maxNum === 1 && !posterFiles.includes('poster.jpg') ? 'poster.jpg' : `poster${maxNum + 1}.jpg`;
+          } catch (e) {
+            console.warn('[MEDIA SAVE] Could not scan for existing posters, using poster.jpg:', e.message);
+          }
+          
+          const posterFilePath = path.join(movieDir, filename);
+          
+          console.log('[MEDIA SAVE] Downloading poster to file system:', posterFilePath);
+          
+          // Download the image
+          const download = (url, dest, cb) => {
+            const file = require('fs').createWriteStream(dest);
+            
+            // Choose HTTP or HTTPS based on URL protocol
+            const httpModule = url.startsWith('https://') ? require('https') : require('http');
+            
+            httpModule.get(url, (response) => {
+              if (response.statusCode !== 200) {
+                file.close();
+                require('fs').unlinkSync(dest);
+                return cb(new Error('Failed to download image, status: ' + response.statusCode));
+              }
+              response.pipe(file);
+              file.on('finish', () => file.close(cb));
+            }).on('error', (err) => {
+              file.close();
+              require('fs').unlinkSync(dest);
+              cb(err);
+            });
+          };
+          
+          download(poster, posterFilePath, (err) => {
+            if (err) {
+              console.error('[MEDIA SAVE] Poster download failed:', err.message);
+              // Don't fail the entire save operation, just log the error
+            } else {
+              console.log('[MEDIA SAVE] Poster downloaded successfully to:', posterFilePath);
+              
+              // Verify the file was actually created
+              if (fs.existsSync(posterFilePath)) {
+                console.log('[MEDIA SAVE] Poster file verified:', posterFilePath);
+                
+                // Update the poster URL to point to the local file
+                const relPath = path.relative('S:/MEDIA/MOVIES', posterFilePath).replace(/\\/g, '/');
+                const localPosterUrl = `/media/movies/${relPath}`;
+                console.log('[MEDIA SAVE] Updated poster URL to local file:', localPosterUrl);
+                
+                // Update the poster mapping to use the local file URL
+                webPosterUrl = localPosterUrl;
+              } else {
+                console.error('[MEDIA SAVE] ERROR: Poster file was not created after download');
+              }
+            }
+          });
+        }
+        
         // --- Use dot notation key for poster mapping ---
         let posters = {};
         try {
@@ -1364,7 +1440,11 @@ router.post('/save-poster', (req, res) => {
   // Download the image
   const download = (url, dest, cb) => {
     const file = require('fs').createWriteStream(dest);
-    https.get(url, (response) => {
+    
+    // Choose HTTP or HTTPS based on URL protocol
+    const httpModule = url.startsWith('https://') ? require('https') : require('http');
+    
+    httpModule.get(url, (response) => {
       if (response.statusCode !== 200) {
         file.close();
         require('fs').unlinkSync(dest);
@@ -1379,10 +1459,23 @@ router.post('/save-poster', (req, res) => {
     });
   };
 
+  console.log('[SAVE-POSTER] Starting download from:', poster, 'to:', posterFilePath);
+  
   download(poster, posterFilePath, (err) => {
     if (err) {
+      console.error('[SAVE-POSTER] Download failed:', err.message);
       return res.status(500).json({ success: false, error: 'Failed to download poster: ' + err.message });
     }
+    
+    console.log('[SAVE-POSTER] Download completed successfully');
+    
+    // Verify the file was actually created
+    if (!fs.existsSync(posterFilePath)) {
+      console.error('[SAVE-POSTER] ERROR: File was not created after download');
+      return res.status(500).json({ success: false, error: 'Poster file was not created after download' });
+    }
+    
+    console.log('[SAVE-POSTER] Poster file verified:', posterFilePath);
     // --- NEW WORKFLOW ---
     const NORMALIZED_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
     const NEW_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/newly_added_movies.json');
@@ -1402,7 +1495,85 @@ router.post('/save-poster', (req, res) => {
       return res.status(500).json({ success: false, error: 'Invalid folder name detected. Check absPath format.' });
     }
     
-    // Save to newly_added_movies.json
+    // Helper function to extract year from folder name
+    function extractYear(folderName) {
+      const yearMatch = folderName.match(/\((\d{4})\)/);
+      return yearMatch ? yearMatch[1] : "Unknown";
+    }
+    
+    // Helper function to generate clean, short keys like existing unified data
+    function generateCleanKey(folderName) {
+      // Keep year but remove quality and other metadata
+      let cleanTitle = folderName
+        .replace(/\s*\[.*?\]\s*/g, '') // Remove quality tags like [1080p]
+        .replace(/\s*\.\d{4}\.\d{3,4}p\s*/g, '') // Remove .2005.1080p
+        .trim();
+      
+      // Convert to lowercase and replace spaces with dots
+      let key = cleanTitle.toLowerCase().replace(/\s+/g, '.');
+      
+      // Remove special characters but keep dots and parentheses
+      key = key.replace(/[^\w.()]/g, '');
+      
+      // Ensure it's not empty
+      if (!key) key = 'movie';
+      
+      console.log('[DEBUG] Generated key:', { folderName, cleanTitle, key });
+      return key;
+    }
+    
+    // UPDATED: Save to unified data structure instead of old format
+    const UNIFIED_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
+    
+    // Create new movie entry in unified format
+    const newMovieEntry = {
+      type: "movie",
+      title: folderName,
+      TMDBTitle: folderName,
+      tmdbId: null, // Will be populated when TMDB data is added
+      poster: webPosterUrl,
+      about: {
+        title: folderName,
+        year: extractYear(folderName),
+        description: "Description will be added when TMDB data is imported"
+      },
+      genres: [],
+      cast: {
+        title: folderName,
+        year: extractYear(folderName),
+        cast: []
+      },
+      path: folderName,
+      originalKey: folderName.toLowerCase().replace(/[^\w\s]/g, '.').replace(/\s+/g, '.'),
+      normalizedKey: generateCleanKey(folderName),
+      files: [
+        {
+          name: `${folderName}.mp4`, // Placeholder filename
+          absPath: `S:\\MEDIA\\MOVIES\\${folderName}\\${folderName}.mp4`, // Placeholder path
+          relPath: `${folderName}\\${folderName}.mp4`
+        }
+      ],
+      isMovie: true,
+      seasons: null
+    };
+    
+    // Load existing unified data
+    let unifiedData = {};
+    if (fs.existsSync(UNIFIED_FILE)) {
+      unifiedData = JSON.parse(fs.readFileSync(UNIFIED_FILE, 'utf8'));
+    }
+    
+    // Add new movie to unified data
+    const movieKey = newMovieEntry.normalizedKey;
+    unifiedData[movieKey] = newMovieEntry;
+    
+    console.log('[DEBUG] Adding new movie to unified data:', movieKey);
+    console.log('[DEBUG] Writing to movies-unified.json');
+    
+    // Save updated unified data
+    fs.writeFileSync(UNIFIED_FILE, JSON.stringify(unifiedData, null, 2));
+    
+    // Also save to newly_added_movies.json for backward compatibility
     let newEntries = {};
     if (fs.existsSync(NEW_FILE)) {
       newEntries = JSON.parse(fs.readFileSync(NEW_FILE, 'utf8'));
@@ -1410,14 +1581,6 @@ router.post('/save-poster', (req, res) => {
     newEntries[folderName] = webPosterUrl;
     console.log('[DEBUG] Writing to newly_added_movies.json:', newEntries);
     fs.writeFileSync(NEW_FILE, JSON.stringify(newEntries, null, 2));
-    // Merge into movie_posters_normalized.json
-    let normalized = {};
-    if (fs.existsSync(NORMALIZED_FILE)) {
-      normalized = JSON.parse(fs.readFileSync(NORMALIZED_FILE, 'utf8'));
-    }
-    Object.assign(normalized, newEntries);
-    console.log('[DEBUG] Writing to movie_posters_normalized.json:', normalized);
-    fs.writeFileSync(NORMALIZED_FILE, JSON.stringify(normalized, null, 2));
     return res.json({ success: true });
   });
 });
