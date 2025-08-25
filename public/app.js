@@ -28,6 +28,49 @@ import './components/NormalizationService.js';
 // MANAGER INITIALIZATION
 // =====================================================
 
+// Ensure NormalizationService is loaded before initializing managers
+console.log('🔧 [APP] NormalizationService loaded, normalizeKey available:', !!window.normalizeKey);
+console.log('🔧 [APP] NormalizationService ready check:', window.isNormalizationServiceReady ? window.isNormalizationServiceReady() : 'function not available');
+
+// Add a method to ensure NormalizationService is ready
+window.ensureNormalizationServiceReady = async () => {
+    if (window.isNormalizationServiceReady()) {
+        console.log('✅ [APP] NormalizationService is already ready');
+        return true;
+    }
+    
+    console.log('⏳ [APP] Waiting for NormalizationService to be ready...');
+    let waitCount = 0;
+    while (!window.isNormalizationServiceReady() && waitCount < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+        if (waitCount % 10 === 0) {
+            console.log(`⏳ [APP] Still waiting for NormalizationService... (${waitCount}/50)`);
+        }
+    }
+    
+    if (window.isNormalizationServiceReady()) {
+        console.log('✅ [APP] NormalizationService is now ready');
+        return true;
+    } else {
+        console.error('❌ [APP] NormalizationService failed to load after waiting');
+        return false;
+    }
+};
+
+// Initialize NormalizationService immediately
+console.log('🔧 [APP] Initializing NormalizationService...');
+
+// Wait a moment for NormalizationService to be ready
+await new Promise(resolve => setTimeout(resolve, 100));
+
+// Verify NormalizationService is ready
+if (window.isNormalizationServiceReady()) {
+    console.log('✅ [APP] NormalizationService is ready');
+} else {
+    console.warn('⚠️ [APP] NormalizationService not ready yet, will wait during MediaLibraryManager initialization');
+}
+
 // Initialize PlaylistManager globally
 console.log('Initializing PlaylistManager...');
 const playlistManagerInstance = new playlistManager();
@@ -4416,11 +4459,39 @@ async function initializeApp() {
         // Add TTS warm-up function
         await warmUpTTS();
 
-        console.log('Initializing MediaLibraryManager...');
-        const mediaLibraryManagerInstance = new MediaLibraryManager();
-        await mediaLibraryManagerInstance.init(); // Initialize the MediaLibraryManager
-        window.mediaLibraryManager = mediaLibraryManagerInstance;
+        // Ensure NormalizationService is available before initializing MediaLibraryManager
+        if (!window.isNormalizationServiceReady()) {
+            console.log('🔧 [APP] NormalizationService not ready, using ensureNormalizationServiceReady...');
+            const serviceReady = await window.ensureNormalizationServiceReady();
+            if (!serviceReady) {
+                throw new Error('NormalizationService failed to load after waiting');
+            }
+        }
+        console.log('✅ [APP] NormalizationService confirmed available before MediaLibraryManager initialization');
+        
+        // Additional verification
+        console.log('🔧 [APP] Final NormalizationService verification:');
+        console.log('  - normalizeKey function:', typeof window.normalizeKey);
+        console.log('  - getDisplayName function:', typeof window.getDisplayName);
+        console.log('  - getInternalKey function:', typeof window.getInternalKey);
+        console.log('  - isNormalizationServiceReady function:', typeof window.isNormalizationServiceReady);
+
+            console.log('Initializing MediaLibraryManager...');
+    const mediaLibraryManagerInstance = new MediaLibraryManager();
+    await mediaLibraryManagerInstance.init(); // Initialize the MediaLibraryManager
+    window.mediaLibraryManager = mediaLibraryManagerInstance;
+    
+    // Add debug functions to window object
+    MediaLibraryManager.addDebugFunctionsToWindow(mediaLibraryManagerInstance);
         console.log('MediaLibraryManager initialized:', window.mediaLibraryManager);
+        
+        // Verify MediaLibraryManager can access NormalizationService
+        console.log('🔧 [APP] Verifying MediaLibraryManager can access NormalizationService...');
+        if (window.mediaLibraryManager && window.isNormalizationServiceReady()) {
+            console.log('✅ [APP] MediaLibraryManager successfully initialized with NormalizationService access');
+        } else {
+            console.warn('⚠️ [APP] MediaLibraryManager initialized but NormalizationService access unclear');
+        }
         
         // Add global functions for testing collections
         window.refreshCollectionButtons = () => {
@@ -4437,6 +4508,60 @@ async function initializeApp() {
         };
 
         console.log('✅ [APP] App initialization completed successfully');
+        
+        // Final verification that all services are working
+        console.log('🔧 [APP] Final service verification:');
+        console.log('  - NormalizationService:', window.isNormalizationServiceReady() ? '✅ Ready' : '❌ Not Ready');
+        console.log('  - MediaLibraryManager:', window.mediaLibraryManager ? '✅ Initialized' : '❌ Not Initialized');
+        console.log('  - PlaylistManager:', window.playlistManager ? '✅ Initialized' : '❌ Not Initialized');
+        console.log('  - ToastManager:', window.toastManager ? '✅ Initialized' : '❌ Not Initialized');
+        console.log('  - YouTubeSearchManager:', window.youtubeSearchManager ? '✅ Initialized' : '❌ Not Initialized');
+        
+        // Add global debug method for troubleshooting
+        window.debugAppServices = () => {
+            console.log('🔍 [DEBUG] App Services Status:');
+            console.log('  - NormalizationService:', {
+                available: !!window.normalizeKey,
+                ready: window.isNormalizationServiceReady ? window.isNormalizationServiceReady() : false,
+                functions: {
+                    normalizeKey: typeof window.normalizeKey,
+                    getDisplayName: typeof window.getDisplayName,
+                    getInternalKey: typeof window.getInternalKey
+                }
+            });
+            console.log('  - MediaLibraryManager:', {
+                available: !!window.mediaLibraryManager,
+                unifiedData: window.mediaLibraryManager ? !!window.mediaLibraryManager.unifiedData : false,
+                seasonEpisodeImages: window.mediaLibraryManager ? !!window.mediaLibraryManager.seasonEpisodeImages : false
+            });
+        };
+        
+        // Add global method to test NormalizationService
+        window.testNormalizationService = () => {
+            console.log('🧪 [TEST] Testing NormalizationService...');
+            if (!window.normalizeKey) {
+                console.error('❌ [TEST] normalizeKey function not available');
+                return false;
+            }
+            
+            const testCases = [
+                'Bored To Death (2009)',
+                'Lost in Space (2018)',
+                'Chuck (2007)',
+                'Lucifer (2016)'
+            ];
+            
+            testCases.forEach(testCase => {
+                try {
+                    const normalized = window.normalizeKey(testCase);
+                    console.log(`✅ [TEST] "${testCase}" -> "${normalized}"`);
+                } catch (error) {
+                    console.error(`❌ [TEST] Failed to normalize "${testCase}":`, error);
+                }
+            });
+            
+            return true;
+        };
 
     } catch (error) {
         console.error('❌ [APP] Error during app initialization:', error);
