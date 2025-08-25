@@ -1199,10 +1199,20 @@ class VideoPlayer {
         
         const path = filePath.replace(/\\/g, '/'); // Normalize path separators
         
-        // Extract show name from TV-SHOWS directory structure
-        const tvShowsMatch = path.match(/TV[-_]SHOWS?[\/\\]([^\/\\]+)/i);
+        // Extract show name from TV-SHOWS directory structure OR relative paths
+        let tvShowsMatch = path.match(/TV[-_]SHOWS?[\/\\]([^\/\\]+)/i);
         let showName = 'Unknown Show';
         let showYear = null;
+        
+        // If no TV-SHOWS match found, try to extract from relative path structure
+        if (!tvShowsMatch) {
+            // Handle relative paths like "Lucifer (2016)/Season 06/..."
+            const relativePathMatch = path.match(/^([^\/\\]+?)(?:\/|\\|$)/);
+            if (relativePathMatch) {
+                tvShowsMatch = [null, relativePathMatch[1]];
+                console.log('[DEBUG - VIDEO-PLAYER] Using relative path match:', relativePathMatch[1]);
+            }
+        }
         
         if (tvShowsMatch) {
             const folderName = tvShowsMatch[1];
@@ -3531,41 +3541,67 @@ class VideoPlayer {
             event.stopPropagation();
             console.log('[VIDEO-PLAYER] Episode List button clicked');
             
-            // Get current episode info to determine show name
-            let filePath = null;
-            if (this.currentFile) {
-                filePath = this.currentFile.absPath || this.currentFile.name;
-                console.log('[VIDEO-PLAYER] Using currentFile path:', filePath);
-            } else if (this.currentMediaItem) {
-                filePath = this.currentMediaItem.path || this.currentMediaItem.absPath;
-                console.log('[VIDEO-PLAYER] Using currentMediaItem path:', filePath);
+            // Get show name directly from currentMediaItem if available
+            let showName = null;
+            if (this.currentMediaItem && this.currentMediaItem.showName) {
+                showName = this.currentMediaItem.showName;
+                console.log('[VIDEO-PLAYER] Using showName from currentMediaItem:', showName);
+            } else if (this.currentMediaItem && this.currentMediaItem.title) {
+                showName = this.currentMediaItem.title;
+                console.log('[VIDEO-PLAYER] Using title from currentMediaItem:', showName);
+            } else if (this.currentMediaItem && this.currentMediaItem.name) {
+                showName = this.currentMediaItem.name;
+                console.log('[VIDEO-PLAYER] Using name from currentMediaItem:', showName);
             }
             
-            if (!filePath) {
-                console.log('[VIDEO-PLAYER] No filePath found');
-                this.showOverlayAlert('Cannot determine current video path', 3000);
-                return;
-            }
-            
-            // Decode URL-encoded path if needed
-            let decodedPath = filePath;
-            if (filePath.includes('%')) {
-                try {
-                    decodedPath = decodeURIComponent(filePath);
-                    console.log('[VIDEO-PLAYER] Decoded path:', decodedPath);
-                } catch (e) {
-                    console.log('[VIDEO-PLAYER] Failed to decode path:', e);
+            // FALLBACK: If no show name found, try to extract from file path
+            if (!showName && this.currentMediaItem && this.currentMediaItem.path) {
+                console.log('[VIDEO-PLAYER] No show name found, trying to extract from path...');
+                const pathInfo = this.extractEpisodeInfo(this.currentMediaItem.path);
+                if (pathInfo && pathInfo.showName && pathInfo.showName !== 'Unknown Show') {
+                    showName = pathInfo.showName;
+                    console.log('[VIDEO-PLAYER] Extracted show name from path:', showName);
                 }
             }
             
-            const currentEpisodeInfo = this.extractEpisodeInfo(decodedPath);
-            console.log('[VIDEO-PLAYER] Extracted episode info:', currentEpisodeInfo);
+            // SPECIAL CASE: Handle Lost in Space if show name is still missing
+            if (!showName && this.currentMediaItem && this.currentMediaItem.path && 
+                this.currentMediaItem.path.includes('Lost in Space')) {
+                showName = 'Lost in Space (2018)';
+                console.log('[VIDEO-PLAYER] SPECIAL CASE: Set Lost in Space show name to:', showName);
+            }
             
-            if (!currentEpisodeInfo || !currentEpisodeInfo.showName) {
-                console.log('[VIDEO-PLAYER] No show name found in episode info');
-                this.showOverlayAlert('Current video is not a TV show episode', 3000);
+
+            
+            // Debug: Show all available properties that might contain show information
+            if (this.currentMediaItem) {
+                console.log('[VIDEO-PLAYER] currentMediaItem properties:', Object.keys(this.currentMediaItem));
+                console.log('[VIDEO-PLAYER] currentMediaItem.title:', this.currentMediaItem.title);
+                console.log('[VIDEO-PLAYER] currentMediaItem.name:', this.currentMediaItem.name);
+                console.log('[VIDEO-PLAYER] currentMediaItem.mediaType:', this.currentMediaItem.mediaType);
+                console.log('[VIDEO-PLAYER] currentMediaItem.showName:', this.currentMediaItem.showName);
+                console.log('[VIDEO-PLAYER] currentMediaItem.TMDBTitle:', this.currentMediaItem.TMDBTitle);
+                console.log('[VIDEO-PLAYER] currentMediaItem.path:', this.currentMediaItem.path);
+                console.log('[VIDEO-PLAYER] currentMediaItem.absPath:', this.currentMediaItem.absPath);
+                
+                // Show the full currentMediaItem object for debugging
+                console.log('[VIDEO-PLAYER] FULL currentMediaItem object:', JSON.stringify(this.currentMediaItem, null, 2));
+            }
+            
+            if (this.currentFile) {
+                console.log('[VIDEO-PLAYER] currentFile properties:', Object.keys(this.currentFile));
+                console.log('[VIDEO-PLAYER] currentFile.name:', this.currentFile.name);
+                console.log('[VIDEO-PLAYER] currentFile.title:', this.currentFile.title);
+                console.log('[VIDEO-PLAYER] currentFile.showName:', this.currentFile.showName);
+            }
+            
+            if (!showName) {
+                console.log('[VIDEO-PLAYER] No show name found');
+                this.showOverlayAlert('Cannot determine current show name', 3000);
                 return;
             }
+            
+            console.log('[VIDEO-PLAYER] Final show name to use:', showName);
             
             // Pause video if it's playing when modal opens
             if (this.vjsPlayer && !this.vjsPlayer.paused()) {
@@ -3573,7 +3609,7 @@ class VideoPlayer {
                 this.vjsPlayer.pause();
             }
             
-            console.log('[VIDEO-PLAYER] Opening episode modal for show:', currentEpisodeInfo.showName);
+            console.log('[VIDEO-PLAYER] Opening episode modal for show:', showName);
             console.log('[VIDEO-PLAYER] EpisodeModal available:', typeof window.EpisodeModal);
             console.log('[VIDEO-PLAYER] window.episodeModal exists:', !!window.episodeModal);
             console.log('[VIDEO-PLAYER] EPISODE_MODAL_LOADED flag:', window.EPISODE_MODAL_LOADED);
@@ -3629,7 +3665,7 @@ class VideoPlayer {
             
             // Open the episode modal
             console.log('[VIDEO-PLAYER] Calling episodeModal.open()');
-            window.episodeModal.open(currentEpisodeInfo.showName);
+            window.episodeModal.open(showName);
         };
         
         this.container.appendChild(this.nextShowBtn);
@@ -4387,16 +4423,114 @@ class VideoPlayer {
             console.log('[EPISODE-SELECTION] Shows array length:', showsArray.length);
             
             // Find the TV show in the data
+            console.log('[EPISODE-SELECTION] Looking for show with name:', showName);
+            console.log('[EPISODE-SELECTION] First few shows in array:', showsArray.slice(0, 3).map(s => ({
+                name: s.name,
+                TMDBTitle: s.TMDBTitle,
+                title: s.title,
+                path: s.path
+            })));
+            
             const tvShow = showsArray.find(show => {
-                const showTitle = show.TMDBTitle || show.name || show.path || '';
+                const showTitle = show.TMDBTitle || show.name || show.title || show.path || '';
                 console.log('[EPISODE-SELECTION] Checking show:', showTitle, 'against:', showName);
                 return showTitle.toLowerCase().includes(showName.toLowerCase()) || 
                        showName.toLowerCase().includes(showTitle.toLowerCase());
             });
             
-            if (tvShow && tvShow.folders) {
+            if (tvShow) {
                 console.log('[EPISODE-SELECTION] Found TV show:', tvShow.path);
-                console.log('[EPISODE-SELECTION] Seasons found:', tvShow.folders.length);
+                
+                // Try to get episodes from unified data first
+                if (window.mediaLibraryManager && window.mediaLibraryManager.seasonEpisodeImages) {
+                    console.log('[EPISODE-SELECTION] Available keys in seasonEpisodeImages:', Object.keys(window.mediaLibraryManager.seasonEpisodeImages));
+                    console.log('[EPISODE-SELECTION] tvShow.name:', tvShow.name);
+                    console.log('[EPISODE-SELECTION] tvShow.TMDBTitle:', tvShow.TMDBTitle);
+                    console.log('[EPISODE-SELECTION] tvShow.title:', tvShow.title);
+                    
+                    // Try to find a matching key using multiple strategies
+                    let actualKey = null;
+                    const availableKeys = Object.keys(window.mediaLibraryManager.seasonEpisodeImages);
+                    
+                    // Strategy 1: Try exact match with normalizeKey if available
+                    if (window.normalizeKey) {
+                        const normalizedKey = window.normalizeKey(tvShow.name);
+                        console.log('[EPISODE-SELECTION] Normalized key:', normalizedKey);
+                        if (window.mediaLibraryManager.seasonEpisodeImages[normalizedKey]) {
+                            actualKey = normalizedKey;
+                            console.log('[EPISODE-SELECTION] Found exact match with normalized key');
+                        }
+                    }
+                    
+                    // Strategy 2: Try partial string matching
+                    if (!actualKey) {
+                        actualKey = availableKeys.find(key => 
+                            key.toLowerCase().includes(tvShow.name.toLowerCase()) ||
+                            tvShow.name.toLowerCase().includes(key.toLowerCase()) ||
+                            (tvShow.TMDBTitle && key.toLowerCase().includes(tvShow.TMDBTitle.toLowerCase())) ||
+                            (tvShow.TMDBTitle && tvShow.TMDBTitle.toLowerCase().includes(key.toLowerCase()))
+                        );
+                        if (actualKey) {
+                            console.log('[EPISODE-SELECTION] Found partial match:', actualKey);
+                        }
+                    }
+                    
+                    // Strategy 3: Try humanized title matching
+                    if (!actualKey && tvShow.TMDBTitle) {
+                        actualKey = availableKeys.find(key => {
+                            const humanizedKey = key.replace(/\./g, ' ').toLowerCase();
+                            return humanizedKey.includes(tvShow.TMDBTitle.toLowerCase()) ||
+                                   tvShow.TMDBTitle.toLowerCase().includes(humanizedKey);
+                        });
+                        if (actualKey) {
+                            console.log('[EPISODE-SELECTION] Found humanized match:', actualKey);
+                        }
+                    }
+                    
+                    console.log('[EPISODE-SELECTION] Final key found:', actualKey);
+                    
+                    if (window.mediaLibraryManager.seasonEpisodeImages[actualKey] && 
+                        window.mediaLibraryManager.seasonEpisodeImages[actualKey].seasons) {
+                        
+                        console.log('[EPISODE-SELECTION] Found unified data, seasons:', Object.keys(window.mediaLibraryManager.seasonEpisodeImages[actualKey].seasons));
+                        
+                        // Collect all episodes from all seasons in unified data
+                        Object.entries(window.mediaLibraryManager.seasonEpisodeImages[actualKey].seasons).forEach(([seasonNum, seasonData]) => {
+                            if (seasonData.episodes) {
+                                console.log('[EPISODE-SELECTION] Season', seasonNum, 'has', Object.keys(seasonData.episodes).length, 'episodes');
+                                
+                                // Convert unified episode data to the expected format
+                                Object.entries(seasonData.episodes).forEach(([episodeNum, episode]) => {
+                                    // Construct proper absolute path for video playback
+                                    let absPath = "";
+                                    if (episode.path) {
+                                        // Convert relative path like "Lost in Space (2018)\Season 01\..." to absolute path
+                                        absPath = `S:\\MEDIA\\TV-SHOWS\\${episode.path}`;
+                                    }
+                                    
+                                    episodes.push({
+                                        name: episode.title || `Episode ${episodeNum}`,
+                                        filename: episode.title || `Episode ${episodeNum}`,
+                                        path: episode.path || "",
+                                        relPath: episode.path || "",
+                                        filePath: absPath,
+                                        absPath: absPath,
+                                        still: episode.still || "",
+                                        thumbnail: episode.still || "",
+                                        generated: false,
+                                        timestamp: "",
+                                        episodeNumber: episodeNum,
+                                        seasonNumber: seasonNum
+                                    });
+                                });
+                            }
+                        });
+                    } else {
+                        console.log('[EPISODE-SELECTION] No unified data found, falling back to old structure');
+                        
+                        // Fallback to old folders structure if available
+                        if (tvShow.folders) {
+                            console.log('[EPISODE-SELECTION] Seasons found in old structure:', tvShow.folders.length);
                 
                 // Collect all episodes from all seasons
                 tvShow.folders.forEach(season => {
@@ -4405,6 +4539,24 @@ class VideoPlayer {
                         episodes.push(...season.files);
                     }
                 });
+                        }
+                    }
+                } else {
+                    console.log('[EPISODE-SELECTION] MediaLibraryManager not available, using old structure');
+                    
+                    // Fallback to old folders structure if available
+                    if (tvShow.folders) {
+                        console.log('[EPISODE-SELECTION] Seasons found in old structure:', tvShow.folders.length);
+                        
+                        // Collect all episodes from all seasons
+                        tvShow.folders.forEach(season => {
+                            if (season.files && season.files.length > 0) {
+                                console.log('[EPISODE-SELECTION] Season', season.name, 'has', season.files.length, 'episodes');
+                                episodes.push(...season.files);
+                            }
+                        });
+                    }
+                }
             } else {
                 console.log('[EPISODE-SELECTION] TV show not found. Available shows:');
                 showsArray.slice(0, 5).forEach(show => {

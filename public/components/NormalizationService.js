@@ -295,4 +295,14 @@ if (typeof window !== 'undefined') {
   if (!window.getInternalKey) {
     window.getInternalKey = getInternalKey;
   }
+  
+  // Add initialization check method
+  if (!window.isNormalizationServiceReady) {
+    window.isNormalizationServiceReady = () => {
+      return !!(window.normalizeKey && window.getDisplayName && window.getInternalKey);
+    };
+  }
+  
+  // Log successful initialization
+  console.log('✅ [NORMALIZATION] NormalizationService loaded and ready');
 } 
