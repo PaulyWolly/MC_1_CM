@@ -1,10 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_FOLDER.JS
-  Version: 21
-  AppName: MultiChat_Chatty MC_1_CM [v21]
-  Updated: 8/19/2025 @10:00AM
-  UPDATED: Now works with tv-shows-unified.json structure
-  ENHANCED: Added feedback, animations, timeline, and counts
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -89,7 +87,7 @@ async function getAudioCodec(filePath) {
 
 function getFFmpegCommand(inputPath, outputPath) {
     // Robust FFmpeg command that ensures proper audio conversion
-    // -f mkv = force MKV output format
+    // -f matroska = force Matroska/MKV output format
     // -c:v copy = copy video stream without re-encoding
     // -c:a aac = convert audio to AAC codec
     // -b:a 128k = audio bitrate
@@ -99,7 +97,7 @@ function getFFmpegCommand(inputPath, outputPath) {
     // -map 0:a = map all audio streams (will be converted to AAC)
     // -map 0:s? = map subtitle streams if they exist
     // -avoid_negative_ts make_zero = fix timestamp issues
-    return `ffmpeg -i "${inputPath}" -f mkv -c:v copy -c:a aac -b:a 128k -ac 2 -ar 48000 -map 0:v -map 0:a -map 0:s? -avoid_negative_ts make_zero -y "${outputPath}"`;
+    return `ffmpeg -i "${inputPath}" -f matroska -c:v copy -c:a aac -b:a 128k -ac 2 -ar 48000 -map 0:v -map 0:a -map 0:s? -avoid_negative_ts make_zero -y "${outputPath}"`;
 }
 
 async function convertFile(inputPath, currentIndex, totalFiles, startTime) {

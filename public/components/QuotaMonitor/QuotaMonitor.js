@@ -1,8 +1,8 @@
 /*
   QUOTAMONITOR.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -49,7 +49,7 @@ export default class QuotaMonitor {
             localStorage.setItem('youtube_quota_used', this.dailyUsed);
             localStorage.setItem('youtube_quota_reset', data.resetTime);
             
-            console.log('🎯 [QUOTA] Synced with server:', data);
+            // console.log('🎯 [QUOTA] Synced with server:', data);
             return data;
         } catch (error) {
             console.error('🎯 [QUOTA] Error fetching quota from server:', error);
@@ -268,7 +268,7 @@ export default class QuotaMonitor {
      * Enable cache-only mode
      */
     enableCacheOnlyMode() {
-        console.log('🔒 [QUOTA] Enabling cache-only mode to preserve remaining quota');
+        // console.log('🔒 [QUOTA] Enabling cache-only mode to preserve remaining quota');
         localStorage.setItem('youtube_cache_only_mode', 'true');
         this.showToast('🔒 Cache-only mode enabled to preserve quota. Only cached results will be shown.', 'info', 10000);
         this.updateQuotaDashboard();
@@ -278,7 +278,7 @@ export default class QuotaMonitor {
      * Disable cache-only mode
      */
     disableCacheOnlyMode() {
-        console.log('🔓 [QUOTA] Disabling cache-only mode');
+        // console.log('🔓 [QUOTA] Disabling cache-only mode');
         localStorage.removeItem('youtube_cache_only_mode');
         this.showToast('🔓 Cache-only mode disabled. API calls re-enabled.', 'success');
         this.updateQuotaDashboard();
@@ -486,13 +486,13 @@ export default class QuotaMonitor {
                 scriptPanel.classList.toggle('hidden');
                 const isNowHidden = scriptPanel.classList.contains('hidden');
                 toggleBtn.textContent = isNowHidden ? '▼' : '▲';
-                console.log('[DEBUG - QUOTA] Panel visibility toggled:', { 
-                    wasHidden, 
-                    isNowHidden, 
-                    newButtonText: toggleBtn.textContent,
-                    scriptPanelDisplay: scriptPanel.style.display,
-                    scriptPanelClasses: scriptPanel.className
-                });
+                // console.log('[DEBUG - QUOTA] Panel visibility toggled:', { 
+                //     wasHidden, 
+                //     isNowHidden, 
+                //     newButtonText: toggleBtn.textContent,
+                //     scriptPanelDisplay: scriptPanel.style.display,
+                //     scriptPanelClasses: scriptPanel.className
+                // });
             };
             
             // Also add a click handler to the header for easier clicking
@@ -507,11 +507,11 @@ export default class QuotaMonitor {
                         scriptPanel.classList.toggle('hidden');
                         const isNowHidden = scriptPanel.classList.contains('hidden');
                         toggleBtn.textContent = isNowHidden ? '▼' : '▲';
-                        console.log('[DEBUG - QUOTA] Panel visibility toggled via header:', { 
-                            wasHidden, 
-                            isNowHidden, 
-                            newButtonText: toggleBtn.textContent 
-                        });
+                        // console.log('[DEBUG - QUOTA] Panel visibility toggled via header:', { 
+                        //     wasHidden, 
+                        //     isNowHidden, 
+                        //     newButtonText: toggleBtn.textContent 
+                        // });
                     }
                 };
             }
@@ -583,21 +583,21 @@ export default class QuotaMonitor {
      */
     shouldBlockAPICall() {
         if (this.isCacheOnlyMode()) {
-            console.log('🔒 [QUOTA] API call blocked - cache-only mode active');
+            // console.log('🔒 [QUOTA] API call blocked - cache-only mode active');
             this.showToast('🔒 API call blocked - cache-only mode active. Using cached data only.', 'warning');
             return true;
         }
         
         const usage = this.getCurrentUsage();
         if (usage >= this.dailyLimit) {
-            console.log('🚫 [QUOTA] API call blocked - daily quota exceeded');
+            // console.log('🚫 [QUOTA] API call blocked - daily quota exceeded');
             this.showToast('🚫 Daily YouTube quota exceeded. Please try again tomorrow.', 'error');
             return true;
         }
         
         // Only block at 90%+ (9000+ quota used)
         if (usage > 9000) {
-            console.log('🚫 [QUOTA] API call blocked - usage critically high (>90%)');
+            // console.log('🚫 [QUOTA] API call blocked - usage critically high (>90%)');
             this.showToast('🚫 API calls blocked - quota usage critically high (>90%). Please use cached results only.', 'error');
             return true;
         }
@@ -696,7 +696,7 @@ export default class QuotaMonitor {
             clearTimeout(this.updateTimeout);
         }
         
-        console.log('🎯 [QUOTA] QuotaMonitor cleaned up');
+        // console.log('🎯 [QUOTA] QuotaMonitor cleaned up');
     }
 
     /**
@@ -769,7 +769,7 @@ export default class QuotaMonitor {
         try {
             const response = await fetch('/api/youtube/quota-status');
             const data = await response.json();
-            console.log('📊 [QUOTA] Detailed quota info:', data);
+            //  console.log('📊 [QUOTA] Detailed quota info:', data);
             return data;
         } catch (error) {
             console.error('📊 [QUOTA] Error fetching detailed quota info:', error);

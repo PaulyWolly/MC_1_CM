@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -183,6 +183,7 @@
     margin: 0 0 0 0;
     position: relative;
     top: 6px;
+    font-size: .8em;
 }
 .media-library-card-info h3 {
   margin: 0;
@@ -196,7 +197,7 @@
 
 .media-info h3 {
     margin: 0 0 4px 0;
-    font-size: .8em;
+    font-size: .7em;
     font-weight: 600;
     color: #333;
     line-height: 1.3;
@@ -1097,7 +1098,7 @@
 }
 
 .media-library-card.specials .media-library-card-info p {
-  color: #fff3e0;
+  color: #000;
   font-size: .75em;
   margin: 0;
   text-align: center;
@@ -1395,6 +1396,7 @@
   align-items: center;
   gap: 4px;
   margin-right: 20px;
+  margin-bottom: 5px;
   padding: 6px 10px 0 10px;
   z-index: 9998 !important;
   pointer-events: auto !important;
@@ -1418,6 +1420,21 @@
     position: relative !important;
     pointer-events: auto !important;
     cursor: pointer !important;
+}
+
+/* New distinct icon classes - no borders */
+.movie-favorite-btn,
+.tv-favorite-btn,
+.movie-poster-selector-btn,
+.tv-poster-selector-btn,
+.movie-collection-btn,
+.tv-collection-btn {
+    border: none !important;
+    background: none !important;
+    cursor: pointer !important;
+    font-size: 1.2em !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .favorites-only-heart-btn {
@@ -1455,7 +1472,7 @@
 }
 
 .tvshows-section-favorites h3 {
-  margin-top: 28px;
+  /* margin-top: 28px; */
 }
 
 /* COLLECTIONS SECTION SPECIFIC STYLES */
@@ -1490,14 +1507,19 @@
 
 /* Collection button states */
 .collection-btn-add {
-    background: #7cbef5 !important;
-    border: none !important;
-    cursor: pointer !important;
-    font-size: 1.4em !important;
-    line-height: 1 !important;
-    color: white !important;
-    border-radius: 4px !important;
-    padding: 2px 6px !important;
+  background: #7cbef5 !important;
+  border: none !important;
+  cursor: pointer !important;
+  font-size: 1.4em !important;
+  line-height: 1 !important;
+  color: white !important;
+  border-radius: 4px !important;
+  padding: 3px 0 3px 0 !important;
+  /* width: 27%;*/
+}
+
+.watch-later-header {
+  display: none;
 }
 
 .collection-btn-remove {
@@ -1654,13 +1676,22 @@
 /* Watch Later Layout */
 .watch-later-flex-container {
     display: flex;
+    flex-direction: column;
     gap: 24px;
     justify-content: space-between;
     width: 82vw;
     margin-left: 70px;
     height: 550px;
-    flex-direction: row;
   }
+
+
+
+.watch-later-content {
+    display: flex;
+    gap: 24px;
+    justify-content: space-between;
+    flex: 1;
+}
   .watch-later-column {
     flex: 1;
     min-width: 0;
@@ -1974,8 +2005,18 @@
   .watch-later-grid {
     display: grid;
     grid-template-columns: repeat(3, .325fr);
-    gap: 10px; /* Reduce gap further to make content more compact */
+    gap: 10px;
+    row-gap: 60px; /* Reduce gap further to make content more compact */
   }
+
+  .watch-later-tv-grid {
+    display: grid;
+    grid-template-columns: repeat(3, .325fr);
+    gap: 10px;
+    margin-left: 12px;
+    row-gap: 15px; /* Reduce gap further to make content more compact */
+  }
+
   .watch-later-card {
     position: relative;
     background: #fff;
@@ -2004,7 +2045,7 @@
     display: flex;
     gap: 8px;
     justify-content: center;
-    margin-top: 6px;
+    margin-top: 0px;
   }
   .watch-later-resume-btn, .watch-later-delete-btn {
     padding: 6px 14px;
@@ -2043,9 +2084,10 @@
   
   .media-library-movie-card-movies {
     width: 180px;
+    height: 36.5vh;
     margin-left: 14px;
     padding: 10px;
-    /* margin-bottom: 20px; */
+    margin-bottom: -45px;
   }
   
   .media-library-movie-card-movies-collections {
@@ -2053,8 +2095,8 @@
     padding: 10px;
   }
   .media-library-movie-card-tvshows {
-    /* height: 35vh; */
-    margin-top: -4px;
+    height: 32vh;
+    margin-top: 0px;
   }
 
 .watch-later-img-movie {
@@ -2218,8 +2260,8 @@
   margin-bottom: 0;
   position: relative;
   top: 6px;
-  left: 120px;
-  width: 670px;
+  left: 100px;
+  width: 840px;
   text-align: justify;
   flex-shrink: 0;
 }
@@ -2258,6 +2300,8 @@
     font-size: 1.3em;
     line-height: 1;
 }
+
+
 
 .media-library-details-cast-list {
     margin-top: 130px;
@@ -2807,7 +2851,7 @@
 .media-library-seasons-title h2 {
   text-align: left;
   margin: 0 0 8px 0;
-  font-size: 1.5rem;
+  font-size: 1.15rem !important;
   font-weight: bold;
   color: #333;
 }
@@ -3588,6 +3632,7 @@
   display: flex;
   width: 100%;
   margin-left: 60px;
+  margin-bottom: 5px;
 }
 
 .media-card-actions-collections {
@@ -3740,8 +3785,8 @@
   border-radius: 12px;
   padding: 15px;
   max-width: 90%;
-  height: 60vh;
-  width: 40vw !important;
+  height: 76vh;
+  width: 70vw !important;
   position: relative;
   border: 2px solid #333;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -4508,6 +4553,36 @@ color: #fff;
   text-align: center;
 }
 
+.modal-collections-item-description {
+  color: #ccc;
+  font-size: 11px;
+  line-height: 1.2;
+  word-wrap: break-word;
+  text-align: center;
+  padding: 4px 8px;
+  margin-top: 4px;
+  max-height: 60px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.modal-collections-item-cast {
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.2;
+  word-wrap: break-word;
+  text-align: center;
+  padding: 4px 8px;
+  margin-top: 2px;
+  max-height: 40px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* Collections Modal Scrollbars */
 .modal-collections-movies-grid::-webkit-scrollbar,
 .modal-collections-tvshows-grid::-webkit-scrollbar {
@@ -4662,12 +4737,15 @@ color: #fff;
 }
 
 .collections-modal-checkbox-list {
-    max-height: 170px;
+    max-height: 300px;
     overflow-y: auto;
     border: 1px solid #444;
     border-radius: 4px;
-    padding: 8px;
+    padding: 15px;
     background: #2a2a2a;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
 }
 
 .collections-modal-checkbox-item {
@@ -4679,6 +4757,37 @@ color: #fff;
 
 .collections-modal-checkbox-text {
     color: #fff;
+}
+
+.collections-modal-category {
+    margin-bottom: 15px;
+}
+
+.collections-modal-category h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+/* Collections Modal Checkbox List Scrollbar */
+.collections-modal-checkbox-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.collections-modal-checkbox-list::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 4px;
+}
+
+.collections-modal-checkbox-list::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+}
+
+.collections-modal-checkbox-list::-webkit-scrollbar-thumb:hover {
+    background: #888;
 }
 
 .collections-modal-divider {
@@ -4702,6 +4811,120 @@ color: #fff;
     padding: 0 15px;
     position: relative;
     z-index: 1;
+}
+
+/* New Collection Category Selector */
+.collections-modal-new-collection {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.collection-category-select {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    min-width: 120px;
+}
+
+.collection-category-select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.collection-category-select option {
+    background: #333;
+    color: #fff;
+}
+
+/* Add New Item to Category */
+.collection-add-new-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.collection-new-item-input {
+    flex: 1;
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.collection-new-item-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.collection-add-item-btn {
+    background: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.collection-add-item-btn:hover {
+    background: #45a049;
+}
+
+.collection-add-item-btn:active {
+    transform: scale(0.95);
+}
+
+/* Collection Edit Buttons */
+.collection-category-edit-btn,
+.collection-item-edit-btn {
+    background: none;
+    border: none;
+    color: #4CAF50;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+    margin-left: 8px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.collection-category-edit-btn:hover,
+.collection-item-edit-btn:hover {
+    background: rgba(76, 175, 80, 0.2);
+}
+
+.collection-item-edit-btn {
+    font-size: 10px;
+    padding: 1px 4px;
+    margin-left: 4px;
+}
+
+/* Make checkbox items flex to accommodate edit buttons */
+.collections-modal-checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+    gap: 8px;
 }
 
 /* Modal Loading Overlay */

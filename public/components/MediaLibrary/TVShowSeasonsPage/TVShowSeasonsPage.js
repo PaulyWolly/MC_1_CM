@@ -1,8 +1,8 @@
 /*
   TVSHOWSEASONSPAGE.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -46,7 +46,7 @@ export default function TVShowSeasonsPage({ showName, showData, seasons, descrip
                             </div>
                             <div class=\"media-library-card-info\">
                                 <h3>${season.path.split(/[\\/]/).pop()}</h3>
-                                <p>${episodeCount} Episodes</p>
+                                <p>${episodeCount} ${this.getContentTypeLabel(season.path.split(/[\\/]/).pop(), season.episodes || [])}</p>
                             </div>
                         </div>
                     `;
@@ -71,4 +71,30 @@ export default function TVShowSeasonsPage({ showName, showData, seasons, descrip
         });
     }, 0);
     return html;
+}
+
+// Helper method to get appropriate label for different content types
+function getContentTypeLabel(seasonName, episodes) {
+    if (!episodes || episodes.length === 0) return 'Episodes';
+    
+    // Check if this is special content based on season name
+    const isSpecialContent = seasonName.toLowerCase().includes('specials') ||
+                            seasonName.toLowerCase().includes('featurettes') ||
+                            seasonName.toLowerCase().includes('extras');
+    
+    if (isSpecialContent) {
+        // Determine specific content type
+        if (seasonName.toLowerCase().includes('specials')) {
+            return 'Specials';
+        } else if (seasonName.toLowerCase().includes('featurettes') ||
+                   seasonName.toLowerCase().includes('featurette')) {
+            return 'Featurettes';
+        } else if (seasonName.toLowerCase().includes('extras')) {
+            return 'Extras';
+        } else {
+            return 'Episodes';
+        }
+    }
+    
+    return 'Episodes';
 } 

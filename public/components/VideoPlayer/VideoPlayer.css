@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.CSS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -1073,6 +1073,7 @@
     /* box-shadow: 0 0 15px rgba(25, 118, 210, 0.6) !important; */
     border: 2px solid #fff !important;
     transform: scale(1.05) !important;
+    margin-left: 80px !important;
 }
 
 .subtitle-icon {
