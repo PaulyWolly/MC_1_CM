@@ -1,14 +1,8 @@
 /*
   LOCALSTORAGE_MANAGER.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
->>>>>>> local
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 

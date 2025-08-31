@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -44,6 +44,8 @@ class MediaManager {
       console.log('[DEBUG - MediaManager] Showing MediaManager...');
     this.show();
       
+
+      
       // Auto-detect and process new TV shows
       await this.autoDetectNewShows();
       
@@ -53,6 +55,8 @@ class MediaManager {
       throw error;
     }
   }
+
+
 
   async loadCSS() {
     return new Promise((resolve, reject) => {
@@ -1097,27 +1101,33 @@ class MediaManager {
 
 
   async handleConfirm() {
-    console.log('[DEBUG - CONFIRM] handleConfirm called');
-    // Gather all modal data
+    try {
+      // Determine type based on active tab
     const type = this.tabMovie && this.tabMovie.classList.contains('active') ? 'movie' : 'tv';
-    let title, absPath, description, year, tmdbId;
+      let title, absPath, description, tmdbId, year;
     
     if (type === 'movie') {
       title = this.inputTitle ? this.inputTitle.value.trim() : '';
       absPath = this.inputPath ? this.inputPath.value.trim() : '';
       description = this.descInput ? this.descInput.value.trim() : '';
       tmdbId = this.inputTMDBId ? this.inputTMDBId.value.trim() : '';
-      console.log('[DEBUG - CONFIRM] Movie data:', { title, absPath, description, tmdbId });
+        // Initialize year for movies
+        year = '';
     } else {
       title = this.inputTVTitle ? this.inputTVTitle.value.trim() : '';
       absPath = this.inputTVPath ? this.inputTVPath.value.trim() : '';
       description = this.inputTVDescription ? this.inputTVDescription.value.trim() : '';
       year = this.inputTVYear ? this.inputTVYear.value.trim() : '';
+        console.log('[DEBUG - CONFIRM] TV Show data:', { title, absPath, description, year });
     }
 
     // NEW: For movies, ensure the specific movie entry exists with video files
     if (type === 'movie') {
-      console.log('[DEBUG - CONFIRM] Ensuring movie has proper video file entry...');
+        if (!absPath) {
+          this.showModalToast('Error: File path is missing. Please check the File/Folder Path field.', 'error');
+          return;
+        }
+        
       this.showModalToast('Step 1: Checking movie files...', 'info');
       
       try {
@@ -1136,10 +1146,8 @@ class MediaManager {
           throw new Error(ensureData.error || 'Failed to ensure movie exists');
         }
         
-        console.log('[DEBUG - CONFIRM] Movie file entry ensured successfully');
         this.showModalToast('Step 2: Adding movie metadata...', 'info');
       } catch (err) {
-        console.error('[DEBUG - CONFIRM] Ensure movie failed:', err);
         this.showModalToast('Failed to ensure movie files: ' + err.message, 'error');
         return;
       }
@@ -1147,6 +1155,15 @@ class MediaManager {
     // --- NORMALIZE KEY LOGIC ---
     let folderName = absPath ? absPath.split(/[\\/]/).slice(-2, -1)[0] || absPath.split(/[\\/]/).pop() : '';
     let normalizedKey = '';
+      
+      // Clean the folder name by removing quality tags before normalization
+      let cleanFolderName = folderName;
+      if (cleanFolderName) {
+        // Remove quality tags like [1080p], [720p], [4K], etc.
+        cleanFolderName = cleanFolderName.replace(/\s*\[.*?\]\s*$/g, '').trim();
+        console.log('[DEBUG - NORMALIZE] Original folder name:', folderName);
+        console.log('[DEBUG - NORMALIZE] Cleaned folder name:', cleanFolderName);
+      }
     
     // Use the shared normalization service for consistency
     if (!window.normalizeKey) {
@@ -1155,7 +1172,7 @@ class MediaManager {
       return;
     }
     
-    normalizedKey = window.normalizeKey(folderName || title);
+      normalizedKey = window.normalizeKey(cleanFolderName || title);
     if (!normalizedKey) {
       if (window.showToast) window.showToast('Error saving: Missing normalizedKey', 'error');
       console.error('[MediaManager] Error saving: Missing normalizedKey');
@@ -1257,6 +1274,10 @@ class MediaManager {
         this.confirmBtn.disabled = false;
         this.confirmBtn.innerHTML = 'Confirm';
       }
+      }
+    } catch (error) {
+      console.error('[MediaManager] Error handling confirm:', error);
+      this.showModalAlert('Failed to handle confirm: ' + error.message, 'error');
     }
   }
 

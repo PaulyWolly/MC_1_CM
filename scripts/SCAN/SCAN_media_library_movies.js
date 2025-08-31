@@ -1,14 +1,8 @@
 /*
   SCAN_MEDIA_LIBRARY_MOVIES.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
->>>>>>> local
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -36,14 +30,16 @@ if (!TMDB_API_KEY) {
 const TMDB_SEARCH_URL = 'https://api.themoviedb.org/3/search/movie';
 
 const MEDIA_ROOT = 'S:/MEDIA/MOVIES';
-const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
+// UPDATED: Use the new unified movies format
+const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
 
 let existingTMDBMap = {};
 try {
   const existing = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf-8'));
-  for (const folder of existing.folders || []) {
-    if (folder.normalizedKey && folder.tmdbId) {
-      existingTMDBMap[folder.normalizedKey] = folder.tmdbId;
+  // UPDATED: Handle the new unified format structure
+  for (const [key, movie] of Object.entries(existing)) {
+    if (movie.normalizedKey && movie.tmdbId) {
+      existingTMDBMap[movie.normalizedKey] = movie.tmdbId;
     }
   }
 } catch (e) {
@@ -148,12 +144,36 @@ async function fetchTMDBId(title, year) {
 async function walkMediaWithTMDB(dir, relPath = '') {
   const absPath = path.join(dir, relPath);
   const { folders, files } = scanDirectory(absPath);
-  // Only process as a movie if there is at least one video file
+  
+  // FIXED: Handle root directory call properly
+  if (!relPath) {
+    // This is the root call - process immediate subdirectories as movie folders
+    const result = {
+      path: '',
+      normalizedKey: '', // Root has no normalizedKey
+      tmdbId: null,
+      folders: [],
+      files: []
+    };
+    
+    // Process each immediate subdirectory as a potential movie folder
+    for (const folder of folders) {
+      const subResult = await walkMediaWithTMDB(dir, folder);
+      if (subResult.normalizedKey) {
+        // This is a movie folder, add it to our results
+        result.folders.push(subResult);
+      }
+    }
+    return result;
+  }
+  
+  // FIXED: Only process as a movie if this is a TOP-LEVEL folder with video files
+  // Skip subdirectories within movie folders (like Extras, Bonus Features, etc.)
   if (files.length === 0) {
-    // Still recurse into subfolders, but do not attempt TMDB lookup for this folder
+    // No video files in this folder, but still recurse into subfolders
     const result = {
       path: relPath,
-      normalizedKey: relPath ? normalizeKey(relPath.split(/[\\/]/).filter(Boolean).pop()) : '',
+      normalizedKey: '', // No normalizedKey for folders without video files
       tmdbId: null,
       folders: [],
       files: []
@@ -163,19 +183,52 @@ async function walkMediaWithTMDB(dir, relPath = '') {
     }
     return result;
   }
-  const folderName = relPath ? relPath.split(/[\\/]/).filter(Boolean).pop() : '';
-  const normalizedKey = folderName ? normalizeKey(folderName) : '';
+  
+  // FIXED: Only create movie entries for top-level folders (no path separators in relPath)
+  if (relPath && (relPath.includes('/') || relPath.includes('\\'))) {
+    // This is a subdirectory within a movie folder, don't treat as a movie
+    const result = {
+      path: relPath,
+      normalizedKey: '', // No normalizedKey for subdirectories
+      tmdbId: null,
+      folders: [],
+      files: files.map(f => ({
+        name: f,
+        absPath: path.join(absPath, f),
+        relPath: path.join(relPath, f)
+      }))
+    };
+    // Still recurse into subfolders
+    for (const folder of folders) {
+      result.folders.push(await walkMediaWithTMDB(dir, path.join(relPath, folder)));
+    }
+    return result;
+  }
+  
+  // This is a top-level movie folder (immediate subdirectory of MEDIA_ROOT)
+  const folderName = relPath;
+  
+  // CRITICAL FIX: Remove quality tags BEFORE creating normalizedKey
+  // This ensures we get ONE entry per movie, not duplicates for each quality
+  const cleanFolderName = folderName
+    .replace(/\[[^\]]*\]/g, '') // Remove [1080p], [720p], etc.
+    .replace(/\s+/g, ' ') // Clean up extra spaces
+    .trim();
+  
+  const normalizedKey = cleanFolderName ? normalizeKey(cleanFolderName) : '';
+  
   let tmdbId = null;
   if (normalizedKey && existingTMDBMap[normalizedKey]) {
     tmdbId = existingTMDBMap[normalizedKey];
-  } else if (folderName) {
-    const year = extractYearFromTitle(folderName);
-    const cleanTitle = cleanTitleForTMDB(folderName);
+  } else if (cleanFolderName) {
+    const year = extractYearFromTitle(cleanFolderName);
+    const cleanTitle = cleanTitleForTMDB(cleanFolderName);
     tmdbId = await fetchTMDBId(cleanTitle, year);
     if (!tmdbId && !existingTMDBMap[normalizedKey]) {
-      console.warn(`[WARN] TMDB ID not found for: ${folderName}`);
+      console.log(`[WARN] TMDB ID not found for: ${cleanFolderName}`);
     }
   }
+  
   const result = {
     path: relPath,
     normalizedKey,
@@ -187,6 +240,8 @@ async function walkMediaWithTMDB(dir, relPath = '') {
       relPath: path.join(relPath, f)
     }))
   };
+  
+  // Recurse into subfolders but don't treat them as movies
   for (const folder of folders) {
     result.folders.push(await walkMediaWithTMDB(dir, path.join(relPath, folder)));
   }
@@ -218,32 +273,107 @@ async function main() {
     try {
         const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT);
         const flatFolders = flattenFolders(mediaTree);
-        const output = {
-            path: '',
-            folders: flatFolders
-        };
         
-        // Create backup of existing file
-        if (fs.existsSync(OUTPUT_FILE)) {
-            // Create bkup directory if it doesn't exist
-            const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
-            if (!fs.existsSync(bkupDir)) {
-                fs.mkdirSync(bkupDir, { recursive: true });
-                console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
+        // FIXED: Only add NEW movies, NEVER overwrite existing data
+        let existingData = {};
+        try {
+            if (fs.existsSync(OUTPUT_FILE)) {
+                existingData = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf-8'));
+                console.log(`📖 [SCAN] Loaded existing data with ${Object.keys(existingData).length} movies`);
             }
-            
-            // Move backup to bkup folder with timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const backupFile = path.join(bkupDir, `media-library-movies_normalized_backup_${timestamp}.json`);
-            fs.copyFileSync(OUTPUT_FILE, backupFile);
-            console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+        } catch (e) {
+            console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
         }
         
-        // Write the data
-        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2));
+        // Start with existing data - DO NOT OVERWRITE
+        const unifiedOutput = { ...existingData };
         
-        console.log(`✅ [SCAN] MOVIES scan complete. Output written to: ${OUTPUT_FILE}`);
-        console.log(`📊 [SCAN] Found ${flatFolders.length} valid movies`);
+        let newMoviesAdded = 0;
+        let existingMoviesSkipped = 0;
+        
+        // BULLETPROOF: Create a set of all existing keys (normalized to lowercase) for fast lookup
+        const existingKeysSet = new Set(Object.keys(existingData).map(key => key.toLowerCase()));
+        
+        for (const folder of flatFolders) {
+            const normalizedKey = folder.normalizedKey;
+            if (normalizedKey) {
+                // BULLETPROOF: Check if this movie already exists using the normalized set
+                const normalizedKeyLower = normalizedKey.toLowerCase();
+                
+                if (existingKeysSet.has(normalizedKeyLower)) {
+                    // Find the actual existing key (preserve original case)
+                    const existingKey = Object.keys(existingData).find(key => 
+                        key.toLowerCase() === normalizedKeyLower
+                    );
+                    console.log(`⏭️ [SCAN] Skipping existing movie: ${normalizedKey} (found as: ${existingKey})`);
+                    existingMoviesSkipped++;
+                    continue; // SKIP - don't touch existing movies!
+                }
+                
+                // BULLETPROOF: Double-check that we're not about to create a duplicate
+                if (unifiedOutput[normalizedKey]) {
+                    console.log(`🚨 [SCAN] WARNING: About to create duplicate for key: ${normalizedKey}`);
+                    console.log(`🚨 [SCAN] This should never happen - skipping to prevent corruption`);
+                    continue;
+                }
+                
+                // Only add NEW movies
+                console.log(`➕ [SCAN] Adding NEW movie: ${normalizedKey}`);
+                const year = extractYearFromTitle(folder.path);
+                
+                unifiedOutput[normalizedKey] = {
+                    type: "movie",
+                    isMovie: true,
+                    title: folder.path,
+                    TMDBTitle: folder.path,
+                    year: year,
+                    normalizedKey: normalizedKey,
+                    tmdbId: folder.tmdbId,
+                    description: '', // New movie, no description yet
+                    cast: [], // New movie, no cast yet
+                    poster: '', // New movie, no poster yet
+                    files: folder.files || []
+                };
+                
+                // BULLETPROOF: Add to our tracking set to prevent duplicates within this run
+                existingKeysSet.add(normalizedKeyLower);
+                newMoviesAdded++;
+            }
+        }
+        
+        console.log(`📊 [SCAN] Summary:`);
+        console.log(`   - Existing movies preserved: ${existingMoviesSkipped}`);
+        console.log(`   - New movies added: ${newMoviesAdded}`);
+        console.log(`   - Total movies in library: ${Object.keys(unifiedOutput).length}`);
+        console.log(`   - Expected: 530 movies (one per actual movie folder)`);
+        
+        // Only create backup if we're actually making changes
+        if (newMoviesAdded > 0) {
+            if (fs.existsSync(OUTPUT_FILE)) {
+                // Create bkup directory if it doesn't exist
+                const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
+                if (!fs.existsSync(bkupDir)) {
+                    fs.mkdirSync(bkupDir, { recursive: true });
+                    console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
+                }
+                
+                // Create backup with timestamp
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const backupFile = path.join(bkupDir, `movies-unified_backup_${timestamp}.json`);
+                fs.copyFileSync(OUTPUT_FILE, backupFile);
+                console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+            }
+            
+            // Write the updated data
+            fs.writeFileSync(OUTPUT_FILE, JSON.stringify(unifiedOutput, null, 2));
+            console.log(`✅ [SCAN] MOVIES scan complete. Added ${newMoviesAdded} new movies.`);
+            console.log(`✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies (should be ~530)`);
+        } else {
+            console.log(`✅ [SCAN] No new movies found. Existing library unchanged.`);
+            console.log(`✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies (should be ~530)`);
+        }
+        
+
         
     } catch (error) {
         console.error(`❌ [SCAN] Fatal error during scan: ${error.message}`);

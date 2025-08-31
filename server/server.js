@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -3462,6 +3462,8 @@ app.post('/api/youtube/search', async (req, res) => {
                 // NOTE: MongoDB saving is now OPTIONAL - only happens when user clicks SAVE button
                 console.log(`🎬 [SEARCH] Search results saved to localStorage only - use SAVE button to persist to MongoDB`);
 
+                // Calculate actual quota cost for this page
+                const actualQuotaCost = (quotaCostMultiplier * 100) + 1;
                 console.log(`💰 [QUOTA] Page ${pageNum} cost: ${actualQuotaCost} quota (${quotaCostMultiplier} search calls + 1 video details call)`);
 
                 return { 
@@ -4226,23 +4228,82 @@ app.get('/api/video', (req, res) => {
       return res.status(404).send('File not found');
     }
   } else if (!videoPath.includes(':') && !videoPath.startsWith('/') && !videoPath.startsWith('\\')) {
-    // Handle relative paths (like "Lucifer (2016)/Season 06/...")
-    // These are relative paths that need to be converted to absolute paths
+    // Handle relative paths (like "Lucifer (2016)/Season 06/..." or "TV-SHOWS/Show Name/...")
     console.log('🎬 [VIDEO] Processing relative path:', videoPath);
     
+    let cleanedPath = videoPath;
+    
+    // If path already starts with TV-SHOWS, remove it to avoid duplication
+    if (videoPath.toLowerCase().startsWith('tv-shows/') || videoPath.toLowerCase().startsWith('tv-shows\\')) {
+      cleanedPath = videoPath.substring(9); // Remove "TV-SHOWS/" or "TV-SHOWS\"
+      console.log('🎬 [VIDEO] Removed TV-SHOWS prefix, cleaned path:', cleanedPath);
+    }
+    
     const possiblePaths = [
-      path.join('S:/MEDIA/TV-SHOWS', videoPath),
-      path.join('S:/MEDIA/MOVIES', videoPath),
-      path.join('S:\\MEDIA\\TV-SHOWS', videoPath),
-      path.join('S:\\MEDIA\\MOVIES', videoPath)
+      path.join('S:/MEDIA/TV-SHOWS', cleanedPath),
+      path.join('S:/MEDIA/MOVIES', cleanedPath),
+      path.join('S:\\MEDIA\\TV-SHOWS', cleanedPath),
+      path.join('S:\\MEDIA\\MOVIES', cleanedPath)
     ];
     
-    resolvedPath = possiblePaths.find(p => fs.existsSync(p));
+    // Add more debugging
+    console.log('🎬 [VIDEO] Trying to resolve path:', cleanedPath);
+    console.log('🎬 [VIDEO] Possible absolute paths:', possiblePaths);
+    
+    // Check each path individually and log the result
+    for (const testPath of possiblePaths) {
+      const exists = fs.existsSync(testPath);
+      console.log(`🎬 [VIDEO] Path exists: ${exists} - ${testPath}`);
+      if (exists) {
+        resolvedPath = testPath;
+        break;
+      }
+    }
     
     if (!resolvedPath) {
       console.log('🎬 [VIDEO] File not found in any media root for relative path:', videoPath);
       console.log('🎬 [VIDEO] Tried paths:', possiblePaths);
-      return res.status(404).send('File not found');
+      
+      // Try to find the actual file by searching the media directories
+      console.log('🎬 [VIDEO] Searching for file in media directories...');
+      const searchResults = [];
+      
+      // Search in MOVIES directory
+      try {
+        const moviesDir = 'S:/MEDIA/MOVIES';
+        if (fs.existsSync(moviesDir)) {
+          const movies = fs.readdirSync(moviesDir);
+          console.log('🎬 [VIDEO] Found movies directories:', movies.slice(0, 10));
+          
+          // Look for a directory that might contain our file
+          for (const movieDir of movies) {
+            if (movieDir.toLowerCase().includes('13 going on 30') || movieDir.toLowerCase().includes('13.going.on.30')) {
+              console.log('🎬 [VIDEO] Found potential match:', movieDir);
+              const moviePath = path.join(moviesDir, movieDir);
+              if (fs.existsSync(moviePath)) {
+                const files = fs.readdirSync(moviePath);
+                console.log('🎬 [VIDEO] Files in directory:', files);
+                const mp4File = files.find(f => f.toLowerCase().includes('.mp4'));
+                if (mp4File) {
+                  const fullPath = path.join(moviePath, mp4File);
+                  console.log('🎬 [VIDEO] Found MP4 file:', fullPath);
+                  searchResults.push(fullPath);
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.log('🎬 [VIDEO] Error searching movies directory:', error.message);
+      }
+      
+      if (searchResults.length > 0) {
+        console.log('🎬 [VIDEO] Found potential files:', searchResults);
+        resolvedPath = searchResults[0];
+        console.log('🎬 [VIDEO] Using found file:', resolvedPath);
+      } else {
+        return res.status(404).send('File not found');
+      }
     }
     
     console.log('🎬 [VIDEO] Resolved relative path to:', resolvedPath);
