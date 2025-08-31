@@ -1,8 +1,8 @@
 /*
   YOUTUBESEARCHMANAGER.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -1424,19 +1424,19 @@ export default class YouTubeSearchManager {
     if (!isPagination && this.updateAllYouTubeHeaders) {
       this.updateAllYouTubeHeaders(subject);
 
-      console.log(
-        "🎯 [HEADER-UPDATE] Updated header immediately for:",
-        subject
-      );
+      // console.log(
+      //   "🎯 [HEADER-UPDATE] Updated header immediately for:",
+      //   subject
+      // );
     }
 
     // CRITICAL: For new searches (not pagination), reset pagination state completely
 
     if (!isPagination) {
-      console.log(
-        "NEW-SEARCH: Resetting pagination state for new query:",
-        subject
-      );
+      // console.log(
+      //   "NEW-SEARCH: Resetting pagination state for new query:",
+      //   subject
+      // );
 
       this.pagination.currentPage = 1;
 
@@ -2163,14 +2163,14 @@ export default class YouTubeSearchManager {
             extractedLower.includes("zucchini") ||
             queryLower.includes("zucchini")
           ) {
-            console.log(`🔍 [VIDEO-DATA] DEBUG Zucchini match attempt:`, {
-              extractedQuery,
-              extractedLower,
-              query,
-              queryLower,
-              matchesQuery,
-              key,
-            });
+            // console.log(`🔍 [VIDEO-DATA] DEBUG Zucchini match attempt:`, {
+            //   extractedQuery,
+            //   extractedLower,
+            //   query,
+            //   queryLower,
+            //   matchesQuery,
+            //   key,
+            // });
           }
         } else if (key.startsWith("yt_channel_") && type === "channel") {
           matchesType = true;
@@ -2322,15 +2322,15 @@ export default class YouTubeSearchManager {
           key.includes(normalizedQuery) ||
           key.includes(query.toLowerCase())
         ) {
-          console.log(
-            `🔍 [VIDEO-CHECK] Potential match found - Key: "${key}" | Extracted: "${extractedQuery}" | Normalized: "${normalizedQuery}" | Matches: ${matchesQuery && matchesType}`
-          );
+          // console.log(
+          //   `🔍 [VIDEO-CHECK] Potential match found - Key: "${key}" | Extracted: "${extractedQuery}" | Normalized: "${normalizedQuery}" | Matches: ${matchesQuery && matchesType}`
+          // );
         }
 
         if (matchesQuery && matchesType) {
-          console.log(
-            `✅ [VIDEO-CHECK] Found matching cache key: "${key}" for query: "${query}"`
-          );
+          // console.log(
+          //   `✅ [VIDEO-CHECK] Found matching cache key: "${key}" for query: "${query}"`
+          // );
 
           // Found a matching cache key, now check if it has video data
 
@@ -2345,17 +2345,17 @@ export default class YouTubeSearchManager {
                 Array.isArray(cachedData.data.videos) &&
                 cachedData.data.videos.length > 0
               ) {
-                console.log(
-                  `✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.data.videos.length} videos`
-                );
+                // console.log(
+                //   `✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.data.videos.length} videos`
+                // );
 
                 return true; // Found video data!
               }
 
               if (cachedData.data.video && cachedData.data.video.id) {
-                console.log(
-                  `✅ [VIDEO-CHECK] Query "${query}" has single video data`
-                );
+                // console.log(
+                //   `✅ [VIDEO-CHECK] Query "${query}" has single video data`
+                // );
 
                 return true; // Found single video data!
               }
@@ -2368,24 +2368,24 @@ export default class YouTubeSearchManager {
               Array.isArray(cachedData.videos) &&
               cachedData.videos.length > 0
             ) {
-              console.log(
-                `✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.videos.length} videos (top-level)`
-              );
+              // console.log(
+              //   `✅ [VIDEO-CHECK] Query "${query}" has ${cachedData.videos.length} videos (top-level)`
+              // );
 
               return true; // Found video data!
             }
 
             if (cachedData.video && cachedData.video.id) {
-              console.log(
-                `✅ [VIDEO-CHECK] Query "${query}" has single video data (top-level)`
-              );
+              // console.log(
+              //   `✅ [VIDEO-CHECK] Query "${query}" has single video data (top-level)`
+              // );
 
               return true; // Found single video data!
             }
 
-            console.log(
-              `⚠️ [VIDEO-CHECK] Cache key "${key}" found but no video data in cachedData.data`
-            );
+            // console.log(
+            //   `⚠️ [VIDEO-CHECK] Cache key "${key}" found but no video data in cachedData.data`
+            // );
           } catch (parseError) {
             console.warn(
               `[VIDEO-CHECK] Error parsing cache for key ${key}:`,
@@ -2395,9 +2395,9 @@ export default class YouTubeSearchManager {
         }
       }
 
-      console.log(
-        `❌ [VIDEO-CHECK] No video data found for query: "${query}" (type: ${type})`
-      );
+      // console.log(
+      //   `❌ [VIDEO-CHECK] No video data found for query: "${query}" (type: ${type})`
+      // );
 
       return false; // No video data found for this query
     } catch (error) {
@@ -2416,9 +2416,9 @@ export default class YouTubeSearchManager {
 
     const dbQueries = Array.from(this.savedQueries.values()).map(
       (savedQuery) => {
-        console.log(
-          `🔍 [DEBUG] Saved query: "${savedQuery.query}" | displayName: "${savedQuery.displayName}" | has displayName: ${!!savedQuery.displayName}`
-        );
+        // console.log(
+        //   `🔍 [DEBUG] Saved query: "${savedQuery.query}" | displayName: "${savedQuery.displayName}" | has displayName: ${!!savedQuery.displayName}`
+        // );
 
         return {
           query: savedQuery.query,
@@ -3686,20 +3686,20 @@ export default class YouTubeSearchManager {
     // Debug: Check displayName preservation
 
     result.forEach((query) => {
-      console.log(
-        `🔀 [MERGE-DEBUG] Query: "${query.query}" | displayName: "${query.displayName}" | source: ${query.source} | priority: ${query.priority}`
-      );
+      // console.log(
+      //   `🔀 [MERGE-DEBUG] Query: "${query.query}" | displayName: "${query.displayName}" | source: ${query.source} | priority: ${query.priority}`
+      // );
     });
 
-    console.log("🔀 [MERGE] Merged queries:", {
-      total: result.length,
+    // console.log("🔀 [MERGE] Merged queries:", {
+    //   total: result.length,
 
-      cached: result.filter((q) => q.priority === "cache").length,
+    //   cached: result.filter((q) => q.priority === "cache").length,
 
-      dbOnly: result.filter((q) => q.priority === "database").length,
+    //   dbOnly: result.filter((q) => q.priority === "database").length,
 
-      queries: result.map((q) => q.query).slice(0, 10), // Show first 10 queries for debugging
-    });
+    //   queries: result.map((q) => q.query).slice(0, 10), // Show first 10 queries for debugging
+    // });
 
     // AUTOMATIC DEDUPLICATION: Clean up localStorage duplicates
     this.cleanupLocalStorageDuplicates(result);
@@ -3708,11 +3708,11 @@ export default class YouTubeSearchManager {
 
     const sortedResult = this.sortByAccessHistory(result);
 
-    console.log(
-      "📊 [SORT] Applied access history sorting, top 5 queries:",
+    // console.log(
+    //   "📊 [SORT] Applied access history sorting, top 5 queries:",
 
-      sortedResult.slice(0, 5).map((q) => q.query)
-    );
+    //   sortedResult.slice(0, 5).map((q) => q.query)
+    // );
 
     return sortedResult;
   }
@@ -3723,7 +3723,7 @@ export default class YouTubeSearchManager {
    */
   cleanupLocalStorageDuplicates(mergedQueries) {
     try {
-      console.log("🧹 [AUTO-CLEANUP] Starting automatic cleanup of localStorage duplicates");
+      // console.log("🧹 [AUTO-CLEANUP] Starting automatic cleanup of localStorage duplicates");
       
       // Group queries by humanized key to find duplicates
       const duplicates = new Map();
@@ -3754,7 +3754,7 @@ export default class YouTubeSearchManager {
         }
       });
       
-      console.log("🧹 [AUTO-CLEANUP] Automatic cleanup completed");
+      // console.log("🧹 [AUTO-CLEANUP] Automatic cleanup completed");
       
     } catch (error) {
       console.error("❌ [AUTO-CLEANUP] Error during automatic cleanup:", error);
@@ -3768,9 +3768,9 @@ export default class YouTubeSearchManager {
      */
 
   async refreshCacheFromMongoDB() {
-    console.log(
-      "🔄 [CACHE-REFRESH] Refreshing localStorage cache from MongoDB"
-    );
+    // console.log(
+    //   "🔄 [CACHE-REFRESH] Refreshing localStorage cache from MongoDB"
+    // );
 
     try {
       // Load saved queries from MongoDB
@@ -3783,11 +3783,11 @@ export default class YouTubeSearchManager {
 
       localStorage.setItem("youtubeSavedQueries", JSON.stringify(dbQueries));
 
-      console.log(
-        "✅ [CACHE-REFRESH] Successfully refreshed cache with",
-        dbQueries.length,
-        "queries from MongoDB"
-      );
+      // console.log(
+      //   "✅ [CACHE-REFRESH] Successfully refreshed cache with",
+      //   dbQueries.length,
+      //   "queries from MongoDB"
+      // );
 
       return dbQueries;
     } catch (error) {
@@ -3809,9 +3809,9 @@ export default class YouTubeSearchManager {
      */
 
   async repopulateSearchCache(maxQueries = 10) {
-    console.log(
-      "🔄 [CACHE-REPOPULATE] Starting cache repopulation for database queries"
-    );
+    // console.log(
+    //   "🔄 [CACHE-REPOPULATE] Starting cache repopulation for database queries"
+    // );
 
     if (window.showToast) {
       window.showToast("Repopulating cache from database queries...", "info");
@@ -3832,11 +3832,11 @@ export default class YouTubeSearchManager {
         return pageCount === "DB";
       });
 
-      console.log(
-        "🔄 [CACHE-REPOPULATE] Found",
-        uncachedQueries.length,
-        "uncached database queries"
-      );
+      // console.log(
+      //   "🔄 [CACHE-REPOPULATE] Found",
+      //   uncachedQueries.length,
+      //   "uncached database queries"
+      // );
 
       if (uncachedQueries.length === 0) {
         if (window.showToast) {
@@ -3859,9 +3859,9 @@ export default class YouTubeSearchManager {
 
       for (const [index, queryObj] of queriesToCache.entries()) {
         try {
-          console.log(
-            `🔄 [CACHE-REPOPULATE] Processing ${index + 1}/${queriesToCache.length}: ${queryObj.query}`
-          );
+          // console.log(
+          //   `🔄 [CACHE-REPOPULATE] Processing ${index + 1}/${queriesToCache.length}: ${queryObj.query}`
+          // );
 
           if (window.showToast) {
             window.showToast(
@@ -3891,9 +3891,9 @@ export default class YouTubeSearchManager {
         }
       }
 
-      console.log(
-        `✅ [CACHE-REPOPULATE] Completed: ${successCount} success, ${errorCount} errors`
-      );
+      // console.log(
+      //   `✅ [CACHE-REPOPULATE] Completed: ${successCount} success, ${errorCount} errors`
+      // );
 
       if (window.showToast) {
         window.showToast(
@@ -3927,9 +3927,9 @@ export default class YouTubeSearchManager {
      */
 
   async repopulateCacheFromClickedVideos(maxQueries = 10) {
-    console.log(
-      "💾 [CLICKED-CACHE] Starting cache repopulation from clicked videos"
-    );
+    // console.log(
+    //   "💾 [CLICKED-CACHE] Starting cache repopulation from clicked videos"
+    // );
 
     if (window.showToast) {
       window.showToast("Repopulating cache from clicked videos...", "info");
@@ -3950,11 +3950,11 @@ export default class YouTubeSearchManager {
         return pageCount === "DB";
       });
 
-      console.log(
-        "💾 [CLICKED-CACHE] Found",
-        uncachedQueries.length,
-        "uncached database queries"
-      );
+      // console.log(
+      //   "💾 [CLICKED-CACHE] Found",
+      // //   uncachedQueries.length,
+      // //   "uncached database queries"
+      // // );
 
       if (uncachedQueries.length === 0) {
         if (window.showToast) {
@@ -3979,9 +3979,9 @@ export default class YouTubeSearchManager {
 
       for (const [index, queryObj] of queriesToCache.entries()) {
         try {
-          console.log(
-            `💾 [CLICKED-CACHE] Processing ${index + 1}/${queriesToCache.length}: ${queryObj.query}`
-          );
+          // console.log(
+          //   `💾 [CLICKED-CACHE] Processing ${index + 1}/${queriesToCache.length}: ${queryObj.query}`
+          // );
 
           if (window.showToast) {
             window.showToast(
@@ -4035,15 +4035,15 @@ export default class YouTubeSearchManager {
                 24
               );
 
-              console.log(
-                `✅ [CLICKED-CACHE] Successfully cached ${cacheVideos.length} clicked videos for: ${queryObj.query}`
-              );
+              // console.log(
+              //   `✅ [CLICKED-CACHE] Successfully cached ${cacheVideos.length} clicked videos for: ${queryObj.query}`
+              // );
 
               successCount++;
             } else {
-              console.log(
-                `⚠️ [CLICKED-CACHE] No clicked videos found for: ${queryObj.query}`
-              );
+              // console.log(
+              //   `⚠️ [CLICKED-CACHE] No clicked videos found for: ${queryObj.query}`
+              // );
 
               noClicksCount++;
             }
@@ -4064,9 +4064,9 @@ export default class YouTubeSearchManager {
         }
       }
 
-      console.log(
-        `🎯 [CLICKED-CACHE] Completed: ${successCount} cached, ${noClicksCount} no clicks, ${errorCount} errors`
-      );
+      // console.log(
+      //   `🎯 [CLICKED-CACHE] Completed: ${successCount} cached, ${noClicksCount} no clicks, ${errorCount} errors`
+      // );
 
       if (window.showToast) {
         if (successCount > 0) {

@@ -1,8 +1,8 @@
 /*
   EPISODEMODAL.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -120,12 +120,15 @@ class EpisodeModal {
         }
         console.log('[EPISODE-MODAL] ==========================================');
 
+        // Humanize the show name for display (remove dot notation)
+        const humanizedShowName = this.humanizeShowName(showName);
+        
         // Set initial content
         this.content.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 24px 24px 16px 24px; border-bottom: 1px solid #333; flex-shrink: 0;">
                 <div>
                     <h2 style="margin: 0; color: #007bff;">Select Episode</h2>
-                    <h3 style="margin: 8px 0 0 0; color: white; font-size: 1.2em;">${showName}</h3>
+                    <h3 style="margin: 8px 0 0 0; color: white; font-size: 1.2em;">${humanizedShowName}</h3>
                     <div id="episode-count" style="margin: 4px 0 0 0; color: #9c27b0; font-size: 0.8em;">Loading episodes...</div>
                 </div>
                 <button id="close-episode-modal" style="background: #b71c1c; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 16px;">✕</button>
@@ -180,12 +183,18 @@ class EpisodeModal {
                         if (seasonData.episodes) {
                             console.log('[EPISODE-MODAL] Season', seasonNum, 'has', Object.keys(seasonData.episodes).length, 'episodes');
                             
+                            // Check if this is a special content section (not a regular numbered season)
+                            const isSpecialContent = isNaN(parseInt(seasonNum)) || seasonNum === 'Specials' || seasonNum === 'Featurettes';
+                            
                             // Convert unified episode data to the expected format
                             Object.entries(seasonData.episodes).forEach(([episodeNum, episode]) => {
                                 // Construct proper path for video playback
                                 let absPath = "";
-                                if (episode.path) {
-                                    // Use the relative path from unified data
+                                if (episode.absPath) {
+                                    // Use the absolute path from unified data (preferred)
+                                    absPath = episode.absPath;
+                                } else if (episode.path) {
+                                    // Fallback to relative path
                                     absPath = episode.path;
                                 }
                                 
@@ -201,7 +210,9 @@ class EpisodeModal {
                                     generated: false,
                                     timestamp: "",
                                     episodeNumber: episodeNum,
-                                    seasonNumber: seasonNum
+                                    seasonNumber: seasonNum,
+                                    isSpecialContent: isSpecialContent,
+                                    contentType: episode.contentType || seasonNum
                                 });
                             });
                         }
@@ -234,7 +245,19 @@ class EpisodeModal {
 
         // Sort episodes by season and episode number using the already-extracted data
         const sortedEpisodes = episodes.sort((a, b) => {
-            // Use the already-extracted seasonNumber and episodeNumber properties
+            // Handle special content sections (Featurettes, Specials, etc.)
+            if (a.isSpecialContent && !b.isSpecialContent) return -1; // Special content first
+            if (!a.isSpecialContent && b.isSpecialContent) return 1;
+            
+            // For special content, sort by content type and episode number
+            if (a.isSpecialContent && b.isSpecialContent) {
+                if (a.contentType !== b.contentType) {
+                    return a.contentType.localeCompare(b.contentType);
+                }
+                return parseInt(a.episodeNumber) - parseInt(b.episodeNumber);
+            }
+            
+            // For regular seasons, sort by season and episode number
             const aSeason = parseInt(a.seasonNumber) || 1;
             const bSeason = parseInt(b.seasonNumber) || 1;
             const aEpisode = parseInt(a.episodeNumber) || 1;
@@ -253,8 +276,14 @@ class EpisodeModal {
         // Group episodes by season using the already-extracted data
         const episodesBySeason = {};
         sortedEpisodes.forEach((episode, index) => {
-            // Use the already-extracted seasonNumber property
-            const seasonKey = parseInt(episode.seasonNumber) || 1;
+            // For special content, use the content type as the season key
+            let seasonKey;
+            if (episode.isSpecialContent) {
+                seasonKey = episode.contentType || episode.seasonNumber;
+            } else {
+                // Use the already-extracted seasonNumber property for regular seasons
+                seasonKey = parseInt(episode.seasonNumber) || 1;
+            }
             
             if (!episodesBySeason[seasonKey]) {
                 episodesBySeason[seasonKey] = [];
@@ -268,28 +297,63 @@ class EpisodeModal {
             const seasonEpisodes = episodesBySeason[seasonNumber];
             
             // Add season header
+            const isSpecialContent = episodesBySeason[seasonNumber].some(({ episode }) => episode.isSpecialContent);
+            
+            // Determine header text and styling based on season type
+            let headerText, headerColor, borderColor;
+            
+            if (seasonNumber === 'Specials') {
+                headerText = 'Specials';
+                headerColor = '#9c27b0'; // Purple
+                borderColor = '#9c27b0';
+            } else if (seasonNumber === 'Featurettes') {
+                headerText = 'Featurettes';
+                headerColor = '#ff9800'; // Orange
+                borderColor = '#ff9800';
+            } else if (isSpecialContent) {
+                headerText = seasonNumber;
+                headerColor = '#4caf50'; // Green for other special content
+                borderColor = '#4caf50';
+            } else {
+                headerText = `Season ${seasonNumber}`;
+                headerColor = '#007bff'; // Blue for regular seasons
+                borderColor = '#007bff';
+            }
+            
             episodeButtons += `
                 <div class="season-header" style="
                     background: #2a2a2a;
-                    color: #007bff;
+                    color: ${headerColor};
                     font-weight: bold;
                     font-size: 1.1em;
                     padding: 12px 16px;
                     margin: 8px 0 4px 0;
                     border-radius: 6px;
-                    border-left: 4px solid #007bff;
+                    border-left: 4px solid ${borderColor};
                     grid-column: 1 / -1;
                 ">
-                    Season ${seasonNumber}
+                    ${headerText}
                 </div>
             `;
             
             // Add episodes for this season
             seasonEpisodes.forEach(({ episode, index }) => {
-                // Use the already-extracted seasonNumber and episodeNumber properties
-                const seasonNum = parseInt(episode.seasonNumber) || 1;
-                const episodeNum = parseInt(episode.episodeNumber) || 1;
-                const episodeLabel = `S${seasonNum.toString().padStart(2, '0')}E${episodeNum.toString().padStart(2, '0')}`;
+                // Create appropriate episode label based on content type
+                let episodeLabel;
+                if (episode.isSpecialContent) {
+                    if (episode.contentType && episode.contentType !== seasonNumber) {
+                        // For Featurettes with content types like "Deleted Scenes", "Inside Look"
+                        episodeLabel = `${episode.contentType} - ${episode.episodeNumber}`;
+                    } else {
+                        // For other special content
+                        episodeLabel = `Episode ${episode.episodeNumber}`;
+                    }
+                } else {
+                    // Regular episodes: S01E01 format
+                    const seasonNum = parseInt(episode.seasonNumber) || 1;
+                    const episodeNum = parseInt(episode.episodeNumber) || 1;
+                    episodeLabel = `S${seasonNum.toString().padStart(2, '0')}E${episodeNum.toString().padStart(2, '0')}`;
+                }
                 
                 const isCurrentEpisode = currentEpisodeInfo && 
                     currentEpisodeInfo.seasonNumber === seasonNum && 
@@ -441,6 +505,32 @@ class EpisodeModal {
         
         console.log('[EPISODE-MODAL] No current episode info found');
         return null;
+    }
+
+    // Humanize show name for display (convert dot notation back to readable format)
+    humanizeShowName(showName) {
+        if (!showName) return '';
+        
+        // If it's already humanized (has spaces), return as is
+        if (showName.includes(' ')) {
+            return showName;
+        }
+        
+        // Convert dot notation back to readable format
+        let humanized = showName
+            .replace(/\./g, ' ')  // Replace dots with spaces
+            .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+            .trim();
+        
+        // Capitalize first letter of each word
+        humanized = humanized.replace(/\b\w/g, l => l.toUpperCase());
+        
+        // Handle special cases like "TV" and "USA"
+        humanized = humanized.replace(/\bTv\b/g, 'TV');
+        humanized = humanized.replace(/\bUsa\b/g, 'USA');
+        
+        console.log(`[EPISODE-MODAL] Humanized "${showName}" -> "${humanized}"`);
+        return humanized;
     }
 
     // Normalize show name to lowercase dot notation format

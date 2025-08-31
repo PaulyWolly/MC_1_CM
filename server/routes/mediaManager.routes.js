@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -65,19 +65,20 @@ router.get('/unconfigured', (req, res) => {
   }
 });
 
-// POST /api/scan-movies
+// POST /api/media/scan-movies
 router.post('/scan-movies', async (req, res) => {
   try {
     console.log('[SCAN-MOVIES] Starting movie scan...');
     
-    // Get the current state before scanning
-    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
+    // UPDATED: Use the new unified movies format
+    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
     let beforeCount = 0;
     
     try {
       if (fs.existsSync(outputFile)) {
         const beforeData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        beforeCount = beforeData.folders ? beforeData.folders.length : 0;
+        // UPDATED: Count movies in the new unified format
+        beforeCount = Object.keys(beforeData).length;
         console.log(`[SCAN-MOVIES] Before scan: ${beforeCount} movies in database`);
       }
     } catch (e) {
@@ -98,7 +99,7 @@ router.post('/scan-movies', async (req, res) => {
     let result;
     try {
       result = execSync(`node "${scriptPath}"`, { 
-      encoding: 'utf8',
+        encoding: 'utf8',
         cwd: path.join(__dirname, '../../'),
         stdio: 'pipe'
       });
@@ -120,7 +121,8 @@ router.post('/scan-movies', async (req, res) => {
     try {
       if (fs.existsSync(outputFile)) {
         const afterData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        afterCount = afterData.folders ? afterData.folders.length : 0;
+        // UPDATED: Count movies in the new unified format
+        afterCount = Object.keys(afterData).length;
         console.log(`[SCAN-MOVIES] After scan: ${afterCount} movies in database`);
       }
     } catch (e) {
@@ -277,49 +279,108 @@ router.post('/process-movie-scripts', async (req, res) => {
         throw new Error('Failed to fetch movie details from TMDB');
       }
       
-      // Step 3: Save movie data to JSON files
-      console.log(`[PROCESS-MOVIE] Step 3: Saving movie data...`);
+      // Step 3: Save movie data to unified JSON format
+      console.log(`[PROCESS-MOVIE] Step 3: Saving movie data to unified format...`);
       
-      // Create the key for JSON files
+      // CRITICAL: Use EXACT same normalization logic as SCAN script
+      const { normalizeKey } = require('../../shared/NormalizationService');
+      
+      // Generate normalized key for the movie
       const folderName = path.basename(path.dirname(absPath));
-      const jsonKey = `${folderName} (${year}) [1080p]`;
       
-      console.log(`[PROCESS-MOVIE] Generated key: ${jsonKey}`);
+      // Clean the folder name using EXACT same logic as SCAN script
+      const cleanFolderName = folderName
+        .replace(/\[[^\]]*\]/g, '') // Remove [1080p], [720p], etc. - EXACT MATCH
+        .replace(/\s+/g, ' ') // Clean up extra spaces - EXACT MATCH
+        .trim(); // EXACT MATCH
+      
+      const normalizedKey = cleanFolderName ? normalizeKey(cleanFolderName) : '';
+      
+      console.log(`[PROCESS-MOVIE] Generated normalized key: ${normalizedKey}`);
       console.log(`[PROCESS-MOVIE] Folder name: ${folderName}`);
       console.log(`[PROCESS-MOVIE] Year: ${year}`);
       console.log(`[PROCESS-MOVIE] AbsPath: ${absPath}`);
       
-      // Save description
-      const descPath = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_descriptions_normalized.json');
-      let descData = {};
-      if (fs.existsSync(descPath)) descData = JSON.parse(fs.readFileSync(descPath, 'utf8'));
-      descData[absPath] = {
+      // Load or initialize movies data from the UNIFIED file
+      const MOVIES_UNIFIED_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
+      let moviesData = {};
+      if (fs.existsSync(MOVIES_UNIFIED_JSON)) {
+        moviesData = JSON.parse(fs.readFileSync(MOVIES_UNIFIED_JSON, 'utf8'));
+      }
+      
+      // Create the new movie entry in unified format
+      const newMovie = {
+        type: "movie",
+        isMovie: true,
         title: title,
+        TMDBTitle: bestMatch.title, // Use TMDB title for proper display
         year: year,
-        description: movieData.overview || ''
+        normalizedKey: normalizedKey,
+        tmdbId: bestMatch.id,
+        description: movieData.overview || '',
+        cast: movieData.credits && movieData.credits.cast
+          ? movieData.credits.cast.slice(0, 12).map(actor => ({
+              name: actor.name,
+              character: actor.character,
+              profile: actor.profile_path ? `${TMDB_IMAGE_BASE}${actor.profile_path}` : null
+            }))
+          : [],
+        poster: bestMatch.poster_url,
+        files: []
       };
-      fs.writeFileSync(descPath, JSON.stringify(descData, null, 2));
       
-      // Save cast
-      const castPath = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_cast_normalized.json');
-      let castData = {};
-      if (fs.existsSync(castPath)) castData = JSON.parse(fs.readFileSync(castPath, 'utf8'));
-      const cast = movieData.credits && movieData.credits.cast
-        ? movieData.credits.cast.slice(0, 12).map(actor => ({
-            name: actor.name,
-            character: actor.character,
-            profile: actor.profile_path ? `${TMDB_IMAGE_BASE}${actor.profile_path}` : null
-          }))
-        : [];
-      castData[absPath] = { cast };
-      fs.writeFileSync(castPath, JSON.stringify(castData, null, 2));
+      // Add video files if absPath is provided
+      if (absPath) {
+        try {
+          const movieDir = path.dirname(absPath);
+          const files = fs.readdirSync(movieDir, { withFileTypes: true })
+            .filter(dirent => dirent.isFile())
+            .filter(dirent => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(dirent.name))
+            .map(dirent => ({
+              name: dirent.name,
+              absPath: path.join(movieDir, dirent.name),
+              relPath: path.basename(movieDir) + '/' + dirent.name
+            }));
+          newMovie.files = files;
+          console.log(`[PROCESS-MOVIE] Found ${files.length} video files for ${title}`);
+        } catch (e) {
+          console.warn(`[PROCESS-MOVIE] Could not read video files for ${title}:`, e.message);
+        }
+      }
       
-      // Save poster
-      const posterPath = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movie_posters_normalized.json');
-      let posterData = {};
-      if (fs.existsSync(posterPath)) posterData = JSON.parse(fs.readFileSync(posterPath, 'utf8'));
-      posterData[jsonKey] = bestMatch.poster_url;
-      fs.writeFileSync(posterPath, JSON.stringify(posterData, null, 2));
+      // Add or update the movie in the unified data
+      // Check if movie already exists to avoid duplicates
+      if (moviesData[normalizedKey]) {
+        // Movie exists, update it with new metadata
+        console.log(`[SAVE] Updating existing movie: ${normalizedKey}`);
+        const existingMovie = moviesData[normalizedKey];
+        
+        // Update fields but preserve existing files and path
+        existingMovie.title = title || existingMovie.title;
+        existingMovie.TMDBTitle = title || existingMovie.TMDBTitle;
+        existingMovie.year = year || existingMovie.year;
+        existingMovie.tmdbId = tmdbId || existingMovie.tmdbId;
+        existingMovie.description = description || existingMovie.description;
+        existingMovie.cast = cast || existingMovie.cast;
+        existingMovie.poster = poster || existingMovie.poster;
+        
+        // Only update files if we have new ones and the existing ones are empty
+        if (newMovie.files.length > 0 && (!existingMovie.files || existingMovie.files.length === 0)) {
+          existingMovie.files = newMovie.files;
+        }
+        
+        // REMOVED: path field logic - this field should not exist in unified format
+        
+        console.log(`[SAVE] Successfully updated existing movie: ${normalizedKey}`);
+      } else {
+        // Movie doesn't exist, create new entry
+        console.log(`[SAVE] Creating new movie: ${normalizedKey}`);
+        moviesData[normalizedKey] = newMovie;
+      }
+      
+      fs.writeFileSync(MOVIES_UNIFIED_JSON, JSON.stringify(moviesData, null, 2));
+      
+      console.log(`[PROCESS-MOVIE] ✓ Successfully saved to unified format: ${title}`);
       
       console.log(`[PROCESS-MOVIE] ✓ Successfully processed: ${title}`);
       return res.json({ 
@@ -330,7 +391,7 @@ router.post('/process-movie-scripts', async (req, res) => {
           year: bestMatch.year,
           poster: bestMatch.poster_url,
           description: movieData.overview,
-          cast: cast
+          cast: newMovie.cast
         }
       });
       
@@ -512,69 +573,81 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing normalizedKey' });
     }
     
-    // Load or initialize movies data
+    // Load or initialize movies data from the UNIFIED file
+    const MOVIES_UNIFIED_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
     let moviesData = {};
-    if (fs.existsSync(MOVIES_JSON)) {
-      moviesData = JSON.parse(fs.readFileSync(MOVIES_JSON, 'utf8'));
+    if (fs.existsSync(MOVIES_UNIFIED_JSON)) {
+      moviesData = JSON.parse(fs.readFileSync(MOVIES_UNIFIED_JSON, 'utf8'));
     }
-    // Ensure the normalized structure exists
-    if (!moviesData.path) moviesData.path = "";
-    if (!Array.isArray(moviesData.folders)) moviesData.folders = [];
     
-    // Remove any existing folder entry for this normalizedKey
-    moviesData.folders = moviesData.folders.filter(m => m.normalizedKey !== normalizedKey);
+    // Create the new movie entry in unified format
+    const newMovie = {
+      type: "movie",
+      isMovie: true,
+      title: title || '',
+      TMDBTitle: title || '', // Set TMDBTitle to the same as title for proper display
+      year: year || '',
+      normalizedKey: normalizedKey, // This should already be cleaned by the client
+      tmdbId: tmdbId || null,
+      description: description || '',
+      cast: cast || [],
+      poster: poster || '',
+      files: []
+      // REMOVED: path field - not part of unified format
+    };
     
-    // Find the correct folder name from the file system
-    let folderName = title; // Default to title
-    let videoFiles = [];
-    
+    // Add video files if absPath is provided
     if (absPath) {
-      // Extract folder name from the full path
-      const movieDir = path.dirname(absPath);
-      folderName = path.basename(movieDir);
-      
-      // Get video files from the folder
       try {
+        const movieDir = path.dirname(absPath);
         const files = fs.readdirSync(movieDir, { withFileTypes: true })
           .filter(dirent => dirent.isFile())
           .filter(dirent => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(dirent.name))
           .map(dirent => ({
             name: dirent.name,
             absPath: path.join(movieDir, dirent.name),
-            relPath: path.join(folderName, dirent.name)
+            relPath: path.basename(movieDir) + '/' + dirent.name
           }));
-        videoFiles = files;
-        console.log(`[SAVE] Found ${videoFiles.length} video files for ${folderName}`);
+        newMovie.files = files;
+        console.log(`[SAVE] Found ${files.length} video files for ${title}`);
       } catch (e) {
-        console.warn(`[SAVE] Could not read video files for ${folderName}:`, e.message);
+        console.warn(`[SAVE] Could not read video files for ${title}:`, e.message);
       }
     }
     
-    // Create the new movie folder structure
-    const newMovie = {
-      path: folderName,
-      normalizedKey: normalizedKey,
-      tmdbId: tmdbId || null,
-      absPath: absPath, // Include the absolute path for the movie folder
-      folders: [],
-      files: videoFiles
-    };
-    moviesData.folders.push(newMovie);
-    fs.writeFileSync(MOVIES_JSON, JSON.stringify(moviesData, null, 2));
+    // Add or update the movie in the unified data
+    // Check if movie already exists to avoid duplicates
+    if (moviesData[normalizedKey]) {
+      // Movie exists, update it with new metadata
+      console.log(`[SAVE] Updating existing movie: ${normalizedKey}`);
+      const existingMovie = moviesData[normalizedKey];
+      
+      // Update fields but preserve existing files and path
+      existingMovie.title = title || existingMovie.title;
+      existingMovie.TMDBTitle = title || existingMovie.TMDBTitle;
+      existingMovie.year = year || existingMovie.year;
+      existingMovie.tmdbId = tmdbId || existingMovie.tmdbId;
+      existingMovie.description = description || existingMovie.description;
+      existingMovie.cast = cast || existingMovie.cast;
+      existingMovie.poster = poster || existingMovie.poster;
+      
+      // Only update files if we have new ones and the existing ones are empty
+      if (newMovie.files.length > 0 && (!existingMovie.files || existingMovie.files.length === 0)) {
+        existingMovie.files = newMovie.files;
+      }
+      
+      // REMOVED: path field logic - this field should not exist in unified format
+      
+      console.log(`[SAVE] Successfully updated existing movie: ${normalizedKey}`);
+    } else {
+      // Movie doesn't exist, create new entry
+      console.log(`[SAVE] Creating new movie: ${normalizedKey}`);
+      moviesData[normalizedKey] = newMovie;
+    }
+    
+    fs.writeFileSync(MOVIES_UNIFIED_JSON, JSON.stringify(moviesData, null, 2));
 
-    // --- Save description ---
-    let descData = {};
-    if (fs.existsSync(MOVIE_DESC_JSON)) descData = JSON.parse(fs.readFileSync(MOVIE_DESC_JSON, 'utf8'));
-    if (!descData[normalizedKey]) descData[normalizedKey] = {};
-    descData[normalizedKey].title = title || '';
-    descData[normalizedKey].year = year || '';
-    descData[normalizedKey].description = description || '';
-    fs.writeFileSync(MOVIE_DESC_JSON, JSON.stringify(descData, null, 2));
-    // --- Save cast ---
-    let castData = {};
-    if (fs.existsSync(MOVIE_CAST_JSON)) castData = JSON.parse(fs.readFileSync(MOVIE_CAST_JSON, 'utf8'));
-    castData[normalizedKey] = { title: title || '', year: year || '', cast: cast || [] };
-    fs.writeFileSync(MOVIE_CAST_JSON, JSON.stringify(castData, null, 2));
+    // Description and cast are now saved directly in the unified format above
     // --- Poster mapping and download ---
     if (poster && poster.startsWith('http')) {
       try {
@@ -656,7 +729,14 @@ router.post('/save', async (req, res) => {
           });
         }
         
-        // --- Use dot notation key for poster mapping ---
+        // Update the poster in the unified data as well
+        if (moviesData[normalizedKey]) {
+          moviesData[normalizedKey].poster = webPosterUrl;
+          fs.writeFileSync(MOVIES_UNIFIED_JSON, JSON.stringify(moviesData, null, 2));
+          console.log('[MEDIA SAVE] Poster updated in unified data:', webPosterUrl);
+        }
+        
+        // Also save to the legacy poster mapping for compatibility
         let posters = {};
         try {
           if (fs.existsSync(MOVIE_POSTERS_JSON)) {
@@ -666,10 +746,10 @@ router.post('/save', async (req, res) => {
         posters[normalizedKey] = webPosterUrl;
         try {
           fs.writeFileSync(MOVIE_POSTERS_JSON, JSON.stringify(posters, null, 2));
-          console.log('[MEDIA SAVE] Poster saved and movie_posters.json updated:', webPosterUrl);
+          console.log('[MEDIA SAVE] Poster saved to legacy mapping:', webPosterUrl);
         } catch (err) {
           console.error('[MEDIA SAVE] Failed to update movie_posters.json:', err);
-          return res.status(500).json({ success: false, error: 'Failed to update movie_posters.json: ' + err.message });
+          // Don't fail the entire operation, just log the error
         }
       } catch (err) {
         console.error('[MEDIA SAVE] Error in poster download/persist:', err);
@@ -1204,29 +1284,35 @@ router.post('/ensure-movie', async (req, res) => {
     
     console.log(`[ENSURE-MOVIE] Found ${videoFiles.length} video files`);
     
-    // Load the movies JSON file
-    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/media-library-movies_normalized.json');
-    let moviesData = { folders: [] };
+    // Load the movies data from the UNIFIED file
+    const MOVIES_UNIFIED_JSON = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
+    let moviesData = {};
     
     try {
-      if (fs.existsSync(outputFile)) {
-        moviesData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+      if (fs.existsSync(MOVIES_UNIFIED_JSON)) {
+        moviesData = JSON.parse(fs.readFileSync(MOVIES_UNIFIED_JSON, 'utf8'));
       }
     } catch (e) {
-      console.error('[ENSURE-MOVIE] Could not read movies JSON:', e.message);
+      console.error('[ENSURE-MOVIE] Could not read movies unified JSON:', e.message);
       return res.status(500).json({ 
         success: false, 
         error: 'Could not read movies database' 
       });
     }
     
-    // Create normalized key
-    const normalizedKey = normalizeKey(folderName);
+    // CRITICAL: Use EXACT same normalization logic as SCAN script
+    const { normalizeKey } = require('../../shared/NormalizationService');
+    
+    // Clean the folder name using EXACT same logic as SCAN script
+    const cleanFolderName = folderName
+      .replace(/\[[^\]]*\]/g, '') // Remove [1080p], [720p], etc. - EXACT MATCH
+      .replace(/\s+/g, ' ') // Clean up extra spaces - EXACT MATCH
+      .trim(); // EXACT MATCH
+    
+    const normalizedKey = cleanFolderName ? normalizeKey(cleanFolderName) : '';
     
     // Check if movie already exists
-    const existingMovie = moviesData.folders.find(movie => 
-      movie.normalizedKey === normalizedKey || movie.path === folderName
-    );
+    const existingMovie = moviesData[normalizedKey];
     
     if (existingMovie) {
       // Movie exists, ensure it has video files and correct path
@@ -1234,32 +1320,34 @@ router.post('/ensure-movie', async (req, res) => {
         existingMovie.files = videoFiles;
         console.log('[ENSURE-MOVIE] Updated existing movie with video files');
       }
-      // Also ensure the path is correct (full folder name)
-      if (existingMovie.path !== folderName) {
-        existingMovie.path = folderName;
-        console.log(`[ENSURE-MOVIE] Updated movie path from "${existingMovie.path}" to "${folderName}"`);
-      }
+             // REMOVED: path field logic - this field should not exist in unified format
     } else {
       // Movie doesn't exist, add it
-      const newMovie = {
-        path: folderName,
-        normalizedKey: normalizedKey,
-        tmdbId: null, // Will be set when metadata is added
-        absPath: absPath, // Include the absolute path for the movie folder
-        folders: [],
-        files: videoFiles
-      };
+             const newMovie = {
+         type: "movie",
+         isMovie: true,
+         title: folderName,
+         TMDBTitle: folderName, // Set TMDBTitle to folder name for proper display
+         year: '',
+         normalizedKey: normalizedKey,
+         tmdbId: null, // Will be set when metadata is added
+         description: '',
+         cast: [],
+         poster: '',
+         // REMOVED: path field - not part of unified format
+         files: videoFiles
+       };
       
-      moviesData.folders.push(newMovie);
+      moviesData[normalizedKey] = newMovie;
       console.log('[ENSURE-MOVIE] Added new movie entry');
     }
     
     // Save the updated JSON
     try {
-      fs.writeFileSync(outputFile, JSON.stringify(moviesData, null, 2));
-      console.log('[ENSURE-MOVIE] Successfully updated movies JSON');
+      fs.writeFileSync(MOVIES_UNIFIED_JSON, JSON.stringify(moviesData, null, 2));
+      console.log('[ENSURE-MOVIE] Successfully updated movies unified JSON');
     } catch (e) {
-      console.error('[ENSURE-MOVIE] Failed to save movies JSON:', e.message);
+      console.error('[ENSURE-MOVIE] Failed to save movies unified JSON:', e.message);
       return res.status(500).json({ 
         success: false, 
         error: 'Failed to save movies database' 
@@ -1460,7 +1548,7 @@ router.post('/save-poster', (req, res) => {
   };
 
   console.log('[SAVE-POSTER] Starting download from:', poster, 'to:', posterFilePath);
-  
+
   download(poster, posterFilePath, (err) => {
     if (err) {
       console.error('[SAVE-POSTER] Download failed:', err.message);
@@ -1501,61 +1589,57 @@ router.post('/save-poster', (req, res) => {
       return yearMatch ? yearMatch[1] : "Unknown";
     }
     
+    // CRITICAL: Use EXACT same normalization logic as SCAN script
+    const { normalizeKey } = require('../../shared/NormalizationService');
+    
     // Helper function to generate clean, short keys like existing unified data
     function generateCleanKey(folderName) {
-      // Keep year but remove quality and other metadata
-      let cleanTitle = folderName
-        .replace(/\s*\[.*?\]\s*/g, '') // Remove quality tags like [1080p]
-        .replace(/\s*\.\d{4}\.\d{3,4}p\s*/g, '') // Remove .2005.1080p
-        .trim();
+      // Use EXACT same logic as SCAN script
+      const cleanFolderName = folderName
+        .replace(/\[[^\]]*\]/g, '') // Remove [1080p], [720p], etc. - EXACT MATCH
+        .replace(/\s+/g, ' ') // Clean up extra spaces - EXACT MATCH
+        .trim(); // EXACT MATCH
       
-      // Convert to lowercase and replace spaces with dots
-      let key = cleanTitle.toLowerCase().replace(/\s+/g, '.');
+      const key = cleanFolderName ? normalizeKey(cleanFolderName) : 'movie';
       
-      // Remove special characters but keep dots and parentheses
-      key = key.replace(/[^\w.()]/g, '');
-      
-      // Ensure it's not empty
-      if (!key) key = 'movie';
-      
-      console.log('[DEBUG] Generated key:', { folderName, cleanTitle, key });
+      console.log('[DEBUG] Generated key:', { folderName, cleanFolderName, key });
       return key;
     }
     
     // UPDATED: Save to unified data structure instead of old format
     const UNIFIED_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
     
-    // Create new movie entry in unified format
-    const newMovieEntry = {
-      type: "movie",
-      title: folderName,
-      TMDBTitle: folderName,
-      tmdbId: null, // Will be populated when TMDB data is added
-      poster: webPosterUrl,
-      about: {
-        title: folderName,
-        year: extractYear(folderName),
-        description: "Description will be added when TMDB data is imported"
-      },
-      genres: [],
-      cast: {
-        title: folderName,
-        year: extractYear(folderName),
-        cast: []
-      },
-      path: folderName,
-      originalKey: folderName.toLowerCase().replace(/[^\w\s]/g, '.').replace(/\s+/g, '.'),
-      normalizedKey: generateCleanKey(folderName),
-      files: [
-        {
-          name: `${folderName}.mp4`, // Placeholder filename
-          absPath: `S:\\MEDIA\\MOVIES\\${folderName}\\${folderName}.mp4`, // Placeholder path
-          relPath: `${folderName}\\${folderName}.mp4`
-        }
-      ],
-      isMovie: true,
-      seasons: null
-    };
+         // Create new movie entry in unified format
+     const newMovieEntry = {
+       type: "movie",
+       title: folderName,
+       TMDBTitle: folderName,
+       tmdbId: null, // Will be populated when TMDB data is added
+       poster: webPosterUrl,
+       about: {
+         title: folderName,
+         year: extractYear(folderName),
+         description: "Description will be added when TMDB data is imported"
+       },
+       genres: [],
+       cast: {
+         title: folderName,
+         year: extractYear(folderName),
+         cast: []
+       },
+       // REMOVED: path field - not part of unified format
+       // REMOVED: originalKey field - not part of unified format
+       normalizedKey: generateCleanKey(folderName),
+       files: [
+         {
+           name: `${folderName}.mp4`, // Placeholder filename
+           absPath: `S:\\MEDIA\\MOVIES\\${folderName}\\${folderName}.mp4`, // Placeholder path
+           relPath: `${folderName}\\${folderName}.mp4`
+         }
+       ],
+       isMovie: true,
+       seasons: null
+     };
     
     // Load existing unified data
     let unifiedData = {};
@@ -1588,11 +1672,11 @@ router.post('/save-poster', (req, res) => {
 // --- NEW: Step 1 - Run scan_media_library_movies.js script ---
 router.post('/step1-scan-app', async (req, res) => {
   try {
-    console.log('[STEP1 SCAN] Starting scan_media_library_movies.js script...');
+    console.log('[STEP1 SCAN] Starting SCAN_media_library_movies.js script...');
     
     // Import the scan script functionality
     const { exec } = require('child_process');
-    const scriptPath = path.join(__dirname, '../../scripts/scan_media_library_movies.js');
+    const scriptPath = path.join(__dirname, '../../scripts/SCAN/SCAN_media_library_movies.js');
     
     exec(`node "${scriptPath}"`, { cwd: path.join(__dirname, '../..') }, (error, stdout, stderr) => {
       if (error) {

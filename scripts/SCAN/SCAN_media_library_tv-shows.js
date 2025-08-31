@@ -1,24 +1,17 @@
 /*
   SCAN_MEDIA_LIBRARY_TV-SHOWS.JS
-<<<<<<< FIXES/general-fixes
-  Version: 10
-  AppName: MultiChat_Chatty [v10]
-  Updated: 7/30/2025 @12:35PM
-=======
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
->>>>>>> local
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
 const { normalizeKey } = require('../../shared/NormalizationService');
-const { ProgressAnimation } = require('../animation-helper');
 
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
-const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/media-library-tv-shows_normalized.json');
+const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-shows-unified.json');
 
 function isVideoFile(filename) {
     const exts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
@@ -79,7 +72,7 @@ function isValidShowStructure(showTitle, folders, files) {
     return folders.length > 0 || files.length > 0;
 }
 
-function walkShows(dir, relPath = '', animation = null, totalFolders = 0, currentFolder = 0) {
+function walkShows(dir, relPath = '') {
     try {
         const absPath = path.join(dir, relPath);
         const { folders, files } = scanDirectory(absPath);
@@ -89,11 +82,7 @@ function walkShows(dir, relPath = '', animation = null, totalFolders = 0, curren
         // Only treat as a show root if at the first folder level
         let isShowRoot = relParts.length === 1;
         
-        // Show progress if animation is provided
-        if (animation && totalFolders > 0) {
-            const progressLine = animation.getCustomProgress(currentFolder, totalFolders, 'Scanning', '[SCAN] ');
-            console.log(`${progressLine} : ${relPath || 'root'}`);
-        }
+
         
         // If we're at the root level, process each folder as a potential TV show
         if (relPath === '') {
@@ -103,7 +92,7 @@ function walkShows(dir, relPath = '', animation = null, totalFolders = 0, curren
             const shows = [];
             for (const folder of folders) {
                 try {
-                    const showResult = walkShows(dir, folder, animation, totalFolders, currentFolder);
+                    const showResult = walkShows(dir, folder);
                     if (showResult && showResult.normalizedKey) {
                         shows.push(showResult);
                         console.log(`✅ [SCAN] Successfully processed show: ${folder}`);
@@ -141,7 +130,7 @@ function walkShows(dir, relPath = '', animation = null, totalFolders = 0, curren
             for (const folder of folders) {
                 try {
                     const subPath = relPath ? path.join(relPath, folder) : folder;
-                    const subResult = walkShows(dir, subPath, animation, totalFolders, currentFolder + folderCount);
+                    const subResult = walkShows(dir, subPath);
                     if (subResult) {
                         result.folders.push(subResult);
                     }
@@ -184,44 +173,90 @@ function main() {
         process.exit(1);
     }
     
-    // Initialize animation
-    const animation = new ProgressAnimation();
-    animation.start('Scanning TV shows...');
+
     
     try {
-        // Scan the media library - now returns array of shows directly
-        const shows = walkShows(MEDIA_ROOT);
-        
-        animation.update('Writing output file...');
-        
-        // Create backup of existing file
-        if (fs.existsSync(OUTPUT_FILE)) {
-            // Create bkup directory if it doesn't exist
-            const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
-            if (!fs.existsSync(bkupDir)) {
-                fs.mkdirSync(bkupDir, { recursive: true });
-                console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
+        // FIXED: Only add NEW shows, NEVER overwrite existing data
+        let existingData = {};
+        try {
+            if (fs.existsSync(OUTPUT_FILE)) {
+                existingData = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf-8'));
+                console.log(`📖 [SCAN] Loaded existing data with ${Object.keys(existingData).length} TV shows`);
             }
-            
-            // Move backup to bkup folder with timestamp
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const backupFile = path.join(bkupDir, `media-library-tv-shows_normalized_backup_${timestamp}.json`);
-            fs.copyFileSync(OUTPUT_FILE, backupFile);
-            console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+        } catch (e) {
+            console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
         }
         
-        // Write the data
-        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(shows, null, 2));
+        // Scan the media library for new shows
+        const scannedShows = walkShows(MEDIA_ROOT);
         
-        animation.stop('TV-SHOWS scan complete!');
-        console.log(`✅ [SCAN] Output written to: ${OUTPUT_FILE}`);
-        console.log(`📊 [SCAN] Found ${shows.length} valid TV shows`);
+
+        
+        // Start with existing data - DO NOT OVERWRITE
+        const unifiedOutput = { ...existingData };
+        
+        let newShowsAdded = 0;
+        let existingShowsSkipped = 0;
+        
+        // Process scanned shows
+        for (const show of scannedShows) {
+            const normalizedKey = show.normalizedKey;
+            if (normalizedKey) {
+                // Check if this show already exists by comparing normalized keys
+                // Convert both keys to lowercase for case-insensitive matching
+                const existingKey = Object.keys(existingData).find(key => 
+                    key.toLowerCase() === normalizedKey.toLowerCase()
+                );
+                
+                if (existingKey) {
+                    console.log(`⏭️ [SCAN] Skipping existing TV show: ${normalizedKey} (matches ${existingKey})`);
+                    existingShowsSkipped++;
+                    continue; // SKIP - don't touch existing shows!
+                }
+                
+                // Only add NEW shows
+                console.log(`➕ [SCAN] Adding NEW TV show: ${normalizedKey}`);
+                unifiedOutput[normalizedKey] = show;
+                newShowsAdded++;
+            }
+        }
+        
+        console.log(`📊 [SCAN] Summary:`);
+        console.log(`   - Existing TV shows preserved: ${existingShowsSkipped}`);
+        console.log(`   - New TV shows added: ${newShowsAdded}`);
+        console.log(`   - Total TV shows in library: ${Object.keys(unifiedOutput).length}`);
+        
+        // Only create backup and write if we're actually making changes
+        if (newShowsAdded > 0) {
+            if (fs.existsSync(OUTPUT_FILE)) {
+                // Create bkup directory if it doesn't exist
+                const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
+                if (!fs.existsSync(bkupDir)) {
+                    fs.mkdirSync(bkupDir, { recursive: true });
+                    console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
+                }
+                
+                // Create backup with timestamp
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const backupFile = path.join(bkupDir, `media-library-tv-shows_normalized_backup_${timestamp}.json`);
+                fs.copyFileSync(OUTPUT_FILE, backupFile);
+                console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+            }
+            
+            // Write the updated data
+            fs.writeFileSync(OUTPUT_FILE, JSON.stringify(unifiedOutput, null, 2));
+            console.log(`✅ [SCAN] TV-SHOWS scan complete! Added ${newShowsAdded} new shows.`);
+        } else {
+            console.log(`✅ [SCAN] No new TV shows found. Existing library unchanged.`);
+        }
+        
+        console.log(`📊 [SCAN] Found ${Object.keys(unifiedOutput).length} total TV shows`);
         
         // Show some statistics
         let totalEpisodes = 0;
         let totalSeasons = 0;
         
-        for (const show of shows) {
+        for (const show of Object.values(unifiedOutput)) {
             function countEpisodes(node) {
                 if (node.files) totalEpisodes += node.files.length;
                 if (node.folders) {
@@ -238,7 +273,7 @@ function main() {
         console.log(`📁 [SCAN] Total seasons: ${totalSeasons}`);
         
     } catch (error) {
-        animation.error(`Fatal error during scan: ${error.message}`);
+        console.error(`❌ [SCAN] Fatal error during scan: ${error.message}`);
         console.error(error.stack);
         process.exit(1);
     }

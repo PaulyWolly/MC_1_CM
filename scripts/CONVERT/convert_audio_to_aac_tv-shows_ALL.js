@@ -1,10 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_TV-SHOWS_ALL.JS
-  Version: 21
-  AppName: MultiChat_Chatty MC_1_CM [v21]
-  Updated: 8/19/2025 @10:00AM
-  UPDATED: Now works with tv-shows-unified.json structure
-  ENHANCED: Added feedback, animations, timeline, and counts
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 

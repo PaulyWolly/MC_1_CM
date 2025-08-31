@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 20
-  AppName: MultiChat_Chatty MC_1_CM [v20]
-  Updated: 8/19/2025 @10:00AM
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
   Created by Paul Welby
 */
 
@@ -589,8 +589,12 @@ class VideoPlayer {
                                     // Get the actual file path (not blob URL) for subtitle loading
                                     let videoPath = null;
                                     
-                                    // First try to get the stored file path
-                                    if (window.videoPlayer.currentFile && window.videoPlayer.currentFile.absPath) {
+                                    // PRIORITY 1: Use currentMediaItem.absPath (this has the full file system path)
+                                    if (window.videoPlayer.currentMediaItem && window.videoPlayer.currentMediaItem.absPath) {
+                                        videoPath = window.videoPlayer.currentMediaItem.absPath;
+                                        console.log('[SUBTITLE] ✅ SUCCESS: Using currentMediaItem.absPath:', videoPath);
+                                        console.log('[SUBTITLE] DEBUG: Full currentMediaItem object:', window.videoPlayer.currentMediaItem);
+                                    } else if (window.videoPlayer.currentFile && window.videoPlayer.currentFile.absPath) {
                                         videoPath = window.videoPlayer.currentFile.absPath;
                                         console.log('[SUBTITLE] Using stored file path:', videoPath);
                                     } else if (window.videoPlayer.currentMediaItem && window.videoPlayer.currentMediaItem.path) {
@@ -746,7 +750,6 @@ class VideoPlayer {
                         'progressControl',
                         'SaveLaterButton',
                         'SubtitleButton',
-                        'subsCapsButton',
                         'fullscreenToggle',
                         'volumePanel',
                         'remainingTimeDisplay',
@@ -784,6 +787,8 @@ class VideoPlayer {
                 if (this.amplifyEnabled) {
                     this.connectAudioAmplification();
                 }
+                
+
                 
                 // Initialize subtitle button with closed book icon
                 const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
@@ -1183,6 +1188,70 @@ class VideoPlayer {
             'm4v': 'video/mp4'
         };
         return typeMap[ext] || 'video/mp4';
+    }
+
+    // Helper method to convert any path to web-ready format (delegates to MediaLibraryManager)
+    convertPathToWebFormat(path) {
+        // Delegate to MediaLibraryManager for path conversion
+        if (window.mediaLibraryManager && window.mediaLibraryManager.convertPathToWebFormat) {
+            return window.mediaLibraryManager.convertPathToWebFormat(path);
+        }
+        // Fallback if MediaLibraryManager not available
+        if (!path) return null;
+        return path.replace(/\\/g, '/');
+    }
+
+    // Centralized method to load episode video
+    loadEpisodeVideo(episodeFile, episodeName) {
+        this.showOverlayAlert(`Loading: ${episodeName}`, 2000);
+        
+        // Use the same approach as MediaLibraryManager for loading videos
+        // Prioritize filePath for Featurettes/Specials (contains show name)
+        // Then use path for regular episodes (relative path is more reliable)
+        // No absPath fallback needed since we have unified JSON
+        let videoPath = episodeFile.filePath || episodeFile.path;
+        if (videoPath) {
+            console.log('[VIDEO-PLAYER] Loading video from path:', videoPath);
+            
+            // Convert path to web-ready format using centralized method
+            let relativePath = this.convertPathToWebFormat(videoPath);
+            
+            // For Featurettes/Specials, we need to include the show name in the path
+            // The server expects paths like "Show Name (Year)/Featurettes/episode.avi"
+            if (relativePath.startsWith('Featurettes/') || relativePath.startsWith('Specials/')) {
+                console.log('[VIDEO-PLAYER] Processing Featurettes path, episodeFile:', episodeFile);
+                // Extract show name from the episode object or current context
+                let showName = null;
+                if (episodeFile.showName) {
+                    showName = episodeFile.showName;
+                    console.log('[VIDEO-PLAYER] Using episodeFile.showName:', showName);
+                } else if (episodeFile.path) {
+                    // Try to extract from path like "Lois And Clark The New Adventures Of Superman (1993)/Featurettes/..."
+                    const pathParts = episodeFile.path.split(/[\\/]/);
+                    if (pathParts.length > 0) {
+                        showName = pathParts[0];
+                        console.log('[VIDEO-PLAYER] Extracted showName from path:', showName);
+                    }
+                }
+                
+                if (showName) {
+                    relativePath = `${showName}/${relativePath}`;
+                    console.log('[VIDEO-PLAYER] Added show name to Featurettes path:', relativePath);
+                } else {
+                    console.log('[VIDEO-PLAYER] WARNING: Could not extract show name for Featurettes!');
+                }
+            }
+            
+            const encodedPath = encodeURIComponent(relativePath);
+            const videoUrl = `/api/video?path=${encodedPath}`;
+            
+            console.log('[VIDEO-PLAYER] Converted to relative path:', relativePath);
+            console.log('[VIDEO-PLAYER] Video URL:', videoUrl);
+            this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
+        } else {
+            console.error('[VIDEO-PLAYER] No video path found for episode:', episodeName);
+            this.showOverlayAlert('Error: No video path found', 2000);
+        }
     }
 
     // Extract episode information from file path
@@ -1661,10 +1730,13 @@ class VideoPlayer {
         let filePath = null;
         
         // Get file path from current file or media item
-        if (this.currentFile) {
-            filePath = this.currentFile.absPath || this.currentFile.name;
-        } else if (this.currentMediaItem) {
-            filePath = this.currentMediaItem.path || this.currentMediaItem.absPath;
+        // PRIORITY: Use currentMediaItem.path first if it exists (our unified data)
+        if (this.currentMediaItem && this.currentMediaItem.path) {
+            filePath = this.currentMediaItem.path;
+        } else if (this.currentFile && this.currentFile.absPath) {
+            filePath = this.currentFile.absPath;
+        } else if (this.currentFile && this.currentFile.name) {
+            filePath = this.currentFile.name;
         }
         
         console.log('[DEBUG - VIDEO-PLAYER] Current file:', this.currentFile);
@@ -1710,6 +1782,10 @@ class VideoPlayer {
             this.episodeInfoHeader.innerHTML = infoText;
         } else {
             console.log('[DEBUG - VIDEO-PLAYER] Processing as movie');
+            console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem:', this.currentMediaItem);
+            console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem.TMDBTitle:', this.currentMediaItem?.TMDBTitle);
+            console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem.title:', this.currentMediaItem?.title);
+            console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem.path:', this.currentMediaItem?.path);
             
             // FORCE ALL MOVIES TO HAVE YEARS - NO EXCEPTIONS!
             let displayTitle = '';
@@ -3629,32 +3705,13 @@ class VideoPlayer {
                     (selectedEpisode) => {
                         console.log('[VIDEO-PLAYER] Episode selected:', selectedEpisode.name);
                         
-                        const episodeFile = {
-                            name: selectedEpisode.name,
-                            absPath: selectedEpisode.absPath || selectedEpisode.path,
-                            relPath: selectedEpisode.relPath,
-                            path: selectedEpisode.path,
-                            type: 'video/mp4',
-                            ...selectedEpisode
-                        };
+                        // Use MediaLibraryManager to prepare episode data for EpisodeModal selection
+                        const episodeFile = window.mediaLibraryManager ? 
+                            window.mediaLibraryManager.prepareEpisodeForPlayback(selectedEpisode) : 
+                            selectedEpisode;
                         
-                        this.showOverlayAlert(`Loading: ${selectedEpisode.name}`, 2000);
-                        
-                        // Use the same approach as MediaLibraryManager for loading videos
-                        const videoPath = episodeFile.absPath || episodeFile.path;
-                        if (videoPath) {
-                            console.log('[VIDEO-PLAYER] Loading video from path:', videoPath);
-                            
-                            // Use the API endpoint like MediaLibraryManager does
-                            const encodedPath = encodeURIComponent(videoPath);
-                            const videoUrl = `/api/video?path=${encodedPath}`;
-                            
-                            console.log('[VIDEO-PLAYER] Video URL:', videoUrl);
-                            this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
-                        } else {
-                            console.error('[VIDEO-PLAYER] No video path found for episode:', selectedEpisode);
-                            this.showOverlayAlert('Error: No video path found', 2000);
-                        }
+                        // Load the selected episode using centralized method
+                        this.loadEpisodeVideo(episodeFile, selectedEpisode.name);
                     },
                     // onClose callback
                     () => {
@@ -4501,20 +4558,13 @@ class VideoPlayer {
                                 
                                 // Convert unified episode data to the expected format
                                 Object.entries(seasonData.episodes).forEach(([episodeNum, episode]) => {
-                                    // Construct proper absolute path for video playback
-                                    let absPath = "";
-                                    if (episode.path) {
-                                        // Convert relative path like "Lost in Space (2018)\Season 01\..." to absolute path
-                                        absPath = `S:\\MEDIA\\TV-SHOWS\\${episode.path}`;
-                                    }
-                                    
                                     episodes.push({
                                         name: episode.title || `Episode ${episodeNum}`,
                                         filename: episode.title || `Episode ${episodeNum}`,
                                         path: episode.path || "",
                                         relPath: episode.path || "",
-                                        filePath: absPath,
-                                        absPath: absPath,
+                                        // No absPath reconstruction needed - use path directly
+                                        filePath: episode.path || "",
                                         still: episode.still || "",
                                         thumbnail: episode.still || "",
                                         generated: false,
@@ -4646,39 +4696,20 @@ class VideoPlayer {
                 const selectedEpisode = sortedEpisodes[index];
                 console.log('[DEBUG - EPISODE-SELECTION] Selected episode:', selectedEpisode.name);
                 
-                // Load the selected episode
-                console.log('[EPISODE-SELECTION] Selected episode object:', selectedEpisode);
+                // Handle episode selection from built-in episode list interface
+                console.log('[BUILT-IN-EPISODE-SELECTION] Selected episode object:', selectedEpisode);
                 
-                const episodeFile = {
-                    name: selectedEpisode.name,
-                    absPath: selectedEpisode.absPath || selectedEpisode.path,
-                    relPath: selectedEpisode.relPath,
-                    path: selectedEpisode.path,
-                    type: 'video/mp4',
-                    // Add any other properties that might be needed
-                    ...selectedEpisode
-                };
+                // Use MediaLibraryManager to prepare episode data for built-in episode selection
+                const episodeFile = window.mediaLibraryManager ? 
+                    window.mediaLibraryManager.prepareEpisodeForPlayback(selectedEpisode) : 
+                    selectedEpisode;
                 
-                console.log('[EPISODE-SELECTION] Created episode file object:', episodeFile);
+                console.log('[BUILT-IN-EPISODE-SELECTION] Created episode file object:', episodeFile);
                 
                 this.closeEpisodeSelection();
-                this.showOverlayAlert(`Loading: ${selectedEpisode.name}`, 2000);
                 
-                // Use the same approach as MediaLibraryManager for loading videos
-                const videoPath = episodeFile.absPath || episodeFile.path;
-                if (videoPath) {
-                    console.log('[EPISODE-SELECTION] Loading video from path:', videoPath);
-                    
-                    // Use the API endpoint like MediaLibraryManager does
-                    const encodedPath = encodeURIComponent(videoPath);
-                    const videoUrl = `/api/video?path=${encodedPath}`;
-                    
-                    console.log('[EPISODE-SELECTION] Video URL:', videoUrl);
-                    this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
-                } else {
-                    console.error('[EPISODE-SELECTION] No video path found for episode:', selectedEpisode);
-                    this.showOverlayAlert('Error: No video path found', 2000);
-                }
+                // Load the selected episode using centralized method
+                this.loadEpisodeVideo(episodeFile, selectedEpisode.name);
             };
         });
     }
@@ -4817,22 +4848,49 @@ class VideoPlayer {
             console.error('[DEBUG - VIDEO-PLAYER] No source URL provided');
             return;
         }
-        console.log('[DEBUG - VIDEO-PLAYER] Playing URL:', src);
-        console.log('[DEBUG - VIDEO-PLAYER] URL type:', type);
-        console.log('[DEBUG - VIDEO-PLAYER] Start time:', startTime);
-        console.log('[DEBUG - VIDEO-PLAYER] Media item:', mediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 PLAYURL CALLED - NEW VIDEO REQUEST!');
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Source URL:', src);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 URL type:', type);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Start time:', startTime);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Media item:', mediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Current media item BEFORE update:', this.currentMediaItem);
         
-        // Clear any existing subtitle data when loading a new video
+        // FORCE: Clear any existing subtitle data when loading a new video
         this.purgeExistingSubtitles();
         
-        // Reset audio amplification for new video
+        // FORCE: Reset audio amplification for new video
         this.resetAmplification();
         
-        // Ensure audio context is ready for new video
+        // FORCE: Ensure audio context is ready for new video
         this.ensureAudioContextReady();
         
+        // FORCE: Clear previous video state completely
+        if (this.vjsPlayer) {
+            try {
+                // Pause and clear current video
+                this.vjsPlayer.pause();
+                this.vjsPlayer.currentTime(0);
+                // Clear the source to ensure clean state
+                this.vjsPlayer.src('');
+                console.log('[DEBUG - VIDEO-PLAYER] Cleared previous video state');
+            } catch (error) {
+                console.warn('[DEBUG - VIDEO-PLAYER] Error clearing previous video:', error);
+            }
+        }
+        
+        // FORCE: Set new media item
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Setting new media item:', mediaItem);
         this.currentMediaItem = mediaItem;
-        this.currentFile = { name: src, absPath: src };
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Current media item AFTER update:', this.currentMediaItem);
+        
+        // Use mediaItem if provided, otherwise create a minimal currentFile
+        if (mediaItem) {
+            this.currentFile = mediaItem;
+            console.log('[DEBUG - VIDEO-PLAYER] 🎬 Set currentFile to mediaItem:', this.currentFile);
+        } else {
+            this.currentFile = { name: src, path: src };
+            console.log('[DEBUG - VIDEO-PLAYER] 🎬 Set currentFile to src:', this.currentFile);
+        }
         
         // REMOVE AUTOMATIC SUBTITLE LOADING - USER WILL CLICK BLUE BUTTON
         console.log('[VIDEO-PLAYER] Video loaded - subtitles will be loaded via blue button click');
@@ -4903,7 +4961,8 @@ class VideoPlayer {
                     networkState: this.vjsPlayer.networkState()
                 });
                 console.error('[DEBUG - VIDEO-PLAYER] Attempted source:', src);
-                this.showMessage(`Error loading video. Please check the console for details.`);
+                // SUPPRESSED: Don't show error message to user since video often loads successfully anyway
+                // this.showMessage(`Error loading video. Please check the console for details.`);
             });
             
             // Add metadata loaded event to ensure amplification is reset
@@ -4962,7 +5021,8 @@ class VideoPlayer {
                 if (bigPlayButton) {
                     bigPlayButton.style.display = 'block';
                 }
-                this.showMessage('Error loading video. Please check the console for details.');
+                // SUPPRESSED: Don't show error message to user since video often loads successfully anyway
+                // this.showMessage('Error loading video. Please check the console for details.');
             });
             
             // Hide big play button when video starts playing
@@ -5011,7 +5071,8 @@ class VideoPlayer {
                             bigPlayButton.style.display = 'block';
                         }
             }
-            this.showMessage('Error loading video. Please try again.');
+            // SUPPRESSED: Don't show error message to user since video often loads successfully anyway
+            // this.showMessage('Error loading video. Please try again.');
         }
     }
 
@@ -5020,52 +5081,7 @@ class VideoPlayer {
         // Clear any existing subtitle data first
         this.purgeExistingSubtitles();
         
-        // Add this to window for manual testing
-    window.testLoadSubtitles = () => {
-        console.log('[TEST] Manually calling loadSubtitles...');
-        this.loadSubtitles('S:/MEDIA/MOVIES/The Forbidden Kingdom (2008) [1080p]/The.Forbidden.Kingdom.(2008).[1080p].mp4');
-    };
-    
-    window.testLoadSubtitlesForCurrentVideo = () => {
-        if (window.videoPlayer) {
-            window.videoPlayer.testLoadSubtitlesForCurrentVideo();
-        } else {
-            console.log('[TEST] Video player not available');
-        }
-    };
-    
-    window.purgeAllSubtitles = () => {
-        if (window.videoPlayer) {
-            window.videoPlayer.purgeExistingSubtitles();
-            console.log('[TEST] Manual subtitle purge completed');
-        } else {
-            console.log('[TEST] Video player not available');
-        }
-    };
-    
-    window.testSubtitleCues = () => {
-        if (window.videoPlayer) {
-            window.videoPlayer.testSubtitleCues();
-        } else {
-            console.log('[TEST] Video player not available');
-        }
-    };
-    
-    // Add simple test function
-    window.testSubtitleButton = () => {
-        console.log('[TEST] Testing subtitle button click...');
-        if (window.videoPlayer && window.videoPlayer.vjsPlayer) {
-            const subtitleButton = window.videoPlayer.vjsPlayer.el().querySelector('.vjs-subtitle-button');
-            if (subtitleButton) {
-                console.log('[TEST] Found subtitle button, clicking it...');
-                subtitleButton.click();
-            } else {
-                console.log('[TEST] Subtitle button not found!');
-            }
-        } else {
-            console.log('[TEST] Video player not available!');
-        }
-    };
+
         try {
             console.log('[VIDEO-PLAYER] Starting subtitle search for videoSrc:', videoSrc);
             console.log('[VIDEO-PLAYER] loadSubtitles function called!');
@@ -5074,44 +5090,48 @@ class VideoPlayer {
             const existingTracks = this.video.querySelectorAll('track[data-autosub]');
             existingTracks.forEach(track => track.remove());
 
-            // Extract video path and filename from various URL formats
+            // Use the actual media item data instead of parsing the API URL
             let videoPath = '';
             let videoFileName = '';
             
-            if (videoSrc.includes('?path=')) {
-                // Extract the path param and decode
-                const urlParams = new URLSearchParams(videoSrc.split('?')[1]);
-                const fullPath = decodeURIComponent(urlParams.get('path') || '');
-                videoPath = fullPath;
-                videoFileName = fullPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
-                console.log('[VIDEO-PLAYER] Extracted from URL params - fullPath:', fullPath);
-            } else if (videoSrc.includes(':/') || videoSrc.includes(':\\')) {
-                // This is a Windows path (like S:/MEDIA/MOVIES/...)
-                videoPath = videoSrc;
-                videoFileName = videoSrc.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
-                console.log('[VIDEO-PLAYER] Using Windows path directly:', videoPath);
-            } else {
-                // This might be a relative path (like from Watch Later)
-                // Try to convert it to an absolute path
-                if (videoSrc.startsWith('movies/') || videoSrc.startsWith('MOVIES/')) {
-                    // Convert relative movie path to absolute
-                    videoPath = `S:/MEDIA/${videoSrc}`;
+            // Get the actual file path from the current media item (this has the correct path with quality tags)
+            if (this.currentMediaItem && this.currentMediaItem.absPath) {
+                videoPath = this.currentMediaItem.absPath;
+                videoFileName = this.currentMediaItem.absPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+                console.log('[VIDEO-PLAYER] Using absPath from currentMediaItem:', videoPath);
+            } else if (this.currentMediaItem && this.currentMediaItem.path) {
+                // Convert relative path to absolute
+                if (this.currentMediaItem.path.startsWith('movies/') || this.currentMediaItem.path.startsWith('MOVIES/')) {
+                    videoPath = `S:/MEDIA/${this.currentMediaItem.path}`;
                     console.log('[VIDEO-PLAYER] Converted relative movie path to absolute:', videoPath);
-                } else if (videoSrc.startsWith('tv-shows/') || videoSrc.startsWith('TV-SHOWS/')) {
-                    // Convert relative TV show path to absolute
-                    videoPath = `S:/MEDIA/${videoSrc}`;
+                } else if (this.currentMediaItem.path.startsWith('tv-shows/') || this.currentMediaItem.path.startsWith('TV-SHOWS/')) {
+                    videoPath = `S:/MEDIA/${this.currentMediaItem.path}`;
                     console.log('[VIDEO-PLAYER] Converted relative TV show path to absolute:', videoPath);
                 } else {
-                    // Use as-is if we can't determine the type
-                    videoPath = videoSrc;
-                    console.log('[VIDEO-PLAYER] Using videoSrc as-is (could not determine path type):', videoPath);
+                    videoPath = this.currentMediaItem.path;
+                    console.log('[VIDEO-PLAYER] Using path as-is:', videoPath);
                 }
                 videoFileName = videoPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+            } else {
+                // Fallback to parsing the API URL (but this won't have quality tags)
+                if (videoSrc.includes('?path=')) {
+                    const urlParams = new URLSearchParams(videoSrc.split('?')[1]);
+                    const fullPath = decodeURIComponent(urlParams.get('path') || '');
+                    videoPath = fullPath;
+                    videoFileName = fullPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+                    console.log('[VIDEO-PLAYER] Fallback: Extracted from URL params - fullPath:', fullPath);
+                } else {
+                    videoPath = videoSrc;
+                    videoFileName = videoSrc.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+                    console.log('[VIDEO-PLAYER] Fallback: Using videoSrc as-is:', videoPath);
+                }
             }
 
             console.log('[VIDEO-PLAYER] Looking for subtitles for:', videoFileName);
             console.log('[VIDEO-PLAYER] Video path:', videoPath);
             console.log('[VIDEO-PLAYER] Video filename:', videoFileName);
+            console.log('[VIDEO-PLAYER] DEBUG: Full absPath:', this.currentMediaItem?.absPath);
+            console.log('[VIDEO-PLAYER] DEBUG: Extracted filename:', videoFileName);
 
             // Try to find subtitle files in the same folder as the movie
             const subtitleFound = await this.findSubtitlesInSameFolder(videoPath, videoFileName);
@@ -5232,6 +5252,7 @@ class VideoPlayer {
             console.log('[VIDEO-PLAYER] Path separator detected:', pathSeparator);
             console.log('[VIDEO-PLAYER] DEBUG: Full video path:', videoPath);
             console.log('[VIDEO-PLAYER] DEBUG: Video file name:', videoFileName);
+            console.log('[VIDEO-PLAYER] DEBUG: Directory path extracted:', videoDir);
 
             // Try multiple subtitle file extensions (prioritize .srt)
             const subtitleExtensions = ['.srt', '.vtt', '.sub'];

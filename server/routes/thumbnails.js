@@ -1,3 +1,11 @@
+/*
+  THUMBNAILS.JS
+  Version: 23
+  AppName: MultiChat_Chatty MC_1_CM [v23]
+  Updated: 8/29/2025 @6:45AM
+  Created by Paul Welby
+*/
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
