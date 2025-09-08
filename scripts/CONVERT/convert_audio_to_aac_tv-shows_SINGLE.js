@@ -55,26 +55,43 @@ const inputArg = process.argv[2];
 if (!inputArg) {
   console.log('🎵 Enhanced Single TV Show Audio Conversion');
   console.log('=' .repeat(60));
-  console.log('Usage: node scripts/convert_audio_to_aac_tv-shows.js "TV Show Name"');
-  console.log('Example: node scripts/convert_audio_to_aac_tv-shows.js "Lucifer (2016)"');
+  console.log('Usage: node scripts/CONVERT/convert_audio_to_aac_tv-shows_SINGLE.js "TV Show Name"');
+  console.log('Example: node scripts/CONVERT/convert_audio_to_aac_tv-shows_SINGLE.js "Star Trek Strange New Worlds (2022)"');
+  console.log('Example: node scripts/CONVERT/convert_audio_to_aac_tv-shows_SINGLE.js "star.trek.strange.new.worlds.(2022)"');
   console.log('\n✨ Features:');
   console.log('   • Real-time progress bars with animations');
   console.log('   • Timeline tracking for each conversion step');
   console.log('   • File-by-file progress with ETA');
-  console.log('   • Unified data integration');
+  console.log('   • Unified data integration using normalized keys');
   console.log('   • Visual success/failure indicators');
+  console.log('   • SAFE ARCHIVING - Original files are NEVER deleted');
+  console.log('\n💡 Tip: You can use either the display name or the normalized key');
+  console.log('💡 Safety: Original files are preserved as _backup.mkv, new AAC versions as _AAC.mkv');
   process.exit(1);
 }
 
 let showFolder = inputArg;
 if (!inputArg.match(/[\/]/)) {
-  const folder = findBestMatchShow(inputArg);
-  if (!folder) {
-    showStatus(`No matching TV show folder found for '${inputArg}' in ${tvShowsRoot}`, 'error');
-    process.exit(1);
+  // Check if input is a normalized key (contains dots)
+  if (inputArg.includes('.')) {
+    // This might be a normalized key, try to find the display name
+    const folder = findBestMatchShow(inputArg);
+    if (!folder) {
+      showStatus(`No matching TV show folder found for normalized key '${inputArg}' in ${tvShowsRoot}`, 'error');
+      process.exit(1);
+    }
+    showFolder = folder;
+    showStatus(`Found TV show folder for normalized key: ${showFolder}`, 'success');
+  } else {
+    // Regular display name
+    const folder = findBestMatchShow(inputArg);
+    if (!folder) {
+      showStatus(`No matching TV show folder found for '${inputArg}' in ${tvShowsRoot}`, 'error');
+      process.exit(1);
+    }
+    showFolder = folder;
+    showStatus(`Found TV show folder: ${showFolder}`, 'success');
   }
-  showFolder = folder;
-  showStatus(`Found TV show folder: ${showFolder}`, 'success');
 }
 
 // FFmpeg command template for converting audio to AAC
@@ -103,16 +120,16 @@ async function convertFile(inputPath, currentIndex, totalFiles, startTime) {
         const ffmpegCmd = getFFmpegCommand(inputPath, tempOutputPath);
         await execAsync(ffmpegCmd);
         
-        // Step 3: Replace original with converted file
-        showConversionStep(2, currentIndex, totalFiles, fileName, 'Replacing original...');
-        logToFile('convert_audio_to_aac_tv-shows', `✅ [REPLACE] Replacing original with converted file`);
-        await execAsync(`del "${inputPath}"`);
-        await execAsync(`ren "${tempOutputPath}" "${path.basename(inputPath)}"`);
+        // Step 3: Create AAC version (SAFE ARCHIVING - NO DELETION)
+        showConversionStep(2, currentIndex, totalFiles, fileName, 'Creating AAC version...');
+        const aacPath = path.join(dir, `${name}_AAC${ext}`);
+        logToFile('convert_audio_to_aac_tv-shows', `✅ [ARCHIVE] Creating AAC version: ${path.basename(aacPath)}`);
+        await execAsync(`ren "${tempOutputPath}" "${path.basename(aacPath)}"`);
         
         // Step 4: Complete
         showConversionStep(3, currentIndex, totalFiles, fileName, 'Complete!');
         
-        return { success: true, backupPath };
+        return { success: true, backupPath, aacPath };
     } catch (error) {
         const errorMsg = `❌ [ERROR] Failed to convert ${path.basename(inputPath)}: ${error.message}`;
         logToFile('convert_audio_to_aac_tv-shows', errorMsg);
@@ -126,38 +143,60 @@ function extractFilesFromUnifiedData(unifiedData, showFolder) {
     const files = [];
     const showName = path.basename(showFolder);
     
-    // Find the show in unified data (handle different naming conventions)
+    // Convert display name to normalized key format
+    const normalizedKey = showName.toLowerCase()
+        .replace(/[^a-z0-9()]/g, '.')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+    
+    // Find the show in unified data using normalized key
     let showData = null;
-    for (const [key, show] of Object.entries(unifiedData)) {
-        // Try to match the show name
-        if (key.toLowerCase().includes(showName.toLowerCase().replace(/[^a-z0-9]/g, '')) ||
-            showName.toLowerCase().includes(key.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
-            showData = show;
-            break;
+    let foundKey = null;
+    
+    // First try exact normalized key match
+    if (unifiedData[normalizedKey]) {
+        showData = unifiedData[normalizedKey];
+        foundKey = normalizedKey;
+    } else {
+        // Fallback: try to find by matching the display name in the title field
+        for (const [key, show] of Object.entries(unifiedData)) {
+            if (show.title && show.title.toLowerCase().includes(showName.toLowerCase())) {
+                showData = show;
+                foundKey = key;
+                break;
+            }
         }
     }
     
     if (!showData || !showData.seasons) {
-        showStatus(`Show not found in unified data: ${showName}`, 'warning');
+        showStatus(`Show not found in unified data: ${showName} (tried key: ${normalizedKey})`, 'warning');
         return files;
     }
     
-    // Extract all episode file paths
+    console.log(`✅ [CONVERT] Found show in unified data with key: ${foundKey}`);
+    
+    // Extract all episode file paths using absPath if available, otherwise path
     for (const [seasonNum, season] of Object.entries(showData.seasons)) {
         if (season.episodes) {
             for (const [episodeNum, episode] of Object.entries(season.episodes)) {
-                if (episode.path) {
+                let filePath = null;
+                
+                // Prefer absPath if available, otherwise use path
+                if (episode.absPath && fs.existsSync(episode.absPath)) {
+                    filePath = episode.absPath;
+                } else if (episode.path) {
                     // Convert relative path to full path
-                    const fullPath = path.join(tvShowsRoot, episode.path);
-                    if (fs.existsSync(fullPath)) {
-                        files.push({
-                            path: fullPath,
-                            title: `${showName} S${seasonNum.padStart(2, '0')}E${episodeNum.padStart(2, '0')} - ${episode.title || 'Unknown'}`,
-                            season: seasonNum,
-                            episode: episodeNum,
-                            originalPath: episode.path
-                        });
-                    }
+                    filePath = path.join(tvShowsRoot, episode.path);
+                }
+                
+                if (filePath && fs.existsSync(filePath)) {
+                    files.push({
+                        path: filePath,
+                        title: `${showName} S${seasonNum.padStart(2, '0')}E${episodeNum.padStart(2, '0')} - ${episode.title || 'Unknown'}`,
+                        season: seasonNum,
+                        episode: episodeNum,
+                        originalPath: episode.path || episode.absPath
+                    });
                 }
             }
         }

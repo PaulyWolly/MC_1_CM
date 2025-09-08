@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug TEST Collection</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .debug-section { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .debug-title { color: #333; font-weight: bold; margin-bottom: 10px; }
+        .debug-item { background: #f8f8f8; padding: 8px; margin: 5px 0; border-radius: 4px; font-family: monospace; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug TEST Collection</h1>
+    
+    <div class="debug-section">
+        <div class="debug-title">📁 Collections Data</div>
+        <div id="collections-info">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">🧪 TEST Collection Items</div>
+        <div id="test-collection-items">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">📊 Unified Data Analysis</div>
+        <div id="unified-data-info">Loading...</div>
+    </div>
+    
+    <div class="debug-section">
+        <div class="debug-title">🎭 Bored to Death Analysis</div>
+        <div id="bored-analysis">Loading...</div>
+    </div>
+
+    <script>
+        function log(message, className = '') {
+            console.log(message);
+            return `<div class="debug-item ${className}">${message}</div>`;
+        }
+
+        function debugCollections() {
+            let html = '';
+            
+            // Check localStorage collections
+            const collectionsData = localStorage.getItem('collections');
+            if (collectionsData) {
+                const collections = JSON.parse(collectionsData);
+                html += log(`✅ Collections data found: ${Object.keys(collections).length} collections`, 'success');
+                html += log(`📋 Collection names: ${Object.keys(collections).join(', ')}`);
+                
+                if (collections.TEST) {
+                    html += log(`🧪 TEST collection found with ${collections.TEST.length} items`, 'success');
+                    
+                    collections.TEST.forEach((item, index) => {
+                        html += log(`📝 Item ${index + 1}: "${item}" (type: ${typeof item}, length: ${item ? item.length : 0})`);
+                    });
+                } else {
+                    html += log('❌ TEST collection not found', 'error');
+                }
+            } else {
+                html += log('❌ No collections data found in localStorage', 'error');
+            }
+            
+            document.getElementById('collections-info').innerHTML = html;
+        }
+
+        function debugUnifiedData() {
+            let html = '';
+            
+            // Check if MediaLibraryManager is available
+            if (window.mediaLibraryManager && window.mediaLibraryManager.unifiedData) {
+                const unifiedData = window.mediaLibraryManager.unifiedData;
+                html += log(`✅ Unified data loaded: ${Object.keys(unifiedData).length} items`, 'success');
+                
+                // Check first few keys
+                const firstKeys = Object.keys(unifiedData).slice(0, 5);
+                html += log(`🔑 First 5 keys: ${firstKeys.join(', ')}`);
+                
+                // Count movies vs TV shows
+                let movieCount = 0;
+                let tvShowCount = 0;
+                Object.values(unifiedData).forEach(item => {
+                    if (item.isMovie === true) movieCount++;
+                    else if (item.isMovie === false || (!item.isMovie && item.seasons)) tvShowCount++;
+                });
+                html += log(`🎬 Movies: ${movieCount}, 📺 TV Shows: ${tvShowCount}`);
+                
+            } else {
+                html += log('❌ MediaLibraryManager or unifiedData not available', 'error');
+            }
+            
+            document.getElementById('unified-data-info').innerHTML = html;
+        }
+
+        function debugBoredToDeath() {
+            let html = '';
+            
+            if (window.mediaLibraryManager && window.mediaLibraryManager.unifiedData) {
+                const unifiedData = window.mediaLibraryManager.unifiedData;
+                
+                // Find Bored to Death
+                const boredKeys = Object.keys(unifiedData).filter(key => 
+                    key.toLowerCase().includes('bored') || key.toLowerCase().includes('death')
+                );
+                
+                if (boredKeys.length > 0) {
+                    html += log(`✅ Found ${boredKeys.length} Bored to Death entries:`, 'success');
+                    
+                    boredKeys.forEach((key, index) => {
+                        const item = unifiedData[key];
+                        html += log(`📺 Entry ${index + 1}: "${key}"`);
+                        html += log(`   - isMovie: ${item.isMovie}`);
+                        html += log(`   - type: ${item.type}`);
+                        html += log(`   - TMDBTitle: ${item.TMDBTitle}`);
+                        html += log(`   - hasSeasons: ${!!item.seasons}`);
+                        html += log(`   - seasons count: ${item.seasons ? Object.keys(item.seasons).length : 0}`);
+                    });
+                } else {
+                    html += log('❌ No Bored to Death entries found in unified data', 'warning');
+                }
+            } else {
+                html += log('❌ Cannot analyze - unified data not available', 'error');
+            }
+            
+            document.getElementById('bored-analysis').innerHTML = html;
+        }
+
+        // Run debug functions
+        debugCollections();
+        debugUnifiedData();
+        debugBoredToDeath();
+    </script>
+</body>
+</html>

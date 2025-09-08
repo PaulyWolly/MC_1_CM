@@ -347,4 +347,44 @@ router.post('/collections/update-types', async (req, res) => {
   }
 });
 
+// POST - Save collections to JSON file
+router.post('/save-json', async (req, res) => {
+  try {
+    const collectionsData = req.body;
+    
+    if (!collectionsData || !collectionsData.collections) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid collections data format' 
+      });
+    }
+    
+    console.log('[COLLECTIONS-API] Saving collections to JSON file...');
+    
+    // Path to collections.json
+    const collectionsPath = path.join(__dirname, '../../public/components/MediaLibrary/data/collections.json');
+    
+    // Write collections data to file
+    await fs.writeFile(collectionsPath, JSON.stringify(collectionsData, null, 2), 'utf8');
+    
+    console.log('[COLLECTIONS-API] Successfully saved collections to JSON file');
+    
+    res.json({
+      success: true,
+      message: 'Collections saved to JSON file successfully',
+      totalCategories: Object.keys(collectionsData.collections).length,
+      totalCollections: Object.values(collectionsData.collections).reduce((total, category) => {
+        return total + Object.keys(category).length;
+      }, 0)
+    });
+    
+  } catch (error) {
+    console.error('[COLLECTIONS-API] Error saving collections to JSON:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save collections to JSON file' 
+    });
+  }
+});
+
 module.exports = router;
