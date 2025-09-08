@@ -1,5 +1,5 @@
 /*
-  CONFIRMMODAL.CSS
+  CONFIRMMODALCOMPONENT.CSS
   Version: 23
   AppName: MultiChat_Chatty MC_1_CM [v23]
   Updated: 8/29/2025 @6:45AM
@@ -14,7 +14,7 @@
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 20000;
+  z-index: 1000000003 !important; /* Higher than Add to Collection modal */
 }
 .confirm-modal-content {
   background: #23263a;

@@ -9,7 +9,64 @@
 const mongoose = require('mongoose');
 
 const WatchLaterItemSchema = new mongoose.Schema({
-    // Media identification
+    // === UNIFIED DATA STRUCTURE (matching tv-shows-unified.json & movies-unified.json) ===
+    
+    // Core identification (from unified data)
+    type: {
+        type: String,
+        enum: ['movie', 'tvshow', 'tv-show'],  // Temporarily allow both for migration
+        required: false  // Made optional for existing data compatibility
+    },
+    TMDBTitle: {
+        type: String,
+        required: false  // Made optional for existing data compatibility
+    },
+    normalizedKey: {
+        type: String,
+        required: false,  // Made optional for existing data compatibility
+        index: true
+    },
+    title: {
+        type: String,
+        required: true
+    },
+    tmdbId: {
+        type: Number,
+        default: null
+    },
+    poster: {
+        type: String,
+        default: null
+    },
+    
+    // About section (from unified data)
+    about: {
+        title: String,
+        year: String,
+        description: String
+    },
+    
+    // Genres array (from unified data)
+    genres: [String],
+    
+    // Cast array (from unified data)
+    cast: [{
+        name: String,
+        character: String,
+        profile: String
+    }],
+    
+    // Files array (from unified data)
+    files: [{
+        path: String,
+        absPath: String,
+        quality: String,
+        size: Number
+    }],
+    
+    // === WATCH LATER SPECIFIC FIELDS ===
+    
+    // Media identification for API compatibility
     mediaId: {
         type: String,
         required: true,
@@ -17,11 +74,7 @@ const WatchLaterItemSchema = new mongoose.Schema({
     },
     mediaType: {
         type: String,
-        enum: ['movie', 'tv-show'],
-        required: true
-    },
-    title: {
-        type: String,
+        enum: ['movie', 'tvshow', 'tv-show'],  // Temporarily allow both for migration
         required: true
     },
     
@@ -65,11 +118,7 @@ const WatchLaterItemSchema = new mongoose.Schema({
         default: null
     },
     
-    // Metadata
-    posterPath: {
-        type: String,
-        default: null
-    },
+    // Additional metadata
     year: {
         type: Number,
         default: null

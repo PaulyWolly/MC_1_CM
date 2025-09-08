@@ -37,16 +37,17 @@ export default function TVShowSeasonsPage({ showName, showData, seasons, descrip
             <button class="media-library-seasons-arrow left" type="button" aria-label="Scroll left">&#8592;</button>
             <div class="media-library-seasons-grid">
                 ${seasons.map(season => {
-                    const seasonImage = season.image || '/assets/img/placeholder-poster.jpg';
-                    const episodeCount = season.episodes ? season.episodes.length : 0;
+                    const seasonImage = season.poster || season.image || '/assets/img/placeholder-poster.jpg';
+                    const episodeCount = season.episodes ? Object.keys(season.episodes).length : 0;
+                    console.log(`[DEBUG - SEASON] Season: ${season.path.split(/[\\/]/).pop()}, Image: ${seasonImage}`);
                     return `
-                        <div class=\"media-library-card\" onclick=\"mediaLibraryManager.openTVSeason('${season.path.replace(/\\/g, '/')}')\">
+                        <div class=\"media-library-card season\" onclick=\"mediaLibraryManager.openTVSeason('${season.path.replace(/\\/g, '/')}')\">
                             <div class=\"media-library-card-poster\">
-                                <img src=\"${seasonImage}\" alt=\"${season.path.split(/[\\/]/).pop()}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'\">
+                                <img src=\"${seasonImage}\" alt=\"${season.path.split(/[\\/]/).pop()}\" onerror=\"this.src='/assets/img/placeholder-poster.jpg'; console.error('[DEBUG - SEASON IMAGE ERROR] Failed to load:', this.src);\" onload=\"console.log('[DEBUG - SEASON IMAGE SUCCESS] Loaded:', this.src);\">
                             </div>
                             <div class=\"media-library-card-info\">
                                 <h3>${season.path.split(/[\\/]/).pop()}</h3>
-                                <p>${episodeCount} ${this.getContentTypeLabel(season.path.split(/[\\/]/).pop(), season.episodes || [])}</p>
+                                <p>${episodeCount} ${episodeCount === 1 ? 'Episode' : 'Episodes'}</p>
                             </div>
                         </div>
                     `;

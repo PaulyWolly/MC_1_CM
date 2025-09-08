@@ -2101,15 +2101,15 @@ export default class YouTubeSearchManager {
 
   hasQueryVideoData(query, type = "search") {
     try {
-      console.log(
-        `🔍 [VIDEO-CHECK] Checking video data for query: "${query}" (type: ${type})`
-      );
+      // console.log(
+      //   `🔍 [VIDEO-CHECK] Checking video data for query: "${query}" (type: ${type})`
+      // );
 
       // Normalize the query for comparison (remove spaces, lowercase)
 
       const normalizedQuery = query.toLowerCase().replace(/\s+/g, "");
 
-      console.log(`🔍 [VIDEO-CHECK] Normalized query: "${normalizedQuery}"`);
+      // console.log(`🔍 [VIDEO-CHECK] Normalized query: "${normalizedQuery}"`);
 
       // Look for cache keys that match this query and type
 
@@ -4839,32 +4839,10 @@ export default class YouTubeSearchManager {
 
         // Replace confirm for delete with custom modal and add debug logs
 
-        const confirmDelete = await new Promise((resolve) => {
-          if (
-            window.ConfirmModal &&
-            typeof window.ConfirmModal.open === "function"
-          ) {
-            window.ConfirmModal.open({
-              message: `Delete "${queryDisplayName}" from history?\n\nThis will remove:\n• All cached pages\n• From access history\n• From database (if saved)`,
-
-              onConfirm: () => {
-                console.log("[ConfirmModal] User confirmed delete");
-                resolve(true);
-              },
-
-              onCancel: () => {
-                console.log("[ConfirmModal] User cancelled delete");
-                resolve(false);
-              },
-            });
-          } else {
-            console.error(
-              "[ConfirmModal] ConfirmModal is not available on window.ConfirmModal"
-            );
-
-            resolve(false);
-          }
-        });
+        const confirmDelete = await window.ConfirmModalComponent.confirmDelete(
+          queryDisplayName, 
+          'This will remove:\n• All cached pages\n• From access history\n• From database (if saved)'
+        );
 
         if (!confirmDelete) {
           console.log(
