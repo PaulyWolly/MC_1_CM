@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 const CollectionItemSchema = new mongoose.Schema({
   path: { type: String, required: true },
   title: { type: String, required: true },
-  mediaType: { type: String, required: true, enum: ['movie', 'tv-show', 'episode'] },
+  mediaType: { type: String, required: true, enum: ['movie', 'tvshow', 'tv-show', 'episode'] },  // Temporarily allow both for migration
   addedAt: { type: Date, default: Date.now }
 });
 

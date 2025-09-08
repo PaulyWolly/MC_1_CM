@@ -43,8 +43,8 @@ router.get('/type/:mediaType', async (req, res) => {
     try {
         const { mediaType } = req.params;
         
-        if (!['movie', 'tv-show'].includes(mediaType)) {
-            return res.status(400).json({ error: 'Invalid media type. Must be "movie" or "tv-show"' });
+        if (!['movie', 'tvshow', 'tv-show'].includes(mediaType)) {
+            return res.status(400).json({ error: 'Invalid media type. Must be "movie", "tvshow", or "tv-show"' });
         }
         
         console.log('[WATCH-LATER-API] Getting items by type:', mediaType);
@@ -77,9 +77,9 @@ router.post('/add', async (req, res) => {
             });
         }
         
-        if (!['movie', 'tv-show'].includes(itemData.mediaType)) {
+        if (!['movie', 'tvshow', 'tv-show'].includes(itemData.mediaType)) {
             return res.status(400).json({ 
-                error: 'Invalid mediaType. Must be "movie" or "tv-show"' 
+                error: 'Invalid mediaType. Must be "movie", "tvshow", or "tv-show"' 
             });
         }
         
@@ -249,7 +249,7 @@ router.get('/info', async (req, res) => {
         const collection = await WatchLater.getDefaultCollection();
         
         const movieCount = collection.items.filter(item => item.mediaType === 'movie').length;
-        const tvShowCount = collection.items.filter(item => item.mediaType === 'tv-show').length;
+        const tvShowCount = collection.items.filter(item => item.mediaType === 'tvshow' || item.mediaType === 'tv-show').length;
         
         console.log('[WATCH-LATER-API] Collection info retrieved');
         

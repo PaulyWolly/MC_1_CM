@@ -209,8 +209,8 @@ class EpisodeModal {
                                     thumbnail: episode.still || "",
                                     generated: false,
                                     timestamp: "",
-                                    episodeNumber: episodeNum,
-                                    seasonNumber: seasonNum,
+                                    episodeNumber: parseInt(episodeNum) || 1, // FIXED: Convert to integer for proper sorting
+                                    seasonNumber: parseInt(seasonNum) || 1,   // FIXED: Convert to integer for proper sorting
                                     isSpecialContent: isSpecialContent,
                                     contentType: episode.contentType || seasonNum
                                 });
@@ -340,18 +340,24 @@ class EpisodeModal {
             seasonEpisodes.forEach(({ episode, index }) => {
                 // Create appropriate episode label based on content type
                 let episodeLabel;
+                let seasonNum, episodeNum; // Declare variables outside conditional blocks
+                
                 if (episode.isSpecialContent) {
                     if (episode.contentType && episode.contentType !== seasonNumber) {
                         // For Featurettes with content types like "Deleted Scenes", "Inside Look"
                         episodeLabel = `${episode.contentType} - ${episode.episodeNumber}`;
+                        seasonNum = 0; // Special content season
+                        episodeNum = parseInt(episode.episodeNumber) || 1;
                     } else {
                         // For other special content
                         episodeLabel = `Episode ${episode.episodeNumber}`;
+                        seasonNum = 0; // Special content season
+                        episodeNum = parseInt(episode.episodeNumber) || 1;
                     }
                 } else {
                     // Regular episodes: S01E01 format
-                    const seasonNum = parseInt(episode.seasonNumber) || 1;
-                    const episodeNum = parseInt(episode.episodeNumber) || 1;
+                    seasonNum = parseInt(episode.seasonNumber) || 1;
+                    episodeNum = parseInt(episode.episodeNumber) || 1;
                     episodeLabel = `S${seasonNum.toString().padStart(2, '0')}E${episodeNum.toString().padStart(2, '0')}`;
                 }
                 
@@ -543,16 +549,19 @@ class EpisodeModal {
         // Remove year in parentheses if present
         normalized = normalized.replace(/\s*\(\d{4}\)$/, '');
         
+        // Handle apostrophes properly - remove them before other processing
+        normalized = normalized.replace(/'/g, '');
+        
         // Replace spaces and special characters with dots
         normalized = normalized.replace(/[^a-z0-9]+/g, '.');
         
         // Remove leading/trailing dots
         normalized = normalized.replace(/^\.+|\.+$/g, '');
         
-        // Add year back if it was in the original name
+        // Add year back if it was in the original name (FIXED: match actual JSON format)
         const yearMatch = showName.match(/\((\d{4})\)/);
         if (yearMatch) {
-            normalized += `.(${yearMatch[1]})`;
+            normalized += `.(${yearMatch[1]})`; // Added dot back to match JSON format
         }
         
         console.log(`[EPISODE-MODAL] Normalized "${showName}" -> "${normalized}"`);

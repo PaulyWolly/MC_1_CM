@@ -61,7 +61,7 @@
 .media-library-movie-grid {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
-    gap: 15px !important;
+    gap: 14px !important;
     justify-items: center !important;
     align-items: start !important;
     max-width: none !important;
@@ -72,10 +72,12 @@
 
 /* Episode Carousel Gradient Overlays */
 .episode-carousel-container {
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    max-width: 1200px; /* Increased from default to show more episodes */
+  position: relative;
+  overflow: hidden;
+  bottom: 30px;
+  font-size: .7em;
+  width: 100%;
+  max-width: 1200px; /* Increased from default to show more episodes */
 }
 
 .episode-carousel-gradient-left,
@@ -452,7 +454,7 @@
 
 /* Always show vertical scrollbar for Movies and TV Shows pages */
 .media-library-modal-content.movies .media-library-media-grid-wrapper,
-.media-library-modal-content.tvshows .media-library-media-grid-wrapper {
+.media-library-modal-content.tv-shows .media-library-media-grid-wrapper {
     max-height: 65vh;
     height: 65vh;
     overflow-y: scroll;
@@ -461,7 +463,7 @@
 }
 
 .media-library-modal-content.movies .media-library-media-grid-wrapper::after,
-.media-library-modal-content.tvshows .media-library-media-grid-wrapper::after {
+.media-library-modal-content.tv-shows .media-library-media-grid-wrapper::after {
     content: '';
     display: block;
     height: 200vh;
@@ -922,7 +924,7 @@
 }
 
 /* Override for seasons and episodes views - breadcrumb flush left */
-.media-library-modal-content.tvshows .season-episode-breadcrumb .media-library-breadcrumbs {
+.media-library-modal-content.tv-shows .season-episode-breadcrumb .media-library-breadcrumbs {
     padding-left: 0px;
     background: none;
     border-bottom: none;
@@ -987,9 +989,9 @@
 }
 
 /* TV Show Grid Styles (copied from movie grid) */
-.media-library-tvshow-grid {
+.media-library-tv-show-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
     gap: 15px !important;
     padding: 0 15px !important;
     width: 100% !important;
@@ -1002,7 +1004,7 @@
 
 
 
-.media-library-tvshow-card {
+.media-library-tv-show-card {
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -1018,7 +1020,7 @@
     cursor: pointer;
 }
 
-.media-library-tvshow-card img {
+.media-library-tv-show-card img {
     width: 100%;
     height: 240px;
     object-fit: cover;
@@ -1115,10 +1117,11 @@
 }
 
 .media-library-card-info h3 {
-    font-size: .82em;
-    margin: 8px 0 0 0;
-    text-align: center;
-    word-break: break-word;
+  font-size: .65em;
+  margin: 8px 0 0 0;
+  text-align: center;
+  word-break: break-word;
+  margin-bottom: 15px;
 }
 
 .media-library-grid-container {
@@ -1130,6 +1133,7 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
+    overflow-y: auto !important;
 }
 
 .media-library-grid {
@@ -1203,41 +1207,55 @@
 
 /* Hide A-Z sidebar on Watch Later, Collections, and Favorites tabs */
 .media-library-modal-content.watchlater .media-library-az-sidebar-movies,
-.media-library-modal-content.watchlater .media-library-az-sidebar-tvshows,
+.media-library-modal-content.watchlater .media-library-az-sidebar-tv-shows,
 .media-library-modal-content.collections .media-library-az-sidebar-movies,
-.media-library-modal-content.collections .media-library-az-sidebar-tvshows,
+.media-library-modal-content.collections .media-library-az-sidebar-tv-shows,
 .media-library-modal-content.favorites .media-library-az-sidebar-movies,
-.media-library-modal-content.favorites .media-library-az-sidebar-tvshows {
+.media-library-modal-content.favorites .media-library-az-sidebar-tv-shows {
     display: none !important;
 }
 
 /* Hide A-Z sidebar on Movie Details, TV Show Season, and TV Show Episodes pages */
 .media-library-modal-content.moviedetails .media-library-az-sidebar-movies,
-.media-library-modal-content.moviedetails .media-library-az-sidebar-tvshows,
-.media-library-modal-content.tvshowseason .media-library-az-sidebar-movies,
-.media-library-modal-content.tvshowseason .media-library-az-sidebar-tvshows,
-.media-library-modal-content.tvshowepisodes .media-library-az-sidebar-movies,
-.media-library-modal-content.tvshowepisodes .media-library-az-sidebar-tvshows {
+.media-library-modal-content.moviedetails .media-library-az-sidebar-tv-shows,
+.media-library-modal-content.tv-showseason .media-library-az-sidebar-movies,
+.media-library-modal-content.tv-showseason .media-library-az-sidebar-tv-shows,
+.media-library-modal-content.tv-showepisodes .media-library-az-sidebar-movies,
+.media-library-modal-content.tv-showepisodes .media-library-az-sidebar-tv-shows {
   display: none !important;
 }
 
-/* Optionally, ensure A-Z sidebar is visible on main Movies and TV Shows grid pages */
+/* Hide A-Z sidebar when viewing specific TV show details (any view that shows show info) */
+.media-library-show-info .media-library-az-sidebar-movies,
+.media-library-show-info .media-library-az-sidebar-tv-shows,
+.media-library-modal-content:has(.media-library-show-info) .media-library-az-sidebar-movies,
+.media-library-modal-content:has(.media-library-show-info) .media-library-az-sidebar-tv-shows {
+  display: none !important;
+}
+
+/* Ensure A-Z sidebar is ONLY visible on main Movies and TV Shows grid pages */
 .media-library-modal-content.movies .media-library-az-sidebar-movies {
   display: flex !important;
 }
-.media-library-modal-content.tvshows .media-library-az-sidebar-tvshows {
+.media-library-modal-content.tv-shows .media-library-az-sidebar-tv-shows {
   display: flex !important;
+}
+
+/* Hide A-Z sidebar by default on ALL other views */
+.media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-movies,
+.media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-tv-shows {
+  display: none !important;
 }
 
 /* Hide A-Z sidebar in Season view */
 .media-library-show-info ~ .media-library-az-sidebar-movies,
-.media-library-show-info ~ .media-library-az-sidebar-tvshows {
+.media-library-show-info ~ .media-library-az-sidebar-tv-shows {
   display: none !important;
 }
 
 /* Hide A-Z sidebar in Season view */
 .media-library-show-info~.media-library-az-sidebar-movies,
-.media-library-show-info~.media-library-az-sidebar-tvshows {
+.media-library-show-info~.media-library-az-sidebar-tv-shows {
     display: none !important;
 }
 
@@ -1251,21 +1269,27 @@
 
 /* --- A-Z Sidebar Styles (from backup) --- */
 .media-library-az-sidebar {
-    position: fixed;
-    top: 240px;
-    right: 30px;
-    bottom: 0;
-    width: 32px;
-    z-index: 10;
-    background: #f5f5f5;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: auto;
-    justify-content: center;
-    border-radius: 8px;
-    box-shadow: 1px 0 6px rgba(0, 0, 0, 0.04);
+  position: fixed;
+  top: 240px;
+  right: 20px;
+  bottom: 0;
+  width: 26px;
+  font-size: .60em;
+  max-height: 60vh;
+  z-index: 10;
+  line-height: 2.4;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  justify-content: center;
+  box-shadow: 0px 0 6px rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  cursor: pointer;
 }
+
+
 @media (max-width: 900px) {
     .media-library-az-sidebar {
         display: none;
@@ -1286,6 +1310,28 @@
 .media-library-az-letter:hover {
     background: #007bff;
     color: #fff;
+    
+}
+
+.media-card-actions-tvshows {
+  text-align: center;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.media-library-az-letter-tvshow:hover {
+  background: #6dacef;
+  color: #fff;
+  text-align: center;
+  width: 100%;
+}
+
+.media-library-az-letter-tvshow.az-active-tvshow { 
+  background: #1976d2 !important;
+  color: #fff !important;
+  border-radius: 4px;
+  text-align: center;
+  width: 100%;
 }
 
 .media-library-az-letter.az-active {
@@ -1312,9 +1358,10 @@
 /* --- Media Library Modal Flex Layout and Scrolling Fixes --- */
 .media-library-flex-row {
     display: flex;
-    height: 61vh !important;
+    height: 60vh !important;
     min-height: 0;
     margin-right: 5px;
+    margin-top: 15px;
     overflow: hidden;
 }
 
@@ -1334,7 +1381,7 @@
     display: flex;
     height: 60vh;
     min-height: 0;
-    width: 85.5vw;
+    width: 84vw;
     box-sizing: border-box;
 }
 
@@ -1390,7 +1437,7 @@
     position: relative !important;
 }
 
-.media-card-actions-tvshows {
+.media-card-actions-tv-shows {
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -1456,22 +1503,50 @@
   /* overflow-x: hidden; */
 }
 
+.tv-shows-section-favorites {
+  width: 50%;
+  flex: none !important;
+  height: 100%;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 .tvshows-section-favorites {
   width: 48%;
   flex: none !important;
   height: 100%;
   background: #f5f5f5;
   border-radius: 8px;
-  padding: 0px 10px 10px 10px;
+  padding: 10px;
   box-sizing: border-box;
 }
+
+.tvshows-section-favorites h3 {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 100;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    text-align: left;
+} 
 
 .media-card-actions-favorites {
   display: flex;
   margin-left: 15px;
 }
 
-.tvshows-section-favorites h3 {
+.tv-shows-section-favorites h3 {
   /* margin-top: 28px; */
 }
 
@@ -1486,7 +1561,7 @@
   overflow-x: hidden;
 }
 
-.tvshows-section-collections {
+.tv-shows-section-collections {
   width: 50%;
   height: 100%;
   background: #f5f5f5;
@@ -1507,20 +1582,18 @@
 
 /* Collection button states */
 .collection-btn-add {
-  background: #7cbef5 !important;
-  border: none !important;
-  cursor: pointer !important;
-  font-size: 1.4em !important;
-  line-height: 1 !important;
-  color: white !important;
-  border-radius: 4px !important;
+    background: #7cbef5 !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.4em !important;
+    line-height: 1 !important;
+    color: white !important;
+    border-radius: 4px !important;
   padding: 3px 0 3px 0 !important;
   /* width: 27%;*/
 }
 
-.watch-later-header {
-  display: none;
-}
+
 
 .collection-btn-remove {
     background: #7df081 !important;
@@ -1571,7 +1644,7 @@
     margin-bottom: 4px;
 }
 
-.poster-selector-btn-tvshows {
+.poster-selector-btn-tv-shows {
     border: 1px solid #3a7bd5 !important;
     padding: 6px 0 3px 0 !important;
     margin-bottom: 4px;
@@ -1698,6 +1771,12 @@
     display: flex;
     flex-direction: column;
   }
+  .watch-later-column-tvshows {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
   .watch-later-section-title {
     font-size: 1.3em;
     font-weight: 600;
@@ -1710,13 +1789,26 @@
   .watch-later-scroll {
     flex: 1;
     overflow-y: auto;
-    max-height: 490px;
+    max-height: 486px;
     /* Add scrollbar styling to match other sections */
     scrollbar-width: thin;
     scrollbar-color: #888 #f1f1f1;
   }
 
   .watch-later-scroll-tv-shows {
+    flex: 1;
+    overflow-y: scroll !important; /* Force scrollbars to always show */
+    max-height: 490px !important;
+    height: 505px !important; /* Force specific height */
+    /* Add scrollbar styling to match other sections */
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    padding-right: 8px !important; /* Add padding to prevent content from being hidden behind scrollbar */
+    position: relative !important;
+    display: block !important;
+  }
+
+  .watch-later-scroll-tvshows {
     flex: 1;
     overflow-y: scroll !important; /* Force scrollbars to always show */
     max-height: 490px !important;
@@ -1736,7 +1828,7 @@
     scrollbar-color: #888 #f1f1f1 !important;
   }
   
-  .media-library-modal-content.tvshows .media-library-tvshow-grid {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid {
     overflow-y: scroll !important; /* Force scrollbars to always show */
     max-height: 60vh !important;
     scrollbar-width: thin !important;
@@ -1744,29 +1836,29 @@
   }
 
   .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar,
-  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid::-webkit-scrollbar {
     width: 8px !important;
   }
 
   .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-track,
-  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-track {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid::-webkit-scrollbar-track {
     background: #f1f1f1 !important;
     border-radius: 4px !important;
   }
 
   .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-thumb,
-  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid::-webkit-scrollbar-thumb {
     background: #888 !important;
     border-radius: 4px !important;
   }
 
   .media-library-modal-content.movies .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
-  .media-library-modal-content.tvshows .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid::-webkit-scrollbar-thumb:hover {
     background: #555 !important;
   }
 
   /* Force TV-Shows main tab to have scrollbars */
-  .media-library-modal-content.tvshows .media-library-tvshow-grid {
+  .media-library-modal-content.tv-shows .media-library-tv-show-grid {
     overflow-y: scroll !important;
     max-height: 60vh !important;
     min-height: 400px !important;
@@ -1781,17 +1873,19 @@
   }
 
   /* TV-Shows grid specific styles */
-  .media-library-tvshow-grid {
+  .media-library-tv-show-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
-    gap: 15px !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+    column-gap: 24px !important;
     justify-items: center !important;
     align-items: start !important;
     max-width: none !important;
     max-height: 60vh !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 15px !important;
     overflow-x: visible !important;
+    overflow-y: auto !important;
   }
 
   /* FAVORITES SECTION SPECIFIC STYLES */
@@ -1803,6 +1897,13 @@
     padding: 0 15px 20px 15px !important;
   }
 
+  .media-library-tvshow-title {
+    font-size: .7rem !important;
+    margin-top: -5px !important;
+    text-align: center !important;
+    border-bottom: none !important;
+  }
+
   /* COLLECTIONS GRID STYLES */
   .movies-section-collections .media-library-movie-grid {
     overflow-y: auto !important;
@@ -1811,20 +1912,21 @@
   }
 
   /* FAVORITES TV SHOWS GRID STYLES */
-  .tvshows-section-favorites .media-library-tvshow-grid {
+  .tv-shows-section-favorites .media-library-tv-show-grid,
+  .tvshows-section-favorites .media-library-tv-show-grid {
     overflow-y: scroll !important;
-    max-height: 48vh !important;
+    max-height: 51.5vh !important;
     min-height: 300px !important;
     scrollbar-width: thin !important;
     scrollbar-color: #888 #f1f1f1 !important;
     display: grid !important;
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 15px !important;
+    row-gap: 0px !important;
     padding: 15px 15px 35px 15px !important;
   }
 
   /* COLLECTIONS TV SHOWS GRID STYLES */
-  .tvshows-section-collections .media-library-tvshow-grid {
+  .tv-shows-section-collections .media-library-tv-show-grid {
     overflow-y: scroll !important;
     max-height: 48vh !important;
     min-height: 300px !important;
@@ -1838,37 +1940,40 @@
 
   /* FAVORITES WEBKIT SCROLLBAR STYLES */
   .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar,
-  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar {
+  .tv-shows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar,
+  .tvshows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar {
     width: 8px !important;
     display: block !important;
   }
 
   /* COLLECTIONS WEBKIT SCROLLBAR STYLES */
   .movies-section-collections .media-library-movie-grid::-webkit-scrollbar,
-  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar,
-  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar {
+  .tv-shows-section-collections .media-library-movie-grid::-webkit-scrollbar,
+  .tv-shows-section-collections .media-library-tv-show-grid::-webkit-scrollbar {
     width: 8px !important;
     display: block !important;
   }
 
   /* FAVORITES SCROLLBAR TRACK STYLES */
   .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-track,
-  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-track {
+  .tv-shows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-track,
+  .tvshows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-track {
     background: #f1f1f1 !important;
     border-radius: 4px !important;
   }
 
   /* COLLECTIONS SCROLLBAR TRACK STYLES */
   .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-track,
-  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-track,
-  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-track {
+  .tv-shows-section-collections .media-library-movie-grid::-webkit-scrollbar-track,
+  .tv-shows-section-collections .media-library-tv-show-grid::-webkit-scrollbar-track {
     background: #f1f1f1 !important;
     border-radius: 4px !important;
   }
 
   /* FAVORITES SCROLLBAR THUMB STYLES */
   .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-thumb,
-  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+  .tv-shows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-thumb,
+  .tvshows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-thumb {
     background: #888 !important;
     border-radius: 4px !important;
     min-height: 40px !important; /* Ensure thumb has minimum height */
@@ -1877,8 +1982,8 @@
 
   /* COLLECTIONS SCROLLBAR THUMB STYLES */
   .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb,
-  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb,
-  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-thumb {
+  .tv-shows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb,
+  .tv-shows-section-collections .media-library-tv-show-grid::-webkit-scrollbar-thumb {
     background: #888 !important;
     border-radius: 4px !important;
     min-height: 40px !important; /* Ensure thumb has minimum height */
@@ -1887,20 +1992,21 @@
 
   /* FAVORITES SCROLLBAR THUMB HOVER STYLES */
   .movies-section-favorites .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
-  .tvshows-section-favorites .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+  .tv-shows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-thumb:hover,
+  .tvshows-section-favorites .media-library-tv-show-grid::-webkit-scrollbar-thumb:hover {
     background: #555 !important;
   }
 
   /* COLLECTIONS SCROLLBAR THUMB HOVER STYLES */
   .movies-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
-  .tvshows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
-  .tvshows-section-collections .media-library-tvshow-grid::-webkit-scrollbar-thumb:hover {
+  .tv-shows-section-collections .media-library-movie-grid::-webkit-scrollbar-thumb:hover,
+  .tv-shows-section-collections .media-library-tv-show-grid::-webkit-scrollbar-thumb:hover {
     background: #555 !important;
   }
 
   /* Force Favorites TV-Shows to have proper scrollbars */
-  .favorites-tvshows-section .media-library-tvshow-grid,
-  .collections-tvshows-section .media-library-tvshow-grid {
+  .favorites-tv-shows-section .media-library-tv-show-grid,
+  .collections-tv-shows-section .media-library-tv-show-grid {
     overflow-y: scroll !important;
     max-height: 48vh !important;
     min-height: 300px !important;
@@ -2010,11 +2116,16 @@
   }
 
   .watch-later-tv-grid {
-    display: grid;
-    grid-template-columns: repeat(3, .325fr);
-    gap: 10px;
-    margin-left: 12px;
-    row-gap: 15px; /* Reduce gap further to make content more compact */
+    display: grid
+;
+    grid-template-columns: repeat(3, 0.425fr);
+    gap: 15px;
+    margin-left: 0px;
+    width: 100%;
+    row-gap: 0px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 55.5vh; /* Reduce gap further to make content more compact */
   }
 
   .watch-later-card {
@@ -2047,6 +2158,37 @@
     justify-content: center;
     margin-top: 0px;
   }
+
+  .watch-later-btn-row-tvshows {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+  .watch-later-resume-btn-tvshows {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1em;
+    cursor: pointer;
+    background: #1976d2;
+    color: #fff;
+    transition: background 0.2s;
+  }
+
+  .watch-later-delete-btn-tvshows {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1em;
+    cursor: pointer;
+    background: #e53935;
+    color: #fff;
+  }
+  .watch-later-delete-btn-tvshows:hover {
+    background: #b71c1c;
+  }
+
   .watch-later-resume-btn, .watch-later-delete-btn {
     padding: 6px 14px;
     border-radius: 6px;
@@ -2066,6 +2208,65 @@
   .watch-later-delete-btn:hover {
     background: #b71c1c;
   }
+  
+  /* Watch Later Header Buttons */
+  .watch-later-fix-btn, .watch-later-sync-btn, .watch-later-header .media-library-refresh-btn {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+
+  .watch-later-controls-group {
+    display: flex;
+    gap: 10px;
+    align-items:flex-end;
+    position: absolute;
+    right: 182px;
+    top: 180px;
+  }
+  
+  .watch-later-fix-btn {
+    background: #ff9800;
+    color: white;
+  }
+  
+  .watch-later-fix-btn:hover {
+    background: #f57c00;
+  }
+  
+  .watch-later-sync-btn {
+    background: #4caf50;
+    color: white;
+  }
+  
+  .watch-later-sync-btn:hover {
+    background: #388e3c;
+  }
+  
+  .watch-later-sync-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .watch-later-header .media-library-refresh-btn {
+    background: #2196f3;
+    color: white;
+  }
+  
+  .watch-later-header .media-library-refresh-btn:hover {
+    background: #1976d2;
+  }
+  
   .watch-later-empty {
     color: #888;
     grid-column: 1/-1;
@@ -2094,7 +2295,7 @@
     /* width: 200px; */
     padding: 10px;
   }
-  .media-library-movie-card-tvshows {
+  .media-library-movie-card-tv-shows {
     height: 32vh;
     margin-top: 0px;
   }
@@ -2214,7 +2415,7 @@
     width: 80vw;
     max-height: 90vh;
     height: 52vh;
-    overflow-y: auto;
+    /* overflow-y: auto; */
     position: relative;
     display: flex;
     gap: 40px;
@@ -2222,12 +2423,26 @@
 }
 
 .media-library-details-poster {
-    /* poster image container */
+    flex-shrink: 0;
+}
+
+/* Main Content Container - Title, meta, description, buttons move as one unit */
+.media-library-details-main-content {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .media-library-details-content {
     flex: 1;
-    min-width: 220px;
+}
+
+.media-library-details-collections-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
 
 .media-library-details-back {
@@ -2302,9 +2517,8 @@
 }
 
 
-
 .media-library-details-cast-list {
-    margin-top: 130px;
+  margin-top: 40px;
 }
 
 .media-library-details-collection-info {
@@ -2486,11 +2700,12 @@
   text-align: left;
 }
 
-.media-library-tv-show-title {
-  margin: 0 0 4px 0;
-  font-size: 2rem;
-  font-weight: 700;
-  text-align: left;
+.tv-shows-section-favorites .media-library-tv-show-title,
+.tvshows-section-favorites .media-library-tv-show-title {
+  margin: 0;
+  font-size: .875rem;
+  font-weight: bold;
+  text-align: center;
   line-height: 1.2;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -2724,7 +2939,7 @@
     top: -35px;
 }
 
-.media-library-tvshows-hr {
+.media-library-tv-shows-hr {
   margin-top: 10px;
 }
 
@@ -2763,7 +2978,7 @@
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-    margin: 12px;
+        margin: 12px 0px 18px 10px;
     padding: 0px 0 15px 0;
     height: fit-content;
     display: flex;
@@ -2794,7 +3009,7 @@
 }
 
 .media-library-poster.poster {
-  max-width: 150px;
+  max-width: 142px;
   width: 100%;
   height: auto;
 }
@@ -3020,7 +3235,7 @@
 }
 
 /* Separate A-Z letter styles for TV Shows */
-.media-library-az-letter-tvshow {
+.media-library-az-letter-tv-show {
     font-size: .75em !important;
     color: #1976d2 !important;
     font-weight: bold;
@@ -3037,12 +3252,12 @@
     position: relative !important;
 }
 
-.media-library-az-letter-tvshow:hover {
+.media-library-az-letter-tv-show:hover {
   background: #e3eafc !important;
   color: #0d47a1 !important;
 }
 
-.media-library-az-letter-tvshow.az-active-tvshow {
+.media-library-az-letter-tv-show.az-active-tv-show {
   background: #007bff !important;
   color: white !important;
 }
@@ -3092,7 +3307,7 @@
   min-width: 174px;
   max-width: 200px;
   flex: 0 0 160px;
-  margin: 0;
+  margin-top: 0px;
   box-sizing: border-box;
   column-gap: 10px;
   gap: 2px;
@@ -3109,17 +3324,25 @@
 }
 
 .media-library-card.episode .media-library-card-poster img {
-  width: 170px;
+  width: 160px;
   height: 205px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 20px;
   display: block;
   margin: 0 auto;
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 .modal-collections-section-title {
   color: #fff;
   margin: 0 0 15px 0;
+  font-size: 14px !important;
+}
+
+.modal-collections-section-title-tvshows {
+  color: #fff;
+  margin: 0 0 15px 12px !important;
   font-size: 14px !important;
 }
 
@@ -3164,11 +3387,12 @@
 /* A-Z Sidebar for Movies */
 .media-library-az-sidebar-movies {
   width: 24px !important;
-  height: 53.0vh;
+  height: 58vh;
   font-size: .85em !important;
   border-radius: 8px;
   background: #f5f5f5;
   display: flex;
+  line-height: 1.1;
   flex-direction: column;
   align-items: center;
   padding: 8px 0;
@@ -3182,7 +3406,7 @@
 }
 
 /* A-Z Sidebar for TV Shows */
-.media-library-az-sidebar-tvshows {
+.media-library-az-sidebar-tv-shows {
   width: 24px !important;
   height: 53.0vh;
   font-size: .85em !important;
@@ -3242,7 +3466,7 @@
 
 /* FAVORITES COLUMN LAYOUT AND SCROLLING */
 .favorites-movies-section,
-.favorites-tvshows-section {
+.favorites-tv-shows-section {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -3293,7 +3517,7 @@
 }
 
 /* FAVORITES TV SHOWS SECTION TITLE STYLES */
-.section-title-tvshows-favorites {
+.section-title-tv-shows-favorites {
     flex: 0 0 auto;
     margin-bottom: 8px;
     position: sticky;
@@ -3312,7 +3536,7 @@
   }
 
 /* COLLECTIONS TV SHOWS SECTION TITLE STYLES */
-.section-title-tvshows-collections {
+.section-title-tv-shows-collections {
     flex: 0 0 auto;
     margin-bottom: 8px;
     position: sticky;
@@ -3388,9 +3612,9 @@
 }
 
 /* Ensure main TV Shows page grid is not affected by Favorites CSS */
-.media-library-modal-content.tvshows .media-library-tvshow-grid {
+.media-library-modal-content.tv-shows .media-library-tv-show-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
     /* gap: 26px !important; */
     justify-items: center !important;
     align-items: start !important;
@@ -3434,18 +3658,18 @@
 /* Responsive grid for favorites */
 @media (max-width: 1200px) {
   .favorites-movies-section .media-library-movie-grid,
-  .favorites-tvshows-section .media-library-movie-grid,
+  .favorites-tv-shows-section .media-library-movie-grid,
   .collections-movies-section .media-library-movie-grid,
-  .collections-tvshows-section .media-library-movie-grid {
+  .collections-tv-shows-section .media-library-movie-grid {
     grid-template-columns: repeat(3, 1fr); /* 3 columns on medium screens */
   }
 }
 
 @media (max-width: 900px) {
   .favorites-movies-section .media-library-movie-grid,
-  .favorites-tvshows-section .media-library-movie-grid,
+  .favorites-tv-shows-section .media-library-movie-grid,
   .collections-movies-section .media-library-movie-grid,
-  .collections-tvshows-section .media-library-movie-grid {
+  .collections-tv-shows-section .media-library-movie-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
   }
 }
@@ -3492,7 +3716,7 @@
   padding-top: 20px !important; /* Add top padding to prevent content behind header */
 }
 
-.collections-tvshows-section {
+.collections-tv-shows-section {
   width: 30%;
   flex: none !important;
   overflow-y: auto !important;
@@ -3682,7 +3906,7 @@
 /* Collection Messages */
 .collection-empty-message,
 .no-movies-message,
-.no-tvshows-message,
+.no-tv-shows-message,
 .no-collections-message {
   text-align: center !important;
   color: #666 !important;
@@ -3705,24 +3929,24 @@
 
 /* Scrollbar Styles for Collections */
 .collections-movies-section::-webkit-scrollbar,
-.collections-tvshows-section::-webkit-scrollbar {
+.collections-tv-shows-section::-webkit-scrollbar {
   width: 8px !important;
 }
 
 .collections-movies-section::-webkit-scrollbar-track,
-.collections-tvshows-section::-webkit-scrollbar-track {
+.collections-tv-shows-section::-webkit-scrollbar-track {
   background: #f1f1f1 !important;
   border-radius: 4px !important;
 }
 
 .collections-movies-section::-webkit-scrollbar-thumb,
-.collections-tvshows-section::-webkit-scrollbar-thumb {
+.collections-tv-shows-section::-webkit-scrollbar-thumb {
   background: #c1c1c1 !important;
   border-radius: 4px !important;
 }
 
 .collections-movies-section::-webkit-scrollbar-thumb:hover,
-.collections-tvshows-section::-webkit-scrollbar-thumb:hover {
+.collections-tv-shows-section::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8 !important;
 }
 
@@ -3752,6 +3976,20 @@
   justify-content: center;
   align-items: center;
   z-index: 1000000001 !important; /* Higher than main Collections modal */
+}
+
+/* Confirmation Modal Overlay - Higher z-index than Add to Collection */
+.collection-confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000000002 !important; /* Higher than Add to Collection modal */
 }
 
 .modal-collections {
@@ -3784,9 +4022,9 @@
   background: #333;
   border-radius: 12px;
   padding: 15px;
-  max-width: 90%;
+  max-width: 95%;
   height: 76vh;
-  width: 70vw !important;
+  width: 90vw !important;
   position: relative;
   border: 2px solid #333;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -3895,7 +4133,7 @@ color: #fff;
 
 /* Remove conflicting rules - sections are now handled by the main rules below */
 
-.collection-modal-tvshows-section {
+.collection-modal-tv-shows-section {
   flex: 0 0 45% !important;
   height: 45% !important;
   min-height: 350px;
@@ -3905,7 +4143,7 @@ color: #fff;
 }
 
 .collection-modal-movies-section h3,
-.collection-modal-tvshows-section h3 {
+.collection-modal-tv-shows-section h3 {
   color: #fff;
   margin: 0 0 8px 0;
   font-size: 14px !important;
@@ -3938,7 +4176,7 @@ color: #fff;
   width: fit-content !important;
 }
 
-.collections-modal-tvshows-grid {
+.collections-modal-tv-shows-grid {
   flex: 1;
   height: 100% !important;
   overflow-y: auto;
@@ -3968,7 +4206,7 @@ color: #fff;
   height: 55% !important;
 }
 
-.collections-modal-tvshows-section {
+.collections-modal-tv-shows-section {
   flex: 0 0 45% !important;
   height: 45% !important;
 }
@@ -3977,24 +4215,24 @@ color: #fff;
 
 /* Custom scrollbar styling for the separate grids */
 .collections-modal-movies-grid::-webkit-scrollbar,
-.collections-modal-tvshows-grid::-webkit-scrollbar {
+.collections-modal-tv-shows-grid::-webkit-scrollbar {
   width: 8px;
 }
 
 .collections-modal-movies-grid::-webkit-scrollbar-track,
-.collections-modal-tvshows-grid::-webkit-scrollbar-track {
+.collections-modal-tv-shows-grid::-webkit-scrollbar-track {
   background: #333;
   border-radius: 4px;
 }
 
 .collections-modal-movies-grid::-webkit-scrollbar-thumb,
-.collections-modal-tvshows-grid::-webkit-scrollbar-thumb {
+.collections-modal-tv-shows-grid::-webkit-scrollbar-thumb {
   background: #666;
   border-radius: 4px;
 }
 
 .collections-modal-movies-grid::-webkit-scrollbar-thumb:hover,
-.collections-modal-tvshows-grid::-webkit-scrollbar-thumb:hover {
+.collections-modal-tv-shows-grid::-webkit-scrollbar-thumb:hover {
   background: #888;
 }
 
@@ -4269,7 +4507,7 @@ color: #fff;
     height: 55%;
   }
   
-  .collection-modal-tvshows-section {
+  .collection-modal-tv-shows-section {
     height: 45%;
   }
 }
@@ -4277,7 +4515,7 @@ color: #fff;
 /* Responsive design for smaller width screens */
 @media (max-width: 1200px) {
   .collection-modal-movies-grid,
-  .collection-modal-tvshows-grid {
+  .collection-modal-tv-shows-grid {
     grid-template-columns: repeat(6, 140px);
     gap: 10px;
     padding: 10px;
@@ -4291,7 +4529,7 @@ color: #fff;
 /* Responsive design for medium screens */
 @media (max-width: 1600px) {
   .collection-modal-movies-grid,
-  .collection-modal-tvshows-grid {
+  .collection-modal-tv-shows-grid {
     grid-template-columns: repeat(6, 150px);
     gap: 12px;
   }
@@ -4399,7 +4637,7 @@ color: #fff;
 
 /* Collections Modal Sections */
 .modal-collections-section {
-  /* margin-bottom: 30px; */
+  margin-bottom: 30px;
 }
 
 .modal-collections-movies-section {
@@ -4413,7 +4651,7 @@ color: #fff;
   border-radius: 8px;
 }
 
-.modal-collections-tvshows-section {
+.modal-collections-tv-shows-section {
   flex: 0 0 60% !important;
   height: 60% !important;
   min-height: 500px;
@@ -4447,28 +4685,46 @@ color: #fff;
   justify-content: start !important;
   min-width: 1140px !important;
   width: fit-content !important;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
 }
 
 .modal-collections-tvshows-grid {
   flex: 1;
-  height: 100% !important;
   overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid #444;
   border-radius: 8px;
-  padding: 15px;
+  padding: 15px 15px 35px 15px;
   background: rgba(0, 0, 0, 0.2);
-  min-height: 296px !important;
-  max-height: 24vh;
+  min-height: 0;
+  height: 100%;
+  max-height: 29vh;
+  max-width: 2vw;
   display: grid !important;
-  grid-template-columns: repeat(6, 160px) !important;
-  grid-auto-rows: 245px !important;
-  row-gap: 40px !important;
-  column-gap: 36px !important;
+  grid-template-columns: repeat(6, 175px) !important;
+  grid-auto-rows: 220px !important;
+  gap: 20px !important;
+  row-gap: 60px !important;
+  column-gap: 20px !important;
   align-content: start !important;
   justify-content: start !important;
   min-width: 1140px !important;
   width: fit-content !important;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #666 #333;
+  margin-left: 10px;
+}
+
+/* Force grid layout for TV shows in collections modal */
+.modal-collections-overlay .modal-collections-tvshows-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, 175px) !important;
+  grid-auto-rows: 220px !important;
+  flex-direction: unset !important;
+  flex-wrap: unset !important;
 }
 
 /* Collections Modal Items */
@@ -4596,14 +4852,17 @@ color: #fff;
 }
 
 .modal-collections-movies-grid::-webkit-scrollbar-thumb,
-.modal-collections-tvshows-grid::-webkit-scrollbar-thumb {
-  background: #666;
+.modal-collections-tvshows-grid::-webkit-scrollbar-thumb {  background: #666;
   border-radius: 4px;
 }
 
 .modal-collections-movies-grid::-webkit-scrollbar-thumb:hover,
 .modal-collections-tvshows-grid::-webkit-scrollbar-thumb:hover {
   background: #888;
+}
+
+.modal-collections-section .modal-collections-tvshows-section {
+  margin-left: 20px;
 }
 
 /* Collections Modal Empty States */
@@ -4744,8 +5003,8 @@ color: #fff;
     padding: 15px;
     background: #2a2a2a;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
 }
 
 .collections-modal-checkbox-item {
@@ -4994,3 +5253,161 @@ color: #fff;
 }
 
 /* Removed duplicate definition - using the main one above */
+
+/* Sync Result Modal Styles */
+.sync-result-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999999;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.sync-result-modal-content {
+    border-radius: 10px;
+    padding: 30px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.sync-result-modal-content.success {
+    background: #d4edda;
+    border: 3px solid #28a745;
+}
+
+.sync-result-modal-content.warning {
+    background: #fff3cd;
+    border: 3px solid #ffc107;
+}
+
+.sync-result-modal-content.error {
+    background: #f8d7da;
+    border: 3px solid #dc3545;
+}
+
+.sync-result-modal-content.info {
+    background: #d1ecf1;
+    border: 3px solid #17a2b8;
+}
+
+.sync-result-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.sync-result-modal-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sync-result-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.sync-result-modal-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.sync-result-modal-icon.success {
+    color: #28a745;
+}
+
+.sync-result-modal-icon.warning {
+    color: #856404;
+}
+
+.sync-result-modal-icon.error {
+    color: #dc3545;
+}
+
+.sync-result-modal-icon.info {
+    color: #17a2b8;
+}
+
+.sync-result-modal-title {
+    margin: 0 0 15px 0;
+    font-size: 20px;
+}
+
+.sync-result-modal-title.success {
+    color: #28a745;
+}
+
+.sync-result-modal-title.warning {
+    color: #856404;
+}
+
+.sync-result-modal-title.error {
+    color: #dc3545;
+}
+
+.sync-result-modal-title.info {
+    color: #17a2b8;
+}
+
+.sync-result-modal-message {
+    color: #333;
+    line-height: 1.6;
+    white-space: pre-line;
+    font-size: 14px;
+}
+
+.sync-result-modal-footer {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.sync-result-modal-ok-btn {
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: opacity 0.2s;
+    color: white;
+}
+
+.sync-result-modal-ok-btn.success {
+    background-color: #28a745;
+}
+
+.sync-result-modal-ok-btn.warning {
+    background-color: #ffc107;
+}
+
+.sync-result-modal-ok-btn.error {
+    background-color: #dc3545;
+}
+
+.sync-result-modal-ok-btn.info {
+    background-color: #17a2b8;
+}
+
+.sync-result-modal-ok-btn:hover {
+    opacity: 0.8;
+}
