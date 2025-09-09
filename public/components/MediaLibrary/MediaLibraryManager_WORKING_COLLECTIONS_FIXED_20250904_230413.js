@@ -1,8 +1,8 @@
 /*
-  MEDIALIBRARYMANAGER.JS
-  Version: 23
-  AppName: MultiChat_Chatty MC_1_CM [v23]
-  Updated: 8/29/2025 @6:45AM
+  MEDIALIBRARYMANAGER_WORKING_COLLECTIONS_FIXED_20250904_230413.JS
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
   Created by Paul Welby
 */
 
@@ -2247,18 +2247,8 @@ class MediaLibraryManager {
       const skipToNextBtn = document.getElementById("skipToNextBtn");
       if (skipToNextBtn) skipToNextBtn.style.display = "none";
     });
-    // Patch player close event to always reopen MediaLibrary with last active tab
-    player.on("close", () => {
-      if (
-        window.mediaLibraryManager &&
-        typeof window.mediaLibraryManager.openMediaBrowser === "function"
-      ) {
-        // Restore the last active tab before reopening
-        window.mediaLibraryManager.currentTab =
-          window.mediaLibraryManager.lastActiveTab;
-        setTimeout(() => window.mediaLibraryManager.openMediaBrowser(), 0);
-      }
-    });
+    // Let the video player handle its own return location logic
+    // The video player's restoreReturnLocation() method will handle returning to the correct page
   }
   findNextVideo(currentVideo) {
     if (

@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 23
-  AppName: MultiChat_Chatty MC_1_CM [v23]
-  Updated: 8/29/2025 @6:45AM
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
   Created by Paul Welby
 */
 
@@ -3550,7 +3550,7 @@ class VideoPlayer {
                 console.log('[VIDEO-PLAYER] After renderModal - currentTab:', window.mediaLibraryManager.currentTab);
                 break;
                 
-            case 'tv-show-episodes':
+            case 'tvshow-episodes':
                 console.log('[VIDEO-PLAYER] Restoring to tv-show-episodes:', this.returnLocation.showPath, this.returnLocation.seasonPath);
                 // Return to specific TV show episodes view
                 if (this.returnLocation.showPath && this.returnLocation.seasonPath) {

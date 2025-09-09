@@ -1,8 +1,8 @@
 /*
   FIX_MOVIE_POSTERS_NORMALIZED_KEYS.JS
-  Version: 23
-  AppName: MultiChat_Chatty MC_1_CM [v23]
-  Updated: 8/29/2025 @6:45AM
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
   Created by Paul Welby
 */
 

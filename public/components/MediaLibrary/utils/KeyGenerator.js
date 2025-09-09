@@ -1,3 +1,11 @@
+/*
+  KEYGENERATOR.JS
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
+  Created by Paul Welby
+*/
+
 /**
  * KeyGenerator - Unified key conversion logic for consistent media identification
  * This ensures all parts of the system use the same key generation rules

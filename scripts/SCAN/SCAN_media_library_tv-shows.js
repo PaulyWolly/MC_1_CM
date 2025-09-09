@@ -1,17 +1,24 @@
 /*
   SCAN_MEDIA_LIBRARY_TV-SHOWS.JS
-  Version: 23
-  AppName: MultiChat_Chatty MC_1_CM [v23]
-  Updated: 8/29/2025 @6:45AM
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
 const { normalizeKey } = require('../../shared/NormalizationService');
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
 const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-shows-unified.json');
+
+// Get TMDB ID from command line arguments
+const args = process.argv.slice(2);
+const tmdbIdArg = args.find(arg => arg.startsWith('--tmdb-id='));
+const TMDB_ID = tmdbIdArg ? tmdbIdArg.split('=')[1] : null;
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
 function isVideoFile(filename) {
     const exts = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
@@ -119,7 +126,7 @@ function checkForNewEpisodes(existingShow, scannedShow) {
         }
     }
     
-    return hasChanges ? updatedShow : null;
+    return hasChanges ? reorderShowFields(updatedShow) : null;
 }
 
 function walkShows(dir, relPath = '') {
@@ -170,7 +177,8 @@ function walkShows(dir, relPath = '') {
                 name: f,
                 absPath: path.join(absPath, f),
                 relPath: path.join(relPath, f),
-                filePath: path.join(absPath, f)
+                filePath: path.join(absPath, f),
+                path: `TV-SHOWS/${relPath.replace(/\\/g, '/')}/${f}` // REQUIRED for Watch Later functionality
             }))
         };
         
@@ -201,23 +209,55 @@ function walkShows(dir, relPath = '') {
 /**
  * Convert scanned show data to clean seasons structure like star.trek.the.original.series
  * @param {Object} scannedShow - The show data from walkShows
+ * @param {Object} tmdbData - TMDB data if available
  * @returns {Object} - Clean show structure with seasons
  */
-function convertToCleanStructure(scannedShow) {
+function convertToCleanStructure(scannedShow, tmdbData = null) {
+    // Use TMDB data if available, otherwise use placeholders
+    const showData = tmdbData?.show;
+    const castData = tmdbData?.cast || [];
+    const seasonsData = tmdbData?.seasons || {};
+    
     const cleanShow = {
+        TMDBTitle: showData?.name || scannedShow.normalizedKey, // Use TMDB name if available
         type: "tvshow",
+        isMovie: false,
         normalizedKey: scannedShow.normalizedKey,
-        title: scannedShow.normalizedKey, // Use normalized key as title for now
-        tmdbId: null, // Will be populated later if needed
-        poster: null, // Will be populated later if needed
+        title: showData?.name ? `${showData.name} (${showData.first_air_date?.substring(0, 4) || extractYearFromPath(scannedShow.path)})` : scannedShow.normalizedKey,
+        mediaType: "tvshow", // REQUIRED for proper categorization
+        tmdbId: showData?.id || TMDB_ID || null,
+        poster: showData?.poster_path ? `https://image.tmdb.org/t/p/w500${showData.poster_path}` : null,
+        description: showData?.overview || "To be gathered", // Use TMDB overview if available
         about: {
-            title: scannedShow.normalizedKey,
-            year: extractYearFromPath(scannedShow.path),
-            description: "" // Will be populated later if needed
+            description: showData?.overview || "To be gathered",
+            status: showData?.status || "Unknown",
+            first_air_date: showData?.first_air_date || null,
+            last_air_date: showData?.last_air_date || null,
+            number_of_seasons: showData?.number_of_seasons || 1,
+            number_of_episodes: showData?.number_of_episodes || 0,
+            vote_average: showData?.vote_average || 0,
+            vote_count: showData?.vote_count || 0
         },
-        genres: [], // Will be populated later if needed
-        cast: [], // Will be populated later if needed
-        seasons: {}
+        genres: showData?.genres?.map(g => g.name) || [], // Use TMDB genres if available
+        cast: castData.length > 0 ? castData.slice(0, 20).map((person, index) => ({
+            name: person.name,
+            character: person.character,
+            profile_path: person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null
+        })) : [
+            {
+                name: "To be gathered",
+                character: "To be gathered", 
+                profile_path: "To be gathered"
+            }
+        ],
+        year: parseInt(showData?.first_air_date?.substring(0, 4) || extractYearFromPath(scannedShow.path)),
+        path: scannedShow.path, // REQUIRED for file system access
+        absPath: scannedShow.path, // REQUIRED for file system access
+        backdrop: showData?.backdrop_path ? `https://image.tmdb.org/t/p/w1280${showData.backdrop_path}` : null,
+        seasons: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        files: [] // REQUIRED skeleton framework for all episodes
     };
     
     // Process folders to create seasons structure
@@ -240,9 +280,12 @@ function convertToCleanStructure(scannedShow) {
             if (seasonNum) {
                 console.log(`   📺 [SCAN] Processing Season ${seasonNum} from folder: ${folder.path}`);
                 
-                // Create season structure
+                // Create season structure with TMDB season data if available
+                const tmdbSeasonData = seasonsData[parseInt(seasonNum)];
                 cleanShow.seasons[seasonNum] = {
-                    poster: null, // Will use show poster for now
+                    poster: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbSeasonData.poster_path}` : null,
+                    season_poster: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbSeasonData.poster_path}` : null,
+                    season_thumbnail: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w500${tmdbSeasonData.poster_path}` : null,
                     episodes: {}
                 };
                 
@@ -259,9 +302,9 @@ function convertToCleanStructure(scannedShow) {
                             const localThumbnail = checkLocalThumbnail(scannedShow.path, seasonNum, file.name);
                             
                             cleanShow.seasons[seasonNum].episodes[episodeNum] = {
-                                title: episodeTitle,
-                                path: file.path,
+                                title: `${cleanShow.TMDBTitle} (${cleanShow.year}) | S${seasonNum.padStart(2, '0')}E${episodeNum.padStart(2, '0')} | ${episodeTitle}`,
                                 absPath: file.absPath,
+                                path: file.path,
                                 duration: null,
                                 season: parseInt(seasonNum),
                                 episode: parseInt(episodeNum),
@@ -269,8 +312,8 @@ function convertToCleanStructure(scannedShow) {
                                 isSpecials: false,
                                 videoFormat: path.extname(file.name),
                                 supportsVideo: true,
-                                still: localThumbnail || getTMDBEpisodeImage(seasonNum, episodeNum),
-                                thumbnail: localThumbnail || getTMDBEpisodeImage(seasonNum, episodeNum)
+                                still: localThumbnail || getTMDBEpisodeImage(seasonNum, episodeNum, seasonsData),
+                                thumbnail: localThumbnail || getTMDBEpisodeImage(seasonNum, episodeNum, seasonsData)
                             };
                             
                             console.log(`     📺 [SCAN] Episode ${episodeNum}: ${episodeTitle}`);
@@ -290,7 +333,23 @@ function convertToCleanStructure(scannedShow) {
     }
     cleanShow.about.episodes = totalEpisodes;
     
-    return cleanShow;
+    // Populate files array with all episodes for Watch Later functionality
+    cleanShow.files = [];
+    for (const [seasonKey, season] of Object.entries(cleanShow.seasons)) {
+        if (season.episodes) {
+            for (const [episodeKey, episode] of Object.entries(season.episodes)) {
+                cleanShow.files.push({
+                    path: episode.path,
+                    absPath: episode.absPath,
+                    quality: "1080p", // Default quality - can be updated later
+                    size: 0 // Default size - can be updated later
+                });
+            }
+        }
+    }
+    
+    // Reorder fields to match template structure
+    return reorderShowFields(cleanShow);
 }
 
 /**
@@ -302,20 +361,80 @@ function extractYearFromPath(showPath) {
 }
 
 /**
+ * Fetch TMDB data for a TV show
+ */
+async function fetchTMDBData(tmdbId) {
+    if (!tmdbId || !TMDB_API_KEY) {
+        console.log('   ⚠️ [SCAN] No TMDB ID or API key provided, using placeholder data');
+        return null;
+    }
+
+    try {
+        console.log(`   🔍 [SCAN] Fetching TMDB data for ID: ${tmdbId}`);
+        
+        // Fetch show details
+        const showResponse = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}`);
+        const showData = await showResponse.json();
+        
+        if (showData.success === false) {
+            console.log(`   ❌ [SCAN] TMDB API error: ${showData.status_message}`);
+            return null;
+        }
+
+        // Fetch cast data
+        const castResponse = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/credits?api_key=${TMDB_API_KEY}`);
+        const castData = await castResponse.json();
+
+        // Fetch season data
+        const seasonsData = {};
+        if (showData.seasons) {
+            console.log(`   🔍 [SCAN] Found ${showData.seasons.length} seasons in TMDB data`);
+            for (const season of showData.seasons) {
+                try {
+                    console.log(`   🔍 [SCAN] Fetching season ${season.season_number} data...`);
+                    const seasonResponse = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${season.season_number}?api_key=${TMDB_API_KEY}`);
+                    const seasonData = await seasonResponse.json();
+                    seasonsData[season.season_number] = seasonData;
+                    console.log(`   ✅ [SCAN] Season ${season.season_number} poster: ${seasonData.poster_path ? 'Found' : 'Not found'}`);
+                } catch (error) {
+                    console.log(`   ⚠️ [SCAN] Could not fetch season ${season.season_number} data: ${error.message}`);
+                }
+            }
+        }
+
+        return {
+            show: showData,
+            cast: castData.cast || [],
+            crew: castData.crew || [],
+            seasons: seasonsData
+        };
+    } catch (error) {
+        console.log(`   ❌ [SCAN] Error fetching TMDB data: ${error.message}`);
+        return null;
+    }
+}
+
+/**
  * Extract episode title from filename
  */
 function extractEpisodeTitle(filename) {
-    // Remove file extension and episode number, clean up the title
+    // Remove file extension
     let title = filename.replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i, '');
     
-    // Remove episode number pattern (S01E01, S1E1, etc.)
-    title = title.replace(/S\d{1,2}E\d{1,2}\s*/i, '');
+    // Remove show name and year pattern (e.g., "Peacemaker (2021)")
+    title = title.replace(/^[^-]+\(\d{4}\)\s*/, '');
     
-    // Remove quality tags like 2160p WEB-DL
+    // Remove episode number pattern (S01E01, S1E1, etc.) and everything before it
+    title = title.replace(/.*S\d{1,2}E\d{1,2}\s*[-_\s]*/, '');
+    
+    // Remove quality tags like 2160p WEB-DL, HMAX, x265, etc.
+    title = title.replace(/\s*\(\d{3,4}p[^)]*\)/i, '');
     title = title.replace(/\s*\d{3,4}p\s*WEB-DL?/i, '');
     title = title.replace(/\s*WEB-DL?/i, '');
+    title = title.replace(/\s*HMAX\s*x265[^)]*\)?/i, '');
+    title = title.replace(/\s*Silence\)?/i, '');
     
-    // Clean up extra spaces and dashes
+    // Clean up extra spaces, dashes, and underscores
     title = title.replace(/^\s*[-_\s]+\s*/, '').replace(/\s*[-_\s]+\s*$/, '');
     
     // If title is empty or just whitespace, use episode number
@@ -360,10 +479,288 @@ function checkLocalThumbnail(showPath, seasonNum, fileName) {
 }
 
 /**
- * Get TMDB episode image URL (placeholder for now)
+ * Check if a show has placeholder episode images
  */
-function getTMDBEpisodeImage(seasonNum, episodeNum) {
-    // For now, return a placeholder. In the future, we could fetch from TMDB API
+function checkForPlaceholderEpisodeImages(show) {
+    if (!show.seasons) return false;
+    
+    for (const [seasonKey, season] of Object.entries(show.seasons)) {
+        if (season.episodes) {
+            for (const [episodeKey, episode] of Object.entries(season.episodes)) {
+                if (episode.still && episode.still.includes('placeholder')) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Check if a specific show needs TMDB data
+ */
+function checkIfShowNeedsTMDBData(show) {
+    // Check if show has placeholder data that needs to be replaced
+    const hasPlaceholderDescription = show.description === "To be gathered" || !show.description;
+    const hasPlaceholderCast = !show.cast || show.cast.length === 0 || (show.cast[0] && show.cast[0].name === "To be gathered");
+    const hasPlaceholderImages = !show.poster || show.poster.includes('placeholder') || show.poster.includes('via.placeholder');
+    const hasPlaceholderEpisodeImages = checkForPlaceholderEpisodeImages(show);
+    
+    return hasPlaceholderDescription || hasPlaceholderCast || hasPlaceholderImages || hasPlaceholderEpisodeImages;
+}
+
+/**
+ * Add missing season_poster and season_thumbnail fields to existing shows
+ */
+function addMissingSeasonFields(show) {
+    let hasChanges = false;
+    const updatedShow = { ...show };
+    
+    if (updatedShow.seasons) {
+        for (const [seasonKey, season] of Object.entries(updatedShow.seasons)) {
+            if (season.poster && !season.season_poster) {
+                season.season_poster = season.poster;
+                hasChanges = true;
+                console.log(`   📸 [SCAN] Added season_poster to season ${seasonKey}`);
+            }
+            if (season.poster && !season.season_thumbnail) {
+                season.season_thumbnail = season.poster;
+                hasChanges = true;
+                console.log(`   📸 [SCAN] Added season_thumbnail to season ${seasonKey}`);
+            }
+        }
+    }
+    
+    return hasChanges ? reorderShowFields(updatedShow) : null;
+}
+
+/**
+ * Convert existing show to Jupiter's Legacy template structure
+ */
+function convertExistingShowToTemplate(existingShow) {
+    let hasChanges = false;
+    const convertedShow = { ...existingShow };
+    
+    // Check if show already has the correct template structure
+    const hasCorrectTemplate = convertedShow.TMDBTitle && 
+                              convertedShow.isMovie === false && 
+                              convertedShow.year && 
+                              convertedShow.path && 
+                              convertedShow.absPath && 
+                              convertedShow.backdrop !== undefined && 
+                              convertedShow.created && 
+                              convertedShow.updated && 
+                              convertedShow.files && 
+                              Array.isArray(convertedShow.files);
+    
+    if (hasCorrectTemplate) {
+        // Just add missing season fields
+        return addMissingSeasonFields(convertedShow);
+    }
+    
+    // Convert to Jupiter's Legacy template structure
+    console.log(`   🔄 [SCAN] Converting show structure for: ${convertedShow.TMDBTitle || convertedShow.title || 'Unknown'}`);
+    
+    // Ensure required fields exist
+    if (!convertedShow.TMDBTitle) {
+        convertedShow.TMDBTitle = convertedShow.title || convertedShow.normalizedKey;
+        hasChanges = true;
+    }
+    
+    if (convertedShow.isMovie === undefined) {
+        convertedShow.isMovie = false;
+        hasChanges = true;
+    }
+    
+    if (!convertedShow.year) {
+        convertedShow.year = convertedShow.about?.year ? parseInt(convertedShow.about.year) : 2020;
+        hasChanges = true;
+    }
+    
+    if (!convertedShow.path) {
+        convertedShow.path = convertedShow.absPath || `TV-SHOWS/${convertedShow.normalizedKey}`;
+        hasChanges = true;
+    }
+    
+    if (!convertedShow.absPath) {
+        convertedShow.absPath = convertedShow.path || `S:/MEDIA/TV-SHOWS/${convertedShow.normalizedKey}`;
+        hasChanges = true;
+    }
+    
+    if (convertedShow.backdrop === undefined) {
+        convertedShow.backdrop = null;
+        hasChanges = true;
+    }
+    
+    if (!convertedShow.created) {
+        convertedShow.created = new Date().toISOString();
+        hasChanges = true;
+    }
+    
+    if (!convertedShow.updated) {
+        convertedShow.updated = new Date().toISOString();
+        hasChanges = true;
+    }
+    
+    // Ensure files array exists and is properly structured
+    if (!convertedShow.files || !Array.isArray(convertedShow.files)) {
+        convertedShow.files = [];
+        hasChanges = true;
+        
+        // Populate files array from seasons/episodes
+        if (convertedShow.seasons) {
+            for (const [seasonKey, season] of Object.entries(convertedShow.seasons)) {
+                if (season.episodes) {
+                    for (const [episodeKey, episode] of Object.entries(season.episodes)) {
+                        if (episode.path || episode.absPath) {
+                            convertedShow.files.push({
+                                path: episode.path || episode.absPath,
+                                absPath: episode.absPath || episode.path,
+                                quality: "1080p",
+                                size: 0
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Update about object to match template
+    if (!convertedShow.about || !convertedShow.about.status) {
+        if (!convertedShow.about) convertedShow.about = {};
+        convertedShow.about.status = convertedShow.about.status || "Unknown";
+        convertedShow.about.first_air_date = convertedShow.about.first_air_date || null;
+        convertedShow.about.last_air_date = convertedShow.about.last_air_date || null;
+        convertedShow.about.number_of_seasons = convertedShow.about.number_of_seasons || 1;
+        convertedShow.about.number_of_episodes = convertedShow.about.number_of_episodes || 0;
+        convertedShow.about.vote_average = convertedShow.about.vote_average || 0;
+        convertedShow.about.vote_count = convertedShow.about.vote_count || 0;
+        hasChanges = true;
+    }
+    
+    // Add missing season fields
+    const seasonFieldsUpdated = addMissingSeasonFields(convertedShow);
+    if (seasonFieldsUpdated) {
+        hasChanges = true;
+    }
+    
+    // Reorder fields to match template structure
+    const reorderedShow = reorderShowFields(convertedShow);
+    
+    return hasChanges ? reorderedShow : null;
+}
+
+/**
+ * Reorder TV show fields to match the template structure exactly
+ */
+function reorderShowFields(show) {
+    // Define the expected field order for the main TV show object
+    const expectedMainFields = [
+        'TMDBTitle',
+        'type',
+        'isMovie', 
+        'normalizedKey',
+        'title',
+        'mediaType',
+        'tmdbId',
+        'poster',
+        'description',
+        'about',
+        'genres',
+        'cast',
+        'year',
+        'path',
+        'absPath',
+        'backdrop',
+        'seasons',
+        'created',
+        'updated',
+        'files'
+    ];
+    
+    // Define the expected field order for season objects
+    const expectedSeasonFields = [
+        'poster',
+        'season_poster', 
+        'season_thumbnail',
+        'episodes'
+    ];
+    
+    // Define the expected field order for episode objects
+    const expectedEpisodeFields = [
+        'title',
+        'absPath',
+        'path',
+        'duration',
+        'season',
+        'episode',
+        'type',
+        'isSpecials',
+        'videoFormat',
+        'supportsVideo',
+        'still',
+        'thumbnail'
+    ];
+    
+    // Reorder main show fields
+    const reorderedShow = reorderObjectFields(show, expectedMainFields);
+    
+    // Reorder season fields
+    if (reorderedShow.seasons) {
+        for (const [seasonKey, season] of Object.entries(reorderedShow.seasons)) {
+            reorderedShow.seasons[seasonKey] = reorderObjectFields(season, expectedSeasonFields);
+            
+            // Reorder episode fields
+            if (season.episodes) {
+                for (const [episodeKey, episode] of Object.entries(season.episodes)) {
+                    reorderedShow.seasons[seasonKey].episodes[episodeKey] = reorderObjectFields(episode, expectedEpisodeFields);
+                }
+            }
+        }
+    }
+    
+    return reorderedShow;
+}
+
+/**
+ * Reorder object fields according to expected order
+ */
+function reorderObjectFields(obj, expectedOrder) {
+    const newObj = {};
+    
+    // Add fields in expected order
+    for (const field of expectedOrder) {
+        if (obj.hasOwnProperty(field)) {
+            newObj[field] = obj[field];
+        }
+    }
+    
+    // Add any remaining fields not in expected order
+    for (const [key, value] of Object.entries(obj)) {
+        if (!expectedOrder.includes(key)) {
+            newObj[key] = value;
+        }
+    }
+    
+    return newObj;
+}
+
+/**
+ * Get TMDB episode image URL from season data
+ */
+function getTMDBEpisodeImage(seasonNum, episodeNum, seasonsData) {
+    // Check if we have TMDB season data for this season
+    if (seasonsData && seasonsData[parseInt(seasonNum)] && seasonsData[parseInt(seasonNum)].episodes) {
+        const seasonData = seasonsData[parseInt(seasonNum)];
+        const episodeData = seasonData.episodes.find(ep => ep.episode_number === parseInt(episodeNum));
+        
+        if (episodeData && episodeData.still_path) {
+            return `https://image.tmdb.org/t/p/w500${episodeData.still_path}`;
+        }
+    }
+    
+    // Fallback to placeholder if no TMDB data available
     return `https://via.placeholder.com/400x225/333/666?text=S${seasonNum.padStart(2, '0')}E${episodeNum.padStart(2, '0')}`;
 }
 
@@ -383,13 +780,63 @@ function flattenShows(tree) {
     return shows;
 }
 
-function main() {
+async function main() {
     console.log(`🔍 [SCAN] Scanning TV-SHOWS library at: ${MEDIA_ROOT}`);
     
     // Check if media root exists
     if (!fs.existsSync(MEDIA_ROOT)) {
         console.error(`❌ [SCAN] Error: Media root directory does not exist: ${MEDIA_ROOT}`);
         process.exit(1);
+    }
+
+    // Load existing data first to check what needs TMDB data
+    let existingData = {};
+    try {
+        if (fs.existsSync(OUTPUT_FILE)) {
+            existingData = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf-8'));
+            console.log(`📖 [SCAN] Loaded existing data with ${Object.keys(existingData).length} TV shows`);
+        }
+    } catch (e) {
+        console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
+    }
+
+    // When TMDB ID is provided, check if any shows need TMDB data
+    let tmdbData = null;
+    let targetShowName = null;
+    let needsTMDBData = false;
+    
+    if (TMDB_ID) {
+        console.log(`🔍 [SCAN] TMDB ID provided: ${TMDB_ID} - Checking if data is needed`);
+        
+        // Check if any existing shows need TMDB data
+        const showsNeedingData = Object.values(existingData).filter(show => {
+            // Check if show has placeholder data that needs to be replaced
+            const hasPlaceholderDescription = show.description === "To be gathered" || !show.description;
+            const hasPlaceholderCast = !show.cast || show.cast.length === 0 || (show.cast[0] && show.cast[0].name === "To be gathered");
+            const hasPlaceholderImages = !show.poster || show.poster.includes('placeholder') || show.poster.includes('via.placeholder');
+            const hasPlaceholderEpisodeImages = checkForPlaceholderEpisodeImages(show);
+            
+            return hasPlaceholderDescription || hasPlaceholderCast || hasPlaceholderImages || hasPlaceholderEpisodeImages;
+        });
+        
+        if (showsNeedingData.length > 0) {
+            console.log(`🔍 [SCAN] Found ${showsNeedingData.length} shows needing TMDB data:`);
+            showsNeedingData.forEach(show => {
+                console.log(`   - ${show.TMDBTitle || show.title || 'Unknown'}`);
+            });
+            
+            needsTMDBData = true;
+            tmdbData = await fetchTMDBData(TMDB_ID);
+            
+            if (tmdbData && tmdbData.show) {
+                targetShowName = tmdbData.show.name;
+                console.log(`🎯 [SCAN] Targeting show: "${targetShowName}"`);
+            }
+        } else {
+            console.log(`✅ [SCAN] All shows have complete data - no TMDB fetch needed`);
+        }
+    } else {
+        console.log(`⚠️ [SCAN] No TMDB ID provided. Use --tmdb-id=12345 to fetch real data for specific show`);
     }
     
 
@@ -406,8 +853,29 @@ function main() {
             console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
         }
         
-        // Scan the media library for new shows
-        const scannedShows = walkShows(MEDIA_ROOT);
+        // Scan the media library - either all shows or just the target show
+        let scannedShows;
+        if (targetShowName) {
+            console.log(`🔍 [SCAN] Looking for specific show: "${targetShowName}"`);
+            // Find the specific show folder
+            const allShows = walkShows(MEDIA_ROOT);
+            scannedShows = allShows.filter(show => {
+                const showPath = show.path || '';
+                return showPath.toLowerCase().includes(targetShowName.toLowerCase()) ||
+                       show.normalizedKey.toLowerCase().includes(targetShowName.toLowerCase().replace(/\s+/g, '.'));
+            });
+            
+            if (scannedShows.length === 0) {
+                console.log(`❌ [SCAN] Show "${targetShowName}" not found in media library`);
+                console.log(`💡 [SCAN] Available shows: ${allShows.map(s => s.normalizedKey).join(', ')}`);
+                return;
+            } else {
+                console.log(`✅ [SCAN] Found show: ${scannedShows[0].normalizedKey}`);
+            }
+        } else {
+            // Scan all shows when no TMDB ID provided
+            scannedShows = walkShows(MEDIA_ROOT);
+        }
         
 
         
@@ -417,10 +885,49 @@ function main() {
         let newShowsAdded = 0;
         let existingShowsSkipped = 0;
         
+        // First, convert ALL existing shows to use the Jupiter's Legacy template structure
+        console.log(`🔍 [SCAN] Converting all existing shows to Jupiter's Legacy template structure...`);
+        for (const [existingKey, existingShow] of Object.entries(existingData)) {
+            // Convert existing show to new template structure
+            const convertedShow = convertExistingShowToTemplate(existingShow);
+            if (convertedShow) {
+                console.log(`🔄 [SCAN] Converted show to template: ${existingKey}`);
+                unifiedOutput[existingKey] = convertedShow;
+                newShowsAdded++;
+            } else {
+                unifiedOutput[existingKey] = existingShow;
+                existingShowsSkipped++;
+            }
+        }
+        
         // Process scanned shows
         for (const show of scannedShows) {
             const normalizedKey = show.normalizedKey;
             if (normalizedKey) {
+                // When TMDB ID is provided, only process the target show for TMDB data
+                // But still add missing season fields to all shows
+                const isTargetShow = !targetShowName || normalizedKey.toLowerCase().includes(targetShowName.toLowerCase().replace(/\s+/g, '.'));
+                
+                if (targetShowName && !isTargetShow) {
+                    console.log(`⏭️ [SCAN] Processing non-target show for missing fields: ${normalizedKey}`);
+                    // Check if this show needs missing season fields added
+                    const existingKey = Object.keys(existingData).find(key => 
+                        key.toLowerCase() === normalizedKey.toLowerCase()
+                    );
+                    if (existingKey) {
+                        const updatedShow = addMissingSeasonFields(existingData[existingKey]);
+                        if (updatedShow) {
+                            console.log(`🔄 [SCAN] Added missing season fields to: ${normalizedKey}`);
+                            unifiedOutput[existingKey] = updatedShow;
+                            newShowsAdded++;
+                        } else {
+                            unifiedOutput[existingKey] = existingData[existingKey];
+                            existingShowsSkipped++;
+                        }
+                    }
+                    continue;
+                }
+                
                 // Check if this show already exists by comparing normalized keys
                 // Convert both keys to lowercase for case-insensitive matching
                 const existingKey = Object.keys(existingData).find(key => 
@@ -428,22 +935,57 @@ function main() {
                 );
                 
                 if (existingKey) {
-                    // ENHANCED: Check for new episodes in existing shows
-                    console.log(`🔍 [SCAN] Checking existing TV show for updates: ${normalizedKey}`);
-                    const updatedShow = checkForNewEpisodes(existingData[existingKey], show);
-                    
-                    if (updatedShow) {
-                        console.log(`🔄 [SCAN] Updating existing TV show with new episodes: ${normalizedKey}`);
-                        unifiedOutput[existingKey] = updatedShow;
-                        newShowsAdded++; // Count updates as additions
+                    // Check if we need to update with TMDB data
+                    if (needsTMDBData && tmdbData && targetShowName) {
+                        // Check if this specific show needs TMDB data
+                        const existingShow = existingData[existingKey];
+                        const needsUpdate = checkIfShowNeedsTMDBData(existingShow);
+                        
+                        if (needsUpdate) {
+                            console.log(`🔄 [SCAN] Updating existing show with TMDB data: ${normalizedKey}`);
+                            const cleanShow = convertToCleanStructure(show, tmdbData);
+                            unifiedOutput[existingKey] = cleanShow;
+                            newShowsAdded++;
+                        } else {
+                            console.log(`✅ [SCAN] Show already has complete data: ${normalizedKey}`);
+                            // Check if we need to add missing season fields
+                            const updatedShow = addMissingSeasonFields(existingData[existingKey]);
+                            if (updatedShow) {
+                                console.log(`🔄 [SCAN] Added missing season fields to: ${normalizedKey}`);
+                                unifiedOutput[existingKey] = updatedShow;
+                                newShowsAdded++;
+                            } else {
+                                unifiedOutput[existingKey] = existingData[existingKey];
+                                existingShowsSkipped++;
+                            }
+                        }
                     } else {
-                        console.log(`⏭️ [SCAN] No updates needed for existing TV show: ${normalizedKey}`);
-                        existingShowsSkipped++;
+                        // ENHANCED: Check for new episodes in existing shows
+                        console.log(`🔍 [SCAN] Checking existing TV show for updates: ${normalizedKey}`);
+                        const updatedShow = checkForNewEpisodes(existingData[existingKey], show);
+                        
+                        if (updatedShow) {
+                            console.log(`🔄 [SCAN] Updating existing TV show with new episodes: ${normalizedKey}`);
+                            unifiedOutput[existingKey] = updatedShow;
+                            newShowsAdded++; // Count updates as additions
+                        } else {
+                            console.log(`⏭️ [SCAN] No updates needed for existing TV show: ${normalizedKey}`);
+                            // Check if we need to add missing season fields
+                            const seasonFieldsUpdated = addMissingSeasonFields(existingData[existingKey]);
+                            if (seasonFieldsUpdated) {
+                                console.log(`🔄 [SCAN] Added missing season fields to: ${normalizedKey}`);
+                                unifiedOutput[existingKey] = seasonFieldsUpdated;
+                                newShowsAdded++;
+                            } else {
+                                unifiedOutput[existingKey] = existingData[existingKey];
+                                existingShowsSkipped++;
+                            }
+                        }
                     }
                 } else {
                     // Only add NEW shows - convert to clean structure
                     console.log(`➕ [SCAN] Adding NEW TV show: ${normalizedKey}`);
-                    const cleanShow = convertToCleanStructure(show);
+                    const cleanShow = convertToCleanStructure(show, tmdbData);
                     unifiedOutput[normalizedKey] = cleanShow;
                     newShowsAdded++;
                 }
@@ -472,8 +1014,15 @@ function main() {
                 console.log(`💾 [SCAN] Backup created: ${backupFile}`);
             }
             
+            // Apply final field reordering to ensure template compliance
+            console.log(`🔄 [SCAN] Applying final field reordering for template compliance...`);
+            const reorderedOutput = {};
+            for (const [showKey, showData] of Object.entries(unifiedOutput)) {
+                reorderedOutput[showKey] = reorderShowFields(showData);
+            }
+            
             // Write the updated data
-            fs.writeFileSync(OUTPUT_FILE, JSON.stringify(unifiedOutput, null, 2));
+            fs.writeFileSync(OUTPUT_FILE, JSON.stringify(reorderedOutput, null, 2));
             console.log(`✅ [SCAN] TV-SHOWS scan complete! Added ${newShowsAdded} new shows/updates.`);
         } else {
             console.log(`✅ [SCAN] No new TV shows or updates found. Existing library unchanged.`);
