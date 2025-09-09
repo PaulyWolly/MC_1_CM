@@ -653,6 +653,7 @@ function convertExistingShowToTemplate(existingShow) {
 
 /**
  * Reorder TV show fields to match the template structure exactly
+ * WAIT
  */
 function reorderShowFields(show) {
     // Define the expected field order for the main TV show object

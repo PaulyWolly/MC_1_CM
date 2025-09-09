@@ -1,6 +1,6 @@
 {
-  "name": "multichat_chatty-v5",
-  "version": "5",
+  "name": "mc_1_cm",
+  "version": "1.24.0",
   "description": "#\u0000 \u0000d\u0000p\u0000e\u0000-\u0000g\u0000e\u0000n\u0000e\u0000-\u0000a\u0000i\u0000-\u0000c\u0000h\u0000a\u0000t\u0000-\u0000S\u0000L\u0000M\u0000-\u0000A\u0000P\u0000I\u0000M\u0000\r\u0000 \u0000",
   "type": "commonjs",
   "main": "server.js",
@@ -10,7 +10,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "backup": "node scripts/BACKUP_APP.js",
     "generate-superadmin-code": "node scripts/generate-superadmin-code.js",
-    "test-auth": "node scripts/test-auth.js"
+    "test-auth": "node scripts/test-auth.js",
+    "update-version:core": "node scripts/UPDATE/update_core_files.js",
+    "update-version:components": "node scripts/UPDATE/update_version_headers.js --components",
+    "update-version:scripts": "node scripts/UPDATE/update_version_headers.js --scripts",
+    "update-version:all": "node scripts/UPDATE/update_all_files.js all",
+    "update-version": "node scripts/UPDATE/update_all_files.js core"
   },
   "author": "",
   "license": "ISC",

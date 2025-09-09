@@ -1,8 +1,8 @@
 /*
   APP_CRAP.JS
   Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  AppName: mc_1_cm [v1.24.0]
+  Updated: 2025-09-08
   Created by Paul Welby
 */
 

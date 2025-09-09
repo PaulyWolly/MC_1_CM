@@ -10035,6 +10035,27 @@ class MediaLibraryManager {
       
       // Convert showName to normalized key format using the same logic as our robust system
       let normalizedKey = showName.toLowerCase().trim();
+      
+      // Use the year from show.about.year if available, otherwise extract from title
+      let year = null;
+      if (show.about && show.about.year) {
+        year = show.about.year;
+        console.log("[DEBUG - SEASON] Using year from about.year:", year);
+      } else {
+        // Extract year from title as fallback
+        const yearMatch = showName.match(/\((\d{4})\)/);
+        if (yearMatch) {
+          year = yearMatch[1];
+          console.log("[DEBUG - SEASON] Using year from title:", year);
+        }
+      }
+      
+      // Remove the year from title and add it back with dot format
+      normalizedKey = normalizedKey.replace(/\s*\(\d{4}\)/, "");
+      if (year) {
+        normalizedKey += ".(" + year + ")";
+      }
+      
       // Replace & with and before removing special characters
       normalizedKey = normalizedKey.replace(/&/g, "and");
       // Remove special characters but preserve parentheses and dots
