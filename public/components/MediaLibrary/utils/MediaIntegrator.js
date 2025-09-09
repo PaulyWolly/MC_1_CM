@@ -1,3 +1,11 @@
+/*
+  MEDIAINTEGRATOR.JS
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
+  Created by Paul Welby
+*/
+
 /**
  * MediaIntegrator - Handles safe addition of new media items to the library
  * This ensures new items are properly integrated without breaking existing functionality

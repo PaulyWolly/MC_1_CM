@@ -1,9 +1,9 @@
 
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 23
-  AppName: MultiChat_Chatty MC_1_CM [v23]
-  Updated: 8/29/2025 @6:45AM
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
   Created by Paul Welby
 */
 
@@ -2271,18 +2271,8 @@ class MediaLibraryManager {
       const skipToNextBtn = document.getElementById("skipToNextBtn");
       if (skipToNextBtn) skipToNextBtn.style.display = "none";
     });
-    // Patch player close event to always reopen MediaLibrary with last active tab
-    player.on("close", () => {
-      if (
-        window.mediaLibraryManager &&
-        typeof window.mediaLibraryManager.openMediaBrowser === "function"
-      ) {
-        // Restore the last active tab before reopening
-        window.mediaLibraryManager.currentTab =
-          window.mediaLibraryManager.lastActiveTab;
-        setTimeout(() => window.mediaLibraryManager.openMediaBrowser(), 0);
-      }
-    });
+    // Let the video player handle its own return location logic
+    // The video player's restoreReturnLocation() method will handle returning to the correct page
   }
   findNextVideo(currentVideo) {
     if (
@@ -10045,6 +10035,8 @@ class MediaLibraryManager {
       
       // Convert showName to normalized key format using the same logic as our robust system
       let normalizedKey = showName.toLowerCase().trim();
+      // Replace & with and before removing special characters
+      normalizedKey = normalizedKey.replace(/&/g, "and");
       // Remove special characters but preserve parentheses and dots
       normalizedKey = normalizedKey.replace(/[^\w\s().]/g, "");
       // Convert spaces to dots
@@ -10766,6 +10758,13 @@ class MediaLibraryManager {
         showName = target.replace("tv-shows/", "");
       } else if (target.startsWith("tvshows/")) {
         showName = target.replace("tvshows/", "");
+      } else if (target.includes("/tv-shows/") || target.includes("/tvshows/")) {
+        // Handle absolute paths like "S:/MEDIA/TV-SHOWS/The Boys (2019)"
+        const parts = target.split("/");
+        const tvShowsIndex = parts.findIndex(part => part.toLowerCase().includes("tv-shows") || part.toLowerCase().includes("tvshows"));
+        if (tvShowsIndex !== -1 && tvShowsIndex + 1 < parts.length) {
+          showName = parts.slice(tvShowsIndex + 1).join(" ");
+        }
       }
       
       // Convert the show name to the normalized key format used in unified data
@@ -11367,6 +11366,8 @@ class MediaLibraryManager {
     if (this.unifiedData && cleanShowName) {
       // Convert showName to normalized key format
       let normalizedKey = cleanShowName.toLowerCase().trim();
+      // Replace & with and before removing special characters
+      normalizedKey = normalizedKey.replace(/&/g, "and");
       normalizedKey = normalizedKey.replace(/[^\w\s().]/g, "");
       normalizedKey = normalizedKey.replace(/\s+/g, ".");
       normalizedKey = normalizedKey.replace(/\.{2,}/g, ".");
@@ -14078,6 +14079,30 @@ class MediaLibraryManager {
             isTVShow = unified.type === "tvshow";
             console.log('[DEBUG-SAVE] Found unified item by path:', key, 'isTVShow:', isTVShow);
             break;
+          }
+          
+          // For TV shows, also check if the mediaItem path matches any episode path
+          if (unified.type === "tvshow" && unified.seasons && mediaPath) {
+            let foundEpisode = false;
+            for (const seasonKey in unified.seasons) {
+              const season = unified.seasons[seasonKey];
+              if (season.episodes) {
+                for (const episodeKey in season.episodes) {
+                  const episode = season.episodes[episodeKey];
+                  const episodePath = (episode.path || episode.absPath || "").replace(/\\/g, "/");
+                  
+                  if (episodePath && mediaPath === episodePath) {
+                    unifiedItem = unified;
+                    isTVShow = true;
+                    console.log('[DEBUG-SAVE] Found unified item by episode path:', key, 'episode:', episodeKey, 'season:', seasonKey);
+                    foundEpisode = true;
+                    break;
+                  }
+                }
+              }
+              if (foundEpisode) break;
+            }
+            if (foundEpisode) break;
           }
           
           // Also check by title matching

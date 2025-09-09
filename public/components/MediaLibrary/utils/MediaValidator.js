@@ -1,3 +1,11 @@
+/*
+  MEDIAVALIDATOR.JS
+  Version: 24
+  AppName: mc_1_cm [v24]
+  Updated: 9/8/2025 @9:30AM
+  Created by Paul Welby
+*/
+
 /**
  * MediaValidator - Ensures all media data conforms to expected structure
  * This prevents integration issues by validating data before adding to the library
