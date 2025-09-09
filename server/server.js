@@ -1,8 +1,8 @@
 /*
   SERVER.JS
   Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  AppName: mc_1_cm [v1.24.0]
+  Updated: 2025-09-08
   Created by Paul Welby
 */
 
@@ -351,7 +351,7 @@ app.get('/api/youtube/search', async (req, res) => {
             thumbnail: item.snippet.thumbnails.high.url,
             channel: item.snippet.channelTitle,
             views: item.statistics.viewCount,
-            duration: item. image.pngcontentDetails.duration,
+            duration: item.contentDetails.duration,
             publishedAt: item.snippet.publishedAt
         }));
 
@@ -2511,7 +2511,7 @@ app.post('/api/bing-search', async (req, res) => {
     <div class="search-metadata">
         <div class="metadata-item" data-label="Source:">${sourceDomain}</div>
         <div class="metadata-item" data-label="URL:"><a href="${result.url}" target="_blank">${result.url}</a></div>
-        <div class="metadata-item" data-label="Last Updated:">${new Date(result.dateLastCrawled).toLocaleDateString()}</div>
+        <div class="metadata-item" data-label="Last Updated: 2025-09-08
     </div>
 </li>`;
             });
@@ -3037,7 +3037,7 @@ function saveQuotaData() {
         const data = {
             used: dailyQuotaUsed,
             resetTime: quotaResetTime.toISOString(),
-            lastUpdated: new Date().toISOString()
+            lastUpdated: "2025-09-08"
         };
         fs.writeFileSync(quotaFilePath, JSON.stringify(data, null, 2));
     } catch (error) {
