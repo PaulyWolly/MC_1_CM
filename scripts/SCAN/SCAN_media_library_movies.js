@@ -321,6 +321,11 @@ async function main() {
                 console.log(`➕ [SCAN] Adding NEW movie: ${normalizedKey}`);
                 const year = extractYearFromTitle(folder.path);
                 
+                // CRITICAL: Ensure all required path fields are included
+                const primaryFile = folder.files && folder.files.length > 0 ? folder.files[0] : null;
+                const moviePath = primaryFile ? primaryFile.relPath : folder.path;
+                const movieAbsPath = primaryFile ? primaryFile.absPath : path.join(MEDIA_ROOT, folder.path);
+                
                 unifiedOutput[normalizedKey] = {
                     type: "movie",
                     isMovie: true,
@@ -332,6 +337,8 @@ async function main() {
                     description: '', // New movie, no description yet
                     cast: [], // New movie, no cast yet
                     poster: '', // New movie, no poster yet
+                    path: moviePath, // CRITICAL: Required for save functionality
+                    absPath: path.dirname(movieAbsPath), // CRITICAL: Required for save functionality
                     files: folder.files || []
                 };
                 

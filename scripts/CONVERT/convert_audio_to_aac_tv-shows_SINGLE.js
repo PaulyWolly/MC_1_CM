@@ -31,6 +31,7 @@ const {
     showFileInfo
 } = require('./animation-helpers');
 
+
 // Paths - UPDATED for new unified structure
 const UNIFIED_DATA_PATH = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-shows-unified.json');
 const CONVERSION_LOG_PATH = path.join(__dirname, 'audio_conversion_log_tv-shows.json');
@@ -250,7 +251,25 @@ async function main() {
         
         for (let i = 0; i < showFiles.length; i++) {
             const file = showFiles[i];
-            showProgress(i + 1, showFiles.length, `Checking: ${path.basename(file.path)}`, 'PROCESSING');
+            // Show animated progress for this file with cycling animation
+            const fileName = path.basename(file.path);
+            const totalFiles = showFiles.length;
+            const currentFile = i + 1;
+            
+            // Show cycling animation for this file
+            for (let frame = 0; frame < 5; frame++) {
+                const percentage = Math.round((currentFile / totalFiles) * 100);
+                const barLength = 40;
+                const filledLength = Math.round((barLength * currentFile) / totalFiles);
+                const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
+                
+                const animationFrames = ['|', '/', '-', '\\'];
+                const frameChar = animationFrames[frame % animationFrames.length];
+                
+                const progressText = `\r${frameChar} [${bar}] ● ${percentage}% (${currentFile}/${totalFiles}) Checking: ${fileName}`;
+                process.stdout.write(progressText);
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
             
             try {
                 // Use ffprobe to check audio codec

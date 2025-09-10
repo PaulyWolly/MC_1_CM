@@ -75,12 +75,21 @@ function findMatchingUnifiedData(item, unifiedData) {
   
   // Search TV shows
   for (const [key, tvShow] of Object.entries(tvShowsData)) {
+    // First try exact path matching
     if (tvShow.files && Array.isArray(tvShow.files)) {
       for (const file of tvShow.files) {
         const unifiedPath = (file.path || file.absPath || "").replace(/\\/g, "/").toLowerCase();
         if (unifiedPath && itemPath && unifiedPath === itemPath) {
           return { type: 'tv-show', data: tvShow, key };
         }
+      }
+    }
+    
+    // For TV shows, also check if the item path is within the show's directory (episode within show)
+    if (tvShow.path && itemPath) {
+      const showPath = (tvShow.path || "").replace(/\\/g, "/").toLowerCase();
+      if (itemPath.startsWith(showPath + "/") || itemPath.startsWith(showPath + "\\")) {
+        return { type: 'tv-show', data: tvShow, key };
       }
     }
   }

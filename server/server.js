@@ -3000,7 +3000,9 @@ const quotaFilePath = path.join(__dirname, 'quota-tracking.json');
 
 let dailyQuotaUsed = 0;
 let quotaResetTime = new Date();
-quotaResetTime.setUTCHours(8, 0, 0, 0); // Reset at midnight Pacific Time (8 AM UTC)
+
+// Simple approach: Reset at midnight Pacific Time (7 AM UTC)
+quotaResetTime.setUTCHours(7, 0, 0, 0);
 if (quotaResetTime <= new Date()) {
     quotaResetTime.setDate(quotaResetTime.getDate() + 1);
 }
@@ -3052,10 +3054,13 @@ loadQuotaData();
 const pendingRequests = new Map();
 
 function resetQuotaIfNeeded() {
-    if (new Date() >= quotaResetTime) {
+    const now = new Date();
+    if (now >= quotaResetTime) {
+        const oldUsage = dailyQuotaUsed;
         dailyQuotaUsed = 0;
         quotaResetTime.setDate(quotaResetTime.getDate() + 1);
-        console.log('📊 [QUOTA] Daily quota reset. Current usage:', dailyQuotaUsed);
+        quotaResetTime.setUTCHours(7, 0, 0, 0); // Ensure it's set to 7 AM UTC
+        console.log(`📊 [QUOTA] Daily quota reset: ${oldUsage} → 0. Next reset: ${quotaResetTime.toISOString()}`);
         saveQuotaData(); // Persist the reset
     }
 }

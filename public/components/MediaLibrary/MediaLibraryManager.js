@@ -2098,20 +2098,21 @@ class MediaLibraryManager {
     // FORCE: Close modal and play video
     this.closeModal();
     
-    // FORCE: Set current media item for movies (just like TV shows)
+    // FORCE: Set current media item for movies using COMPLETE unified data
     const movieMediaItem = {
-      title: unifiedMovie.TMDBTitle || unifiedMovie.title,
-      type: 'movie',
-      mediaType: unifiedMovie.mediaType || 'movie', // Use from unified data, fallback to 'movie'
+      // Use the COMPLETE unified movie data to avoid any confusion
+      ...unifiedMovie,
+      
+      // Override only the specific fields needed for playback
       path: filePath,
       absPath: unifiedMovie.files[0].absPath,
-      files: unifiedMovie.files,
-      poster: unifiedMovie.poster,
-      TMDBTitle: unifiedMovie.TMDBTitle
+      type: 'movie',
+      mediaType: 'movie'
     };
     window.mediaLibraryManager.currentMediaItem = movieMediaItem;
     window.mediaLibraryManager.currentFile = movieMediaItem;
-    console.log("[BRAND-NEW-PLAYMEDIA] 🎯 Set currentMediaItem for movie:", movieMediaItem);
+    console.log("[BRAND-NEW-PLAYMEDIA] 🎯 Set currentMediaItem for movie using COMPLETE unified data:", movieMediaItem);
+    console.log("[BRAND-NEW-PLAYMEDIA] 🎯 Movie title:", movieMediaItem.TMDBTitle, "normalizedKey:", movieMediaItem.normalizedKey);
     
     // FORCE: Use video player
     if (window.videoPlayer && typeof window.videoPlayer.playUrl === 'function') {
@@ -2942,58 +2943,58 @@ class MediaLibraryManager {
   suggestionsSearchQuery = "";
   async handleSearchInput(event) {
     const searchValue = event.target.value;
-    console.log(
-      "[DEBUG - SEARCH-INPUT] handleSearchInput called with value:",
-      searchValue
-    );
-    console.log("[DEBUG - SEARCH-INPUT] Current tab:", this.currentTab);
+    // console.log(
+    //   "[DEBUG - SEARCH-INPUT] handleSearchInput called with value:",
+    //   searchValue
+    // );
+    // console.log("[DEBUG - SEARCH-INPUT] Current tab:", this.currentTab);
     // Store search query based on current tab
     switch (this.currentTab) {
       case "movies":
         this.movieSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set movieSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set movieSearchQuery to:",
+        //   searchValue
+        // );
         break;
       case "tvshows":
         this.tvShowSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set tvShowSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set tvShowSearchQuery to:",
+        //   searchValue
+        // );
         break;
       case "favorites":
         this.favoritesSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set favoritesSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set favoritesSearchQuery to:",
+        //   searchValue
+        // );
         break;
       case "collections":
         this.collectionsSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set collectionsSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set collectionsSearchQuery to:",
+        //   searchValue
+        // );
         break;
       case "watchlater":
         this.watchLaterSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set watchLaterSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set watchLaterSearchQuery to:",
+        //   searchValue
+        // );
         break;
       case "suggestions":
         this.suggestionsSearchQuery = searchValue;
-        console.log(
-          "[DEBUG - SEARCH-INPUT] Set suggestionsSearchQuery to:",
-          searchValue
-        );
+        // console.log(
+        //   "[DEBUG - SEARCH-INPUT] Set suggestionsSearchQuery to:",
+        //   searchValue
+        // );
         break;
       default:
         this.searchQuery = searchValue; // fallback
-        console.log("[DEBUG - SEARCH-INPUT] Set searchQuery to:", searchValue);
+        // console.log("[DEBUG - SEARCH-INPUT] Set searchQuery to:", searchValue);
         break;
     }
     // Use updateModalContent to handle all tabs including TV-Shows
@@ -3008,14 +3009,14 @@ class MediaLibraryManager {
   }
   // Add: A-Z sidebar rendering
   renderAZSidebarMovie() {
-    console.log(
-      "[DEBUG - A-Z] renderAZSidebarMovie called at:",
-      new Date().toISOString()
-    );
-    console.log(
-      "[DEBUG - A-Z] Current azSidebarLoaded flag before render:",
-      this.azSidebarLoaded
-    );
+    // console.log(
+    //   "[DEBUG - A-Z] renderAZSidebarMovie called at:",
+    //   new Date().toISOString()
+    // );
+    // console.log(
+    //   "[DEBUG - A-Z] Current azSidebarLoaded flag before render:",
+    //   this.azSidebarLoaded
+    // );
     // Clear both sidebars first to prevent duplicates
     const movieSidebar = document.getElementById("mediaLibraryAZSidebarMovie");
     const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
@@ -3029,7 +3030,7 @@ class MediaLibraryManager {
     }
     // Get the current filtered and sorted items to determine which letters are available
     const filteredItems = this.getFilteredAndSortedItems();
-    console.log("[DEBUG - A-Z] Filtered items count:", filteredItems.length);
+    // console.log("[DEBUG - A-Z] Filtered items count:", filteredItems.length);
     const availableLetters = new Set();
     // Collect all first letters from the filtered items
     filteredItems.forEach((item) => {
@@ -3045,14 +3046,14 @@ class MediaLibraryManager {
         availableLetters.add(firstLetter);
       }
     });
-    console.log(
-      "[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items"
-    );
+    // console.log(
+    //   "[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items"
+    // );
     movieSidebar.innerHTML = "";
     movieSidebar.style.display = "flex";
     // Only render letters that have movies in the current filtered results
     const letters = Array.from(availableLetters).sort();
-    console.log("[DEBUG - A-Z] Available letters:", letters);
+    // console.log("[DEBUG - A-Z] Available letters:", letters);
     letters.forEach((letter) => {
       const btn = document.createElement("div");
       btn.className = "media-library-az-letter-movie";
@@ -3070,19 +3071,19 @@ class MediaLibraryManager {
         }
       }
     };
-    console.log(
-      "[DEBUG - A-Z] Movie A-Z sidebar rendered with",
-      letters.length,
-      "letters:",
-      letters.join(", ")
-    );
+    // console.log(
+    //   "[DEBUG - A-Z] Movie A-Z sidebar rendered with",
+    //   letters.length,
+    //   "letters:",
+    //   letters.join(", ")
+    // );
     // console.log(
     //   "[DEBUG - A-Z] Sidebar children count after render:",
     //   movieSidebar.children.length
     // );
     // Set the flag to indicate A-Z sidebar is loaded
     this.azSidebarLoaded = true;
-    console.log("[DEBUG - A-Z] A-Z sidebar loading flag set to true");
+    // console.log("[DEBUG - A-Z] A-Z sidebar loading flag set to true");
     // Debug: log the current flag status after setting
     // console.log(
     //   "[DEBUG - A-Z] Current azSidebarLoaded flag after setting:",
@@ -4097,23 +4098,23 @@ class MediaLibraryManager {
                                               this.getEpisodeObjectFromPath(
                                                 item.path
                                               );
-                                            console.log(
-                                              "[DEBUG - TV-RENDER] Processing TV item:",
-                                              item.title,
-                                              "path:",
-                                              item.path,
-                                              "episodeObj found:",
-                                              !!episodeObj
-                                            );
-                                            console.log(
-                                              "[DEBUG - TV-RENDER] Item details:",
-                                              {
-                                                title: item.title,
-                                                path: item.path,
-                                                type: item.type,
-                                                lastWatched: item.lastWatched,
-                                              }
-                                            );
+                                            // console.log(
+                                            //   "[DEBUG - TV-RENDER] Processing TV item:",
+                                            //   item.title,
+                                            //   "path:",
+                                            //   item.path,
+                                            //   "episodeObj found:",
+                                            //   !!episodeObj
+                                            // );
+                                            // console.log(
+                                            //   "[DEBUG - TV-RENDER] Item details:",
+                                            //   {
+                                            //     title: item.title,
+                                            //     path: item.path,
+                                            //     type: item.type,
+                                            //     lastWatched: item.lastWatched,
+                                            //   }
+                                            // );
                                             if (!episodeObj) {
                                               console.error(
                                                 "[ERROR - TV-RENDER] Cannot render TV show without episode object:",
@@ -4133,15 +4134,15 @@ class MediaLibraryManager {
                                             
                                                 // Debug thumbnail generation
     const thumbnailSrc = this.getTvShowScreenshot(item);
-    console.log("[DEBUG - THUMBNAIL] ==========================================");
-    console.log("[DEBUG - THUMBNAIL] Generating thumbnail for:", item.title);
-    console.log("[DEBUG - THUMBNAIL] Item path:", item.path);
-    console.log("[DEBUG - THUMBNAIL] Item type:", item.type);
-    console.log("[DEBUG - THUMBNAIL] Episode object:", episodeObj);
-    console.log("[DEBUG - THUMBNAIL] Episode object type:", typeof episodeObj);
-    console.log("[DEBUG - THUMBNAIL] Episode object keys:", episodeObj ? Object.keys(episodeObj) : 'null');
-    console.log("[DEBUG - THUMBNAIL] Thumbnail result:", thumbnailSrc);
-    console.log("[DEBUG - THUMBNAIL] ==========================================");
+    // console.log("[DEBUG - THUMBNAIL] ==========================================");
+    // console.log("[DEBUG - THUMBNAIL] Generating thumbnail for:", item.title);
+    // console.log("[DEBUG - THUMBNAIL] Item path:", item.path);
+    // console.log("[DEBUG - THUMBNAIL] Item type:", item.type);
+    // console.log("[DEBUG - THUMBNAIL] Episode object:", episodeObj);
+    // console.log("[DEBUG - THUMBNAIL] Episode object type:", typeof episodeObj);
+    // console.log("[DEBUG - THUMBNAIL] Episode object keys:", episodeObj ? Object.keys(episodeObj) : 'null');
+    // console.log("[DEBUG - THUMBNAIL] Thumbnail result:", thumbnailSrc);
+    // console.log("[DEBUG - THUMBNAIL] ==========================================");
                                             
                                             return `<div class="media-library-card episode watch-later-card" data-episode="${episodeData}" data-resume-time="${item.currentTime || 0}">
                         <div class="media-library-card-poster">
@@ -4392,15 +4393,15 @@ class MediaLibraryManager {
       // Helper method for TV show labels
     getTvShowLabel(item) {
       let path = decodeURIComponent(item.path || "");
-      console.log("[DEBUG - TV-LABEL] getTvShowLabel called with path:", path);
-      console.log("[DEBUG - TV-LABEL] tvShowsData available:", this.tvShowsData ? 'YES' : 'NO');
+      // console.log("[DEBUG - TV-LABEL] getTvShowLabel called with path:", path);
+      // console.log("[DEBUG - TV-LABEL] tvShowsData available:", this.tvShowsData ? 'YES' : 'NO');
       if (this.tvShowsData) {
-        console.log("[DEBUG - TV-LABEL] tvShowsData type:", typeof this.tvShowsData);
+        // console.log("[DEBUG - TV-LABEL] tvShowsData type:", typeof this.tvShowsData);
         if (Array.isArray(this.tvShowsData)) {
-          console.log("[DEBUG - TV-LABEL] tvShowsData is array with", this.tvShowsData.length, "items");
-          console.log("[DEBUG - TV-LABEL] First few show names:", this.tvShowsData.slice(0, 3).map(s => s.name || s.path));
+          // console.log("[DEBUG - TV-LABEL] tvShowsData is array with", this.tvShowsData.length, "items");
+          // console.log("[DEBUG - TV-LABEL] First few show names:", this.tvShowsData.slice(0, 3).map(s => s.name || s.path));
         } else if (typeof this.tvShowsData === "object") {
-          console.log("[DEBUG - TV-LABEL] tvShowsData is object with keys:", Object.keys(this.tvShowsData).slice(0, 5));
+          // console.log("[DEBUG - TV-LABEL] tvShowsData is object with keys:", Object.keys(this.tvShowsData).slice(0, 5));
         }
       }
       
@@ -4548,39 +4549,39 @@ class MediaLibraryManager {
   
       // Helper method for TV show screenshots
     getTvShowScreenshot(item) {
-      console.log('🔍 [TV-IMAGE-DEBUG] ==========================================');
-      console.log('🔍 [TV-IMAGE-DEBUG] TV Show Image Lookup Debug');
-      console.log('🔍 [TV-IMAGE-DEBUG] ==========================================');
-      console.log('🔍 [TV-IMAGE-DEBUG] Item:', item);
+      // console.log('🔍 [TV-IMAGE-DEBUG] ==========================================');
+      // console.log('🔍 [TV-IMAGE-DEBUG] TV Show Image Lookup Debug');
+      // console.log('🔍 [TV-IMAGE-DEBUG] ==========================================');
+      // console.log('🔍 [TV-IMAGE-DEBUG] Item:', item);
       
             // SIMPLIFIED: Find the SPECIFIC EPISODE image from unified JSON data
       if (this.unifiedData) {
         let path = decodeURIComponent(item.path || item.filePath || "");
-        console.log('🔍 [TV-IMAGE-DEBUG] Path:', path);
-        console.log('🔍 [TV-IMAGE-DEBUG] Available shows:', Object.keys(this.unifiedData).slice(0, 5));
-        console.log('🔍 [TV-IMAGE-DEBUG] Item data:', item);
-        console.log('🔍 [TV-IMAGE-DEBUG] Self unifiedData keys:', Object.keys(this.unifiedData));
-        console.log('🔍 [TV-IMAGE-DEBUG] Total shows in unifiedData:', Object.keys(this.unifiedData).length);
+        // console.log('🔍 [TV-IMAGE-DEBUG] Path:', path);
+        // console.log('🔍 [TV-IMAGE-DEBUG] Available shows:', Object.keys(this.unifiedData).slice(0, 5));
+        // console.log('🔍 [TV-IMAGE-DEBUG] Item data:', item);
+        // console.log('🔍 [TV-IMAGE-DEBUG] Self unifiedData keys:', Object.keys(this.unifiedData));
+        // console.log('🔍 [TV-IMAGE-DEBUG] Total shows in unifiedData:', Object.keys(this.unifiedData).length);
         
         // Debug: Check what's in the first few shows to see thumbnail availability
         const firstShowKey = Object.keys(this.unifiedData)[0];
         if (firstShowKey) {
           const firstShow = this.unifiedData[firstShowKey];
-          console.log('🔍 [TV-IMAGE-DEBUG] Sample show structure for:', firstShowKey);
-          console.log('🔍 [TV-IMAGE-DEBUG] Show keys:', Object.keys(firstShow));
+          // console.log('🔍 [TV-IMAGE-DEBUG] Sample show structure for:', firstShowKey);
+          // console.log('🔍 [TV-IMAGE-DEBUG] Show keys:', Object.keys(firstShow));
           if (firstShow.seasons) {
             const firstSeasonKey = Object.keys(firstShow.seasons)[0];
             if (firstSeasonKey) {
               const firstSeason = firstShow.seasons[firstSeasonKey];
-              console.log('🔍 [TV-IMAGE-DEBUG] Sample season structure for season:', firstSeasonKey);
-              console.log('🔍 [TV-IMAGE-DEBUG] Season keys:', Object.keys(firstSeason));
+              // console.log('🔍 [TV-IMAGE-DEBUG] Sample season structure for season:', firstSeasonKey);
+              // console.log('🔍 [TV-IMAGE-DEBUG] Season keys:', Object.keys(firstSeason));
               if (firstSeason.episodes) {
                 const firstEpisodeKey = Object.keys(firstSeason.episodes)[0];
                 if (firstEpisodeKey) {
                   const firstEpisode = firstSeason.episodes[firstEpisodeKey];
-                  console.log('🔍 [TV-IMAGE-DEBUG] Sample episode structure for episode:', firstEpisodeKey);
-                  console.log('🔍 [TV-IMAGE-DEBUG] Episode keys:', Object.keys(firstEpisode));
-                  console.log('🔍 [TV-IMAGE-DEBUG] Episode still field:', firstEpisode.still);
+                  // console.log('🔍 [TV-IMAGE-DEBUG] Sample episode structure for episode:', firstEpisodeKey);
+                  // console.log('🔍 [TV-IMAGE-DEBUG] Episode keys:', Object.keys(firstEpisode));
+                  // console.log('🔍 [TV-IMAGE-DEBUG] Episode still field:', firstEpisode.still);
                 }
               }
             }
@@ -4597,7 +4598,7 @@ class MediaLibraryManager {
         showName = normalizedMatch[1].trim();
         seasonNum = parseInt(normalizedMatch[2], 10);
         episodeNum = parseInt(normalizedMatch[4], 10);
-        console.log('🔍 [TV-IMAGE-DEBUG] ✅ Normalized path match:', { showName, seasonNum, episodeNum });
+        // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Normalized path match:', { showName, seasonNum, episodeNum });
       } else {
         // Try human-readable path format (e.g., "TV-SHOWS/Show Name/Season 01/Show S01E02...")
         let humanMatch = path.match(/TV-?SHOWS[\\/]([^\\\/]+)[\\/]Season[ _-]?(\d+)[\\/].*?[Ss](\d+)[Ee](\d+)/i);
@@ -4605,7 +4606,7 @@ class MediaLibraryManager {
           showName = humanMatch[1].trim();
           seasonNum = parseInt(humanMatch[2], 10);
           episodeNum = parseInt(humanMatch[4], 10);
-          console.log('🔍 [TV-IMAGE-DEBUG] ✅ Human-readable path match:', { showName, seasonNum, episodeNum });
+          // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Human-readable path match:', { showName, seasonNum, episodeNum });
         } else {
           // Try the format: "Show Name (Year)/Season XX/Show SXXEXX..."
           let showSeasonMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/].*?[Ss](\d+)[Ee](\d+)/i);
@@ -4613,7 +4614,7 @@ class MediaLibraryManager {
             showName = showSeasonMatch[1].trim();
             seasonNum = parseInt(showSeasonMatch[2], 10);
             episodeNum = parseInt(showSeasonMatch[4], 10);
-            console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season path match:', { showName, seasonNum, episodeNum });
+            // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season path match:', { showName, seasonNum, episodeNum });
           } else {
             // Try the format: "Show Name (Year)/Season XX/Show Name SXXEXX..."
             let showSeasonNameMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/]([^\/]+)[ _-]S(\d+)E(\d+)/i);
@@ -4621,7 +4622,7 @@ class MediaLibraryManager {
               showName = showSeasonNameMatch[1].trim();
               seasonNum = parseInt(showSeasonNameMatch[2], 10);
               episodeNum = parseInt(showSeasonNameMatch[5], 10);
-              console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Name path match:', { showName, seasonNum, episodeNum });
+              // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Name path match:', { showName, seasonNum, episodeNum });
             } else {
               // Try the format: "Show Name (Year)/Season XX/Show Name - SXXEXX - Episode Title.mp4"
               let showSeasonEpisodeMatch = path.match(/^([^\/]+)\/Season[ _-]?(\d+)[\\/].*?[ _-]S(\d+)E(\d+)/i);
@@ -4629,13 +4630,13 @@ class MediaLibraryManager {
                 showName = showSeasonEpisodeMatch[1].trim();
                 seasonNum = parseInt(showSeasonEpisodeMatch[2], 10);
                 episodeNum = parseInt(showSeasonEpisodeMatch[4], 10);
-                console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Episode path match:', { showName, seasonNum, episodeNum });
+                // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show/Season/Episode path match:', { showName, seasonNum, episodeNum });
               } else {
                 // Final fallback: try to extract just the show name from the first part of the path
                 let pathParts = path.split(/[\\\/]/);
                 if (pathParts.length > 0) {
                   showName = pathParts[0].trim();
-                  console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Fallback: extracted show name from path:', showName);
+                  // console.log('🔍 [TV-IMAGE-DEBUG] 🔄 Fallback: extracted show name from path:', showName);
                 }
               }
             }
@@ -4644,51 +4645,51 @@ class MediaLibraryManager {
       }
       
       if (showName && seasonNum && episodeNum) {
-        console.log('🔍 [TV-IMAGE-DEBUG] Extracted:', { showName, seasonNum, episodeNum });
+        // console.log('🔍 [TV-IMAGE-DEBUG] Extracted:', { showName, seasonNum, episodeNum });
         
         // NORMALIZE the show name to match unified data keys
         let normalizedShowName = window.normalizeKey ? window.normalizeKey(showName) : (showName && typeof showName === 'string' ? showName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-zA-Z0-9.()]/g, '') : '');
-        console.log('🔍 [TV-IMAGE-DEBUG] Normalized show name:', normalizedShowName);
+        // console.log('🔍 [TV-IMAGE-DEBUG] Normalized show name:', normalizedShowName);
         
         // Look for this specific episode in unified data (try both original and normalized)
         let showData = this.unifiedData[showName] || this.unifiedData[normalizedShowName];
-        console.log('🔍 [TV-IMAGE-DEBUG] Looking for show with keys:', [showName, normalizedShowName]);
-        console.log('🔍 [TV-IMAGE-DEBUG] Available keys in unifiedData:', Object.keys(this.unifiedData));
+        // console.log('🔍 [TV-IMAGE-DEBUG] Looking for show with keys:', [showName, normalizedShowName]);
+        // console.log('🔍 [TV-IMAGE-DEBUG] Available keys in unifiedData:', Object.keys(this.unifiedData));
         if (showData) {
-          console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show found:', showName);
-          console.log('🔍 [TV-IMAGE-DEBUG] Show data keys:', Object.keys(showData));
+          // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Show found:', showName);
+          // console.log('🔍 [TV-IMAGE-DEBUG] Show data keys:', Object.keys(showData));
           
           // Look for the specific season
-          console.log('🔍 [TV-IMAGE-DEBUG] Looking for season:', seasonNum, 'in show data');
-          console.log('🔍 [TV-IMAGE-DEBUG] Available seasons:', Object.keys(showData.seasons));
+          // console.log('🔍 [TV-IMAGE-DEBUG] Looking for season:', seasonNum, 'in show data');
+          // console.log('🔍 [TV-IMAGE-DEBUG] Available seasons:', Object.keys(showData.seasons));
           for (const seasonKey in showData.seasons) {
             const seasonData = showData.seasons[seasonKey];
             // The seasonKey is a string like "1", "2", etc., so convert to number for comparison
             const seasonKeyNum = parseInt(seasonKey, 10);
-            console.log('🔍 [TV-IMAGE-DEBUG] Checking season key:', seasonKey, '->', seasonKeyNum, 'vs', seasonNum);
+            // console.log('🔍 [TV-IMAGE-DEBUG] Checking season key:', seasonKey, '->', seasonKeyNum, 'vs', seasonNum);
             if (seasonKeyNum === seasonNum) {
-              console.log('🔍 [TV-IMAGE-DEBUG] ✅ Season found:', seasonNum);
+              // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Season found:', seasonNum);
               
               // Look for the specific episode
-              console.log('🔍 [TV-IMAGE-DEBUG] Looking for episode:', episodeNum, 'in season data');
-              console.log('🔍 [TV-IMAGE-DEBUG] Available episodes:', Object.keys(seasonData.episodes));
+              // console.log('🔍 [TV-IMAGE-DEBUG] Looking for episode:', episodeNum, 'in season data');
+              // console.log('🔍 [TV-IMAGE-DEBUG] Available episodes:', Object.keys(seasonData.episodes));
               for (const episodeKey in seasonData.episodes) {
                 const episodeData = seasonData.episodes[episodeKey];
                 // The episodeKey is a string like "1", "2", etc., so convert to number for comparison
                 const episodeKeyNum = parseInt(episodeKey, 10);
-                console.log('🔍 [TV-IMAGE-DEBUG] Checking episode key:', episodeKey, '->', episodeKeyNum, 'vs', episodeNum);
+                // console.log('🔍 [TV-IMAGE-DEBUG] Checking episode key:', episodeKey, '->', episodeKeyNum, 'vs', episodeNum);
                 if (episodeKeyNum === episodeNum) {
-                  console.log('🔍 [TV-IMAGE-DEBUG] ✅ Episode found:', episodeNum);
-                  console.log('🔍 [TV-IMAGE-DEBUG] Episode data:', episodeData);
+                  // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Episode found:', episodeNum);
+                  // console.log('🔍 [TV-IMAGE-DEBUG] Episode data:', episodeData);
                   
                                       // Check for thumbnail in the 'still' field (which is the actual thumbnail path)
                     if (episodeData.still && episodeData.still !== "/assets/img/placeholder-poster.jpg") {
-                      console.log('🔍 [TV-IMAGE-DEBUG] 🎯 THUMBNAIL FOUND:', episodeData.still);
+                      // console.log('🔍 [TV-IMAGE-DEBUG] 🎯 THUMBNAIL FOUND:', episodeData.still);
                       return episodeData.still;
                     } else {
-                      console.log('🔍 [TV-IMAGE-DEBUG] ❌ No valid thumbnail in episode data:', episodeData.still);
-                      console.log('🔍 [TV-IMAGE-DEBUG] Episode data keys:', Object.keys(episodeData));
-                      console.log('🔍 [TV-IMAGE-DEBUG] Full episode data:', episodeData);
+                      // console.log('🔍 [TV-IMAGE-DEBUG] ❌ No valid thumbnail in episode data:', episodeData.still);
+                      // console.log('🔍 [TV-IMAGE-DEBUG] Episode data keys:', Object.keys(episodeData));
+                      // console.log('🔍 [TV-IMAGE-DEBUG] Full episode data:', episodeData);
                     }
                 }
               }
@@ -5107,22 +5108,30 @@ class MediaLibraryManager {
       return false;
     }
     
-    // Check if path exists in movies array (checking object.normalizedKey property first)
+    // Get the normalized key for this path from unified data
+    let normalizedKey = path;
+    if (this.unifiedData && this.unifiedData[path]) {
+      normalizedKey = this.unifiedData[path].normalizedKey || path;
+    }
+    
+    console.log('[DEBUG - FAVORITES] isFavorite check for path:', path, 'normalizedKey:', normalizedKey);
+    
+    // Check if normalizedKey exists in movies array
     const isMovieFav = (favs.movies || []).some(item => 
-      (item.normalizedKey && item.normalizedKey === path) ||
+      (item.normalizedKey && item.normalizedKey === normalizedKey) ||
       (item.path && item.path === path) || 
       (item.absPath && item.absPath === path)
     );
     
-    // Check if path exists in tvshows array (checking object.normalizedKey property first)
+    // Check if normalizedKey exists in tvshows array
     const isTVShowFav = (favs.tvshows || []).some(item => 
-      (item.normalizedKey && item.normalizedKey === path) ||
+      (item.normalizedKey && item.normalizedKey === normalizedKey) ||
       (item.path && item.path === path) || 
       (item.absPath && item.absPath === path)
     );
     
     const isFav = isMovieFav || isTVShowFav;
-    // console.log('[DEBUG - FAVORITES] isFavorite check for path:', path, 'result:', isFav, 'movieFav:', isMovieFav, 'tvFav:', isTVShowFav);
+    console.log('[DEBUG - FAVORITES] isFavorite result:', isFav, 'movieFav:', isMovieFav, 'tvFav:', isTVShowFav);
     return isFav;
   }
   async toggleFavorite(mediaItem, type) {
@@ -5183,10 +5192,14 @@ class MediaLibraryManager {
     if (!favs.tvshows) favs.tvshows = [];
     
     // Use normalizedKey for favorites functionality (consistent with poster system)
-    const path = mediaItem.normalizedKey || mediaItem.path || mediaItem.absPath || '';
+    let path = mediaItem.normalizedKey || mediaItem.path || mediaItem.absPath || '';
     
-    // console.log('[DEBUG - FAVORITES] Current favorites before toggle:', favs);
-    // console.log('[DEBUG - FAVORITES] Checking path:', path, 'type:', type);
+    // If we have unified data, get the proper normalized key
+    if (this.unifiedData && this.unifiedData[path]) {
+      path = this.unifiedData[path].normalizedKey || path;
+    }
+    
+    console.log('[DEBUG - FAVORITES] Using path for favorites:', path, 'type:', type);
     
     const list =
       type === "tvshow" || type === "tvshows"
@@ -6206,53 +6219,16 @@ class MediaLibraryManager {
     try {
       console.log('[DEBUG - ADD-TO-COLLECTION] Adding item to collection:', { collectionNames, path });
       
-      // Get the unified data key instead of normalizing the path
-      let unifiedKey = null;
+      // UNIVERSAL MATCHER: Find unified item using comprehensive matching
+      const mediaItem = { path: path, absPath: path, filePath: path };
+      const match = this.findUnifiedItemByPath(mediaItem);
+      const unifiedKey = match ? match.key : null;
       
-      // Try to find the item in unified data by path
-      if (this.unifiedData) {
-        console.log('[DEBUG - ADD-TO-COLLECTION] Searching unified data for path:', path);
-        for (const [key, item] of Object.entries(this.unifiedData)) {
-          // Check if this item matches the path
-          if (item.path === path || item.absPath === path || 
-              (item.files && item.files.some(file => file.absPath === path || file.relPath === path))) {
-            unifiedKey = key;
-            console.log('[DEBUG - ADD-TO-COLLECTION] Found unified key:', key, 'for path:', path);
-            break;
-          }
-        }
-        
-        // If still not found, try to match by extracting filename from path
-        if (!unifiedKey) {
-          const pathFilename = path.split(/[\\\/]/).pop().replace(/\.[^/.]+$/, ''); // Extract filename without extension
-          console.log('[DEBUG - ADD-TO-COLLECTION] Trying filename match for:', pathFilename);
-          for (const [key, item] of Object.entries(this.unifiedData)) {
-            if (item.files && item.files.some(file => {
-              const fileFilename = file.name.replace(/\.[^/.]+$/, ''); // Extract filename without extension
-              return fileFilename.toLowerCase() === pathFilename.toLowerCase();
-            })) {
-              unifiedKey = key;
-              console.log('[DEBUG - ADD-TO-COLLECTION] Found unified key by filename match:', key, 'for path:', path);
-              break;
-            }
-          }
-        }
-        
-        if (!unifiedKey) {
-          console.log('[DEBUG - ADD-TO-COLLECTION] No unified key found for path:', path);
-          // Try to find by title or name
-          for (const [key, item] of Object.entries(this.unifiedData)) {
-            const itemTitle = item.TMDBTitle || item.title || item.name || '';
-            const pathTitle = path.split(/[\\\/]/).pop().replace(/\.[^/.]+$/, ''); // Extract filename without extension
-            if (itemTitle.toLowerCase().includes(pathTitle.toLowerCase()) || 
-                pathTitle.toLowerCase().includes(itemTitle.toLowerCase())) {
-              unifiedKey = key;
-              console.log('[DEBUG - ADD-TO-COLLECTION] Found unified key by title match:', key, 'for path:', path);
-              break;
-            }
-          }
-        }
-      }
+      console.log('[UNIVERSAL-ADD-TO-COLLECTION] Match result:', { 
+        found: !!match, 
+        key: unifiedKey,
+        title: match?.item?.TMDBTitle || match?.item?.title
+      });
       
       // Fallback to normalized path if no unified key found
       const keyToStore = unifiedKey || this.normalizePath(path);
@@ -6320,8 +6296,17 @@ class MediaLibraryManager {
       // Get the unified data key instead of normalizing the path (same as addToCollection)
       let unifiedKey = null;
       
+      // Check if path is already a normalized key (starts with lowercase and contains dots)
+      if (this.unifiedData && path && typeof path === 'string' && /^[a-z0-9.()]+$/.test(path)) {
+        console.log('[DEBUG - REMOVE-FROM-COLLECTION] Path appears to be a normalized key:', path);
+        if (this.unifiedData[path]) {
+          unifiedKey = path;
+          console.log('[DEBUG - REMOVE-FROM-COLLECTION] Found unified key by direct lookup:', unifiedKey);
+        }
+      }
+      
       // Try to find the item in unified data by path
-      if (this.unifiedData) {
+      if (!unifiedKey && this.unifiedData) {
         console.log('[DEBUG - REMOVE-FROM-COLLECTION] Searching unified data for path:', path);
         for (const [key, item] of Object.entries(this.unifiedData)) {
           // Check if this item matches the path
@@ -6330,6 +6315,18 @@ class MediaLibraryManager {
             unifiedKey = key;
             console.log('[DEBUG - REMOVE-FROM-COLLECTION] Found unified key:', key, 'for path:', path);
             break;
+          }
+          
+          // For TV shows, check if the path is within the show's directory (episode within show)
+          if (item.type === "tvshow" && item.path && path) {
+            const showPath = item.path.replace(/\\/g, "/");
+            const mediaPath = path.replace(/\\/g, "/");
+            
+            if (mediaPath.startsWith(showPath + "/") || mediaPath.startsWith(showPath + "\\")) {
+              unifiedKey = key;
+              console.log('[DEBUG - REMOVE-FROM-COLLECTION] Found unified key by directory match:', key, 'for path:', path);
+              break;
+            }
           }
         }
         
@@ -6443,13 +6440,36 @@ class MediaLibraryManager {
       if (this.unifiedData) {
         console.log('[DEBUG - COLLECTIONS] Searching unified data for path:', actualPath);
         
+        // Check if path is already a normalized key (starts with lowercase and contains dots)
+        if (actualPath && typeof actualPath === 'string' && /^[a-z0-9.()]+$/.test(actualPath)) {
+          console.log('[DEBUG - COLLECTIONS] Path appears to be a normalized key:', actualPath);
+          if (this.unifiedData[actualPath]) {
+            unifiedKey = actualPath;
+            console.log('[DEBUG - COLLECTIONS] Found unified key by direct lookup:', unifiedKey);
+          }
+        }
+        
         // First try exact path matching
-        for (const [key, item] of Object.entries(this.unifiedData)) {
-          if (item.path === actualPath || item.absPath === actualPath || 
-              (item.files && item.files.some(file => file.absPath === actualPath || file.relPath === actualPath))) {
-            unifiedKey = key;
-            console.log('[DEBUG - COLLECTIONS] Found unified key by path match:', key);
-            break;
+        if (!unifiedKey) {
+          for (const [key, item] of Object.entries(this.unifiedData)) {
+            if (item.path === actualPath || item.absPath === actualPath || 
+                (item.files && item.files.some(file => file.absPath === actualPath || file.relPath === actualPath))) {
+              unifiedKey = key;
+              console.log('[DEBUG - COLLECTIONS] Found unified key by path match:', key);
+              break;
+            }
+            
+            // For TV shows, check if the path is within the show's directory (episode within show)
+            if (item.type === "tvshow" && item.path && actualPath) {
+              const showPath = item.path.replace(/\\/g, "/");
+              const mediaPath = actualPath.replace(/\\/g, "/");
+              
+              if (mediaPath.startsWith(showPath + "/") || mediaPath.startsWith(showPath + "\\")) {
+                unifiedKey = key;
+                console.log('[DEBUG - COLLECTIONS] Found unified key by directory match:', key, 'for path:', actualPath);
+                break;
+              }
+            }
           }
         }
         
@@ -7029,9 +7049,9 @@ class MediaLibraryManager {
                         <div class="collection-modal-footer">
                             <button id="cancelCollectionBtn" class="collection-modal-btn collection-modal-btn-cancel">Cancel</button>
                             <button id="addCollectionBtn" class="collection-modal-btn collection-modal-btn-primary">Add to Collections</button>
-                            </div>
-                                </div>
                         </div>
+                    </div>
+                </div>
                     `;
       // Insert modal into DOM
       document.body.insertAdjacentHTML("beforeend", modalHTML);
@@ -7045,10 +7065,16 @@ class MediaLibraryManager {
       // Debug: Check if button exists
       console.log('[DEBUG - COLLECTIONS] Add button found:', !!addBtn);
       console.log('[DEBUG - COLLECTIONS] Add button element:', addBtn);
+      console.log('[DEBUG - COLLECTIONS] Add button ID:', addBtn?.id);
+      console.log('[DEBUG - COLLECTIONS] Add button classes:', addBtn?.className);
       if (!addBtn) {
         console.error('[DEBUG - COLLECTIONS] Add button not found!');
         return;
       }
+      
+      // Test if we can add a simple click handler first
+      console.log('[DEBUG - COLLECTIONS] Testing simple click handler...');
+      // Note: We'll add the main click handler below
       
       // Test if button is clickable
       console.log('[DEBUG - COLLECTIONS] Button disabled:', addBtn.disabled);
@@ -7300,6 +7326,9 @@ class MediaLibraryManager {
       // Add to collection logic
       addBtn.addEventListener("click", async (e) => {
         console.log('[DEBUG - COLLECTIONS] Update button clicked!', e);
+        console.log('[DEBUG - COLLECTIONS] Event target:', e.target);
+        console.log('[DEBUG - COLLECTIONS] Button element:', addBtn);
+        console.log('[DEBUG - COLLECTIONS] Button disabled state:', addBtn.disabled);
         e.preventDefault();
         e.stopPropagation();
         // Show loading state with spinner
@@ -7341,6 +7370,12 @@ class MediaLibraryManager {
         }
         
         try {
+          // Debug the mediaItem being processed
+          console.log('[DEBUG - COLLECTIONS] MediaItem being processed:', mediaItem);
+          console.log('[DEBUG - COLLECTIONS] MediaItem path:', mediaItem.path);
+          console.log('[DEBUG - COLLECTIONS] MediaItem type:', mediaItem.type);
+          console.log('[DEBUG - COLLECTIONS] MediaItem normalizedKey:', mediaItem.normalizedKey);
+          
           // Get current collections to determine what to add
           const currentCollections = await this.getItemCollections(mediaItem.path);
           console.log('[DEBUG - COLLECTIONS] Current collections for', mediaItem.path, ':', currentCollections);
@@ -8788,16 +8823,16 @@ class MediaLibraryManager {
      */
   async updateCollectionButtons() {
     try {
-      console.log('[DEBUG - COLLECTIONS] updateCollectionButtons() called');
+      // console.log('[DEBUG - COLLECTIONS] updateCollectionButtons() called');
       
       // Handle both movie and TV show collection buttons
       const movieCollectionBtns = document.querySelectorAll(".movie-collection-btn");
       const tvCollectionBtns = document.querySelectorAll(".tv-collection-btn");
       const collectionBtns = [...movieCollectionBtns, ...tvCollectionBtns];
       
-      console.log('[DEBUG - COLLECTIONS] Found collection buttons to update:', collectionBtns.length);
-      console.log('[DEBUG - COLLECTIONS] Movie buttons:', movieCollectionBtns.length, 'TV buttons:', tvCollectionBtns.length);
-      // Debug: Log all found buttons
+      // console.log('[DEBUG - COLLECTIONS] Found collection buttons to update:', collectionBtns.length);
+      // console.log('[DEBUG - COLLECTIONS] Movie buttons:', movieCollectionBtns.length, 'TV buttons:', tvCollectionBtns.length);
+      // // Debug: Log all found buttons
       collectionBtns.forEach((btn, index) => {
         // console.log(`[DEBUG - COLLECTIONS] Button ${index}:`, {
         //     path: btn.dataset.path,
@@ -8813,10 +8848,10 @@ class MediaLibraryManager {
           continue;
         }
         try {
-          console.log('[DEBUG - COLLECTIONS] Checking button for path:', path);
+          // console.log('[DEBUG - COLLECTIONS] Checking button for path:', path);
           const itemCollections = await this.getItemCollections(path);
           const inCollection = itemCollections.length > 0;
-          console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
+          // console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
           if (inCollection) {
             if (itemCollections.length === 1) {
               btn.textContent = "➖";
@@ -8835,7 +8870,7 @@ class MediaLibraryManager {
             } else {
             btn.className = "collection-btn collection-btn-remove";
             }
-            console.log('[DEBUG - COLLECTIONS] Updated button for collections:', path, itemCollections, 'New text:', btn.textContent);
+            // console.log('[DEBUG - COLLECTIONS] Updated button for collections:', path, itemCollections, 'New text:', btn.textContent);
           } else {
             btn.textContent = "➕";
             // Preserve the original button type (movie or TV)
@@ -8867,7 +8902,7 @@ class MediaLibraryManager {
       * Manual refresh of collection buttons for testing
       */
   async manualRefreshCollectionButtons() {
-    console.log('[DEBUG - COLLECTIONS] Manual refresh of collection buttons requested');
+    // console.log('[DEBUG - COLLECTIONS] Manual refresh of collection buttons requested');
     await this.updateCollectionButtons();
   }
   
@@ -8875,26 +8910,26 @@ class MediaLibraryManager {
    * Debug function to check collection state for a specific item
    */
   async debugCollectionState(path) {
-    console.log('[DEBUG - COLLECTIONS] Debugging collection state for:', path);
+    // console.log('[DEBUG - COLLECTIONS] Debugging collection state for:', path);
     const collections = await this.getItemCollections(path);
-    console.log('[DEBUG - COLLECTIONS] Item is in collections:', collections);
+    // console.log('[DEBUG - COLLECTIONS] Item is in collections:', collections);
     
     // Find the button for this path
     const buttons = document.querySelectorAll('.movie-collection-btn, .tv-collection-btn');
     const button = Array.from(buttons).find(btn => btn.dataset.path === path);
     if (button) {
-      console.log('[DEBUG - COLLECTIONS] Button found:', {
-        text: button.textContent,
-        classes: button.className,
-        title: button.title,
-        path: button.dataset.path
-      });
+      // console.log('[DEBUG - COLLECTIONS] Button found:', {
+      //   text: button.textContent,
+      //   classes: button.className,
+      //   title: button.title,
+      //   path: button.dataset.path
+      // });
     } else {
-      console.log('[DEBUG - COLLECTIONS] No button found for path:', path);
-      console.log('[DEBUG - COLLECTIONS] Available buttons:', Array.from(buttons).map(btn => ({
-        path: btn.dataset.path,
-        classes: btn.className
-      })));
+      // console.log('[DEBUG - COLLECTIONS] No button found for path:', path);
+      // console.log('[DEBUG - COLLECTIONS] Available buttons:', Array.from(buttons).map(btn => ({
+      //   path: btn.dataset.path,
+      //   classes: btn.className
+      // })));
     }
     
     return { collections, button };
@@ -9714,7 +9749,7 @@ class MediaLibraryManager {
     document.getElementById("backToGridBtn").onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log("[DEBUG] Back button clicked - returning to movies grid");
+      // console.log("[DEBUG] Back button clicked - returning to movies grid");
       
       // Remove the movie details modal content
       const movieDetailsModal = document.querySelector(".media-library-details-modal");
@@ -9731,21 +9766,22 @@ class MediaLibraryManager {
     };
     
     document.getElementById("playMovieBtn").onclick = () => {
-      console.log(
-        "[DEBUG - PLAY-BUTTON] Play button clicked for movie:",
-        movie
-      );
-      console.log("[DEBUG - PLAY-BUTTON] Movie properties:", {
-        path: movie.path,
-        absPath: movie.absPath,
-        filePath: movie.filePath,
-        files: movie.files,
-        type: movie.type,
-        mediaType: movie.mediaType,
-        title: movie.title,
-        name: movie.name,
-        normalizedKey: movie.normalizedKey,
-      });
+      console.log("🚨 [PLAY-BUTTON] PLAY BUTTON CLICKED - This should appear in console!");
+      // console.log(
+      //   "[DEBUG - PLAY-BUTTON] Play button clicked for movie:",
+      //   movie
+      // );
+      // console.log("[DEBUG - PLAY-BUTTON] Movie properties:", {
+      //   path: movie.path,
+      //   absPath: movie.absPath,
+      //   filePath: movie.filePath,
+      //   files: movie.files,
+      //   type: movie.type,
+      //   mediaType: movie.mediaType,
+      //   title: movie.title,
+      //   name: movie.name,
+      //   normalizedKey: movie.normalizedKey,
+      // });
       this.closeModal();
       this.playMedia(movie);
     };
@@ -9766,7 +9802,7 @@ class MediaLibraryManager {
     // Add ESC key handler for movie details modal
     const escHandler = (e) => {
       if (e.key === 'Escape') {
-        console.log("[DEBUG] ESC key pressed in movie details - returning to movies grid");
+        // console.log("[DEBUG] ESC key pressed in movie details - returning to movies grid");
         
         // Remove the movie details modal content
         const movieDetailsModal = document.querySelector(".media-library-details-modal");
@@ -9788,7 +9824,7 @@ class MediaLibraryManager {
 
     // Now load async data and update the content using UNIFIED DATA
     try {
-      console.log("[DETAILS DEBUG] Movie object:", movie);
+      // console.log("[DETAILS DEBUG] Movie object:", movie);
       let desc = "";
       
       // Use the unified data structure instead of old separate files
@@ -9797,11 +9833,11 @@ class MediaLibraryManager {
         if (movieData) {
           // Get description from unified data
           desc = movieData.about?.description || movieData.description || "";
-          console.log("[DETAILS DEBUG] Found description in unified data:", !!desc);
+          // console.log("[DETAILS DEBUG] Found description in unified data:", !!desc);
           
           // Get cast from unified data
           let castData = movieData.cast || movieData.cast?.cast || [];
-          console.log("[DETAILS DEBUG] Found cast in unified data:", castData.length, "members");
+          // console.log("[DETAILS DEBUG] Found cast in unified data:", castData.length, "members");
           
           // If no cast in unified data, try to load from separate cast file
           if (!castData || castData.length === 0) {
@@ -9819,12 +9855,12 @@ class MediaLibraryManager {
       for (const key of keyVariations) {
                 if (key && movieCast[key] && Array.isArray(movieCast[key].cast) && movieCast[key].cast.length > 0) {
                   castData = movieCast[key].cast;
-                  console.log("[DETAILS DEBUG] Found cast in cast file with key:", key, "members:", castData.length);
+                  // console.log("[DETAILS DEBUG] Found cast in cast file with key:", key, "members:", castData.length);
           break;
         }
       }
             } catch (error) {
-              console.log("[DETAILS DEBUG] Error loading cast file:", error);
+              // console.log("[DETAILS DEBUG] Error loading cast file:", error);
             }
           }
           
@@ -9871,7 +9907,7 @@ class MediaLibraryManager {
             }
           }
         } else {
-          console.log("[DETAILS DEBUG] Movie not found in unified data with key:", movie.normalizedKey);
+          // console.log("[DETAILS DEBUG] Movie not found in unified data with key:", movie.normalizedKey);
           // Fallback: show no data available
           const descElement = document.querySelector(".media-library-details-description");
           if (descElement) {
@@ -9884,7 +9920,7 @@ class MediaLibraryManager {
           }
         }
       } else {
-        console.log("[DETAILS DEBUG] No unified data or normalizedKey available");
+        // console.log("[DETAILS DEBUG] No unified data or normalizedKey available");
         // Fallback: show no data available
         const descElement = document.querySelector(".media-library-details-description");
         if (descElement) {
@@ -9929,7 +9965,7 @@ class MediaLibraryManager {
     const tvShows = [];
     
     if (this.unifiedData && Object.keys(this.unifiedData).length > 0) {
-      console.log('[DEBUG - GET-TV-SHOWS] Using unified data with', Object.keys(this.unifiedData).length, 'shows');
+      // console.log('[DEBUG - GET-TV-SHOWS] Using unified data with', Object.keys(this.unifiedData).length, 'shows');
       
       Object.entries(this.unifiedData).forEach(([key, show]) => {
         // Only include entries that are TV shows (not movies and have seasons)
@@ -9948,7 +9984,7 @@ class MediaLibraryManager {
         });
     }
     
-    console.log('[DEBUG - GET-TV-SHOWS] Found', tvShows.length, 'TV shows');
+    // console.log('[DEBUG - GET-TV-SHOWS] Found', tvShows.length, 'TV shows');
     return tvShows;
   }
   extractShowName(path) {
@@ -9977,7 +10013,7 @@ class MediaLibraryManager {
       show = this.findShowByPath(showOrPath);
     }
     if (!show) {
-      console.log("[SEASON DEBUG] No show found for:", showOrPath);
+      // console.log("[SEASON DEBUG] No show found for:", showOrPath);
       return [];
     }
     // Get show name for JSON lookup
@@ -9990,20 +10026,20 @@ class MediaLibraryManager {
       showName = this.extractShowName(show.path);
     }
     // DEBUG: Log the show name being used
-    console.log("[DEBUG - SEASON] Show name for JSON lookup:", showName);
-    console.log("[DEBUG - SEASON] Show object keys:", Object.keys(show));
+    // console.log("[DEBUG - SEASON] Show name for JSON lookup:", showName);
+    // console.log("[DEBUG - SEASON] Show object keys:", Object.keys(show));
     if (show.data) {
-      console.log("[DEBUG - SEASON] Show.data keys:", Object.keys(show.data));
-      console.log("[DEBUG - SEASON] Show.data.name:", show.data.name);
+      // console.log("[DEBUG - SEASON] Show.data keys:", Object.keys(show.data));
+      // console.log("[DEBUG - SEASON] Show.data.name:", show.data.name);
     }
     if (show.TMDBTitle) {
-      console.log("[DEBUG - SEASON] Show has TMDBTitle:", show.TMDBTitle);
+      // console.log("[DEBUG - SEASON] Show has TMDBTitle:", show.TMDBTitle);
     }
     // Check for seasons in the show object first (Media Manager format)
     if (show.seasons && Array.isArray(show.seasons)) {
-      console.log(
-        "[DEBUG - SEASON] Found seasons in show object (Media Manager format)"
-      );
+      // console.log(
+      //   "[DEBUG - SEASON] Found seasons in show object (Media Manager format)"
+      // );
       const seasons = show.seasons.map((season) => ({
         seasonNumber: season.seasonNumber,
         path: `Season ${season.seasonNumber.toString().padStart(2, "0")}`,
@@ -10013,25 +10049,25 @@ class MediaLibraryManager {
       return seasons.sort((a, b) => a.seasonNumber - b.seasonNumber);
     }
     // Check for seasons in JSON data (from TMDB)
-    console.log(
-      "[DEBUG - SEASON] seasonEpisodeImages available:",
-      !!this.seasonEpisodeImages
-    );
+    // console.log(
+    //   "[DEBUG - SEASON] seasonEpisodeImages available:",
+    //   !!this.seasonEpisodeImages
+    // );
     if (this.seasonEpisodeImages) {
-      console.log(
-        "[DEBUG - SEASON] seasonEpisodeImages keys:",
-        Object.keys(this.seasonEpisodeImages)
-      );
-      console.log(
-        "[DEBUG - SEASON] Looking for Cosmos keys:",
-        Object.keys(this.seasonEpisodeImages).filter((key) =>
-          key.includes("Cosmos")
-        )
-      );
+      // console.log(
+      //   "[DEBUG - SEASON] seasonEpisodeImages keys:",
+      //   Object.keys(this.seasonEpisodeImages)
+      // );
+      // console.log(
+      //   "[DEBUG - SEASON] Looking for Cosmos keys:",
+      //   Object.keys(this.seasonEpisodeImages).filter((key) =>
+      //     key.includes("Cosmos")
+      //   )
+      // );
     }
     // PRIORITY 1: Use ONLY unified data for everything
     if (this.unifiedData && showName) {
-      console.log("[DEBUG - SEASON] Using ONLY unified data for:", showName);
+      // console.log("[DEBUG - SEASON] Using ONLY unified data for:", showName);
       
       // Convert showName to normalized key format using the same logic as our robust system
       let normalizedKey = showName.toLowerCase().trim();
@@ -10040,13 +10076,13 @@ class MediaLibraryManager {
       let year = null;
       if (show.about && show.about.year) {
         year = show.about.year;
-        console.log("[DEBUG - SEASON] Using year from about.year:", year);
+        // console.log("[DEBUG - SEASON] Using year from about.year:", year);
       } else {
         // Extract year from title as fallback
         const yearMatch = showName.match(/\((\d{4})\)/);
         if (yearMatch) {
           year = yearMatch[1];
-          console.log("[DEBUG - SEASON] Using year from title:", year);
+          // console.log("[DEBUG - SEASON] Using year from title:", year);
         }
       }
       
@@ -10079,7 +10115,7 @@ class MediaLibraryManager {
         }
       }
       
-      console.log("[DEBUG - SEASON] Converted showName to normalized key:", showName, "->", normalizedKey);
+      // console.log("[DEBUG - SEASON] Converted showName to normalized key:", showName, "->", normalizedKey);
       
       // Find the show in unified data using normalized key
       let showKey = Object.keys(this.unifiedData).find(key => key === normalizedKey);
@@ -10099,10 +10135,10 @@ class MediaLibraryManager {
         }
       }
 
-      console.log("[DEBUG - SEASON] Found show key in unified data:", showKey);
+      // console.log("[DEBUG - SEASON] Found show key in unified data:", showKey);
 
       if (showKey && this.unifiedData[showKey].seasons) {
-        console.log("[DEBUG - SEASON] Building seasons from unified data only");
+        // console.log("[DEBUG - SEASON] Building seasons from unified data only");
         
         const allSeasons = [];
         
@@ -10128,11 +10164,11 @@ class MediaLibraryManager {
         }
         
         // Add special content sections from unified data
-        console.log("[DEBUG - SEASON] Checking for Featurettes in unified data for show:", showKey);
-        console.log("[DEBUG - SEASON] Available seasons keys:", Object.keys(this.unifiedData[showKey].seasons));
-        console.log("[DEBUG - SEASON] Full seasons object:", this.unifiedData[showKey].seasons);
-        console.log("[DEBUG - SEASON] Data loading timestamp:", new Date().toISOString());
-        console.log("[DEBUG - SEASON] Unified data keys count:", Object.keys(this.unifiedData).length);
+        // console.log("[DEBUG - SEASON] Checking for Featurettes in unified data for show:", showKey);
+        // console.log("[DEBUG - SEASON] Available seasons keys:", Object.keys(this.unifiedData[showKey].seasons));
+        // console.log("[DEBUG - SEASON] Full seasons object:", this.unifiedData[showKey].seasons);
+        // console.log("[DEBUG - SEASON] Data loading timestamp:", new Date().toISOString());
+        // console.log("[DEBUG - SEASON] Unified data keys count:", Object.keys(this.unifiedData).length);
         
         // FORCE Featurettes to work for Lois & Clark - check if it exists in the JSON directly
         if (this.unifiedData[showKey].seasons.Featurettes) {
@@ -10148,12 +10184,12 @@ class MediaLibraryManager {
             specialsCategory: "Featurettes",
             episodeCount: episodeCount
           });
-          console.log("[DEBUG - SEASON] Added Featurettes section with", episodeCount, "episodes");
+          // console.log("[DEBUG - SEASON] Added Featurettes section with", episodeCount, "episodes");
         } else {
           // DEBUG: Check if Featurettes exists in the raw JSON data
-          console.log("[DEBUG - SEASON] Featurettes NOT found in seasons, checking raw data...");
-          console.log("[DEBUG - SEASON] Raw seasons object keys:", Object.keys(this.unifiedData[showKey].seasons));
-          console.log("[DEBUG - SEASON] Raw seasons object:", this.unifiedData[showKey].seasons);
+          // console.log("[DEBUG - SEASON] Featurettes NOT found in seasons, checking raw data...");
+          // console.log("[DEBUG - SEASON] Raw seasons object keys:", Object.keys(this.unifiedData[showKey].seasons));
+          // console.log("[DEBUG - SEASON] Raw seasons object:", this.unifiedData[showKey].seasons);
         }
 
         if (this.unifiedData[showKey].seasons.Specials) {
@@ -10168,7 +10204,7 @@ class MediaLibraryManager {
             specialsCategory: "Specials",
             episodeCount: episodeCount
           });
-          console.log("[DEBUG - SEASON] Added Specials section with", episodeCount, "episodes");
+          // console.log("[DEBUG - SEASON] Added Specials section with", episodeCount, "episodes");
         }
 
         if (this.unifiedData[showKey].seasons.Extras) {
@@ -10183,10 +10219,10 @@ class MediaLibraryManager {
             specialsCategory: "Extras",
             episodeCount: episodeCount
           });
-          console.log("[DEBUG - SEASON] Added Extras section with", episodeCount, "episodes");
+          // console.log("[DEBUG - SEASON] Added Extras section with", episodeCount, "episodes");
         }
         
-        console.log("[DEBUG - SEASON] Final seasons array from unified data:", allSeasons.map(s => ({ path: s.path, isSpecials: s.isSpecials, episodeCount: s.episodeCount })));
+        // console.log("[DEBUG - SEASON] Final seasons array from unified data:", allSeasons.map(s => ({ path: s.path, isSpecials: s.isSpecials, episodeCount: s.episodeCount })));
           
           // Sort: regular seasons first (by number), then specials at the end
         return allSeasons.sort((a, b) => {
@@ -10199,7 +10235,7 @@ class MediaLibraryManager {
       }
     
     // No fallback needed - we use ONLY unified data
-    console.log("[DEBUG - SEASON] No unified data found for show:", showName);
+    // console.log("[DEBUG - SEASON] No unified data found for show:", showName);
     return [];
   }
 
@@ -10207,12 +10243,12 @@ class MediaLibraryManager {
   getEpisodesForSeason(showPath, seasonPath) {
     if (!showPath || !seasonPath) return [];
     let show = null;
-    console.log(
-      "[DEBUG - EPISODES] getEpisodesForSeason called with showPath:",
-      showPath,
-      "seasonPath:",
-      seasonPath
-    );
+    // console.log(
+    //   "[DEBUG - EPISODES] getEpisodesForSeason called with showPath:",
+    //   showPath,
+    //   "seasonPath:",
+    //   seasonPath
+    // );
     if (typeof showPath === "object" && showPath && showPath.data) {
       show = showPath.data;
     } else if (typeof showPath === "object" && showPath) {
@@ -10220,16 +10256,16 @@ class MediaLibraryManager {
     } else {
       show = this.findShowByPath(showPath);
     }
-    console.log("[DEBUG - EPISODES] show object:", show);
+    // console.log("[DEBUG - EPISODES] show object:", show);
     if (!show) {
-      console.log("[DEBUG - EPISODES] show is null or undefined");
+      // console.log("[DEBUG - EPISODES] show is null or undefined");
       return [];
     }
     
     // Try to get episodes from the show object first (this is where the data actually exists)
     if (show && show.seasons) {
-      console.log("[DEBUG - EPISODES] Show object has seasons data, checking for episodes");
-      console.log("[DEBUG - EPISODES] Available seasons in show object:", Object.keys(show.seasons));
+      // console.log("[DEBUG - EPISODES] Show object has seasons data, checking for episodes");
+      // console.log("[DEBUG - EPISODES] Available seasons in show object:", Object.keys(show.seasons));
       
       // Check if this is a special content section (Specials, Featurettes, etc.)
       const isSpecialContent = seasonPath.toLowerCase().includes('specials') || 
@@ -10237,7 +10273,7 @@ class MediaLibraryManager {
                               seasonPath.toLowerCase().includes('extras');
       
       if (isSpecialContent) {
-        console.log("[DEBUG - EPISODES] This is special content section:", seasonPath);
+        // console.log("[DEBUG - EPISODES] This is special content section:", seasonPath);
         
         // SWITCH CONTROL for different content types
         let specialContentKey = null;
@@ -10261,7 +10297,7 @@ class MediaLibraryManager {
         }
         
         if (seasonData && seasonData.episodes) {
-          console.log("[DEBUG - EPISODES] Found special content episodes for key:", specialContentKey, "episodes:", Object.keys(seasonData.episodes).length);
+          // console.log("[DEBUG - EPISODES] Found special content episodes for key:", specialContentKey, "episodes:", Object.keys(seasonData.episodes).length);
           
           // Convert unified episode data to the expected format
           const episodes = Object.entries(seasonData.episodes).map(([episodeNum, episode]) => {
@@ -10283,7 +10319,7 @@ class MediaLibraryManager {
             };
           });
           
-          console.log("[DEBUG - EPISODES] Converted special content episodes:", episodes.length);
+          // console.log("[DEBUG - EPISODES] Converted special content episodes:", episodes.length);
           return episodes;
         }
       } else {
@@ -10291,37 +10327,37 @@ class MediaLibraryManager {
         const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
         if (seasonMatch) {
           const seasonNum = seasonMatch[1];
-          console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
+          // console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
           
           // Convert to integer and back to string to remove leading zeros
           // This matches how seasons are stored: "01" -> "1", "02" -> "2", etc.
           const seasonNumInt = parseInt(seasonNum, 10).toString();
-          console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
+        // console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
           
           // Try the integer version first (matches storage format), then fallback to original
           const seasonKeys = [seasonNumInt, seasonNum];
-          console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
-          console.log("[DEBUG - EPISODES] Available season keys in show object:", Object.keys(show.seasons));
+          // console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
+          // console.log("[DEBUG - EPISODES] Available season keys in show object:", Object.keys(show.seasons));
           
           let seasonData = null;
           let foundSeasonKey = null;
           
           for (const key of seasonKeys) {
-            console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!show.seasons[key]);
+            // console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!show.seasons[key]);
             if (show.seasons[key]) {
               seasonData = show.seasons[key];
               foundSeasonKey = key;
-              console.log("[DEBUG - EPISODES] Found season data for key:", key);
+              // console.log("[DEBUG - EPISODES] Found season data for key:", key);
               break;
             }
           }
           
           if (seasonData && seasonData.episodes) {
-            console.log("[DEBUG - EPISODES] Found episodes in show object for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
+            // console.log("[DEBUG - EPISODES] Found episodes in show object for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
             
             // Convert unified episode data to the expected format
             const episodes = Object.entries(seasonData.episodes).map(([episodeNum, episode]) => {
-              console.log(`[DEBUG - EPISODES] Processing episode ${episodeNum}:`, episode);
+              // console.log(`[DEBUG - EPISODES] Processing episode ${episodeNum}:`, episode);
               return {
                 name: episode.title || `Episode ${episodeNum}`,
                 filename: episode.title || `Episode ${episodeNum}`,
@@ -10337,7 +10373,7 @@ class MediaLibraryManager {
               };
             });
             
-            console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
+            // console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
             return episodes;
           }
         }
@@ -10346,10 +10382,10 @@ class MediaLibraryManager {
     
     // Fallback: Try to get episodes from seasonEpisodeImages
     if (this.seasonEpisodeImages && show.name) {
-      console.log("[DEBUG - EPISODES] Fallback: Looking in seasonEpisodeImages for key:", show.name);
+      // console.log("[DEBUG - EPISODES] Fallback: Looking in seasonEpisodeImages for key:", show.name);
       // Use the original show name as the key (same as used in loadSeasonEpisodeImages)
       const lookupKey = show.name;
-      console.log("[DEBUG - EPISODES] Available keys in seasonEpisodeImages:", Object.keys(this.seasonEpisodeImages));
+      // console.log("[DEBUG - EPISODES] Available keys in seasonEpisodeImages:", Object.keys(this.seasonEpisodeImages));
       
       // Try exact key first, then fallback to finding similar key
       let actualKey = lookupKey;
@@ -10360,45 +10396,45 @@ class MediaLibraryManager {
           key.toLowerCase().includes(show.name.toLowerCase()) ||
           show.name.toLowerCase().includes(key.toLowerCase())
         );
-        console.log("[DEBUG - EPISODES] Key not found, trying fallback key:", actualKey);
+        // console.log("[DEBUG - EPISODES] Key not found, trying fallback key:", actualKey);
       }
       
       if (this.seasonEpisodeImages[actualKey] && this.seasonEpisodeImages[actualKey].seasons) {
-        console.log("[DEBUG - EPISODES] Found show data for key:", actualKey);
-        console.log("[DEBUG - EPISODES] Available seasons:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
-        console.log("[DEBUG - EPISODES] Looking for season data in:", this.seasonEpisodeImages[actualKey].seasons);
+        // console.log("[DEBUG - EPISODES] Found show data for key:", actualKey);
+        // console.log("[DEBUG - EPISODES] Available seasons:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
+        // console.log("[DEBUG - EPISODES] Looking for season data in:", this.seasonEpisodeImages[actualKey].seasons);
         
         // Extract season number from seasonPath
         const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
         if (seasonMatch) {
           const seasonNum = seasonMatch[1];
-          console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
+          // console.log("[DEBUG - EPISODES] Looking for season:", seasonNum);
           
           // Convert to integer and back to string to remove leading zeros
           // This matches how seasons are stored: "01" -> "1", "02" -> "2", etc.
           const seasonNumInt = parseInt(seasonNum, 10).toString();
-          console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
+          // console.log("[DEBUG - EPISODES] Converted season number:", seasonNum, "->", seasonNumInt);
           
           // Try the integer version first (matches storage format), then fallback to original
           const seasonKeys = [seasonNumInt, seasonNum];
-          console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
-          console.log("[DEBUG - EPISODES] Available season keys in data:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
+          // console.log("[DEBUG - EPISODES] Trying season keys:", seasonKeys);
+          // console.log("[DEBUG - EPISODES] Available season keys in data:", Object.keys(this.seasonEpisodeImages[actualKey].seasons));
           
           let seasonData = null;
           let foundSeasonKey = null;
           
           for (const key of seasonKeys) {
-            console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!this.seasonEpisodeImages[actualKey].seasons[key]);
+            // console.log("[DEBUG - EPISODES] Checking season key:", key, "exists:", !!this.seasonEpisodeImages[actualKey].seasons[key]);
             if (this.seasonEpisodeImages[actualKey].seasons[key]) {
               seasonData = this.seasonEpisodeImages[actualKey].seasons[key];
               foundSeasonKey = key;
-              console.log("[DEBUG - EPISODES] Found season data for key:", key);
+              // console.log("[DEBUG - EPISODES] Found season data for key:", key);
               break;
             }
           }
           
           if (seasonData && seasonData.episodes) {
-            console.log("[DEBUG - EPISODES] Found episodes in seasonEpisodeImages for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
+            // console.log("[DEBUG - EPISODES] Found episodes in seasonEpisodeImages for season key:", foundSeasonKey, "episodes:", Object.keys(seasonData.episodes).length);
             
             // Convert unified episode data to the expected format
             const episodes = Object.entries(seasonData.episodes).map(([episodeNum, episode]) => {
@@ -10417,31 +10453,31 @@ class MediaLibraryManager {
               };
             });
             
-            console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
+            // console.log("[DEBUG - EPISODES] Converted episodes:", episodes.length);
             return episodes;
           }
         }
       }
     }
     
-    console.log("[DEBUG - EPISODES] No episodes found in unified data, falling back to file system data");
+    // console.log("[DEBUG - EPISODES] No episodes found in unified data, falling back to file system data");
     // Handle the normalized TV shows format with folders structure
     if (
       show.folders &&
       Array.isArray(show.folders) &&
       show.folders.length > 0
     ) {
-      console.log(
-        "[DEBUG - EPISODES] Found folders array with",
-        show.folders.length,
-        "folders"
-      );
+      // console.log(
+      //   "[DEBUG - EPISODES] Found folders array with",
+      //   show.folders.length,
+      //   "folders"
+      // );
       // Check if this is a specials season
       if (
         seasonPath === "Specials" ||
         seasonPath.toLowerCase().includes("specials")
       ) {
-        console.log("[DEBUG - EPISODES] Looking for specials folder");
+        // console.log("[DEBUG - EPISODES] Looking for specials folder");
         
         // Find the specials folder in the file system data
         const specialsFolder = show.folders.find((folder) => {
@@ -10451,11 +10487,11 @@ class MediaLibraryManager {
         });
         
         if (specialsFolder && specialsFolder.files && specialsFolder.files.length > 0) {
-          console.log(
-            "[DEBUG - EPISODES] Found specials folder with",
-            specialsFolder.files.length,
-            "video files"
-          );
+          // console.log(
+          //   "[DEBUG - EPISODES] Found specials folder with",
+          //   specialsFolder.files.length,
+          //   "video files"
+          // );
           
           // Create episodes from file system data (this gives us the video paths)
           let episodes = specialsFolder.files.map((file) => ({
@@ -10482,13 +10518,13 @@ class MediaLibraryManager {
             const specialsSeason =
               this.seasonEpisodeImages[showKey].seasons["Specials"];
             if (specialsSeason && specialsSeason.episodes) {
-              console.log(
-                "[DEBUG - EPISODES] Found",
-                Object.keys(specialsSeason.episodes).length,
-                "episodes in JSON for",
-                showKey,
-                "Specials"
-              );
+              // console.log(
+              //   "[DEBUG - EPISODES] Found",
+              //   Object.keys(specialsSeason.episodes).length,
+              //   "episodes in JSON for",
+              //   showKey,
+              //   "Specials"
+              // );
               
               // Merge thumbnail data from JSON with video file data
               episodes.forEach((episode) => {
@@ -10508,13 +10544,13 @@ class MediaLibraryManager {
                   episode.thumbnail = jsonEpisode.thumbnail;
                   episode.generated = jsonEpisode.generated;
                   episode.timestamp = jsonEpisode.timestamp;
-                  console.log(
-                    `[DEBUG - THUMBNAIL] Merged thumbnail for ${episode.filename}: ${jsonEpisode.still}`
-                  );
+                  // console.log(
+                  //   `[DEBUG - THUMBNAIL] Merged thumbnail for ${episode.filename}: ${jsonEpisode.still}`
+                  // );
                 } else {
-                  console.log(
-                    `[DEBUG - THUMBNAIL] No JSON match found for episode: ${episode.filename}`
-                  );
+                  // console.log(
+                  //   `[DEBUG - THUMBNAIL] No JSON match found for episode: ${episode.filename}`
+                  // );
                 }
               });
             }
@@ -10527,11 +10563,11 @@ class MediaLibraryManager {
             return aName.localeCompare(bName);
           });
           
-          console.log(
-            "[DEBUG - EPISODES] Returning",
-            episodes.length,
-            "specials episodes with merged data"
-          );
+          // console.log(
+          //   "[DEBUG - EPISODES] Returning",
+          //   episodes.length,
+          //   "specials episodes with merged data"
+          // );
           
           // Log final episode data for debugging
           episodes.forEach(episode => {
@@ -10540,9 +10576,9 @@ class MediaLibraryManager {
           
           return episodes;
         } else {
-          console.log(
-            "[DEBUG - EPISODES] No specials folder or video files found in file system"
-          );
+          // console.log(
+          //   "[DEBUG - EPISODES] No specials folder or video files found in file system"
+          // );
           return [];
         }
       }
@@ -10551,12 +10587,12 @@ class MediaLibraryManager {
         const folderPath = folder.path || "";
         const normalizedFolderPath = folderPath.replace(/\\/g, "/");
         const normalizedSeasonPath = seasonPath.replace(/\\/g, "/");
-        console.log(
-          "[DEBUG - EPISODES] Comparing folder path:",
-          normalizedFolderPath,
-          "with season path:",
-          normalizedSeasonPath
-        );
+        // console.log(
+        //   "[DEBUG - EPISODES] Comparing folder path:",
+        //   normalizedFolderPath,
+        //   "with season path:",
+        //   normalizedSeasonPath
+        // );
         
         // Extract season number from seasonPath (e.g., "season.03" -> "03")
         const seasonMatch = seasonPath.match(/season\.(\d+)/i);
@@ -10566,20 +10602,20 @@ class MediaLibraryManager {
         const folderMatch = folderPath.match(/season\s+(\d+)/i);
         const folderSeasonNumber = folderMatch ? folderMatch[1] : null;
         
-        console.log(
-          "[DEBUG - EPISODES] Regex debug - seasonPath:",
-          seasonPath,
-          "folderPath:",
-          folderPath,
-          "seasonMatch:",
-          seasonMatch,
-          "folderMatch:",
-          folderMatch,
-          "seasonNumber:",
-          seasonNumber,
-          "folderSeasonNumber:",
-          folderSeasonNumber
-        );
+        // console.log(
+        //   "[DEBUG - EPISODES] Regex debug - seasonPath:",
+        //   seasonPath,
+        //   "folderPath:",
+        //   folderPath,
+        //   "seasonMatch:",
+        //   seasonMatch,
+        //   "folderMatch:",
+        //   folderMatch,
+        //   "seasonNumber:",
+        //   seasonNumber,
+        //   "folderSeasonNumber:",
+        //   folderSeasonNumber
+        // );
         
         // Try multiple matching strategies
         const isMatch = (
@@ -10618,26 +10654,26 @@ class MediaLibraryManager {
      });
      
      if (!seasonFolder) {
-       console.log(
-         "[DEBUG - EPISODES] Season folder not found for path:",
-         seasonPath
-       );
-       console.log(
-         "[DEBUG - EPISODES] Available folders:",
-         show.folders.map((f) => f.path)
-       );
+       // console.log(
+       //   "[DEBUG - EPISODES] Season folder not found for path:",
+       //   seasonPath
+       // );
+       // console.log(
+       //   "[DEBUG - EPISODES] Available folders:",
+       //   show.folders.map((f) => f.path)
+       // );
        return [];
      }
      
-     console.log("[DEBUG - EPISODES] Found season folder:", seasonFolder.path);
-     console.log(
-       "[DEBUG - EPISODES] Season folder has",
-       seasonFolder.files?.length || 0,
-       "files"
-     );
+     // console.log("[DEBUG - EPISODES] Found season folder:", seasonFolder.path);
+     // console.log(
+     //   "[DEBUG - EPISODES] Season folder has",
+     //   seasonFolder.files?.length || 0,
+     //   "files"
+     // );
      
      if (!seasonFolder.files || seasonFolder.files.length === 0) {
-       console.log("[DEBUG - EPISODES] No files found in season folder");
+       // console.log("[DEBUG - EPISODES] No files found in season folder");
        return [];
      }
      
@@ -10666,9 +10702,9 @@ class MediaLibraryManager {
        const specialsSeason =
          this.seasonEpisodeImages[showKey].seasons["Specials"];
        if (specialsSeason && specialsSeason.episodes) {
-         console.log(`[DEBUG - THUMBNAIL] Found ${Object.keys(specialsSeason.episodes).length} episodes in JSON for ${showKey} Specials`);
-         console.log(`[DEBUG - THUMBNAIL] JSON episode keys:`, Object.keys(specialsSeason.episodes));
-         console.log(`[DEBUG - THUMBNAIL] Processing ${episodes.length} episodes from file system`);
+         // console.log(`[DEBUG - THUMBNAIL] Found ${Object.keys(specialsSeason.episodes).length} episodes in JSON for ${showKey} Specials`);
+         // console.log(`[DEBUG - THUMBNAIL] JSON episode keys:`, Object.keys(specialsSeason.episodes));
+         // console.log(`[DEBUG - THUMBNAIL] Processing ${episodes.length} episodes from file system`);
          episodes.forEach((episode) => {
            // Find matching episode in JSON data by episode key
            const episodeKey = Object.keys(specialsSeason.episodes).find(
@@ -10687,7 +10723,7 @@ class MediaLibraryManager {
              episode.timestamp = jsonEpisode.timestamp;
              console.log(`[DEBUG - THUMBNAIL] Merged thumbnail for ${episode.filename}: ${jsonEpisode.still}`);
            } else {
-             console.log(`[DEBUG - THUMBNAIL] No JSON match found for episode: ${episode.filename}`);
+             // console.log(`[DEBUG - THUMBNAIL] No JSON match found for episode: ${episode.filename}`);
            }
          });
        }
@@ -10705,24 +10741,24 @@ class MediaLibraryManager {
        return aNum - bNum;
      });
      
-     console.log("[DEBUG - EPISODES] Returning", episodes.length, "episodes");
+     // console.log("[DEBUG - EPISODES] Returning", episodes.length, "episodes");
      return episodes;
     }
     // Handle shows with episodes directly in files array (like Citadel)
     if (show.files && Array.isArray(show.files) && show.files.length > 0) {
-      console.log(
-        "[DEBUG - EPISODES] Found files array with",
-        show.files.length,
-        "files"
-      );
+      // console.log(
+      //   "[DEBUG - EPISODES] Found files array with",
+      //   show.files.length,
+      //   "files"
+      // );
       // Extract season number from seasonPath (e.g., "Season 01" -> "01", "S01" -> "01")
       const seasonMatch =
         seasonPath.match(/season[ _-]?(\d+)/i) || seasonPath.match(/^s(\d+)/i);
       const seasonNumber = seasonMatch ? seasonMatch[1] : null;
-      console.log(
-        "[DEBUG - EPISODES] Looking for season number:",
-        seasonNumber
-      );
+      // console.log(
+      //   "[DEBUG - EPISODES] Looking for season number:",
+      //   seasonNumber
+      // );
       // Filter files to only include episodes from the requested season
       let episodes = show.files
         .filter((file) => {
@@ -10730,12 +10766,12 @@ class MediaLibraryManager {
           const episodeMatch = fileName.match(/S(\d{1,2})E(\d{1,2})/i);
           if (!episodeMatch) return false;
           const fileSeasonNumber = episodeMatch[1];
-          console.log(
-            "[DEBUG - EPISODES] File",
-            fileName,
-            "has season number:",
-            fileSeasonNumber
-          );
+          // console.log(
+          //   "[DEBUG - EPISODES] File",
+          //   fileName,
+          //   "has season number:",
+          //   fileSeasonNumber
+          // );
           return seasonNumber && fileSeasonNumber === seasonNumber;
         })
         .map((file) => ({
@@ -10757,11 +10793,11 @@ class MediaLibraryManager {
         const bNum = parseInt(bMatch[1], 10);
         return aNum - bNum;
       });
-      console.log(
-        "[DEBUG - EPISODES] Returning",
-        episodes.length,
-        "episodes from files array"
-      );
+      // console.log(
+      //   "[DEBUG - EPISODES] Returning",
+      //   episodes.length,
+      //   "episodes from files array"
+      // );
       return episodes;
     }
     // No more old formats - we only use the normalized TV shows format with folders structure
@@ -10811,6 +10847,23 @@ class MediaLibraryManager {
         key.startsWith(normalizedKey + ".") || key.startsWith(normalizedKey + "(")
       );
       
+      // If no match found, try a more flexible search for Star Trek shows
+      if (!matchingKey && showName.toLowerCase().includes("star trek")) {
+        const starTrekKey = availableKeys.find(key => 
+          key.toLowerCase().includes("star.trek") && 
+          key.toLowerCase().includes("strange.new.worlds")
+        );
+        if (starTrekKey) {
+          return {
+            name: this.unifiedData[starTrekKey].title || this.unifiedData[starTrekKey].TMDBTitle || showName,
+            path: `TV-SHOWS/${showName}`,
+            normalizedKey: starTrekKey,
+            TMDBTitle: this.unifiedData[starTrekKey].TMDBTitle,
+            data: this.unifiedData[starTrekKey]
+          };
+        }
+      }
+      
       if (matchingKey) {
           return {
           name: this.unifiedData[matchingKey].title || this.unifiedData[matchingKey].TMDBTitle || showName,
@@ -10839,26 +10892,26 @@ class MediaLibraryManager {
     }
     
     // FALLBACK: Search through the old TV shows structure (for backward compatibility)
-    console.log("[FIND SHOW DEBUG] Falling back to old TV shows search...");
+    // console.log("[FIND SHOW DEBUG] Falling back to old TV shows search...");
     // 1. Search top-level TV show objects with multiple matching strategies
     const tvShows = this.getTVShows();
-    console.log("[FIND SHOW DEBUG] Total TV shows to search:", tvShows.length);
-    console.log(
-      "[FIND SHOW DEBUG] First 3 TV shows paths:",
-      tvShows.slice(0, 3).map((s) => s.path || s.title || s.name)
-    );
+    // console.log("[FIND SHOW DEBUG] Total TV shows to search:", tvShows.length);
+    // console.log(
+    //   "[FIND SHOW DEBUG] First 3 TV shows paths:",
+    //   tvShows.slice(0, 3).map((s) => s.path || s.title || s.name)
+    // );
     for (const show of tvShows) {
       const showObjPath = (show.path || "").replace(/\\/g, "/").toLowerCase();
       const showNormalizedKey = (show.normalizedKey || "").toLowerCase();
       // ---> console.log('[FIND SHOW DEBUG] Comparing target:', target, 'with showObjPath:', showObjPath, 'showNormalizedKey:', showNormalizedKey);
       // Strategy 1: Exact path match
       if (showObjPath === target) {
-        console.log("[FIND SHOW DEBUG] Found exact path match:", show);
+        // console.log("[FIND SHOW DEBUG] Found exact path match:", show);
         return show;
       }
       // Strategy 2: Normalized key match (NEW - this should fix "Man vs. Bee")
       if (showNormalizedKey && showNormalizedKey === target) {
-        console.log("[FIND SHOW DEBUG] Found normalized key match:", show);
+        // console.log("[FIND SHOW DEBUG] Found normalized key match:", show);
         return show;
       }
       // Strategy 2: Match without year (e.g., "bored to death" matches "bored to death (2009)")
@@ -10868,7 +10921,7 @@ class MediaLibraryManager {
         targetWithoutYear === showPathWithoutYear &&
         targetWithoutYear.length > 0
       ) {
-        console.log("[FIND SHOW DEBUG] Found year-flexible match:", show);
+        // console.log("[FIND SHOW DEBUG] Found year-flexible match:", show);
         return show;
       }
       // Strategy 3: Normalized match (handle special characters)
@@ -10885,7 +10938,7 @@ class MediaLibraryManager {
         normalizedTarget === normalizedShowPath &&
         normalizedTarget.length > 0
       ) {
-        console.log("[FIND SHOW DEBUG] Found normalized match:", show);
+        // console.log("[FIND SHOW DEBUG] Found normalized match:", show);
         return show;
       }
     }
@@ -10921,12 +10974,12 @@ class MediaLibraryManager {
     // Convert spaces and special characters to dots
     normalizedKey = normalizedKey.replace(/[^\w\s().]/g, "");
     normalizedKey = normalizedKey.replace(/\s+/g, ".");
-    console.log(
-      "[DEBUG - EPISODES] Converted showPath to normalized key:",
-      showPath,
-      "->",
-      normalizedKey
-    );
+    // console.log(
+    //   "[DEBUG - EPISODES] Converted showPath to normalized key:",
+    //   showPath,
+    //   "->",
+    //   normalizedKey
+    // );
     return normalizedKey;
   }
   cleanEpisodeName(filename) {
@@ -10955,9 +11008,9 @@ class MediaLibraryManager {
                                 seasonPath.toLowerCase().includes('extras');
         
         if (isSpecialContent) {
-          console.log("[SEASON IMAGE] This is special content section:", seasonPath);
-          console.log("[SEASON IMAGE] Looking for show:", showName);
-          console.log("[SEASON IMAGE] Available keys in unified data:", Object.keys(this.unifiedData).filter(key => key.toLowerCase().includes('curb')));
+          // console.log("[SEASON IMAGE] This is special content section:", seasonPath);
+          // console.log("[SEASON IMAGE] Looking for show:", showName);
+          // console.log("[SEASON IMAGE] Available keys in unified data:", Object.keys(this.unifiedData).filter(key => key.toLowerCase().includes('curb')));
           
           // Find the show in unified data - try exact match first, then fallback
           let showKey = Object.keys(this.unifiedData).find(key => key === showName);
@@ -10972,7 +11025,7 @@ class MediaLibraryManager {
             });
           }
           
-          console.log("[SEASON IMAGE] Found show key:", showKey);
+          // console.log("[SEASON IMAGE] Found show key:", showKey);
           
           if (showKey && this.unifiedData[showKey].seasons) {
             console.log("[SEASON IMAGE] Available seasons in show:", Object.keys(this.unifiedData[showKey].seasons));
@@ -10987,28 +11040,28 @@ class MediaLibraryManager {
               specialContentKey = 'Extras';
             }
             
-            console.log("[SEASON IMAGE] Special content key found:", specialContentKey);
+            // console.log("[SEASON IMAGE] Special content key found:", specialContentKey);
             
             if (specialContentKey && this.unifiedData[showKey].seasons[specialContentKey]) {
               const specialContentData = this.unifiedData[showKey].seasons[specialContentKey];
-              console.log("[SEASON IMAGE] Special content data keys:", Object.keys(specialContentData));
-              console.log("[SEASON IMAGE] Poster field value:", specialContentData.poster);
-              console.log("[SEASON IMAGE] PosterUrl field value:", specialContentData.posterUrl);
-              console.log("[SEASON IMAGE] Image field value:", specialContentData.image);
+              // console.log("[SEASON IMAGE] Special content data keys:", Object.keys(specialContentData));
+              // console.log("[SEASON IMAGE] Poster field value:", specialContentData.poster);
+              // console.log("[SEASON IMAGE] PosterUrl field value:", specialContentData.posterUrl);
+              // console.log("[SEASON IMAGE] Image field value:", specialContentData.image);
               
               // Check for poster in multiple possible fields
               const poster = specialContentData.poster || specialContentData.posterUrl || specialContentData.image;
               if (poster) {
-                console.log("[SEASON IMAGE] Found special content poster for", showName, specialContentKey, ":", poster);
+                // console.log("[SEASON IMAGE] Found special content poster for", showName, specialContentKey, ":", poster);
                 return poster;
               } else {
-                console.log("[SEASON IMAGE] No poster found in any field for", specialContentKey);
+                // console.log("[SEASON IMAGE] No poster found in any field for", specialContentKey);
               }
             } else {
-              console.log("[SEASON IMAGE] Special content section not found:", specialContentKey);
+              // console.log("[SEASON IMAGE] Special content section not found:", specialContentKey);
             }
           } else {
-            console.log("[SEASON IMAGE] Show or seasons not found in unified data");
+            // console.log("[SEASON IMAGE] Show or seasons not found in unified data");
           }
         }
       }
@@ -11034,12 +11087,12 @@ class MediaLibraryManager {
       const year = yearMatch ? yearMatch[1] : null;
       // Use the original show name as the key (same as used in loadSeasonEpisodeImages)
       const showKey = cleanShowName;
-      console.log("[SEASON IMAGE LOOKUP]", {
-        showName,
-        cleanShowName,
-        showKey,
-        year,
-      });
+      // console.log("[SEASON IMAGE LOOKUP]", {
+      //   showName,
+      //   cleanShowName,
+      //   showKey,
+      //   year,
+      // });
       // Extract season number from seasonPath
       const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i);
       if (!seasonMatch) {
@@ -11295,6 +11348,250 @@ class MediaLibraryManager {
       cast,
     };
   }
+  
+  /**
+   * UNIVERSAL PATH MATCHER - Handles ALL path matching scenarios automatically
+   * This prevents recurring path matching issues by being comprehensive
+   */
+  findUnifiedItemByPath(mediaItem) {
+    if (!this.unifiedData || !mediaItem) {
+      console.log('[UNIVERSAL-MATCHER] No unified data or media item provided');
+      return null;
+    }
+
+    // Extract all possible paths from mediaItem
+    const paths = [
+      mediaItem.path,
+      mediaItem.absPath,
+      mediaItem.relPath,
+      mediaItem.filePath
+    ].filter(Boolean).map(p => p.replace(/\\/g, "/"));
+
+    console.log('[UNIVERSAL-MATCHER] Searching for paths:', paths);
+
+    // Strategy 1: Direct key lookup (for normalized keys)
+    for (const path of paths) {
+      if (path && typeof path === 'string' && /^[a-z0-9.()]+$/.test(path)) {
+        if (this.unifiedData[path]) {
+          console.log('[UNIVERSAL-MATCHER] Found by direct key lookup:', path);
+          return { key: path, item: this.unifiedData[path] };
+        }
+      }
+    }
+
+    // Strategy 2: Exact path matching
+    for (const [key, item] of Object.entries(this.unifiedData)) {
+      const itemPaths = [
+        item.path,
+        item.absPath,
+        item.relPath
+      ].filter(Boolean).map(p => p.replace(/\\/g, "/"));
+
+      for (const mediaPath of paths) {
+        for (const itemPath of itemPaths) {
+          if (mediaPath === itemPath) {
+            console.log('[UNIVERSAL-MATCHER] Found by exact path match:', key);
+            return { key, item };
+          }
+        }
+      }
+    }
+
+    // Strategy 3: Directory matching (for TV show episodes)
+    for (const [key, item] of Object.entries(this.unifiedData)) {
+      if (item.type === "tvshow" && item.path) {
+        const showPath = item.path.replace(/\\/g, "/");
+        
+        for (const mediaPath of paths) {
+          if (mediaPath.startsWith(showPath + "/") || mediaPath.startsWith(showPath + "\\")) {
+            console.log('[UNIVERSAL-MATCHER] Found by directory match:', key);
+            return { key, item };
+          }
+        }
+      }
+    }
+
+    // Strategy 4: Episode path matching (for TV shows)
+    for (const [key, item] of Object.entries(this.unifiedData)) {
+      if (item.type === "tvshow" && item.seasons) {
+        for (const seasonKey in item.seasons) {
+          const season = item.seasons[seasonKey];
+          if (season.episodes) {
+            for (const episodeKey in season.episodes) {
+              const episode = season.episodes[episodeKey];
+              const episodePaths = [
+                episode.path,
+                episode.absPath,
+                episode.relPath,
+                episode.filePath
+              ].filter(Boolean).map(p => p.replace(/\\/g, "/"));
+
+              for (const mediaPath of paths) {
+                for (const episodePath of episodePaths) {
+                  if (mediaPath === episodePath) {
+                    console.log('[UNIVERSAL-MATCHER] Found by episode path match:', key);
+                    return { key, item };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Strategy 5: Title matching
+    if (mediaItem.title || mediaItem.name) {
+      const searchTitle = (mediaItem.title || mediaItem.name).toLowerCase();
+      
+      for (const [key, item] of Object.entries(this.unifiedData)) {
+        const itemTitles = [
+          item.TMDBTitle,
+          item.title,
+          item.name
+        ].filter(Boolean).map(t => t.toLowerCase());
+
+        for (const itemTitle of itemTitles) {
+          if (itemTitle === searchTitle || itemTitle.includes(searchTitle) || searchTitle.includes(itemTitle)) {
+            console.log('[UNIVERSAL-MATCHER] Found by title match:', key);
+            return { key, item };
+          }
+        }
+      }
+    }
+
+    // Strategy 6: Filename matching
+    for (const path of paths) {
+      const filename = path.split(/[\\\/]/).pop().replace(/\.[^/.]+$/, '').toLowerCase();
+      
+      for (const [key, item] of Object.entries(this.unifiedData)) {
+        // Check item files
+        if (item.files && Array.isArray(item.files)) {
+          for (const file of item.files) {
+            if (file.name) {
+              const fileFilename = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
+              if (fileFilename === filename) {
+                console.log('[UNIVERSAL-MATCHER] Found by filename match in files:', key);
+                return { key, item };
+              }
+            }
+          }
+        }
+
+        // Check episode files
+        if (item.type === "tvshow" && item.seasons) {
+          for (const seasonKey in item.seasons) {
+            const season = item.seasons[seasonKey];
+            if (season.episodes) {
+              for (const episodeKey in season.episodes) {
+                const episode = season.episodes[episodeKey];
+                if (episode.files && Array.isArray(episode.files)) {
+                  for (const file of episode.files) {
+                    if (file.name) {
+                      const fileFilename = file.name.replace(/\.[^/.]+$/, '').toLowerCase();
+                      if (fileFilename === filename) {
+                        console.log('[UNIVERSAL-MATCHER] Found by filename match in episode files:', key);
+                        return { key, item };
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log('[UNIVERSAL-MATCHER] No match found for any path');
+    return null;
+  }
+
+  /**
+   * AUTO-FIX: Automatically fix mediaItem path issues
+   */
+  autoFixMediaItem(mediaItem) {
+    if (!mediaItem) return mediaItem;
+
+    // Ensure we have at least one path field
+    if (!mediaItem.path && !mediaItem.absPath && !mediaItem.filePath) {
+      console.warn('[AUTO-FIX] No path fields found in mediaItem');
+      return mediaItem;
+    }
+
+    // Normalize path separators
+    const normalizePath = (path) => path ? path.replace(/\\/g, "/") : null;
+
+    // Set path if missing
+    if (!mediaItem.path) {
+      mediaItem.path = mediaItem.absPath || mediaItem.filePath || mediaItem.relPath;
+    }
+    if (!mediaItem.absPath) {
+      mediaItem.absPath = mediaItem.path || mediaItem.filePath || mediaItem.relPath;
+    }
+    if (!mediaItem.filePath) {
+      mediaItem.filePath = mediaItem.path || mediaItem.absPath || mediaItem.relPath;
+    }
+
+    // Normalize all paths
+    mediaItem.path = normalizePath(mediaItem.path);
+    mediaItem.absPath = normalizePath(mediaItem.absPath);
+    mediaItem.filePath = normalizePath(mediaItem.filePath);
+    if (mediaItem.relPath) {
+      mediaItem.relPath = normalizePath(mediaItem.relPath);
+    }
+
+    // Ensure type is set
+    if (!mediaItem.type && !mediaItem.mediaType) {
+      // Try to detect type from path
+      const pathToCheck = (mediaItem.path || mediaItem.absPath || "").toLowerCase();
+      if (pathToCheck.includes("tvshows") || pathToCheck.includes("season")) {
+        mediaItem.type = "tvshow";
+        mediaItem.mediaType = "tvshow";
+      } else {
+        mediaItem.type = "movie";
+        mediaItem.mediaType = "movie";
+      }
+    }
+
+    // Set mediaType if missing
+    if (!mediaItem.mediaType) {
+      mediaItem.mediaType = mediaItem.type || "movie";
+    }
+
+    console.log('[AUTO-FIX] Fixed mediaItem:', {
+      title: mediaItem.title,
+      type: mediaItem.type,
+      mediaType: mediaItem.mediaType,
+      path: mediaItem.path,
+      absPath: mediaItem.absPath,
+      filePath: mediaItem.filePath
+    });
+
+    return mediaItem;
+  }
+  
+  /**
+   * Build special content text for season display
+   */
+  buildSpecialContentText(specials, featurettes, extras) {
+    const parts = [];
+    
+    if (specials.length > 0) {
+      parts.push(`${specials.length} ${specials.length === 1 ? 'Special' : 'Specials'}`);
+    }
+    
+    if (featurettes.length > 0) {
+      parts.push(`${featurettes.length} ${featurettes.length === 1 ? 'Featurette' : 'Featurettes'}`);
+    }
+    
+    if (extras.length > 0) {
+      parts.push(`${extras.length} ${extras.length === 1 ? 'Extra' : 'Extras'}`);
+    }
+    
+    return parts.length > 0 ? ` + ${parts.join(' + ')}` : '';
+  }
+  
   async renderSeasonsView(showPath) {
     console.log(
       "[DEBUG - RENDER-SEASONS-VIEW] renderSeasonsView called with showPath:",
@@ -11375,6 +11672,36 @@ class MediaLibraryManager {
     console.log(
       "[DEBUG - RenderSeasonsView] renderSeasonsView seasons:",
       seasons
+    );
+    
+    // Filter out specials/featurettes for season count display
+    const regularSeasons = seasons.filter(season => 
+      !season.isSpecials && 
+      !season.path.toLowerCase().includes('specials') && 
+      !season.path.toLowerCase().includes('featurettes') && 
+      !season.path.toLowerCase().includes('extras')
+    );
+    
+    // Count specials and featurettes separately
+    const specials = seasons.filter(season => 
+      season.path.toLowerCase().includes('specials') || 
+      (season.isSpecials && season.path.toLowerCase().includes('specials'))
+    );
+    const featurettes = seasons.filter(season => 
+      season.path.toLowerCase().includes('featurettes') || 
+      (season.isSpecials && season.path.toLowerCase().includes('featurettes'))
+    );
+    const extras = seasons.filter(season => 
+      season.path.toLowerCase().includes('extras') || 
+      (season.isSpecials && season.path.toLowerCase().includes('extras'))
+    );
+    
+    console.log(
+      "[DEBUG - RenderSeasonsView] Regular seasons count:",
+      regularSeasons.length,
+      "Specials:", specials.length,
+      "Featurettes:", featurettes.length,
+      "Extras:", extras.length
     );
     console.log(
       "[DEBUG - RENDER SEASONS] About to load TV show details for cleanShowName:",
@@ -11476,8 +11803,8 @@ class MediaLibraryManager {
     // Unique class for grid and wrapper
     const gridClass = "media-library-seasons-grid";
     const wrapperClass = "media-library-seasons-arrows-wrapper";
-    // Only show arrows if more than 5 seasons (adjust as needed)
-    const showArrows = seasons.length > 5;
+    // Only show arrows if more than 5 seasons (adjust as needed) - use regular seasons count
+    const showArrows = regularSeasons.length > 5;
     // --- RENDER HTML ---
     const html = `
             <div class="media-library-breadcrumbs">
@@ -11490,7 +11817,7 @@ class MediaLibraryManager {
                 <div class="media-library-seasons-header-row">
                                     <div class="media-library-seasons-title">
                     <h2 class="${displayShowName.toLowerCase().includes("lois & clark") || displayShowName.toLowerCase().includes("lois and clark") ? "media-library-tvshow-title-lois-clark" : "media-library-tvshow-title"}">${displayShowName}</h2>
-                    <p>${seasons.length} ${seasons.length === 1 ? "Season" : "Seasons"}</p>
+                    <p>${regularSeasons.length} ${regularSeasons.length === 1 ? "Season" : "Seasons"}${this.buildSpecialContentText(specials, featurettes, extras)}</p>
                 </div>
                     <div class="media-library-seasons-description">${description}</div>
                 </div>
@@ -12310,31 +12637,31 @@ class MediaLibraryManager {
           });
           
           if (foundShow) {
-            console.log("[DEBUG - REAL-METHOD] Found show via unified data lookup:", foundShow.name);
+            // console.log("[DEBUG - REAL-METHOD] Found show via unified data lookup:", foundShow.name);
             return this.createEpisodeObjectFromShow(foundShow, seasonPath, episodeFilename);
           } else {
-            console.log("[DEBUG - REAL-METHOD] No show found in unified data for:", showPath);
+            // console.log("[DEBUG - REAL-METHOD] No show found in unified data for:", showPath);
           }
         } else {
-          console.log("[DEBUG - REAL-METHOD] No unified data available");
+          // console.log("[DEBUG - REAL-METHOD] No unified data available");
         }
       }
       
       // Don't create incomplete objects - log warning and return null
-      console.warn("[DEBUG - REAL-METHOD] Cannot create episode object - show not found in unified data for:", showPath);
+      // console.warn("[DEBUG - REAL-METHOD] Cannot create episode object - show not found in unified data for:", showPath);
       return null;
     }
     
-    console.log('[DEBUG - REAL-METHOD] Found show:', show.name);
+    // console.log('[DEBUG - REAL-METHOD] Found show:', show.name);
     
     // Get episodes from the SAME method as main TV-SHOWS tab
     // Use human-readable season path for matching with show.folders
     let episodes = this.getEpisodesForSeason(show, humanReadableSeasonPath) || [];
-    console.log('[DEBUG - REAL-METHOD] Found episodes:', episodes.length);
+    // console.log('[DEBUG - REAL-METHOD] Found episodes:', episodes.length);
     
     // Find the specific episode by filename
-    console.log("[DEBUG - EPISODE-MATCHING] Looking for episode with filename:", episodeFilename);
-    console.log("[DEBUG - EPISODE-MATCHING] Available episodes:", episodes.map(ep => ({ name: ep.name, filename: ep.filename })));
+    // console.log("[DEBUG - EPISODE-MATCHING] Looking for episode with filename:", episodeFilename);
+    // console.log("[DEBUG - EPISODE-MATCHING] Available episodes:", episodes.map(ep => ({ name: ep.name, filename: ep.filename })));
     
     const episodeObj = episodes.find((episode) => {
       const episodeName = episode.name || episode.filename || "";
@@ -12362,26 +12689,26 @@ class MediaLibraryManager {
       );
       
       if (isMatch) {
-        console.log("[DEBUG - EPISODE-MATCHING] ✅ MATCHED episode:", episodeName, "with filename:", episodeFilename);
+        // console.log("[DEBUG - EPISODE-MATCHING] ✅ MATCHED episode:", episodeName, "with filename:", episodeFilename);
       }
       
       return isMatch;
     });
     
     if (episodeObj) {
-      console.log("[DEBUG - EPISODE-MATCHING] Found episode object:", episodeObj.name);
+      // console.log("[DEBUG - EPISODE-MATCHING] Found episode object:", episodeObj.name);
       return episodeObj;
     } else {
-      console.log("[DEBUG - EPISODE-MATCHING] ❌ Episode not found in episodes list");
+      // console.log("[DEBUG - EPISODE-MATCHING] ❌ Episode not found in episodes list");
       return null;
     }
   }
   
   // Helper method to create episode object from show data
   createEpisodeObjectFromShow(show, seasonPath, episodeFilename) {
-    console.log("[DEBUG - EPISODE-CREATION] Creating episode object for:", episodeFilename);
-    console.log("[DEBUG - EPISODE-CREATION] Show:", show.name || show.path);
-    console.log("[DEBUG - EPISODE-CREATION] Season path:", seasonPath);
+    // console.log("[DEBUG - EPISODE-CREATION] Creating episode object for:", episodeFilename);
+    // console.log("[DEBUG - EPISODE-CREATION] Show:", show.name || show.path);
+    // console.log("[DEBUG - EPISODE-CREATION] Season path:", seasonPath);
     
     // Extract season number from seasonPath
     const seasonMatch = seasonPath.match(/Season\s*(\d+)/i);
@@ -12391,7 +12718,7 @@ class MediaLibraryManager {
     const episodeMatch = episodeFilename.match(/S\d+E(\d+)/i);
     const episodeNumber = episodeMatch ? parseInt(episodeMatch[1], 10) : 1;
     
-    console.log("[DEBUG - EPISODE-CREATION] Extracted season:", seasonNumber, "episode:", episodeNumber);
+    // console.log("[DEBUG - EPISODE-CREATION] Extracted season:", seasonNumber, "episode:", episodeNumber);
     
     // Create a basic episode object
     const episodeObj = {
@@ -12411,8 +12738,8 @@ class MediaLibraryManager {
     episodeObj.type = "tvshow";
     episodeObj.mediaType = "tvshow";
     
-    console.log("[DEBUG - EPISODE-CREATION] Created episode object:", episodeObj);
-    console.log("[DEBUG - EPISODE-CREATION] Added type field:", episodeObj.type);
+    // console.log("[DEBUG - EPISODE-CREATION] Created episode object:", episodeObj);
+    // console.log("[DEBUG - EPISODE-CREATION] Added type field:", episodeObj.type);
     return episodeObj;
   }
   
@@ -13690,9 +14017,19 @@ class MediaLibraryManager {
           ) {
             return; // Don't trigger for action buttons
           }
-          const movie = this.mediaLibraryRaw.find((item) => item.path === path);
+          // Use unified data instead of old mediaLibraryRaw
+          let movie = null;
+          if (this.unifiedData && this.unifiedData[path]) {
+            movie = this.unifiedData[path];
+            console.log('[DEBUG - COLLECTIONS] Found movie in unified data:', movie.TMDBTitle, 'normalizedKey:', movie.normalizedKey);
+          } else {
+            // Fallback to old data if not found in unified data
+            movie = this.mediaLibraryRaw.find((item) => item.path === path);
+            console.log('[DEBUG - COLLECTIONS] Fallback to mediaLibraryRaw for:', path);
+          }
+          
           if (movie) {
-            // console.log('[DEBUG - COLLECTIONS] Playing movie from collection:', movie.title);
+            console.log('[DEBUG - COLLECTIONS] Playing movie:', movie.TMDBTitle || movie.title);
             this.playMedia(movie);
           }
         };
@@ -14029,128 +14366,61 @@ class MediaLibraryManager {
     duration,
     isManualSave = false
   ) {
-    console.log("[MEDIA-LIBRARY] saveResumeProgress called:", {
-      mediaItem,
-      currentTime,
-      duration,
-      isManualSave,
-    });
-    
-    // Validate input
-    if (!mediaItem) {
-      console.error("[MEDIA-LIBRARY] saveResumeProgress: No mediaItem provided");
-      return;
-    }
-    
-    if (!mediaItem.path && !mediaItem.absPath && !mediaItem.relPath) {
-      console.error("[MEDIA-LIBRARY] saveResumeProgress: No path found in mediaItem:", mediaItem);
-      return;
-    }
+    console.log("🚨 [SAVE-RESUME] FUNCTION CALLED - This should appear in console!");
     try {
+      console.log("[UNIVERSAL-SAVE] saveResumeProgress called:", {
+        mediaItem,
+        currentTime,
+        duration,
+        isManualSave,
+      });
+      console.log("[UNIVERSAL-SAVE] Movie title:", mediaItem?.TMDBTitle, 'normalizedKey:', mediaItem?.normalizedKey);
+      console.log("[UNIVERSAL-SAVE] Movie path:", mediaItem?.path, 'absPath:', mediaItem?.absPath);
+      console.log("[UNIVERSAL-SAVE] Movie type:", mediaItem?.type, 'mediaType:', mediaItem?.mediaType);
+      
+      // Validate input
+      if (!mediaItem) {
+        console.error("[UNIVERSAL-SAVE] No mediaItem provided");
+        this.showToast("Error: No media item provided", "error");
+        return;
+      }
+      
+      // AUTO-FIX: Fix mediaItem before processing
+      try {
+        mediaItem = this.autoFixMediaItem(mediaItem);
+      } catch (fixError) {
+        console.error("[UNIVERSAL-SAVE] Error in autoFixMediaItem:", fixError);
+        // Continue with original mediaItem if auto-fix fails
+      }
+      
+      if (!mediaItem.path && !mediaItem.absPath && !mediaItem.relPath) {
+        console.error("[UNIVERSAL-SAVE] No path found in mediaItem:", mediaItem);
+        this.showToast("Error: No valid path found for this media item", "error");
+        return;
+      }
       // Get current resume list from localStorage
       let resumeList = JSON.parse(
         localStorage.getItem("mediaLibraryResumeList") || "[]"
       );
-      // Determine if this is a TV show by checking the path (do this BEFORE duplicate removal)
-      const pathToCheck = (
-        mediaItem.path ||
-        mediaItem.absPath ||
-        mediaItem.relPath ||
-        ""
-      ).toLowerCase();
-      // Use the type field as the primary method - it's the most reliable!
-      console.log('[DEBUG-SAVE] MediaItem received for saveResumeProgress:', {
-        title: mediaItem.title,
-        type: mediaItem.type,
-        mediaType: mediaItem.mediaType,
-        path: mediaItem.path,
-        absPath: mediaItem.absPath
+      
+      // UNIVERSAL MATCHER: Find unified item using comprehensive matching
+      const match = this.findUnifiedItemByPath(mediaItem);
+      let unifiedItem = match ? match.item : null;
+      let isTVShow = unifiedItem ? unifiedItem.type === "tvshow" : false;
+      
+      console.log('[UNIVERSAL-SAVE] Match result:', { 
+        found: !!match, 
+        key: match?.key, 
+        isTVShow,
+        title: unifiedItem?.TMDBTitle || unifiedItem?.title
       });
-      console.log('[DEBUG-SAVE] Full mediaItem object:', mediaItem);
       
-      // Look up the media item in unified data first
-      let unifiedItem = null;
-      let isTVShow = false;
-      
-      if (this.unifiedData) {
-        console.log('[DEBUG-SAVE] Looking for unified item for:', {
-          title: mediaItem.title,
-          name: mediaItem.name,
-          path: mediaItem.path,
-          absPath: mediaItem.absPath
-        });
-        
-        // Try to find the item in unified data by multiple criteria
-        for (const key in this.unifiedData) {
-          const unified = this.unifiedData[key];
-          
-          // Check if this is the right item by path matching
-          const mediaPath = (mediaItem.path || mediaItem.absPath || "").replace(/\\/g, "/");
-          const unifiedPath = (unified.path || "").replace(/\\/g, "/");
-          
-          console.log('[DEBUG-SAVE] Checking path match:', {
-            key,
-            mediaPath,
-            unifiedPath,
-            match: mediaPath && unifiedPath && mediaPath === unifiedPath
-          });
-          
-          if (mediaPath && unifiedPath && mediaPath === unifiedPath) {
-            unifiedItem = unified;
-            isTVShow = unified.type === "tvshow";
-            console.log('[DEBUG-SAVE] Found unified item by path:', key, 'isTVShow:', isTVShow);
-            break;
-          }
-          
-          // For TV shows, also check if the mediaItem path matches any episode path
-          if (unified.type === "tvshow" && unified.seasons && mediaPath) {
-            let foundEpisode = false;
-            for (const seasonKey in unified.seasons) {
-              const season = unified.seasons[seasonKey];
-              if (season.episodes) {
-                for (const episodeKey in season.episodes) {
-                  const episode = season.episodes[episodeKey];
-                  const episodePath = (episode.path || episode.absPath || "").replace(/\\/g, "/");
-                  
-                  if (episodePath && mediaPath === episodePath) {
-                    unifiedItem = unified;
-                    isTVShow = true;
-                    console.log('[DEBUG-SAVE] Found unified item by episode path:', key, 'episode:', episodeKey, 'season:', seasonKey);
-                    foundEpisode = true;
-                    break;
-                  }
-                }
-              }
-              if (foundEpisode) break;
-            }
-            if (foundEpisode) break;
-          }
-          
-          // Also check by title matching
-          if (mediaItem.title && unified.TMDBTitle && 
-              mediaItem.title.toLowerCase() === unified.TMDBTitle.toLowerCase()) {
-            unifiedItem = unified;
-            isTVShow = unified.type === "tvshow";
-            console.log('[DEBUG-SAVE] Found unified item by title:', key, 'isTVShow:', isTVShow);
-            break;
-          }
-          
-          // Special case for Jupiter's Legacy - check if the mediaItem contains "Jupiter's Legacy"
-          if (mediaItem.name && mediaItem.name.includes("Jupiter's Legacy") && 
-              key === "jupiters.legacy.(2021)") {
-            unifiedItem = unified;
-            isTVShow = unified.type === "tvshow";
-            console.log('[DEBUG-SAVE] Found Jupiter\'s Legacy by special case match:', key, 'isTVShow:', isTVShow);
-            break;
-          }
-        }
-      }
-      
-      // Fallback: if not found in unified data, use original detection logic
+      // Fallback: if not found in unified data, use auto-detection
       if (!unifiedItem) {
-        console.log('[DEBUG-SAVE] No unified item found, using fallback detection');
+        console.log('[UNIVERSAL-SAVE] No unified item found, using fallback detection');
         isTVShow = mediaItem.type === "tvshow" || mediaItem.mediaType === "tvshow";
         
+        // If still not detected, try path analysis
         if (!isTVShow && !mediaItem.type && !mediaItem.mediaType) {
           const pathToCheck = (
             mediaItem.path ||
@@ -14169,18 +14439,17 @@ class MediaLibraryManager {
             pathToCheck.match(/s\d{2}/i) // Season pattern
           ) {
             isTVShow = true;
-            console.log('[DEBUG-SAVE] Detected TV show from path analysis (no unified data found):', pathToCheck);
+            console.log('[UNIVERSAL-SAVE] Detected TV show from path analysis:', pathToCheck);
           }
         }
       }
       
       console.log('[DEBUG-SAVE] isTVShow result:', isTVShow);
       console.log('[DEBUG-SAVE] Path analysis:', {
-        pathToCheck: pathToCheck,
-        hasTVShowsPath: pathToCheck.includes("tvshows"),
-        hasSeason: pathToCheck.includes("season"),
-        hasSeasonEpisode: pathToCheck.match(/s\d+e\d+/i),
-        hasSeasonPattern: pathToCheck.match(/s\d{2}/i)
+        path: mediaItem.path,
+        absPath: mediaItem.absPath,
+        type: mediaItem.type,
+        mediaType: mediaItem.mediaType
       });
       // For TV shows, find and remove any existing entry to ensure we always overwrite
       // This ensures there's only ONE entry per TV show with the most up-to-date resume time
@@ -14379,32 +14648,29 @@ class MediaLibraryManager {
               if (unifiedMovie.isMovie) {
                 let matchFound = false;
                 
-                // 1. Match by exact path
-                if (mediaItem.path && unifiedMovie.path && 
-                    mediaItem.path.replace(/\\/g, "/") === unifiedMovie.path.replace(/\\/g, "/")) {
+                // 1. Match by normalizedKey (most reliable)
+                if (mediaItem.normalizedKey && key === mediaItem.normalizedKey) {
                   matchFound = true;
                 }
-                // 2. Match by title (case-insensitive)
+                // 2. Match by EXACT TMDBTitle (case-insensitive) - NO FUZZY LOGIC
+                else if (mediaItem.TMDBTitle && unifiedMovie.TMDBTitle && 
+                         mediaItem.TMDBTitle.toLowerCase() === unifiedMovie.TMDBTitle.toLowerCase()) {
+                  console.log(`[WATCH-LATER SAVE] EXACT TMDBTitle match: "${mediaItem.TMDBTitle}" === "${unifiedMovie.TMDBTitle}"`);
+                  matchFound = true;
+                }
+                // 3. Match by EXACT title (case-insensitive) - NO FUZZY LOGIC
                 else if (mediaItem.title && unifiedMovie.title && 
                          mediaItem.title.toLowerCase() === unifiedMovie.title.toLowerCase()) {
+                  console.log(`[WATCH-LATER SAVE] EXACT title match: "${mediaItem.title}" === "${unifiedMovie.title}"`);
                   matchFound = true;
                 }
-                // 3. Match by TMDBTitle (case-insensitive)
-                else if (mediaItem.title && unifiedMovie.TMDBTitle && 
-                         mediaItem.title.toLowerCase() === unifiedMovie.TMDBTitle.toLowerCase()) {
-                  matchFound = true;
-                }
-                // 4. Match by extracted folder name from path
-                else if (mediaItem.path && unifiedMovie.title) {
-                  const movieFolderName = mediaItem.path.split(/[\\/]/).pop();
-                  if (movieFolderName && unifiedMovie.title.toLowerCase().includes(movieFolderName.toLowerCase())) {
-                    matchFound = true;
-                  }
-                }
+                // 4. NO MORE FUZZY MATCHING - Use exact normalizedKey only
                 
                 if (matchFound) {
                   normalizedKey = key;
                   console.log(`[WATCH-LATER SAVE] Found matching movie in unified data: "${key}" for "${mediaItem.title}"`);
+                  console.log(`[WATCH-LATER SAVE] Matched unified movie: "${unifiedMovie.TMDBTitle}" (${unifiedMovie.year})`);
+                  console.log(`[WATCH-LATER SAVE] This means "${mediaItem.TMDBTitle || mediaItem.title}" will be saved as "${unifiedMovie.TMDBTitle}"`);
                   break;
                 }
               }
@@ -14547,15 +14813,25 @@ class MediaLibraryManager {
         this.showToast("Saved to Watch Later!", "info"); // 'info' style gives blue background with yellow border
       }
     } catch (error) {
-      console.error("[MEDIA-LIBRARY] Error saving resume progress:", error);
-      console.error("[MEDIA-LIBRARY] Error details:", {
+      console.error("[UNIVERSAL-SAVE] Error saving resume progress:", error);
+      console.error("[UNIVERSAL-SAVE] Error details:", {
         message: error.message,
         stack: error.stack,
-        mediaItem: mediaItem?.title,
+        mediaItem: mediaItem?.title || mediaItem?.name || "Unknown",
         currentTime,
         duration,
+        path: mediaItem?.path || mediaItem?.absPath || "No path",
+        type: mediaItem?.type || mediaItem?.mediaType || "Unknown type"
       });
-      this.showToast(`Error saving to Watch Later: ${error.message}`, "error");
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || "Unknown error occurred";
+      this.showToast(`Error saving to Watch Later: ${errorMessage}`, "error");
+      
+      // Log additional debugging info
+      console.error("[UNIVERSAL-SAVE] MediaItem that caused error:", mediaItem);
+      console.error("[UNIVERSAL-SAVE] Unified data available:", !!this.unifiedData);
+      console.error("[UNIVERSAL-SAVE] Unified data keys count:", this.unifiedData ? Object.keys(this.unifiedData).length : 0);
     }
   }
   // Helper method to generate consistent mediaId for MongoDB
