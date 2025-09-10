@@ -58,6 +58,17 @@ function migrateCollectionsToUnifiedKeys() {
                             foundKey = key;
                             break;
                         }
+                        
+                        // For TV shows, check if the item path is within the show's directory (episode within show)
+                        if (data.type === "tvshow" && data.path && item) {
+                            const showPath = data.path.replace(/\\/g, "/");
+                            const itemPath = item.replace(/\\/g, "/");
+                            
+                            if (itemPath.startsWith(showPath + "/") || itemPath.startsWith(showPath + "\\")) {
+                                foundKey = key;
+                                break;
+                            }
+                        }
                     }
 
                     if (foundKey) {

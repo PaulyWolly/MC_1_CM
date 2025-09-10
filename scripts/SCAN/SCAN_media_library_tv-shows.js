@@ -11,6 +11,17 @@ const path = require('path');
 const { normalizeKey } = require('../../shared/NormalizationService');
 require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 
+// Import animation helper
+const { ProgressAnimation } = require('../CONVERT/animation-helper');
+
+// Animation markers for dot-dot-dot pattern
+const ANIMATION_MARKERS = [':..:', ':..:', ':..:', ':..:', ':..:'];
+
+function logWithAnimation(message, step = 0) {
+    const marker = ANIMATION_MARKERS[step % ANIMATION_MARKERS.length];
+    console.log(`${marker} ${message}`);
+}
+
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
 const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-shows-unified.json');
 
@@ -510,6 +521,50 @@ function checkIfShowNeedsTMDBData(show) {
 }
 
 /**
+ * Check if a show has new seasons that need to be scanned
+ */
+function checkIfShowHasNewSeasons(show, scannedShow) {
+    if (!show || !scannedShow || !show.seasons || !scannedShow.folders) {
+        return false;
+    }
+    
+    // Get existing season numbers from the show data
+    const existingSeasons = new Set(Object.keys(show.seasons));
+    
+    // Get season numbers from the scanned folders
+    const scannedSeasons = new Set();
+    for (const folder of scannedShow.folders) {
+        let seasonNum = null;
+        
+        // Check for "Season XX" pattern first
+        if (folder.path && folder.path.includes('Season')) {
+            const seasonMatch = folder.path.match(/Season\s*(\d+)/i);
+            if (seasonMatch) {
+                seasonNum = seasonMatch[1];
+            }
+        }
+        // Check for just number pattern (like "01", "02", etc.)
+        else if (folder.path && /^\d{1,2}$/.test(folder.path.split(/[\\/]/).pop())) {
+            seasonNum = folder.path.split(/[\\/]/).pop();
+        }
+        
+        if (seasonNum) {
+            scannedSeasons.add(seasonNum);
+        }
+    }
+    
+    // Check if there are new seasons in the scanned data that aren't in existing data
+    for (const seasonNum of scannedSeasons) {
+        if (!existingSeasons.has(seasonNum)) {
+            console.log(`🆕 [SCAN] Found new season ${seasonNum} for show: ${show.title}`);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
  * Add missing season_poster and season_thumbnail fields to existing shows
  */
 function addMissingSeasonFields(show) {
@@ -784,6 +839,9 @@ function flattenShows(tree) {
 async function main() {
     console.log(`🔍 [SCAN] Scanning TV-SHOWS library at: ${MEDIA_ROOT}`);
     
+    // Initialize animation helper
+    const animation = new ProgressAnimation('classic', 30);
+    
     // Check if media root exists
     if (!fs.existsSync(MEDIA_ROOT)) {
         console.error(`❌ [SCAN] Error: Media root directory does not exist: ${MEDIA_ROOT}`);
@@ -827,8 +885,14 @@ async function main() {
             });
             
             needsTMDBData = true;
+            console.log(`\n🌐 [SCAN] Fetching TMDB data...`);
+            const tmdbStep = 0;
+            const tmdbMarker = ANIMATION_MARKERS[tmdbStep];
+            process.stdout.write(`\r${tmdbMarker} Fetching TMDB data...`);
+            
             tmdbData = await fetchTMDBData(TMDB_ID);
             
+            process.stdout.write('\r' + ' '.repeat(100) + '\r');
             if (tmdbData && tmdbData.show) {
                 targetShowName = tmdbData.show.name;
                 console.log(`🎯 [SCAN] Targeting show: "${targetShowName}"`);
@@ -875,7 +939,9 @@ async function main() {
             }
         } else {
             // Scan all shows when no TMDB ID provided
+            console.log(`🔍 [SCAN] Starting directory scan...`);
             scannedShows = walkShows(MEDIA_ROOT);
+            console.log(`✅ [SCAN] Found ${scannedShows.length} shows in media library`);
         }
         
 
@@ -885,6 +951,9 @@ async function main() {
         
         let newShowsAdded = 0;
         let existingShowsSkipped = 0;
+        
+        console.log(`\n📊 [SCAN] Processing ${scannedShows.length} shows...`);
+        console.log(`🔄 [SCAN] Starting show processing with animated feedback...\n`);
         
         // First, convert ALL existing shows to use the Jupiter's Legacy template structure
         console.log(`🔍 [SCAN] Converting all existing shows to Jupiter's Legacy template structure...`);
@@ -901,9 +970,16 @@ async function main() {
             }
         }
         
-        // Process scanned shows
-        for (const show of scannedShows) {
+        // Process scanned shows with animated progress
+        for (let i = 0; i < scannedShows.length; i++) {
+            const show = scannedShows[i];
             const normalizedKey = show.normalizedKey;
+            
+            // Show dot-dot-dot animation
+            const step = i % ANIMATION_MARKERS.length;
+            const marker = ANIMATION_MARKERS[step];
+            process.stdout.write(`\r${marker} Processing shows ${i + 1}/${scannedShows.length} (${Math.round(((i + 1) / scannedShows.length) * 100)}%)`);
+            
             if (normalizedKey) {
                 // When TMDB ID is provided, only process the target show for TMDB data
                 // But still add missing season fields to all shows
@@ -940,10 +1016,11 @@ async function main() {
                     if (needsTMDBData && tmdbData && targetShowName) {
                         // Check if this specific show needs TMDB data
                         const existingShow = existingData[existingKey];
-                        const needsUpdate = checkIfShowNeedsTMDBData(existingShow);
+                        const needsTMDBUpdate = checkIfShowNeedsTMDBData(existingShow);
+                        const hasNewSeasons = checkIfShowHasNewSeasons(existingShow, show);
                         
-                        if (needsUpdate) {
-                            console.log(`🔄 [SCAN] Updating existing show with TMDB data: ${normalizedKey}`);
+                        if (needsTMDBUpdate || hasNewSeasons) {
+                            console.log(`🔄 [SCAN] Updating existing show: ${normalizedKey} (TMDB: ${needsTMDBUpdate}, New Seasons: ${hasNewSeasons})`);
                             const cleanShow = convertToCleanStructure(show, tmdbData);
                             unifiedOutput[existingKey] = cleanShow;
                             newShowsAdded++;
@@ -961,13 +1038,21 @@ async function main() {
                             }
                         }
                     } else {
-                        // ENHANCED: Check for new episodes in existing shows
+                        // ENHANCED: Check for new episodes and seasons in existing shows
                         console.log(`🔍 [SCAN] Checking existing TV show for updates: ${normalizedKey}`);
+                        const hasNewSeasons = checkIfShowHasNewSeasons(existingData[existingKey], show);
                         const updatedShow = checkForNewEpisodes(existingData[existingKey], show);
                         
-                        if (updatedShow) {
-                            console.log(`🔄 [SCAN] Updating existing TV show with new episodes: ${normalizedKey}`);
-                            unifiedOutput[existingKey] = updatedShow;
+                        if (updatedShow || hasNewSeasons) {
+                            if (hasNewSeasons) {
+                                console.log(`🔄 [SCAN] Updating existing TV show with new seasons: ${normalizedKey}`);
+                                // Re-scan the show to get the new seasons
+                                const cleanShow = convertToCleanStructure(show, tmdbData);
+                                unifiedOutput[existingKey] = cleanShow;
+                            } else {
+                                console.log(`🔄 [SCAN] Updating existing TV show with new episodes: ${normalizedKey}`);
+                                unifiedOutput[existingKey] = updatedShow;
+                            }
                             newShowsAdded++; // Count updates as additions
                         } else {
                             console.log(`⏭️ [SCAN] No updates needed for existing TV show: ${normalizedKey}`);
@@ -993,7 +1078,11 @@ async function main() {
             }
         }
         
-        console.log(`📊 [SCAN] Summary:`);
+        // Clear the progress line and show completion
+        process.stdout.write('\r' + ' '.repeat(100) + '\r');
+        console.log(`\n✅ [SCAN] Show processing complete!`);
+        
+        console.log(`\n📊 [SCAN] Summary:`);
         console.log(`   - Existing TV shows preserved: ${existingShowsSkipped}`);
         console.log(`   - New TV shows and updates: ${newShowsAdded}`);
         console.log(`   - Total TV shows in library: ${Object.keys(unifiedOutput).length}`);
@@ -1001,29 +1090,51 @@ async function main() {
         // Only create backup and write if we're actually making changes
         if (newShowsAdded > 0) {
             if (fs.existsSync(OUTPUT_FILE)) {
+                console.log(`\n💾 [SCAN] Creating backup...`);
+                const backupStep = 1;
+                const backupMarker = ANIMATION_MARKERS[backupStep];
+                process.stdout.write(`\r${backupMarker} Creating backup...`);
+                
                 // Create bkup directory if it doesn't exist
                 const bkupDir = path.join(path.dirname(OUTPUT_FILE), 'bkup');
                 if (!fs.existsSync(bkupDir)) {
                     fs.mkdirSync(bkupDir, { recursive: true });
-                    console.log(`📁 [SCAN] Created backup directory: ${bkupDir}`);
                 }
                 
                 // Create backup with timestamp
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
                 const backupFile = path.join(bkupDir, `media-library-tv-shows_normalized_backup_${timestamp}.json`);
                 fs.copyFileSync(OUTPUT_FILE, backupFile);
-                console.log(`💾 [SCAN] Backup created: ${backupFile}`);
+                
+                process.stdout.write('\r' + ' '.repeat(100) + '\r');
+                console.log(`✅ [SCAN] Backup created: ${backupFile}`);
             }
             
             // Apply final field reordering to ensure template compliance
-            console.log(`🔄 [SCAN] Applying final field reordering for template compliance...`);
+            console.log(`\n🔄 [SCAN] Applying final field reordering for template compliance...`);
             const reorderedOutput = {};
-            for (const [showKey, showData] of Object.entries(unifiedOutput)) {
-                reorderedOutput[showKey] = reorderShowFields(showData);
+            const showKeys = Object.keys(unifiedOutput);
+            
+            for (let i = 0; i < showKeys.length; i++) {
+                const showKey = showKeys[i];
+                const reorderStep = i % ANIMATION_MARKERS.length;
+                const reorderMarker = ANIMATION_MARKERS[reorderStep];
+                process.stdout.write(`\r${reorderMarker} Reordering fields ${i + 1}/${showKeys.length} (${Math.round(((i + 1) / showKeys.length) * 100)}%)`);
+                reorderedOutput[showKey] = reorderShowFields(unifiedOutput[showKey]);
             }
             
-            // Write the updated data
+            process.stdout.write('\r' + ' '.repeat(100) + '\r');
+            console.log(`✅ [SCAN] Field reordering complete!`);
+            
+            // Write the updated data with animated feedback
+            console.log(`\n💾 [SCAN] Writing updated data to file...`);
+            const writeStep = 2;
+            const writeMarker = ANIMATION_MARKERS[writeStep];
+            process.stdout.write(`\r${writeMarker} Writing unified data...`);
+            
             fs.writeFileSync(OUTPUT_FILE, JSON.stringify(reorderedOutput, null, 2));
+            
+            process.stdout.write('\r' + ' '.repeat(100) + '\r');
             console.log(`✅ [SCAN] TV-SHOWS scan complete! Added ${newShowsAdded} new shows/updates.`);
         } else {
             console.log(`✅ [SCAN] No new TV shows or updates found. Existing library unchanged.`);

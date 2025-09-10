@@ -165,10 +165,28 @@ class EpisodeModal {
             } else {
                 console.log('[EPISODE-MODAL] ❌ No exact match for normalized name:', normalizedShowName);
                 
-                // Fallback: search for partial match in case normalization missed something
+                // Fallback 1: search for partial match in case normalization missed something
                 actualKey = availableKeys.find(key => key.includes(normalizedShowName.replace(/\./g, '')));
                 if (actualKey) {
                     console.log('[EPISODE-MODAL] ✅ SUCCESS: Partial match found:', actualKey);
+                } else {
+                    // Fallback 2: search for shows that contain the main show name (without year)
+                    const baseShowName = normalizedShowName.replace(/\.\(\d{4}\)$/, '');
+                    console.log('[EPISODE-MODAL] Trying base show name:', baseShowName);
+                    actualKey = availableKeys.find(key => key.startsWith(baseShowName + '.'));
+                    if (actualKey) {
+                        console.log('[EPISODE-MODAL] ✅ SUCCESS: Base name match found:', actualKey);
+                    } else {
+                        // Fallback 3: search for shows that contain key words from the show name
+                        const showWords = baseShowName.split('.').filter(word => word.length > 2);
+                        console.log('[EPISODE-MODAL] Trying word-based search with:', showWords);
+                        actualKey = availableKeys.find(key => {
+                            return showWords.every(word => key.includes(word));
+                        });
+                        if (actualKey) {
+                            console.log('[EPISODE-MODAL] ✅ SUCCESS: Word-based match found:', actualKey);
+                        }
+                    }
                 }
             }
             

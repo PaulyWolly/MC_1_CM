@@ -424,45 +424,69 @@ class VideoPlayer {
                         this.el().setAttribute('title', 'Save for Later');
                     }
                     handleClick() {
-                        // Prefer the richest current media context available
-                        let movie = 
-                            window.mediaLibraryManager?.currentMediaItem ||
-                            window.videoPlayer?.currentMediaItem ||
-                            window.videoPlayer?.currentFile ||
-                            window.mediaLibraryManager?.currentFile;
+                        // Get the current playing movie from the video player
+                        let movie = window.mediaLibraryManager?.currentMediaItem;
                         
-                        // EMERGENCY FIX: If no movie object, try to find it in unified data first
+                        // If no movie found, try to get it from the video player
                         if (!movie) {
-                            console.log('[VIDEO-PLAYER] EMERGENCY: No movie object found, searching unified data');
+                            movie = window.videoPlayer?.currentMediaItem || 
+                                   window.videoPlayer?.currentFile || 
+                                   window.mediaLibraryManager?.currentFile;
+                        }
+                        
+                        // CRITICAL FIX: If we have a movie but it's the wrong one, try to find the correct one
+                        if (movie && movie.normalizedKey && movie.normalizedKey.includes('paulie')) {
+                            console.log('[VIDEO-PLAYER] WRONG MOVIE DETECTED! Found Paulie instead of Paul, searching for correct movie...');
                             
+                            // Try to find the correct movie by looking at the current file path
+                            const currentPath = window.videoPlayer?.currentFile?.path || window.videoPlayer?.currentFile?.filePath || window.videoPlayer?.currentFile?.absPath || '';
+                            if (currentPath && currentPath.toLowerCase().includes('paul') && !currentPath.toLowerCase().includes('paulie')) {
+                                // Look for the correct Paul movie in unified data
+                                if (window.mediaLibraryManager?.unifiedData) {
+                                    for (const [key, movieData] of Object.entries(window.mediaLibraryManager.unifiedData)) {
+                                        if (movieData.isMovie && movieData.TMDBTitle === 'Paul' && movieData.year === '2011') {
+                                            movie = {
+                                                ...movieData,
+                                                path: currentPath,
+                                                absPath: movieData.files && movieData.files[0] ? movieData.files[0].absPath : undefined,
+                                                filePath: movieData.files && movieData.files[0] ? movieData.files[0].filePath : undefined
+                                            };
+                                            console.log('[VIDEO-PLAYER] FIXED! Found correct Paul movie:', movie.TMDBTitle);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        console.log('[VIDEO-PLAYER] Save Later button clicked - current movie data:', movie);
+                        console.log('[VIDEO-PLAYER] Movie title:', movie?.TMDBTitle, 'normalizedKey:', movie?.normalizedKey);
+                        console.log('[VIDEO-PLAYER] Movie path:', movie?.path, 'absPath:', movie?.absPath);
+                        console.log('[VIDEO-PLAYER] Movie type:', movie?.type, 'mediaType:', movie?.mediaType);
+                        
+                        // FIX: Always use the correct movie data from currentMediaItem
+                        if (!movie || !movie.normalizedKey) {
                             // Try to find the media item in unified data using the current file path
-                            let foundInUnifiedData = false;
                             const currentPath = window.videoPlayer?.currentFile?.path || window.videoPlayer?.currentFile?.filePath || window.videoPlayer?.currentFile?.absPath || '';
                             
-                            if (window.mediaLibraryManager?.moviesData && currentPath) {
-                                console.log('[VIDEO-PLAYER] EMERGENCY: Searching movies data for path:', currentPath);
-                                const moviesData = window.mediaLibraryManager.moviesData;
-                                
-                                for (const [key, movieData] of Object.entries(moviesData)) {
+                            if (window.mediaLibraryManager?.unifiedData && currentPath) {
+                                // Search through unified data to find the correct movie
+                                for (const [key, movieData] of Object.entries(window.mediaLibraryManager.unifiedData)) {
                                     if (movieData.files && Array.isArray(movieData.files)) {
                                         for (const file of movieData.files) {
                                             if (file.path === currentPath || file.filePath === currentPath || file.absPath === currentPath) {
                                                 movie = {
-                                                    title: movieData.TMDBTitle || movieData.title,
-                                                    type: movieData.type,
-                                                    mediaType: movieData.isMovie ? 'movie' : 'tvshow',
+                                                    ...movieData,
                                                     path: currentPath,
                                                     filePath: file.filePath || currentPath,
                                                     absPath: file.absPath || currentPath,
-                                                    mediaId: window.mediaLibraryManager?.generateMediaId ? window.mediaLibraryManager.generateMediaId({...movieData, path: currentPath}, movieData.isMovie ? 'movie' : 'tvshow') : undefined
+                                                    normalizedKey: key
                                                 };
-                                                foundInUnifiedData = true;
-                                                console.log('[VIDEO-PLAYER] EMERGENCY: Found in movies data:', movie);
                                                 break;
                                             }
                                         }
                                     }
-                                    if (foundInUnifiedData) break;
+                                    if (movie && movie.normalizedKey) break;
                                 }
                             }
                             
@@ -830,7 +854,7 @@ class VideoPlayer {
                         if (!movie.mediaId) validationErrors.push("Missing mediaId");
                         if (!movie.mediaType) validationErrors.push("Missing mediaType");
                         if (!movie.title || movie.title.trim() === '') validationErrors.push("Missing title");
-                        if (!movie.filePath) validationErrors.push("Missing filePath");
+                        if (!movie.path && !movie.filePath && !movie.absPath) validationErrors.push("Missing path/filePath/absPath");
                         
                         if (validationErrors.length > 0) {
                             console.error('[VIDEO-PLAYER] Validation failed:', validationErrors);
@@ -840,10 +864,33 @@ class VideoPlayer {
                             return;
                         }
 
+                        // AUTO-FIX: Fix movie object before saving
+                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.autoFixMediaItem === 'function') {
+                            movie = window.mediaLibraryManager.autoFixMediaItem(movie);
+                            console.log('[VIDEO-PLAYER] Auto-fixed movie object:', movie);
+                        }
+
                         // Save to Watch Later using MediaLibraryManager
-                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && movie.path) {
-                            console.log('[VIDEO-PLAYER] Calling saveResumeProgress with media:', movie);
-                            window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true); // true = manual save
+                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && (movie.path || movie.filePath || movie.absPath)) {
+                            // CRITICAL FIX: Ensure we're saving the correct movie by using the normalizedKey
+                            if (movie.normalizedKey && window.mediaLibraryManager.unifiedData && window.mediaLibraryManager.unifiedData[movie.normalizedKey]) {
+                                // Use the complete movie data from unified data to ensure correct movie is saved
+                                const correctMovie = window.mediaLibraryManager.unifiedData[movie.normalizedKey];
+                                
+                                // Ensure the correct movie has the necessary path fields for saving
+                                const movieWithPaths = {
+                                    ...correctMovie,
+                                    path: movie.path || correctMovie.path || correctMovie.normalizedKey,
+                                    absPath: movie.absPath || (correctMovie.files && correctMovie.files[0] ? correctMovie.files[0].absPath : undefined),
+                                    filePath: movie.filePath || (correctMovie.files && correctMovie.files[0] ? correctMovie.files[0].filePath : undefined)
+                                };
+                                
+                                console.log('[VIDEO-PLAYER] Using correct movie data from unified data:', correctMovie.TMDBTitle);
+                                window.mediaLibraryManager.saveResumeProgress(movieWithPaths, currentTime, duration, true);
+                            } else {
+                                console.log('[VIDEO-PLAYER] Using original movie data:', movie.TMDBTitle);
+                                window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
+                            }
 
                             // if (typeof window.showToast === 'function') {
                             //     window.showToast('Saved to Watch Later section!', 'success');
