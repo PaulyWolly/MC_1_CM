@@ -2529,6 +2529,22 @@ async function getAIResponse(message, selectedModel, history, systemPrompt, sess
     let tokenCount = 0;
     let responseText = '';
 
+    // Check if there's an uploaded image and trigger image analysis
+    if (state.selectedImage) {
+        console.log('[IMAGE ANALYSIS] Image detected, triggering image analysis...');
+        try {
+            await handleImageAnalysis(state.selectedImage, message || 'What is in this image?');
+            // Clear the selected image after analysis
+            state.selectedImage = null;
+            state.selectedImageFileName = null;
+            return;
+        } catch (error) {
+            console.error('[IMAGE ANALYSIS] Error in image analysis:', error);
+            addMessageToChat('error', 'Error analyzing image: ' + error.message);
+            return;
+        }
+    }
+
     // Get temperature and top_p from sliders
     let temperature = 1.1;
     let top_p = 1.0;
@@ -5679,9 +5695,9 @@ async function handleImageAnalysis(imageData, prompt = '') {
                                 updateMetadata(messageElement, updatedMetrics);
                             }
 
-                            // Only queue audio for non-recipe queries during streaming
+                            // Queue audio for image analysis responses during streaming
                             const sentences = currentChunk.match(/[^.!?]+[.!?]+/g);
-                            if (!isRecipeQuery && sentences) {
+                            if (sentences) {
                                 queueAudioChunk(sentences.join(' '));
                                 currentChunk = currentChunk.replace(sentences.join(''), '');
                             }
@@ -5693,8 +5709,8 @@ async function handleImageAnalysis(imageData, prompt = '') {
             }
         }
 
-        // At the end, only queue audio for non-recipe queries
-        if (!isRecipeQuery && currentChunk && currentChunk.trim() && state.selectedVoice) {
+        // At the end, queue any remaining audio for image analysis
+        if (currentChunk && currentChunk.trim() && state.selectedVoice) {
             queueAudioChunk(currentChunk.trim());
         }
 
@@ -5756,9 +5772,30 @@ function handleImageUpload(event) {
                         const modal = document.getElementById('image-analysis-modal');
                         const modalImg = document.getElementById('image-analysis-modal-img');
                         const modalTitle = document.getElementById('image-analysis-modal-title');
+                        const closeBtn = document.getElementById('image-analysis-modal-close');
+                        
                         modalImg.src = this.src;
                         modalImg.alt = objectName;
                         modalTitle.textContent = 'Image: "' + objectName + '"';
+                        
+                        // Ensure close button works
+                        if (closeBtn) {
+                            closeBtn.onclick = (e) => {
+                                console.log('[MODAL DEBUG] Close button clicked (from image click)');
+                                e.preventDefault();
+                                e.stopPropagation();
+                                modal.classList.remove('show');
+                            };
+                        }
+                        
+                        // Ensure modal background click works
+                        modal.onclick = (e) => {
+                            if (e.target === modal) {
+                                console.log('[MODAL DEBUG] Modal background clicked (from image click)');
+                                modal.classList.remove('show');
+                            }
+                        };
+                        
                         modal.classList.add('show');
                     };
                     messageElement.querySelector('.message-content').appendChild(imageElement);
@@ -6297,10 +6334,31 @@ if (examplePromptsLink && examplePromptsHelp) {
 window.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('image-analysis-modal');
     const closeBtn = document.getElementById('image-analysis-modal-close');
+    
+    console.log('[MODAL DEBUG] Modal element:', modal);
+    console.log('[MODAL DEBUG] Close button element:', closeBtn);
+    
     if (closeBtn) {
-        closeBtn.onclick = () => { modal.classList.remove('show'); };
+        closeBtn.onclick = (e) => { 
+            console.log('[MODAL DEBUG] Close button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            modal.classList.remove('show'); 
+        };
+    } else {
+        console.error('[MODAL DEBUG] Close button not found!');
     }
-    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+    
+    if (modal) {
+        modal.onclick = (e) => { 
+            if (e.target === modal) {
+                console.log('[MODAL DEBUG] Modal background clicked');
+                modal.classList.remove('show'); 
+            }
+        };
+    } else {
+        console.error('[MODAL DEBUG] Modal not found!');
+    }
 });
 
 // Expose functions to global scope for use by other modules
