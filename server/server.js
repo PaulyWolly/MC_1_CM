@@ -1818,7 +1818,7 @@ app.post('/api/analyze-image', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        // Process with Vision API
+        // Process with GPT-4o Vision API
         const response = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
