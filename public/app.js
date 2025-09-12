@@ -4478,8 +4478,8 @@ async function initializeApp() {
 
             console.log('Initializing MediaLibraryManager...');
     const mediaLibraryManagerInstance = new MediaLibraryManager();
+    window.mediaLibraryManager = mediaLibraryManagerInstance; // Assign immediately
     await mediaLibraryManagerInstance.init(); // Initialize the MediaLibraryManager
-    window.mediaLibraryManager = mediaLibraryManagerInstance;
     
     // Add debug functions to window object
     MediaLibraryManager.addDebugFunctionsToWindow(mediaLibraryManagerInstance);
@@ -4517,6 +4517,15 @@ async function initializeApp() {
         console.log('  - ToastManager:', window.toastManager ? '✅ Initialized' : '❌ Not Initialized');
         console.log('  - YouTubeSearchManager:', window.youtubeSearchManager ? '✅ Initialized' : '❌ Not Initialized');
         
+        // Add global loading spinner function
+        window.showLoadingSpinner = () => {
+            if (window.toastManager) {
+                window.toastManager.show('⏳ App is still loading, please wait...', 'info', 3000);
+            } else {
+                console.log('⏳ App is still loading, please wait...');
+            }
+        };
+
         // Add global debug method for troubleshooting
         window.debugAppServices = () => {
             console.log('🔍 [DEBUG] App Services Status:');

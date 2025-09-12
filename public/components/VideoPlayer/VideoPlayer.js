@@ -423,15 +423,15 @@ class VideoPlayer {
                         this.el().innerHTML = '<span class="save-later-icon">🔖</span>';
                         this.el().setAttribute('title', 'Save for Later');
                     }
-                    handleClick() {
+                    async handleClick() {
                         // Get the current playing movie from the video player
                         let movie = window.mediaLibraryManager?.currentMediaItem;
                         
                         // If no movie found, try to get it from the video player
                         if (!movie) {
                             movie = window.videoPlayer?.currentMediaItem || 
-                                   window.videoPlayer?.currentFile || 
-                                   window.mediaLibraryManager?.currentFile;
+                            window.videoPlayer?.currentFile ||
+                            window.mediaLibraryManager?.currentFile;
                         }
                         
                         // CRITICAL FIX: If we have a movie but it's the wrong one, try to find the correct one
@@ -465,6 +465,7 @@ class VideoPlayer {
                         console.log('[VIDEO-PLAYER] Movie type:', movie?.type, 'mediaType:', movie?.mediaType);
                         
                         // FIX: Always use the correct movie data from currentMediaItem
+                        let foundInUnifiedData = false;
                         if (!movie || !movie.normalizedKey) {
                             // Try to find the media item in unified data using the current file path
                             const currentPath = window.videoPlayer?.currentFile?.path || window.videoPlayer?.currentFile?.filePath || window.videoPlayer?.currentFile?.absPath || '';
@@ -482,6 +483,7 @@ class VideoPlayer {
                                                     absPath: file.absPath || currentPath,
                                                     normalizedKey: key
                                                 };
+                                                foundInUnifiedData = true;
                                                 break;
                                             }
                                         }
@@ -872,6 +874,16 @@ class VideoPlayer {
 
                         // Save to Watch Later using MediaLibraryManager
                         if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && (movie.path || movie.filePath || movie.absPath)) {
+                            console.log('🔖 [SAVE-FOR-LATER] Attempting to save:', {
+                                title: movie.title,
+                                type: movie.type,
+                                mediaType: movie.mediaType,
+                                path: movie.path,
+                                currentTime: currentTime,
+                                duration: duration
+                            });
+                            
+                            try {
                             // CRITICAL FIX: Ensure we're saving the correct movie by using the normalizedKey
                             if (movie.normalizedKey && window.mediaLibraryManager.unifiedData && window.mediaLibraryManager.unifiedData[movie.normalizedKey]) {
                                 // Use the complete movie data from unified data to ensure correct movie is saved
@@ -885,20 +897,28 @@ class VideoPlayer {
                                     filePath: movie.filePath || (correctMovie.files && correctMovie.files[0] ? correctMovie.files[0].filePath : undefined)
                                 };
                                 
-                                console.log('[VIDEO-PLAYER] Using correct movie data from unified data:', correctMovie.TMDBTitle);
-                                window.mediaLibraryManager.saveResumeProgress(movieWithPaths, currentTime, duration, true);
-                            } else {
-                                console.log('[VIDEO-PLAYER] Using original movie data:', movie.TMDBTitle);
-                                window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
-                            }
-
-                            // if (typeof window.showToast === 'function') {
-                            //     window.showToast('Saved to Watch Later section!', 'success');
-                            // }
-                            // Alert is handled by MediaLibraryManager.saveResumeProgress
-                            console.log('[VIDEO-PLAYER] Saved to Watch Later at time/duration:', currentTime, duration);
+                                    console.log('🔖 [SAVE-FOR-LATER] Using correct movie data from unified data:', correctMovie.TMDBTitle);
+                                    await window.mediaLibraryManager.saveResumeProgress(movieWithPaths, currentTime, duration, true);
                         } else {
-                            console.warn('[VIDEO-PLAYER] Cannot save to Watch Later:', {
+                                    console.log('🔖 [SAVE-FOR-LATER] Using original movie data:', movie.title);
+                                    await window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
+                                }
+
+                                console.log('🔖 [SAVE-FOR-LATER] Successfully saved to Watch Later!');
+                                
+                                // Show success message
+                                // if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
+                                //     window.videoPlayer.showOverlayAlert('"Saved" - to Watch Later!', 2000);
+                                // }
+                                
+                            } catch (error) {
+                                console.error('🔖 [SAVE-FOR-LATER] Error saving to Watch Later:', error);
+                                if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
+                                    window.videoPlayer.showOverlayAlert('Error saving to Watch Later: ' + error.message, 3000);
+                                }
+                            }
+                        } else {
+                            console.warn('🔖 [SAVE-FOR-LATER] Cannot save to Watch Later:', {
                                 hasManager: !!window.mediaLibraryManager,
                                 hasSave: typeof window.mediaLibraryManager?.saveResumeProgress,
                                 hasMovie: !!movie,
@@ -1148,7 +1168,7 @@ class VideoPlayer {
                     this.connectAudioAmplification();
                 }
                 
-
+                // Save for Later button is already added elsewhere - no need to add it again
                 
                 // Initialize subtitle button with closed book icon
                 const subtitleButton = this.vjsPlayer.controlBar.getChild('SubtitleButton');
