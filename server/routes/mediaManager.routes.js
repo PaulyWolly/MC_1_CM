@@ -1197,6 +1197,179 @@ router.post('/scan-tv-folders', (req, res) => {
   }
 });
 
+// POST /api/media/add-movie-unified - Unified movie addition (scan + metadata in one step)
+router.post('/add-movie-unified', async (req, res) => {
+  try {
+    const { moviePath, title, tmdbId, description, cast, poster } = req.body;
+    console.log(`[ADD-MOVIE-UNIFIED] Adding movie: ${title} at ${moviePath}`);
+    
+    if (!moviePath || !title) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'moviePath and title are required' 
+      });
+    }
+
+    // Step 1: Scan the movie folder and create the basic structure
+    const scanResult = await scanMovieFolder(moviePath, title);
+    if (!scanResult.success) {
+      return res.status(400).json({ 
+        success: false, 
+        error: scanResult.error 
+      });
+    }
+
+    // Step 2: Add TMDB metadata (TMDB ID is required)
+    const movieData = scanResult.movieData;
+    if (!tmdbId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'TMDB ID is required for accurate metadata retrieval' 
+      });
+    }
+    
+    // Add TMDB metadata to the movie data
+    movieData.tmdbId = tmdbId;
+    if (description) movieData.description = description;
+    if (cast) movieData.cast = cast;
+    if (poster) movieData.poster = poster;
+
+    // Step 3: Save to movies-unified.json
+    const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
+    let existingData = {};
+    
+    try {
+      if (fs.existsSync(outputFile)) {
+        existingData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+      }
+    } catch (e) {
+      console.log('[ADD-MOVIE-UNIFIED] Could not read existing file, starting fresh');
+    }
+
+    // Add the new movie
+    existingData[movieData.normalizedKey] = movieData;
+    
+    // Write back to file
+    fs.writeFileSync(outputFile, JSON.stringify(existingData, null, 2));
+    
+    console.log(`[ADD-MOVIE-UNIFIED] Successfully added movie: ${movieData.normalizedKey}`);
+    
+    return res.json({ 
+      success: true, 
+      message: 'Movie added successfully',
+      normalizedKey: movieData.normalizedKey,
+      movieData: movieData
+    });
+
+  } catch (err) {
+    console.error('[ADD-MOVIE-UNIFIED] Error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Helper function to scan a movie folder and create the basic structure
+async function scanMovieFolder(moviePath, title) {
+  try {
+    const MEDIA_ROOT = 'S:/MEDIA/MOVIES';
+    
+    // Determine if the path is a file or folder
+    let folderPath, videoFiles = [];
+    
+    if (moviePath.includes('S:/MEDIA/MOVIES') || moviePath.includes('S:\\MEDIA\\MOVIES')) {
+      // Check if it's a file path or folder path
+      if (fs.existsSync(moviePath)) {
+        const stats = fs.statSync(moviePath);
+        if (stats.isFile()) {
+          // It's a file path - extract the folder and scan the folder
+          folderPath = path.dirname(moviePath);
+          const fileName = path.basename(moviePath);
+          const ext = path.extname(fileName).toLowerCase();
+          
+          // Check if it's a video file
+          if (['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'].includes(ext)) {
+            videoFiles.push({
+              name: fileName,
+              absPath: moviePath,
+              relPath: path.relative(MEDIA_ROOT, moviePath)
+            });
+          }
+        } else if (stats.isDirectory()) {
+          // It's a folder path
+          folderPath = moviePath;
+        }
+      } else {
+        return { success: false, error: `Path not found: ${moviePath}` };
+      }
+    } else {
+      // Just title provided - construct full path
+      folderPath = path.join(MEDIA_ROOT, moviePath);
+    }
+
+    // If we have a folder path and no video files yet, scan the folder
+    if (folderPath && videoFiles.length === 0) {
+      if (!fs.existsSync(folderPath)) {
+        return { success: false, error: `Movie folder not found: ${folderPath}` };
+      }
+
+      // Scan for video files in the folder
+      const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          if (['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'].includes(ext)) {
+            const filePath = path.join(folderPath, entry.name);
+            videoFiles.push({
+              name: entry.name,
+              absPath: filePath,
+              relPath: path.relative(MEDIA_ROOT, filePath)
+            });
+          }
+        }
+      }
+    }
+
+    if (videoFiles.length === 0) {
+      return { success: false, error: `No video files found in: ${folderPath || moviePath}` };
+    }
+
+    // Create the movie data structure
+    const folderName = path.basename(folderPath);
+    const cleanFolderName = folderName.replace(/\s*\[.*?\]\s*$/g, '').trim();
+    const normalizedKey = normalizeKey(cleanFolderName);
+    const year = extractYearFromTitle(cleanFolderName);
+    
+    const primaryFile = videoFiles[0];
+    const movieData = {
+      type: "movie",
+      isMovie: true,
+      title: cleanFolderName,
+      TMDBTitle: cleanFolderName,
+      year: year,
+      normalizedKey: normalizedKey,
+      tmdbId: null,
+      description: '',
+      cast: [],
+      poster: '',
+      path: primaryFile.relPath,
+      absPath: path.dirname(primaryFile.absPath),
+      files: videoFiles
+    };
+
+    return { success: true, movieData: movieData };
+
+  } catch (err) {
+    console.error('[SCAN-MOVIE-FOLDER] Error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Helper function to extract year from title
+function extractYearFromTitle(title) {
+  const match = title.match(/\((\d{4})\)/);
+  return match ? match[1] : '';
+}
+
 // POST /api/media/ensure-movie - Ensure a specific movie exists in JSON without overwriting
 router.post('/ensure-movie', async (req, res) => {
   try {

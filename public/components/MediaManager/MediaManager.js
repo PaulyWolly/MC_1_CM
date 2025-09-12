@@ -440,6 +440,12 @@ class MediaManager {
         }
       });
     }
+    
+    // Add real-time validation for TMDB ID field
+    if (this.inputTMDBId) {
+      this.inputTMDBId.addEventListener('input', () => this.validateForm());
+      this.inputTMDBId.addEventListener('blur', () => this.validateField('tmdbid'));
+    }
     if (this.inputPath) {
       this.inputPath.addEventListener('input', () => this.validateForm());
       this.inputPath.addEventListener('blur', () => this.validateField('path'));
@@ -1121,34 +1127,52 @@ class MediaManager {
         console.log('[DEBUG - CONFIRM] TV Show data:', { title, absPath, description, year });
     }
 
-    // NEW: For movies, ensure the specific movie entry exists with video files
+    // UNIFIED MOVIE PROCESS: Handle both file scanning and metadata addition in one step
     if (type === 'movie') {
         if (!absPath) {
           this.showModalToast('Error: File path is missing. Please check the File/Folder Path field.', 'error');
           return;
         }
         
-      this.showModalToast('Step 1: Checking movie files...', 'info');
+      this.showModalToast('Step 1: Scanning movie files and creating structure...', 'info');
       
       try {
-        // Call a new endpoint that ensures THIS specific movie exists in the JSON
-        const ensureResponse = await fetch('/api/media/ensure-movie', {
+        // Call the new unified endpoint that handles both scanning and metadata
+        const unifiedResponse = await fetch('/api/media/add-movie-unified', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             moviePath: absPath,
-            title: title
+            title: title,
+            tmdbId: tmdbId,
+            description: description,
+            cast: Array.isArray(this.currentCastData) ? this.currentCastData : [],
+            poster: this.posterImg ? this.posterImg.src : ''
           })
         });
         
-        const ensureData = await ensureResponse.json();
-        if (!ensureData.success) {
-          throw new Error(ensureData.error || 'Failed to ensure movie exists');
+        const unifiedData = await unifiedResponse.json();
+        if (!unifiedData.success) {
+          throw new Error(unifiedData.error || 'Failed to add movie');
         }
         
-        this.showModalToast('Step 2: Adding movie metadata...', 'info');
+        this.showModalToast('Movie added successfully! All files scanned and metadata saved.', 'success');
+        
+        // Refresh the media library
+        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid === 'function') {
+          window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+        }
+        
+        // Close MediaManager and reopen MediaLibrary modal
+        this.destroy();
+        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
+          window.mediaLibraryManager.openMediaBrowser();
+        }
+        
+        return; // Exit early for movies since we handled everything
+        
       } catch (err) {
-        this.showModalToast('Failed to ensure movie files: ' + err.message, 'error');
+        this.showModalToast('Failed to add movie: ' + err.message, 'error');
         return;
       }
     }
@@ -1611,13 +1635,38 @@ class MediaManager {
   }
 
   validateField(fieldName) {
-    const field = fieldName === 'title' ? this.inputTitle : this.inputPath;
-    const value = field ? field.value.trim() : '';
+    let field, value;
+    
+    if (fieldName === 'title') {
+      field = this.inputTitle;
+    } else if (fieldName === 'path') {
+      field = this.inputPath;
+    } else if (fieldName === 'tmdbid') {
+      field = this.inputTMDBId;
+    } else {
+      return false;
+    }
+    
+    value = field ? field.value.trim() : '';
     
     if (!value) {
       if (field) field.classList.add('error');
+      // Show error message for TMDB ID
+      if (fieldName === 'tmdbid') {
+        this.showFieldError('tmdbid', 'TMDB ID is required for accurate metadata');
+      }
       return false;
     }
+    
+    // For TMDB ID, validate it's a number
+    if (fieldName === 'tmdbid') {
+      if (!/^\d+$/.test(value)) {
+        if (field) field.classList.add('error');
+        this.showFieldError('tmdbid', 'TMDB ID must be a number');
+        return false;
+      }
+    }
+    
     // For path, accept either a file path ending in video extension OR a folder path
     if (fieldName === 'path') {
       // Check if it's a video file path
@@ -1630,8 +1679,28 @@ class MediaManager {
         return false;
       }
     }
+    
     if (field) field.classList.remove('error');
+    // Clear error message for TMDB ID
+    if (fieldName === 'tmdbid') {
+      this.hideFieldError('tmdbid');
+    }
     return true;
+  }
+
+  showFieldError(fieldName, message) {
+    const errorElement = document.getElementById(`${fieldName}-error`);
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+    }
+  }
+
+  hideFieldError(fieldName) {
+    const errorElement = document.getElementById(`${fieldName}-error`);
+    if (errorElement) {
+      errorElement.style.display = 'none';
+    }
   }
 
   validateFieldTV(fieldName) {
@@ -1656,7 +1725,8 @@ class MediaManager {
   validateForm() {
     const titleValid = this.validateField('title');
     const pathValid = this.validateField('path');
-    const isFormValid = titleValid && pathValid;
+    const tmdbIdValid = this.validateField('tmdbid');
+    const isFormValid = titleValid && pathValid && tmdbIdValid;
     
     // Enable/disable submit button
     if (this.confirmBtn) {

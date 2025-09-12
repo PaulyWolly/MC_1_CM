@@ -143,15 +143,17 @@
 }
 
 .media-library-movie-grid-collections {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
-    gap: 15px !important;
-    justify-items: center !important;
-    align-items: start !important;
-    max-width: none !important;
-    max-height: 60vh !important;
-    margin: 0 !important;
-    padding: 0 15px !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  gap: 15px !important;
+  justify-items: center !important;
+  align-items: start !important;
+  max-width: none !important;
+  max-height: 60vh !important;
+  margin: 0 !important;
+  padding: 0 15px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .media-library-movie-card {
@@ -1381,7 +1383,7 @@
     display: flex;
     height: 60vh;
     min-height: 0;
-    width: 84vw;
+    width: 86vw;
     box-sizing: border-box;
 }
 
@@ -1514,32 +1516,36 @@
 }
 
 .tvshows-section-favorites {
-  width: 48%;
+  width: 100%;
   flex: none !important;
   height: 100%;
   background: #f5f5f5;
   border-radius: 8px;
   padding: 10px;
   box-sizing: border-box;
+  max-width: 50%;
+  overflow-y: auto;
 }
 
 .tvshows-section-favorites h3 {
-    flex: 0 0 auto;
-    margin-bottom: 8px;
-    position: sticky;
-    top: 0;
-    background: inherit;
-    z-index: 100;
-    padding: 8px 0;
-    border-bottom: 1px solid #ddd;
-    font-weight: bold;
-    font-size: 1.1em;
-    color: #333;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    text-align: left;
-} 
+  flex: 0 0 auto;
+  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  background: inherit;
+  z-index: 100;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #333;
+  position: sticky;
+  height: 38px;
+  top: 0px;
+  z-index: 1000;
+  text-align: left;
+  margin-top: -3px;
+}
 
 .media-card-actions-favorites {
   display: flex;
@@ -1810,7 +1816,7 @@
 
   .watch-later-scroll-tvshows {
     flex: 1;
-    overflow-y: scroll !important; /* Force scrollbars to always show */
+    /* overflow-y: scroll !important; Force scrollbars to always show */
     max-height: 490px !important;
     height: 505px !important; /* Force specific height */
     /* Add scrollbar styling to match other sections */
@@ -2293,7 +2299,7 @@
   
   .media-library-movie-card-movies-collections {
     /* width: 200px; */
-    padding: 10px;
+    /* padding: 10px; */
   }
   .media-library-movie-card-tv-shows {
     height: 32vh;
@@ -3342,7 +3348,7 @@
 
 .modal-collections-section-title-tvshows {
   color: #fff;
-  margin: 0 0 15px 12px !important;
+  margin: 0 0 15px 0px !important;
   font-size: 14px !important;
 }
 
@@ -3495,26 +3501,7 @@
   text-align: left; /* Center the title text */
 }
 
-/* COLLECTIONS SECTION TITLE STYLES */
-.section-title-movies-collections 
-  {
-    flex: 0 0 auto;
-    margin-bottom: 24px;
-    margin-top: -20px;
-    position: sticky;
-    top: 0;
-    background: inherit;
-    z-index: 100;
-    padding: 8px 0;
-    border-bottom: 1px solid #ddd;
-    font-weight: bold;
-    font-size: 1.1em;
-    color: #333;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    text-align: left;
-}
+/* COLLECTIONS SECTION TITLE STYLES - REMOVED CONFLICTING RULES */
 
 /* FAVORITES TV SHOWS SECTION TITLE STYLES */
 .section-title-tv-shows-favorites {
@@ -3535,26 +3522,7 @@
     text-align: left; /* Center the title text */
   }
 
-/* COLLECTIONS TV SHOWS SECTION TITLE STYLES */
-.section-title-tv-shows-collections {
-    flex: 0 0 auto;
-    margin-bottom: 8px;
-    position: sticky;
-    top: 0;
-    background: inherit;
-    z-index: 100;
-    padding: 8px 0;
-    border-bottom: 1px solid #ddd;
-    font-weight: bold;
-    font-size: 1.1em;
-    color: #333;
-    position: sticky;
-    top: 0;
-    position: relative;
-    top: -5px;
-    z-index: 1000;
-    text-align: left; /* Center the title text */
-  }
+/* COLLECTIONS TV SHOWS SECTION TITLE STYLES - REMOVED CONFLICTING RULES */
 
 /* REMOVED OLD CONFLICTING FAVORITES STYLES - REPLACED WITH SPECIFIC STYLES ABOVE */
 
@@ -3583,10 +3551,35 @@
   height: 100%;
   position: relative;
   left: 16px;
-  justify-content: space-between; /* Force sections to fill space */
   align-items: flex-start;
   box-sizing: border-box;
   max-height: 80vh !important; /* Ensure container doesn't exceed viewport */
+}
+
+/* Main collections page layout - 70/30 split */
+.movies-section-collections {
+  flex: 0 0 70%; /* 70% width for collections list */
+  max-width: 70%;
+}
+
+.tvshows-section-favorites {
+  flex: 0 0 30%; /* 30% width for info panel */
+  /* max-width: 30%; */
+}
+
+/* Collection View Container - for individual collection pages */
+.collection-view-container {
+  overflow-x: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column; /* Stack sections vertically for collection view */
+  gap: 20px;
+  height: 100%;
+  position: relative;
+  left: 16px;
+  align-items: stretch;
+  box-sizing: border-box;
+  max-height: 80vh !important;
 }
 
 .favorites-container .media-library-movie-grid,
@@ -3678,8 +3671,9 @@
 
 .movies-section-collections h3 {
   height: 35px;
-  padding: 20px 20px 0 20px;
+  padding: 30px 20px 0 20px;
   position: sticky;
+  margin-top: 0px;
 }
 
 .collections-header-text {
@@ -3774,6 +3768,287 @@
   margin-bottom: 10px !important;
 }
 
+/* Collection Drag Handle Styles */
+.collection-drag-handle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: grab;
+  user-select: none;
+  z-index: 10;
+  transition: all 0.2s ease;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  line-height: 1;
+  min-width: 20px;
+  text-align: center;
+}
+
+.collection-drag-handle:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: #333;
+  transform: scale(1.1);
+}
+
+.collection-drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+/* Collection Card Drag States */
+.media-library-movie-card-movies-collections {
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.media-library-movie-card-movies-collections.dragging {
+  opacity: 0.8;
+  transform: rotate(5deg);
+  z-index: 1000;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  transition: none;
+}
+
+.media-library-movie-card-movies-collections.drag-over {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+  border: 2px solid #007bff;
+}
+
+.media-library-movie-card-movies-collections.selected-for-move {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 193, 7, 0.5);
+  border: 3px solid #ffc107;
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.collection-drag-handle.selected {
+  background: rgba(255, 193, 7, 0.3);
+  color: #000;
+  font-weight: bold;
+}
+
+/* Collection Section Toggle Styles */
+.section-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.section-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.section-toggle:active {
+  transform: scale(0.98);
+}
+
+.section-title-movies-collections,
+.section-title-tvshows-collections {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #343434; /* White text for dark theme */
+  background: rgb(0 0 0 / 5%);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Ensure section toggle spans are visible */
+.section-title-movies-collections .section-toggle,
+.section-title-tvshows-collections .section-toggle {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Modal collection section toggle styles */
+.modal-collections-section-title .section-toggle,
+.modal-collections-section-title-tvshows .section-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.modal-collections-section-title .section-toggle:hover,
+.modal-collections-section-title-tvshows .section-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.02);
+}
+
+.modal-collections-section-title .section-toggle:active,
+.modal-collections-section-title-tvshows .section-toggle:active {
+  transform: scale(0.98);
+}
+
+/* Modal collection layout - enable flexbox for smart layout */
+.modal-collections-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.modal-collections-movies-section,
+.modal-collections-tvshows-section {
+  transition: flex 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Default: Both sections equal (50/50) - controlled by JavaScript */
+.modal-collections-movies-section {
+  /* flex: 1; - removed, controlled by JavaScript */
+}
+
+.modal-collections-tvshows-section {
+  /* flex: 1; - removed, controlled by JavaScript */
+}
+
+/* When movies section is collapsed */
+.modal-collections-movies-section.collapsed {
+  flex: 0.1; /* 10% of space */
+  min-height: 60px; /* Just enough for the header */
+}
+
+/* When TV shows section is collapsed */
+.modal-collections-tvshows-section.collapsed {
+  flex: 0.1; /* 10% of space */
+  min-height: 60px; /* Just enough for the header */
+}
+
+/* When both sections are expanded (default) - controlled by JavaScript */
+.modal-collections-movies-section:not(.collapsed) {
+  /* flex: 1; - removed, controlled by JavaScript */
+}
+
+.modal-collections-tvshows-section:not(.collapsed) {
+  /* flex: 1; - removed, controlled by JavaScript */
+}
+
+/* Collection Section Layout */
+.movies-section-collections,
+.tvshows-section-collections {
+  transition: flex 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Default: Both sections equal (50/50) */
+.movies-section-collections {
+  flex: 1;
+}
+
+.tvshows-section-collections {
+  flex: 1;
+}
+
+/* When movies section is collapsed */
+.movies-section-collections.collapsed {
+  flex: 0.1; /* 10% of space */
+  min-height: 60px; /* Just enough for the header */
+}
+
+/* When TV shows section is collapsed */
+.tvshows-section-collections.collapsed {
+  flex: 0.1; /* 10% of space */
+  min-height: 60px; /* Just enough for the header */
+}
+
+/* When both sections are expanded (default) */
+.movies-section-collections:not(.collapsed) {
+  flex: 1; /* Equal space when both expanded */
+}
+
+.tvshows-section-collections:not(.collapsed) {
+  flex: 1; /* Equal space when both expanded */
+}
+
+/* Collapsed Section Content Styles */
+.media-library-movie-grid-collections.collapsed {
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  transition: max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+}
+
+.media-library-movie-grid-collections:not(.collapsed) {
+  max-height: none;
+  transition: max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+}
+
+.media-library-movie-card-movies-collections:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.media-library-movie-card-movies-collections:hover .collection-drag-handle {
+  background: rgba(0, 0, 0, 0.15);
+  color: #000;
+}
+
+/* My PICK Collection Special Styles */
+.my-pick-collection {
+  border: 2px solid #ffd700 !important; /* Gold border */
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%) !important; /* Gold gradient background */
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3) !important; /* Gold shadow */
+}
+
+.my-pick-collection:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 215, 0, 0.4) !important;
+}
+
+.my-pick-fixed {
+  background: rgba(255, 215, 0, 0.2) !important; /* Gold background */
+  color: #b8860b !important; /* Dark gold text */
+  cursor: not-allowed !important;
+  border: 1px solid #ffd700 !important;
+}
+
+.my-pick-fixed:hover {
+  background: rgba(255, 215, 0, 0.3) !important;
+  transform: none !important; /* Prevent scaling */
+}
+
+.my-pick-collection .collection-name-collections {
+  font-weight: bold !important;
+  color: #b8860b !important; /* Dark gold text */
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8) !important;
+}
+
 .collection-icon-collections {
   font-size: 3em !important;
   margin-bottom: 10px !important;
@@ -3815,8 +4090,9 @@
   border-radius: 12px !important;
   padding: 20px !important;
   border: 1px solid #dee2e6 !important;
-  height: fit-content !important;
+  height: 45.5vh;
   max-width: 20vw !important;
+  overflow-y: auto;
 }
 
 .collection-total-count {
@@ -4134,8 +4410,7 @@ color: #fff;
 /* Remove conflicting rules - sections are now handled by the main rules below */
 
 .collection-modal-tv-shows-section {
-  flex: 0 0 45% !important;
-  height: 45% !important;
+  /* flex values controlled by JavaScript for smart layout */
   min-height: 350px;
   margin-bottom: 0;
   display: flex;
@@ -4202,13 +4477,11 @@ color: #fff;
 
 /* Force height distribution - Adjusted to prevent overlapping within modal constraints */
 .collections-modal-movies-section {
-  flex: 0 0 55% !important;
-  height: 55% !important;
+  /* flex values controlled by JavaScript for smart layout */
 }
 
 .collections-modal-tv-shows-section {
-  flex: 0 0 45% !important;
-  height: 45% !important;
+  /* flex values controlled by JavaScript for smart layout */
 }
 
 /* Debug borders removed - layout is working properly now */
@@ -4637,12 +4910,11 @@ color: #fff;
 
 /* Collections Modal Sections */
 .modal-collections-section {
-  margin-bottom: 30px;
+  /* margin-bottom: 30px; */
 }
 
 .modal-collections-movies-section {
-  flex: 0 0 48% !important;
-  height: 48% !important;
+  /* flex values controlled by JavaScript for smart layout */
   min-height: 300px;
   display: flex;
   flex-direction: column;
@@ -4651,13 +4923,13 @@ color: #fff;
   border-radius: 8px;
 }
 
-.modal-collections-tv-shows-section {
-  flex: 0 0 60% !important;
-  height: 60% !important;
+.modal-collections-tvshows-section {
+  /* flex values controlled by JavaScript for smart layout */
   min-height: 500px;
   display: flex;
   flex-direction: column;
   padding: 10px;
+  min-height: 42% !important;
   /* border: 1px solid blue; */ 
   border-radius: 8px;
 }
@@ -4673,7 +4945,7 @@ color: #fff;
   background: rgba(0, 0, 0, 0.2);
   min-height: 0;
   height: 100%;
-  max-height: 34vh;
+  /* max-height: 53.5vh; */
   max-width: 2vw;
   display: grid !important;
   grid-template-columns: repeat(6, 175px) !important;
@@ -4700,22 +4972,20 @@ color: #fff;
   background: rgba(0, 0, 0, 0.2);
   min-height: 0;
   height: 100%;
-  max-height: 29vh;
   max-width: 2vw;
   display: grid !important;
   grid-template-columns: repeat(6, 175px) !important;
   grid-auto-rows: 220px !important;
   gap: 20px !important;
-  row-gap: 60px !important;
-  column-gap: 20px !important;
+  row-gap: 40px !important;
+  column-gap: 10px !important;
   align-content: start !important;
   justify-content: start !important;
   min-width: 1140px !important;
   width: fit-content !important;
-  /* Firefox scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: #666 #333;
-  margin-left: 10px;
+  margin-bottom: 20px;
 }
 
 /* Force grid layout for TV shows in collections modal */
@@ -4798,7 +5068,7 @@ color: #fff;
 
 .modal-collections-item-title {
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   line-height: 1.3;
   word-wrap: break-word;
@@ -4817,6 +5087,7 @@ color: #fff;
   text-align: center;
   padding: 4px 8px;
   margin-top: 4px;
+  display: none !important;
   max-height: 60px;
   overflow: hidden;
   display: -webkit-box;
@@ -5410,4 +5681,163 @@ color: #fff;
 
 .sync-result-modal-ok-btn:hover {
     opacity: 0.8;
+}
+
+/* Collection Layout Classes - No Inline Styles */
+.layout-movies-content {
+    flex: 0.85 !important;
+    height: 85% !important;
+    min-height: 85% !important;
+}
+
+.layout-tvshows-empty {
+    flex: 0.15 !important;
+    height: 15% !important;
+    min-height: 15% !important;
+}
+
+.layout-movies-empty {
+    flex: 0.15 !important;
+    height: 15% !important;
+    min-height: 15% !important;
+}
+
+.layout-tvshows-content {
+    flex: 0.85 !important;
+    height: 85% !important;
+    min-height: 80% !important;
+}
+
+.layout-equal {
+    flex: 1 !important;
+    height: 50% !important;
+    min-height: 49% !important;
+}
+
+/* Collection Card Selection for Moving */
+.selected-for-move {
+  border: 3px solid #ff6b35 !important;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.5) !important;
+  transform: scale(1.02) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* My PICK Collection - Collections Section Header Style */
+.my-pick-collections-header {
+  position: relative !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  margin-bottom: 15px !important;
+  padding-right: 20px !important;
+  width: 100% !important;
+  height: 0px !important;
+}
+
+.my-pick-fixed {
+  position: relative !important;
+  top: -75px !important;
+  right: 15px !important;
+  z-index: 1000 !important;
+  width: 120px !important;
+  height: 48px !important;
+  background: linear-gradient(135deg, #ffd700, #ffed4e) !important;
+  border: 2px solid #ff6b35 !important;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3) !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+}
+
+.my-pick-fixed:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4) !important;
+}
+
+.my-pick-fixed .collection-card-content {
+  display: inline-block !important;
+  /* padding: 6px 8px !important; */
+  height: 100% !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.my-pick-fixed .collection-icon {
+  font-size: 16px !important;
+  display: inline-block !important;
+  margin-right: 4px !important;
+}
+
+.my-pick-fixed .collection-title {
+  font-size: 12px !important;
+  font-weight: bold !important;
+  color: #333 !important;
+  margin: 0 !important;
+  display: inline-block !important;
+}
+
+.my-pick-fixed .collection-stats {
+  font-size: 8px !important;
+  color: #666 !important;
+  display: block !important;
+  line-height: 1.1 !important;
+  margin-top: 2px !important;
+}
+
+/* Remove padding-top since My PICK is now in header area */
+.media-library-movie-grid-collections {
+  position: relative !important;
+}
+
+/* Collections Loading Spinner */
+.collections-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.collections-loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  border: 1px solid #333;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.collections-loading-spinner .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #333;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.collections-loading-spinner .loading-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+}
+
+.collections-loading-spinner .loading-subtext {
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

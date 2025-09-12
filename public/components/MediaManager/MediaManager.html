@@ -53,13 +53,16 @@
               </div>
 
               <div class="media-manager-form-row">
-                <label class="media-manager-label-movie" for="media-manager-tmdbid">TMDB ID (Optional)
+                <label class="media-manager-label-movie" for="media-manager-tmdbid">TMDB ID
+                  <span class="media-manager-required">*</span>
                   <span class="media-manager-info-icon"
-                    data-tooltip="Enter the TMDB ID for the movie. Example: 11778"><span
+                    data-tooltip="Enter the TMDB ID for the movie. You can find this on the movie's TMDB page. This ensures accurate metadata retrieval. Example: 11778"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
                 <input class="media-manager-input-movie media-manager-tmdbId-input" id="media-manager-tmdbid" type="text"
                   placeholder="e.g. 11778">
+                <div class="media-manager-field-error-movie" id="tmdbid-error" style="display: none;">TMDB ID is required for accurate metadata
+                </div>
               </div>
               <div class="media-manager-tmdbid-msg" style="display:none;color:#ff9800;margin-bottom:8px;"></div>
 
@@ -67,12 +70,15 @@
                 <label class="media-manager-label-movie" for="media-manager-path">File/Folder Path
                   <span class="media-manager-required">*</span>
                   <span class="media-manager-info-icon"
-                    data-tooltip="Enter the full path to the movie or TV show file/folder. Example: S:/MEDIA/MOVIES/Airplane! (1980) [1080p]/Airplane!.(1980).[1080p].mp4 sMust match your naming convention."><span
+                    data-tooltip="Enter the full path to the movie folder. The system will automatically scan for video files and create the complete movie structure. Example: S:/MEDIA/MOVIES/Airplane! (1980)"><span
                       class="media-manager-info-icon-inner"></span></span>
                 </label>
                 <input class="media-manager-input-movie" id="media-manager-path" type="text"
-                  placeholder="e.g. S:/MEDIA/MOVIES/Airplane!.(1980).[1080p].mp4 -mv">
+                  placeholder="e.g. S:/MEDIA/MOVIES/Airplane! (1980)">
                 <div class="media-manager-field-error-movie" id="path-error" style="display: none;">File/Folder Path is required
+                </div>
+                <div class="media-manager-help-text" style="color: #4CAF50; font-size: 12px; margin-top: 5px;">
+                  ✓ One-Step Process: Enter path, fetch TMDB info, and click "Add Movie" - no separate scanning needed!
                 </div>
               </div>
 
@@ -84,7 +90,7 @@
                 </button>
                 <button class="media-manager-scan-movies-btn" type="button">SCAN for NEW Movies
                   <span class="media-manager-info-icon"
-                    data-tooltip="Runs the SCAN_media_library_movies.js script to find new movies in your library folders."><span
+                    data-tooltip="Runs the SCAN_media_library_movies.js script to find new movies in your library folders. Note: Individual movies can now be added directly using the form above."><span
                       class="media-manager-info-icon-inner"></span></span>
                 </button>
               </div>
@@ -101,7 +107,7 @@
             </div>
 
             <div class="media-manager-submit-buttons-movie">
-              <button class="media-manager-confirm-btn-movie" type="button">Confirm</button>
+              <button class="media-manager-confirm-btn-movie" type="button">Add Movie (One-Step)</button>
               <button class="media-manager-edit-btn-movie" type="button">Edit/Resubmit</button>
               <button class="media-manager-cancel-btn-movie" type="button">Cancel</button>
             </div>
