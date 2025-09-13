@@ -422,7 +422,7 @@ function generateBackupTree(backupPath) {
     
     function scanDirectory(dir, prefix = '', isLast = true) {
         try {
-            // Check if directory exists before trying to read it
+            // Check if directory exists before tryinag to read it
             if (!fs.existsSync(dir)) {
                 console.log(`⚠️ Directory not found: ${dir}`);
                 return;
