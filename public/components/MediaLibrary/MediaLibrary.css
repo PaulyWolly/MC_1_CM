@@ -1127,7 +1127,7 @@
 }
 
 .media-library-grid-container {
-    width: 100% !important;
+    width: 82vw !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 15px !important;
@@ -2298,7 +2298,7 @@
   }
   
   .media-library-movie-card-movies-collections {
-    /* width: 200px; */
+    width: 150px;
     /* padding: 10px; */
   }
   .media-library-movie-card-tv-shows {
@@ -3146,8 +3146,8 @@
 }
 
 .media-library-card.season img {
-  max-width: 160px;
-  max-height: 200px;
+  max-width: 120px;
+  max-height: 170px;
   width: 100%;
   height: auto;
   object-fit: cover;
@@ -3331,7 +3331,7 @@
 
 .media-library-card.episode .media-library-card-poster img {
   width: 160px;
-  height: 205px;
+  height: 200px;
   object-fit: cover;
   border-radius: 20px;
   display: block;
@@ -4833,6 +4833,7 @@ color: #fff;
   display: flex;
   width: 100%;
   margin-left: 60px;
+  margin-top: 5px;
 }
 
 /* Collection-specific media card actions */
@@ -4955,7 +4956,7 @@ color: #fff;
   column-gap: 20px !important;
   align-content: start !important;
   justify-content: start !important;
-  min-width: 1140px !important;
+  min-width: 1132px !important;
   width: fit-content !important;
   /* Firefox scrollbar styling */
   scrollbar-width: thin;
@@ -4981,7 +4982,7 @@ color: #fff;
   column-gap: 10px !important;
   align-content: start !important;
   justify-content: start !important;
-  min-width: 1140px !important;
+  min-width: 1132px !important;
   width: fit-content !important;
   scrollbar-width: thin;
   scrollbar-color: #666 #333;
