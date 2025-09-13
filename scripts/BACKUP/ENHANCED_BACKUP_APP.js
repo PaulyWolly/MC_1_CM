@@ -348,7 +348,7 @@ function cleanupOldBackups(directory, prefix, maxKeep = MAX_BACKUPS_PER_FILE) {
             .map(file => ({
                 name: file,
                 path: path.join(directory, file),
-                timestamp: file.match(/_(\d{8}_\d{6})/)?.[1] || '00000000_000000'
+                timestamp: file.match(/enhanced_backup_(\d{4}-\d{2}-\d{2}T\d{4})/)?.[1] || '0000-00-00T0000'
             }))
             .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
