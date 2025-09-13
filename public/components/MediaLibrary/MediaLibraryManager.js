@@ -159,6 +159,30 @@ class MediaLibraryManager {
   }
 
   /**
+   * Clear only collections cache to force reload with new categorization logic
+   */
+  clearCollectionsCache() {
+    console.log('🧹 [COLLECTIONS-CACHE] Clearing collections cache to force reload...');
+    
+    // Clear collections from localStorage cache
+    localStorage.removeItem('mediaCollections');
+    console.log('🗑️ [COLLECTIONS-CACHE] Removed mediaCollections from localStorage');
+    
+    // Clear any collections-related cache entries
+    this.cache['collections'] = { data: null, timestamp: null, source: null };
+    console.log('🗑️ [COLLECTIONS-CACHE] Cleared collections from memory cache');
+    
+    console.log('✅ [COLLECTIONS-CACHE] Collections cache cleared! Next collection load will use fresh data from JSON/MongoDB');
+    console.log('💡 [COLLECTIONS-CACHE] This will apply the new TV show categorization logic');
+    
+    return {
+      success: true,
+      message: 'Collections cache cleared successfully',
+      nextLoad: 'Will reload from JSON file or MongoDB with new categorization logic'
+    };
+  }
+
+  /**
    * Load data with caching priority: localStorage → JSON → MongoDB
    */
   async loadDataWithCache(tab) {
@@ -463,6 +487,7 @@ class MediaLibraryManager {
         refreshTab: (tab) => this.forceRefreshTab(tab),
         refreshAll: () => this.forceRefreshAllTabs(),
         preloadAll: () => this.preloadAllData(),
+        clearCollectionsCache: () => this.clearCollectionsCache(),
         testCache: () => {
           console.log('🧪 [CACHE TEST] Testing cache system...');
           console.log('🧪 [CACHE TEST] Current cache status:', this.getCacheStatus());
@@ -6768,12 +6793,33 @@ class MediaLibraryManager {
       console.log('[UNIVERSAL-ADD-TO-COLLECTION] Match result:', { 
         found: !!match, 
         key: unifiedKey,
-        title: match?.item?.TMDBTitle || match?.item?.title
+        title: match?.item?.TMDBTitle || match?.item?.title,
+        type: match?.item?.type,
+        isMovie: match?.item?.isMovie
       });
       
+      // Determine if this is a TV show using the type field
+      let isTVShow = false;
+      if (match) {
+        // If found in unified data, use the item's type field
+        isTVShow = match.item.type === "tvshow";
+      } else {
+        // If not found in unified data, we can't determine the type reliably
+        // This shouldn't happen if all items have type fields
+        console.warn('[DEBUG - ADD-TO-COLLECTION] Item not found in unified data, cannot determine type');
+        isTVShow = false; // Default to movie if we can't determine
+      }
+      
       // Fallback to normalized path if no unified key found
-      const keyToStore = unifiedKey || this.normalizePath(path);
-      console.log('[DEBUG - ADD-TO-COLLECTION] Final key to store:', keyToStore);
+      let keyToStore = unifiedKey || this.normalizePath(path);
+      
+      // Add TV-SHOWS/ prefix for TV shows that don't already have it
+      if (isTVShow && !keyToStore.startsWith("tv-shows/") && !keyToStore.startsWith("tvshows/")) {
+        keyToStore = `TV-SHOWS/${keyToStore}`;
+        console.log('[DEBUG - ADD-TO-COLLECTION] Added TV-SHOWS/ prefix:', keyToStore);
+      }
+      
+      console.log('[DEBUG - ADD-TO-COLLECTION] Final key to store:', keyToStore, 'isTVShow:', isTVShow);
       
       const collections = await this.getCollections();
       // Handle both single string and array of collection names
@@ -8102,9 +8148,18 @@ class MediaLibraryManager {
         // First, try direct lookup in unified data (item might be a normalized key)
         if (this.unifiedData && this.unifiedData[item]) {
           const foundItem = this.unifiedData[item];
-          const isTVShow = !foundItem.isMovie; // TV shows have isMovie: false or undefined
-          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: direct unified data lookup, isMovie=${foundItem.isMovie}, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
+          // Use both type and isMovie fields for robust categorization
+          const isTVShowByType = foundItem.type === "tvshow";
+          const isTVShowByIsMovie = !foundItem.isMovie; // TV shows have isMovie: false or undefined
+          const isTVShow = isTVShowByType || isTVShowByIsMovie; // Either field can indicate TV show
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: direct unified data lookup, type=${foundItem.type}, isMovie=${foundItem.isMovie}, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
           return isTVShow;
+        }
+        
+        // Check if item has TV-SHOWS/ prefix (new format)
+        if (item.startsWith('TV-SHOWS/') || item.startsWith('tv-shows/') || item.startsWith('tvshows/')) {
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: has TV-SHOWS/ prefix, filtered as TV-SHOW`);
+          return true;
         }
         
         // Second, try to find this path in unified data by searching through all entries
@@ -8128,26 +8183,54 @@ class MediaLibraryManager {
           }
         }
         
-        // If we found the item in unified data, use its isMovie property
+        // If we found the item in unified data, use both type and isMovie properties
         if (foundItem) {
-          const isTVShow = !foundItem.isMovie; // TV shows have isMovie: false or undefined
-          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: found via path search, isMovie=${foundItem.isMovie}, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
+          // Use both type and isMovie fields for robust categorization
+          const isTVShowByType = foundItem.type === "tvshow";
+          const isTVShowByIsMovie = !foundItem.isMovie; // TV shows have isMovie: false or undefined
+          const isTVShow = isTVShowByType || isTVShowByIsMovie; // Either field can indicate TV show
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: found via path search, type=${foundItem.type}, isMovie=${foundItem.isMovie}, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
           return isTVShow;
         }
         
-        // Fallback: check path patterns (for backward compatibility)
+        // Fallback: check path patterns and known TV show titles (for backward compatibility)
         const itemLower = item.toLowerCase();
+        
+        // Known TV show titles that appear in collections without TV-SHOWS/ prefix
+        const knownTVShows = [
+          'chuck', 'lost', 'supergirl', 'star trek discovery', 'the big bang theory', 
+          'the flash', 'travelers', 'westworld', 'bored to death', 'based on a true story',
+          'daisy jones and the six', 'fubar', 'devs', 'citadel', 'the boys', 'titans',
+          'lucifer', 'silicon valley', 'seinfeld', 'the orville', 'the magicians',
+          'another life', 'lost in space', 'heroes', 'glitch', 'jupiters legacy',
+          'peacemaker', 'superman lois', 'the terminal list', 'the righteous gemstones',
+          'once upon a time', 'stranger things', 'man vs bee', 'quantum leap',
+          'star trek strange new worlds', 'star trek the original series', 'star trek the next generation',
+          'star trek deep space nine', 'star trek voyager', 'star trek enterprise',
+          'star trek lower decks', 'star trek prodigy', 'star trek picard', 'v'
+        ];
+        
+        // Check if this is a known TV show
+        const isKnownTVShow = knownTVShows.some(show => {
+          const match = itemLower.includes(show.toLowerCase());
+          if (match) {
+            console.log(`[DEBUG - COLLECTION FILTERING] ${item}: MATCHED known TV show "${show}"`);
+          }
+          return match;
+        });
+        
         const isTVShow = (
           itemLower.includes("tvshows") ||
           itemLower.includes("tv_shows") ||
           itemLower.includes("tv shows") ||
-          itemLower.includes("tv-shows") ||
+          itemLower.includes("tv-hows") ||
           itemLower.includes("season") ||
           itemLower.includes("episode") ||
           itemLower.includes("s0") ||
-          itemLower.includes("e0")
+          itemLower.includes("e0") ||
+          isKnownTVShow
         );
-        console.log(`[DEBUG - COLLECTION FILTERING] ${item}: fallback pattern check, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
+        console.log(`[DEBUG - COLLECTION FILTERING] ${item}: fallback pattern check, isKnownTVShow=${isKnownTVShow}, filtered as ${isTVShow ? 'TV-SHOW' : 'MOVIE'}`);
         return isTVShow;
       });
       
@@ -8157,9 +8240,18 @@ class MediaLibraryManager {
         // First, try direct lookup in unified data (item might be a normalized key)
         if (this.unifiedData && this.unifiedData[item]) {
           const foundItem = this.unifiedData[item];
-          const isMovie = foundItem.isMovie === true; // Movies have isMovie: true
-          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: direct unified data lookup, isMovie=${foundItem.isMovie}, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
+          // Use both type and isMovie fields for robust categorization
+          const isMovieByType = foundItem.type === "movie";
+          const isMovieByIsMovie = foundItem.isMovie === true; // Movies have isMovie: true
+          const isMovie = isMovieByType || isMovieByIsMovie; // Either field can indicate movie
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: direct unified data lookup, type=${foundItem.type}, isMovie=${foundItem.isMovie}, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
           return isMovie;
+        }
+        
+        // Check if item has TV-SHOWS/ prefix (new format) - if so, it's NOT a movie
+        if (item.startsWith('TV-SHOWS/') || item.startsWith('tv-shows/') || item.startsWith('tvshows/')) {
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: has TV-SHOWS/ prefix, filtered as TV-SHOW (not MOVIE)`);
+          return false;
         }
         
         // Second, try to find this path in unified data by searching through all entries
@@ -8183,15 +8275,42 @@ class MediaLibraryManager {
           }
         }
         
-        // If we found the item in unified data, use its isMovie property
+        // If we found the item in unified data, use both type and isMovie properties
         if (foundItem) {
-          const isMovie = foundItem.isMovie === true; // Movies have isMovie: true
-          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: found via path search, isMovie=${foundItem.isMovie}, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
+          // Use both type and isMovie fields for robust categorization
+          const isMovieByType = foundItem.type === "movie";
+          const isMovieByIsMovie = foundItem.isMovie === true; // Movies have isMovie: true
+          const isMovie = isMovieByType || isMovieByIsMovie; // Either field can indicate movie
+          console.log(`[DEBUG - COLLECTION FILTERING] ${item}: found via path search, type=${foundItem.type}, isMovie=${foundItem.isMovie}, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
           return isMovie;
         }
         
         // Fallback: check path patterns (for backward compatibility)
         const itemLower = item.toLowerCase();
+        
+        // Known TV show titles that appear in collections without TV-SHOWS/ prefix
+        const knownTVShows = [
+          'chuck', 'lost', 'supergirl', 'star trek discovery', 'the big bang theory', 
+          'the flash', 'travelers', 'westworld', 'bored to death', 'based on a true story',
+          'daisy jones and the six', 'fubar', 'devs', 'citadel', 'the boys', 'titans',
+          'lucifer', 'silicon valley', 'seinfeld', 'the orville', 'the magicians',
+          'another life', 'lost in space', 'heroes', 'glitch', 'jupiters legacy',
+          'peacemaker', 'superman lois', 'the terminal list', 'the righteous gemstones',
+          'once upon a time', 'stranger things', 'man vs bee', 'quantum leap',
+          'star trek strange new worlds', 'star trek the original series', 'star trek the next generation',
+          'star trek deep space nine', 'star trek voyager', 'star trek enterprise',
+          'star trek lower decks', 'star trek prodigy', 'star trek picard', 'v'
+        ];
+        
+        // Check if this is a known TV show
+        const isKnownTVShow = knownTVShows.some(show => {
+          const match = itemLower.includes(show.toLowerCase());
+          if (match) {
+            console.log(`[DEBUG - COLLECTION FILTERING] ${item}: MATCHED known TV show "${show}" in MOVIES filter`);
+          }
+          return match;
+        });
+        
         const isMovie = (
           !itemLower.includes("tvshows") &&
           !itemLower.includes("tv_shows") &&
@@ -8200,9 +8319,10 @@ class MediaLibraryManager {
           !itemLower.includes("season") &&
           !itemLower.includes("episode") &&
           !itemLower.includes("s0") &&
-          !itemLower.includes("e0")
+          !itemLower.includes("e0") &&
+          !isKnownTVShow
         );
-        console.log(`[DEBUG - COLLECTION FILTERING] ${item}: fallback pattern check, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
+        console.log(`[DEBUG - COLLECTION FILTERING] ${item}: fallback pattern check, isKnownTVShow=${isKnownTVShow}, filtered as ${isMovie ? 'MOVIE' : 'TV-SHOW'}`);
         return isMovie;
       });
       
@@ -14435,6 +14555,7 @@ class MediaLibraryManager {
             if (!showNameFromPath || typeof showNameFromPath !== 'string') return false;
             const normalizedShowName = showNameFromPath
               .toLowerCase()
+              .replace(/&/g, 'and')           // Replace & with 'and' FIRST
               .replace(/[^a-z0-9\s]/g, '.')  // Replace special chars with dots
               .replace(/\s+/g, '.')           // Replace spaces with dots
               .replace(/\.+/g, '.')           // Clean up multiple dots
