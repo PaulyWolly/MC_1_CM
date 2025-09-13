@@ -1,9 +1,9 @@
 
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  Version: 25
+  AppName: mc_1_cm [v25]
+  Updated: 09/12/2025 @10:00PM
   Created by Paul Welby
 */
 
@@ -3418,9 +3418,14 @@ class MediaLibraryManager {
       const totalFavorites = favorites.movies.length + favorites.tvshows.length;
       countText = `Favorites: ${totalFavorites}`;
     } else if (this.currentTab === "collections") {
-      const collections = this.getCollections();
-      const totalCollections = Object.keys(collections).length;
-      countText = `Collections: ${totalCollections}`;
+      try {
+        const collections = await this.getCollections();
+        const totalCollections = Object.keys(collections).length;
+        countText = `Collections: ${totalCollections}`;
+      } catch (error) {
+        console.error('[COLLECTIONS] Error loading collections for count:', error);
+        countText = `Collections: 0`;
+      }
     } else if (this.currentTab === "suggestions") {
       const suggestions = this.getSuggestions();
       countText = `Suggestions: ${suggestions.length}`;
