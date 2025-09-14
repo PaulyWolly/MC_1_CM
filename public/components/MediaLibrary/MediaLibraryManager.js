@@ -1,9 +1,9 @@
 
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 25
-  AppName: mc_1_cm [v25]
-  Updated: 09/12/2025 @10:00PM
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
   Created by Paul Welby
 */
 
@@ -697,7 +697,7 @@ class MediaLibraryManager {
     );
     // Ensure posters are rendered after all poster data is loaded
     if (this.currentTab === "movies" && this.isModalOpen) {
-      this.renderMediaGrid();
+      await this.renderMediaGrid();
     }
     // In the constructor or init, load the normalized genres file
     this.loadMovieGenres();
@@ -1291,6 +1291,43 @@ class MediaLibraryManager {
           </div>
         `;
   }
+  // FORCE HIDE A-Z sidebar everywhere except main pages
+  forceHideAZSidebar() {
+    const modalContent = document.querySelector(".media-library-modal-content");
+    if (!modalContent) return;
+    
+    const movieSidebar = document.getElementById("mediaLibraryAZSidebarMovie");
+    const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
+    
+    // Only show on main Movies and TV-Shows pages
+    const isMainMoviesPage = modalContent.classList.contains("movies");
+    const isMainTVShowsPage = modalContent.classList.contains("tv-shows");
+    
+    if (movieSidebar) {
+      if (isMainMoviesPage) {
+        movieSidebar.style.display = "flex";
+        movieSidebar.style.visibility = "visible";
+        movieSidebar.style.opacity = "1";
+      } else {
+        movieSidebar.style.display = "none";
+        movieSidebar.style.visibility = "hidden";
+        movieSidebar.style.opacity = "0";
+      }
+    }
+    
+    if (tvSidebar) {
+      if (isMainTVShowsPage) {
+        tvSidebar.style.display = "flex";
+        tvSidebar.style.visibility = "visible";
+        tvSidebar.style.opacity = "1";
+      } else {
+        tvSidebar.style.display = "none";
+        tvSidebar.style.visibility = "hidden";
+        tvSidebar.style.opacity = "0";
+      }
+    }
+  }
+
   async renderModal() {
     console.log("[DEBUG - RENDER-MODAL] renderModal called");
     console.log(
@@ -1584,6 +1621,11 @@ class MediaLibraryManager {
         }
       }, 100); // Small delay to ensure content is loaded
     }
+    
+    // FORCE HIDE A-Z sidebar everywhere except main pages
+    setTimeout(() => {
+      this.forceHideAZSidebar();
+    }, 200);
   }
   removeModal() {
     // Remove the modal from the DOM
@@ -1766,19 +1808,12 @@ class MediaLibraryManager {
     // console.log('[DEBUG - UPDATE MODAL] Found movieSidebar:', !!movieSidebar);
     // console.log('[DEBUG - UPDATE MODAL] Found tvSidebar:', !!tvSidebar);
     if (movieSidebar && tvSidebar) {
-      if (this.currentTab === "movies") {
-        // console.log('[DEBUG - UPDATE MODAL] Setting movie sidebar to flex, tv sidebar to none');
-        movieSidebar.style.display = "flex";
-        tvSidebar.style.display = "none";
-      } else if (this.currentTab === "tvshows") {
-        // console.log('[DEBUG - UPDATE MODAL] Setting movie sidebar to none, tv sidebar to flex');
-        movieSidebar.style.display = "none";
-        tvSidebar.style.display = "flex";
-      } else {
-        // console.log('[DEBUG - UPDATE MODAL] Setting both sidebars to none');
-        movieSidebar.style.display = "none";
-        tvSidebar.style.display = "none";
-      }
+      // Remove inline styles to let CSS rules take precedence
+      movieSidebar.style.display = "";
+      tvSidebar.style.display = "";
+      
+      // Let CSS handle the visibility based on modal content classes
+      // The CSS rules will show/hide based on .movies, .tv-shows, .tv-show-details, etc.
     } else {
       console.warn(
         "[DEBUG - UPDATE MODAL] One or both sidebar elements not found!"
@@ -1836,7 +1871,7 @@ class MediaLibraryManager {
     } else {
       // For other tabs (suggestions, etc.), use the general renderMediaGrid
       // console.log('[DEBUG - UPDATE MODAL] Using renderMediaGrid for other tabs');
-      this.renderMediaGrid();
+      await this.renderMediaGrid();
     }
   }
   async renderTabContent() {
@@ -1890,8 +1925,8 @@ class MediaLibraryManager {
     if (modalContent) {
       modalContent.classList.remove(
         "moviedetails",
-        "tvshowseason",
-        "tvshowepisodes"
+        "tv-showseason",
+        "tv-showepisodes"
       );
       modalContent.classList.add(this.currentTab);
     }
@@ -1908,7 +1943,7 @@ class MediaLibraryManager {
     }
     const grid = document.getElementById("mediaGrid");
     if (!grid) return;
-    const items = this.getFilteredAndSortedItems();
+    const items = await this.getFilteredAndSortedItems();
     grid.innerHTML = "";
     // Track which letters we've already added anchors for
     const addedAnchors = new Set();
@@ -2648,12 +2683,92 @@ class MediaLibraryManager {
     // FORCE: Use video player
     if (window.videoPlayer && typeof window.videoPlayer.playUrl === 'function') {
       console.log("[BRAND-NEW-PLAYMEDIA] 🎬 Playing with window.videoPlayer");
-      window.videoPlayer.playUrl(videoUrl, "video/mp4", startTime, movieMediaItem);
+      
+      // Add error handling for video playback
+      try {
+        window.videoPlayer.playUrl(videoUrl, "video/mp4", startTime, movieMediaItem);
+        
+        // Update lastWatched timestamp in Watch Later list
+        this.updateWatchLaterLastWatched(mediaItem);
+      } catch (error) {
+        console.error("[BRAND-NEW-PLAYMEDIA] Error playing video:", error);
+        this.showMediaLibraryError(`❌ ERROR: Failed to play video. Please check the console for details.`);
+      }
       } else {
       throw new Error("[BRAND-NEW-PLAYMEDIA] Video player not available");
     }
     
     console.log("[BRAND-NEW-PLAYMEDIA] ✅ Video playback initiated successfully!");
+  }
+
+  // Render collections info with individual tags
+  renderCollectionsInfo(moviePath) {
+    try {
+      const collectionNames = this.getCollectionNameForMovie(moviePath);
+      if (!collectionNames) return "";
+      
+      // Split by comma and clean up collection names
+      const collections = collectionNames.split(',').map(name => name.trim()).filter(name => name);
+      
+      if (collections.length === 0) return "";
+      
+      // Create individual collection tags
+      const collectionTags = collections.map(collection => 
+        `<span class="collection-tag">${collection}</span>`
+      ).join('');
+      
+      return `
+        <div class="media-library-details-collection-info">
+          <span class="collections-list">
+            ${collectionTags}
+            <span class="collection-count">${collections.length}</span>
+          </span>
+        </div>
+      `;
+    } catch (error) {
+      console.error("[COLLECTIONS-INFO] Error rendering collections:", error);
+      return `<div class="media-library-details-collection-info">📁 In Collection: ${this.getCollectionNameForMovie(moviePath)}</div>`;
+    }
+  }
+
+  // Update lastWatched timestamp for Watch Later items
+  updateWatchLaterLastWatched(mediaItem) {
+    try {
+      console.log("[WATCH-LATER-UPDATE] Updating lastWatched for:", mediaItem.title);
+      
+      // Get current Watch Later list
+      let resumeList = JSON.parse(localStorage.getItem("mediaLibraryResumeList") || "[]");
+      
+      // Find the item in the Watch Later list
+      const itemIndex = resumeList.findIndex(item => {
+        // Match by multiple criteria to ensure we find the right item
+        const itemPath = (item.path || "").replace(/\\/g, "/").toLowerCase().trim();
+        const mediaPath = (mediaItem.path || "").replace(/\\/g, "/").toLowerCase().trim();
+        
+        return itemPath === mediaPath || 
+               (item.title && mediaItem.title && item.title.toLowerCase() === mediaItem.title.toLowerCase()) ||
+               (item.normalizedKey && mediaItem.normalizedKey && item.normalizedKey === mediaItem.normalizedKey);
+      });
+      
+      if (itemIndex !== -1) {
+        // Update the lastWatched timestamp
+        resumeList[itemIndex].lastWatched = Date.now();
+        
+        // Save back to localStorage
+        localStorage.setItem("mediaLibraryResumeList", JSON.stringify(resumeList));
+        
+        console.log("[WATCH-LATER-UPDATE] ✅ Updated lastWatched for:", mediaItem.title);
+        
+        // Refresh the Watch Later grid if it's currently visible
+        if (this.currentTab === "watchlater") {
+          this.updateWatchLaterGrid();
+        }
+      } else {
+        console.log("[WATCH-LATER-UPDATE] ❌ Item not found in Watch Later list:", mediaItem.title);
+      }
+    } catch (error) {
+      console.error("[WATCH-LATER-UPDATE] Error updating lastWatched:", error);
+    }
   }
 
   createVideoPlayer() {
@@ -3420,8 +3535,8 @@ class MediaLibraryManager {
     } else if (this.currentTab === "collections") {
       try {
         const collections = await this.getCollections();
-        const totalCollections = Object.keys(collections).length;
-        countText = `Collections: ${totalCollections}`;
+      const totalCollections = Object.keys(collections).length;
+      countText = `Collections: ${totalCollections}`;
       } catch (error) {
         console.error('[COLLECTIONS] Error loading collections for count:', error);
         countText = `Collections: 0`;
@@ -3586,7 +3701,8 @@ class MediaLibraryManager {
     //   "[DEBUG - A-Z] Found movie sidebar, rendering letters for filtered items"
     // );
     movieSidebar.innerHTML = "";
-    movieSidebar.style.display = "flex";
+    // Let CSS handle display based on modal content classes
+    movieSidebar.style.display = "";
     // Only render letters that have movies in the current filtered results
     const letters = Array.from(availableLetters).sort();
     // console.log("[DEBUG - A-Z] Available letters:", letters);
@@ -3667,7 +3783,8 @@ class MediaLibraryManager {
     });
     // console.log('[DEBUG - A-Z] Found sidebar, rendering TV show letters for filtered items');
     tvSidebar.innerHTML = "";
-    tvSidebar.style.display = "flex";
+    // Let CSS handle display based on modal content classes
+    tvSidebar.style.display = "";
     // Only render letters that have shows in the current filtered results
     const letters = Array.from(availableLetters).sort();
     letters.forEach((letter) => {
@@ -4905,13 +5022,14 @@ class MediaLibraryManager {
     okBtn.addEventListener('click', closeModal);
 
     // Allow ESC key to close
-    const escHandler = (e) => {
+    const escHandler = async (e) => {
       if (e.key === 'Escape') {
         console.log("[DEBUG] ESC key pressed - returning to grid");
         try {
-          this.renderMediaGrid();
+          await this.refreshCurrentView();
+          console.log("[DEBUG] ✅ ESC key - view refreshed successfully");
         } catch (error) {
-          console.error("[DEBUG] Error in renderMediaGrid from ESC:", error);
+          console.error("[DEBUG] Error refreshing view from ESC:", error);
           this.closeModal();
         }
         document.removeEventListener('keydown', escHandler);
@@ -5802,8 +5920,8 @@ class MediaLibraryManager {
     // If on favorites tab, refresh the content
     if (this.currentTab === "favorites") {
       // Force immediate refresh to show the updated favorites
-      setTimeout(() => {
-        this.updateModalContent();
+      setTimeout(async () => {
+        await this.updateModalContent();
       }, 100);
     }
   }
@@ -8118,7 +8236,7 @@ class MediaLibraryManager {
                 <div id="collectionModal" class="modal-collections-overlay">
                     <div class="modal-collections-content">
                         <div class="modal-collections-header">
-                            <h3 class="modal-collections-header-title">Collection: ${collectionName}</h3>
+                            <h3 class="modal-collections-header-title">Collection: ${collectionName === 'My PICK' ? 'My PICKs' : collectionName}</h3>
                             <button onclick="document.getElementById('collectionModal').remove()" class="modal-collections-btn modal-collections-btn-cancel">×</button>
                         </div>
                         <div class="modal-collections-body">
@@ -9056,7 +9174,7 @@ class MediaLibraryManager {
                         "suggestions",
                         "watchlater",
                         "moviedetails",
-                        "tvshowepisodes"
+                        "tv-showepisodes"
                       );
                       modalContent.classList.add("tvshows");
                       console.log(
@@ -9357,7 +9475,7 @@ class MediaLibraryManager {
             "suggestions",
             "watchlater",
             "moviedetails",
-            "tvshowepisodes"
+            "tv-showepisodes"
           );
           modalContent.classList.add("tvshows");
         }
@@ -11101,7 +11219,7 @@ class MediaLibraryManager {
                         <button class="back-to-collections-btn" onclick="window.mediaLibraryManager.viewCollection(null)">
                             ← Back to Collections
                         </button>
-                        <h2 class="collection-title">Collection: ${collectionName}</h2>
+                        <h2 class="collection-title">Collection: ${collectionName === 'My PICK' ? 'My PICKs' : collectionName}</h2>
                     </div>
                 ` + html;
         return html;
@@ -11125,8 +11243,7 @@ class MediaLibraryManager {
         // Ensure "My PICK" collection exists - create it if it doesn't
         if (!collections['My PICK']) {
           console.log('[MY PICK DEBUG] Creating My PICK collection...');
-          collections['My PICK'] = [];
-          this.saveCollectionsToLocalStorage(collections);
+          collections['My PICK'] = [];         this.saveCollections(collections);
         }
         
         // Apply saved order if available (excluding "My PICK" since it's positioned absolutely)
@@ -11178,20 +11295,27 @@ class MediaLibraryManager {
         // Add My PICK card in the Collections section header
         if (collections['My PICK']) {
           const myPickPaths = collections['My PICK'] || [];
+          // Simple count based on path patterns - more reliable than unified data
           const myPickMovieCount = myPickPaths.filter((key) => {
-            if (!key || typeof key !== 'string') return true;
-            if (this.unifiedData && this.unifiedData[key]) {
-              const item = this.unifiedData[key];
-              return item.isMovie === true;
+            if (!key || typeof key !== 'string') return false;
+            // If it has TV-SHOWS/ prefix, it's a TV show
+            if (key.startsWith('TV-SHOWS/')) return false;
+            // If it's an object with path property, check the path
+            if (typeof key === 'object' && key.path) {
+              return !key.path.startsWith('TV-SHOWS/');
             }
-            return false;
+            // Otherwise assume it's a movie (most items are movies)
+            return true;
           }).length;
           const myPickTVCount = myPickPaths.filter((key) => {
             if (!key || typeof key !== 'string') return false;
-            if (this.unifiedData && this.unifiedData[key]) {
-              const item = this.unifiedData[key];
-              return item.isMovie === false;
+            // If it has TV-SHOWS/ prefix, it's a TV show
+            if (key.startsWith('TV-SHOWS/')) return true;
+            // If it's an object with path property, check the path
+            if (typeof key === 'object' && key.path) {
+              return key.path.startsWith('TV-SHOWS/');
             }
+            // Otherwise assume it's a movie
             return false;
           }).length;
           
@@ -11200,7 +11324,7 @@ class MediaLibraryManager {
               <div class="my-pick-fixed" data-collection="My PICK" onclick="window.mediaLibraryManager.viewCollection('My PICK')">
                 <div class="collection-card-content">
                   <div class="collection-icon">⭐</div>
-                  <div class="collection-title">My PICK</div>
+                  <div class="collection-title">My PICKs</div>
                   <div class="collection-stats">${myPickMovieCount} Movies, ${myPickTVCount} TV Shows</div>
                 </div>
               </div>
@@ -11295,12 +11419,12 @@ class MediaLibraryManager {
           "Click anywhere on a collection card to view it, or use the ➕ icon on any movie or TV show to add it to a collection.";
         html += "</p>";
         html += '<div class="collection-tip">';
-        html += '<strong class="tip-label">🎯 How to Reorder:</strong> ';
+        html += '<strong class="tip-label">🎯 How to Reorder:</strong><br>';
         html +=
           "• Click ||| handle to select a collection<br>• Click another ||| handle to move it there<br>• Click same ||| handle to cancel selection";
         html += "</div>";
         html += '<div class="collection-tip">';
-        html += '<strong class="tip-label">🎯 How to Use:</strong> ';
+        html += '<strong class="tip-label">🎯 How to Use:</strong><br>';
         html +=
           "• Click anywhere on a card to open the collection<br>• Use 👁️ to view or 🗑️ to delete";
         html += "</div>";
@@ -11611,7 +11735,7 @@ class MediaLibraryManager {
       await this.updateModalContent();
     } else {
       // For movies and other tabs, use renderMediaGrid
-      this.renderMediaGrid();
+      await this.renderMediaGrid();
     }
     await this.updateCount();
   }
@@ -11695,16 +11819,16 @@ class MediaLibraryManager {
                     
                     <!-- Collections Info Section -->
                     <div class="media-library-details-collections-container">
-                        ${this.isInCollectionSync(movie.path) ? `<div class="media-library-details-collection-info">📁 In Collection: ${this.getCollectionNameForMovie(movie.path)}</div>` : ""}
+                        ${this.isInCollectionSync(movie.path) ? this.renderCollectionsInfo(movie.path) : ""}
                     </div>
                 </div>
             </div>
         `;
     // Attach event handlers immediately
-    document.getElementById("backToGridBtn").onclick = (e) => {
+    document.getElementById("backToGridBtn").onclick = async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      // console.log("[DEBUG] Back button clicked - returning to movies grid");
+      console.log("[DEBUG] Back button clicked - returning to movies grid");
       
       // Remove the movie details modal content
       const movieDetailsModal = document.querySelector(".media-library-details-modal");
@@ -11714,9 +11838,13 @@ class MediaLibraryManager {
       
       // Re-render the movies grid to show the movies list again
       try {
-      this.renderMediaGrid();
+        // Force refresh the current view
+        await this.refreshCurrentView();
+        console.log("[DEBUG] ✅ Back button - view refreshed successfully");
       } catch (error) {
-        console.error("[DEBUG] Error in renderMediaGrid:", error);
+        console.error("[DEBUG] Error refreshing view from back button:", error);
+        // Fallback to renderMediaGrid
+        await this.renderMediaGrid();
       }
     };
     
@@ -11755,9 +11883,9 @@ class MediaLibraryManager {
     };
 
     // Add ESC key handler for movie details modal
-    const escHandler = (e) => {
+    const escHandler = async (e) => {
       if (e.key === 'Escape') {
-        // console.log("[DEBUG] ESC key pressed in movie details - returning to movies grid");
+        console.log("[DEBUG] ESC key pressed in movie details - returning to movies grid");
         
         // Remove the movie details modal content
         const movieDetailsModal = document.querySelector(".media-library-details-modal");
@@ -11767,9 +11895,10 @@ class MediaLibraryManager {
         
         // Re-render the movies grid to show the movies list again
         try {
-          this.renderMediaGrid();
+          await this.refreshCurrentView();
+          console.log("[DEBUG] ✅ ESC key from movie details - view refreshed successfully");
         } catch (error) {
-          console.error("[DEBUG] Error in renderMediaGrid from ESC:", error);
+          console.error("[DEBUG] Error refreshing view from ESC in movie details:", error);
         }
         
         document.removeEventListener('keydown', escHandler);
@@ -13569,9 +13698,23 @@ class MediaLibraryManager {
         "suggestions",
         "watchlater",
         "moviedetails",
-        "tvshowepisodes"
+        "tv-showepisodes"
       );
-      modalContent.classList.add("tvshowseason");
+      modalContent.classList.add("tv-showseason");
+      
+      // FORCE HIDE A-Z sidebars on TV show seasons page
+      const movieSidebar = document.getElementById("mediaLibraryAZSidebarMovie");
+      const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
+      if (movieSidebar) {
+        movieSidebar.style.display = "none";
+        movieSidebar.style.visibility = "hidden";
+        movieSidebar.style.opacity = "0";
+      }
+      if (tvSidebar) {
+        tvSidebar.style.display = "none";
+        tvSidebar.style.visibility = "hidden";
+        tvSidebar.style.opacity = "0";
+      }
     }
     // Use centralized data loading method to ensure ALL necessary data is available
     await this.ensureTVShowDataLoaded();
@@ -13856,7 +13999,43 @@ class MediaLibraryManager {
       this.currentTVShow = showPath;
     }
     this.currentTVSeason = null;
+    
+    // Update modal content class to hide A-Z sidebar for TV show seasons page
+    const modalContent = document.querySelector(".media-library-modal-content");
+    if (modalContent) {
+      modalContent.classList.remove(
+        "movies",
+        "tvshows",
+        "favorites",
+        "collections",
+        "suggestions",
+        "watchlater",
+        "moviedetails",
+        "tv-showepisodes"
+      );
+      modalContent.classList.add("tv-showseason");
+      
+      // FORCE HIDE A-Z sidebars on TV show seasons page
+      const movieSidebar = document.getElementById("mediaLibraryAZSidebarMovie");
+      const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
+      if (movieSidebar) {
+        movieSidebar.style.display = "none";
+        movieSidebar.style.visibility = "hidden";
+        movieSidebar.style.opacity = "0";
+      }
+      if (tvSidebar) {
+        tvSidebar.style.display = "none";
+        tvSidebar.style.visibility = "hidden";
+        tvSidebar.style.opacity = "0";
+      }
+    }
+    
     this.renderModal(); // Re-render modal to update tab highlight
+    
+    // FORCE HIDE A-Z sidebar on TV show seasons page
+    setTimeout(() => {
+      this.forceHideAZSidebar();
+    }, 100);
   }
   openTVShow(showPath) {
     console.log("[DEBUG - OpenTVShow] openTVShow called with:", showPath);
@@ -13884,13 +14063,43 @@ class MediaLibraryManager {
     this.currentTVSeason = seasonPath;
     console.log("[DEBUG - SEASON] Opening season:", seasonPath);
     
+    // Update modal content class to hide A-Z sidebar for episodes view
+    const modalContent = document.querySelector(".media-library-modal-content");
+    if (modalContent) {
+      modalContent.classList.remove(
+        "movies",
+        "tvshows",
+        "favorites",
+        "collections",
+        "suggestions",
+        "watchlater",
+        "moviedetails",
+        "tv-showseason"
+      );
+      modalContent.classList.add("tv-showepisodes");
+      
+      // FORCE HIDE A-Z sidebars on TV show episodes page
+      const movieSidebar = document.getElementById("mediaLibraryAZSidebarMovie");
+      const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
+      if (movieSidebar) {
+        movieSidebar.style.display = "none";
+        movieSidebar.style.visibility = "hidden";
+        movieSidebar.style.opacity = "0";
+      }
+      if (tvSidebar) {
+        tvSidebar.style.display = "none";
+        tvSidebar.style.visibility = "hidden";
+        tvSidebar.style.opacity = "0";
+      }
+    }
+    
     // Render the episodes view for this season
     const episodesContent = this.renderEpisodesView();
     
     // Update the modal content to show episodes
-    const modalContent = document.querySelector('.collection-modal-content');
-    if (modalContent) {
-      modalContent.innerHTML = episodesContent;
+    const collectionModalContent = document.querySelector('.collection-modal-content');
+    if (collectionModalContent) {
+      collectionModalContent.innerHTML = episodesContent;
       console.log("[DEBUG - SEASON] Episodes view rendered successfully");
     } else {
       console.error("[DEBUG - SEASON] Could not find modal content element");
@@ -13898,6 +14107,11 @@ class MediaLibraryManager {
     
     // Re-render modal to update tab highlight
     this.renderModal();
+    
+    // FORCE HIDE A-Z sidebar on TV show episodes page
+    setTimeout(() => {
+      this.forceHideAZSidebar();
+    }, 100);
   }
   renderEpisodesView() {
     // Don't update modal content class here - let the caller handle it
@@ -14184,8 +14398,8 @@ class MediaLibraryManager {
     if (modalContent) {
       modalContent.classList.remove(
         "moviedetails",
-        "tvshowseason",
-        "tvshowepisodes"
+        "tv-showseason",
+        "tv-showepisodes"
       );
       modalContent.classList.add("tvshows");
     }
@@ -14195,11 +14409,11 @@ class MediaLibraryManager {
   }
   backToSeasons() {
     this.currentTVSeason = null;
-    // Restore modal content class to tvshowseason
+    // Restore modal content class to tv-showseason
     const modalContent = document.querySelector(".media-library-modal-content");
     if (modalContent) {
-      modalContent.classList.remove("moviedetails", "tvshowepisodes");
-      modalContent.classList.add("tvshowseason");
+      modalContent.classList.remove("moviedetails", "tv-showepisodes");
+      modalContent.classList.add("tv-showseason");
     }
     this.renderModal(); // Re-render modal to update tab highlight
   }
@@ -14397,7 +14611,14 @@ class MediaLibraryManager {
       console.log(
         "[DEBUG - SINGLE-SOURCE-TV] Calling playUrl with episode object"
       );
-      window.videoPlayer.playUrl(videoUrl, "video/mp4", startTime, episodeObj);
+      
+      // Add error handling for video playback
+      try {
+        window.videoPlayer.playUrl(videoUrl, "video/mp4", startTime, episodeObj);
+      } catch (error) {
+        console.error("[DEBUG - SINGLE-SOURCE-TV] Error playing video:", error);
+        this.showMediaLibraryError(`❌ ERROR: Failed to play video. Please check the console for details.`);
+      }
     }
   }
   // NEW METHOD: Get episode object from path using the SAME logic as main TV-SHOWS tab
@@ -15307,6 +15528,11 @@ class MediaLibraryManager {
           startTime,
           episodeObj
         );
+        
+        // Update lastWatched timestamp for Watch Later items
+        if (this.currentTabFlag === "watchlater") {
+          this.updateWatchLaterLastWatched(episodeObj);
+        }
       }
     } catch (error) {
       console.error("[DEBUG - WORKING] Error parsing episode data:", error);
@@ -15584,9 +15810,9 @@ class MediaLibraryManager {
     });
   }
   // Force refresh the current content to get new classes
-  forceRefreshContent() {
+  async forceRefreshContent() {
     console.log("[DEBUG] Force refreshing content to get new classes");
-    this.updateModalContent();
+    await this.updateModalContent();
   }
   attachFavoritesHandlers() {
     console.log("🚨 [DEBUG] ====== ATTACHING FAVORITES HANDLERS ======");
@@ -17762,7 +17988,7 @@ class MediaLibraryManager {
       await this.refreshCurrentView();
     }
     
-    this.renderMediaGrid();
+    await this.renderMediaGrid();
     this.attachPosterSelectorHandlers();
     
     console.log("[DEBUG - RELOAD] ✅ Movie reload and grid refresh completed");
@@ -17775,31 +18001,16 @@ class MediaLibraryManager {
     try {
       console.log("[DEBUG - REFRESH-VIEW] 🚀 Refreshing current view for tab:", this.currentTab);
       
-      if (this.currentTab === "movies") {
-        // For movies, reload the unified data and re-render
-        const response = await fetch(
-          "/components/MediaLibrary/data/movies/movies-unified.json?_=" + Date.now()
-        );
-        if (response.ok) {
-          this.unifiedData = await response.json();
-          console.log("[DEBUG - REFRESH-VIEW] ✅ Reloaded unified data with", Object.keys(this.unifiedData).length, "movies");
-        }
-      } else if (this.currentTab === "tvshows") {
-        // For TV shows, reload the unified data
-        const response = await fetch(
-          "/components/MediaLibrary/data/tvshows/tvshows-unified.json?_=" + Date.now()
-        );
-        if (response.ok) {
-          this.unifiedTVData = await response.json();
-          console.log("[DEBUG - REFRESH-VIEW] ✅ Reloaded unified TV data");
-        }
-        // Re-render TV show grid specifically
-        this.renderTVShowGrid();
-        this.attachTVShowHandlers();
+      // Check if we have pre-loaded data
+      if (!this.unifiedData || Object.keys(this.unifiedData).length === 0) {
+        console.log("[DEBUG - REFRESH-VIEW] ⚠️ No pre-loaded data found, loading now...");
+        await this.preloadAllData();
+      } else {
+        console.log("[DEBUG - REFRESH-VIEW] ✅ Using pre-loaded data with", Object.keys(this.unifiedData).length, "items");
       }
       
-      // Re-render the current view
-      this.renderMediaGrid();
+      // Re-render the current view using existing data
+      await this.renderMediaGrid();
       console.log("[DEBUG - REFRESH-VIEW] ✅ View refresh completed");
       
     } catch (error) {
@@ -18606,7 +18817,7 @@ class MediaLibraryManager {
         
         // Refresh the favorites display
         if (this.currentTab === "favorites") {
-          this.updateModalContent();
+          await this.updateModalContent();
         }
         
         return potentialFavorites;
@@ -18681,7 +18892,7 @@ class MediaLibraryManager {
   }
   
   // Confirm manual recovery selection
-  confirmManualRecovery() {
+  async confirmManualRecovery() {
     const selectedKeys = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
       .map(checkbox => checkbox.value);
     
@@ -18709,7 +18920,7 @@ class MediaLibraryManager {
     
     // Refresh the favorites display
     if (this.currentTab === "favorites") {
-      this.updateModalContent();
+      await this.updateModalContent();
     }
     
     this.showToast(`Successfully added ${selectedKeys.length} TV shows to favorites!`, 'success');

@@ -1,3 +1,11 @@
+/*
+  NORMALIZATIONSERVICE.JS
+  Version: 1.25.1
+  AppName: MultiChat Chatty [v25]
+  Updated: 9/14/2025 @5:41 AM
+  Created by Paul Welby
+*/
+
 // shared/NormalizationService.js
 // Provides a single normalization function for movie keys
 

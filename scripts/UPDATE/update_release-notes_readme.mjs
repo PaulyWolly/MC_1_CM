@@ -78,31 +78,56 @@ function dedupeAndFormat(commits, prs, issues, version) {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
   
-  // Add version header
-  bullets.push(`## v${version} (${dateStr})`);
-  bullets.push('');  // Empty line after header
+  // Add version header with our new format
+  bullets.push(`## Release ${version} - "Multi-Chat Chatty" (${dateStr})`);
+  bullets.push('');
+  bullets.push('### 🎯 **MILESTONE RELEASE**');
+  bullets.push('');
+  bullets.push('This release includes the following updates and improvements:');
+  bullets.push('');
   
-  for (const c of commits) {
-    const key = c.message || c.commit && c.commit.message;
-    if (!seen.has(key)) {
-      bullets.push(`- [${c.date || c.commit.author.date.split('T')[0]}] Commit: ${key}`);
-      seen.add(key);
+  // Add commits
+  if (commits.length > 0) {
+    bullets.push('#### **Recent Commits**');
+    for (const c of commits) {
+      const key = c.message || c.commit && c.commit.message;
+      if (!seen.has(key)) {
+        bullets.push(`- [${c.date || c.commit.author.date.split('T')[0]}] Commit: ${key}`);
+        seen.add(key);
+      }
     }
+    bullets.push('');
   }
-  for (const pr of prs) {
-    const key = pr.title;
-    if (!seen.has(key)) {
-      bullets.push(`- [${(pr.merged_at || pr.closed_at).split('T')[0]}] PR: ${key}`);
-      seen.add(key);
+  
+  // Add PRs
+  if (prs.length > 0) {
+    bullets.push('#### **Pull Requests**');
+    for (const pr of prs) {
+      const key = pr.title;
+      if (!seen.has(key)) {
+        bullets.push(`- [${(pr.merged_at || pr.closed_at).split('T')[0]}] PR: ${key}`);
+        seen.add(key);
+      }
     }
+    bullets.push('');
   }
-  for (const issue of issues) {
-    const key = issue.title;
-    if (!seen.has(key)) {
-      bullets.push(`- [${issue.closed_at.split('T')[0]}] Issue: ${key}`);
-      seen.add(key);
+  
+  // Add Issues
+  if (issues.length > 0) {
+    bullets.push('#### **Issues Resolved**');
+    for (const issue of issues) {
+      const key = issue.title;
+      if (!seen.has(key)) {
+        bullets.push(`- [${issue.closed_at.split('T')[0]}] Issue: ${key}`);
+        seen.add(key);
+      }
     }
+    bullets.push('');
   }
+  
+  bullets.push('---');
+  bullets.push('');
+  
   return bullets.join('\n');
 }
 
@@ -125,18 +150,26 @@ function appendToWhatsNew(filePath, content) {
 }
 
 async function main() {
+  console.log('🚀 Multi-Chat Chatty Release Notes Updater');
+  console.log('==========================================');
+  
   const lastDate = getLastReleaseDate() || new Date(0);
+  console.log(`📅 Last release date: ${lastDate.toISOString().split('T')[0]}`);
+  
   const localCommits = getLocalCommits(lastDate);
+  console.log(`📝 Found ${localCommits.length} local commits since last release`);
+  
   const { newPRs, newIssues, commits } = await getGitHubData(lastDate);
+  console.log(`🔀 Found ${newPRs.length} PRs, ${newIssues.length} issues, ${commits.length} commits from GitHub`);
   
   // Prompt for version number
   const { version } = await inquirer.prompt([
     {
       type: 'input',
       name: 'version',
-      message: 'Enter version number (e.g., 1.0.0):',
-      default: '1.0.0',
-      validate: input => /^\d+\.\d+\.\d+$/.test(input) || 'Please enter a valid version number (e.g., 1.0.0)'
+      message: 'Enter version number (e.g., 1.1.0):',
+      default: '1.1.0',
+      validate: input => /^\d+\.\d+\.\d+$/.test(input) || 'Please enter a valid version number (e.g., 1.1.0)'
     }
   ]);
   
@@ -144,37 +177,51 @@ async function main() {
   const bullets = dedupeAndFormat(localCommits, newPRs, newIssues, version);
   
   if (!bullets.trim()) {
-    console.log('No new changes found since last release note.');
+    console.log('❌ No new changes found since last release note.');
     return;
   }
-  console.log("DEBUG: About to prompt for editing release notes...");
+  
+  console.log('\n📋 Generated release notes:');
+  console.log('========================');
+  console.log(bullets);
+  console.log('========================\n');
 
   const { userEdit } = await inquirer.prompt([
     {
       type: 'editor',
       name: 'userEdit',
-      message: 'Review and edit the following release notes:',
+      message: 'Review and edit the following release notes (press Enter to open editor):',
       default: bullets,
       editor: "notepad.exe"
     },
   ]);
 
-  console.log("DEBUG: Editor prompt finished. userEdit:", userEdit);
   const { confirm } = await inquirer.prompt([
     {
       type: 'confirm',
       name: 'confirm',
-      message: 'Does this look okay?',
+      message: 'Does this look okay? Update RELEASE-NOTES.md?',
       default: true,
     },
   ]);
+  
   if (!confirm) {
-    console.log('Aborted by user.');
+    console.log('❌ Aborted by user.');
     return;
   }
+  
   prependToFile(RELEASE_NOTES_PATH, userEdit);
-  appendToWhatsNew(README_PATH, userEdit);
-  console.log('RELEASE-NOTES.md and README.md updated!');
+  
+  // Only update README if it exists
+  if (fs.existsSync(README_PATH)) {
+    appendToWhatsNew(README_PATH, userEdit);
+    console.log('✅ RELEASE-NOTES.md and README.md updated!');
+  } else {
+    console.log('✅ RELEASE-NOTES.md updated! (README.md not found)');
+  }
+  
+  console.log('\n🎉 Release notes update complete!');
+  console.log('📁 Updated file: RELEASE-NOTES.md');
 }
 
 main().catch(e => {

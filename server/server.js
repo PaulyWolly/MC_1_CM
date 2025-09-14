@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 24
-  AppName: mc_1_cm [v1.24.0]
-  Updated: 2025-09-08
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
   Created by Paul Welby
 */
 
@@ -4269,46 +4269,14 @@ app.get('/api/video', (req, res) => {
       console.log('🎬 [VIDEO] File not found in any media root for relative path:', videoPath);
       console.log('🎬 [VIDEO] Tried paths:', possiblePaths);
       
-      // Try to find the actual file by searching the media directories
-      console.log('🎬 [VIDEO] Searching for file in media directories...');
-      const searchResults = [];
-      
-      // Search in MOVIES directory
-      try {
-        const moviesDir = 'S:/MEDIA/MOVIES';
-        if (fs.existsSync(moviesDir)) {
-          const movies = fs.readdirSync(moviesDir);
-          console.log('🎬 [VIDEO] Found movies directories:', movies.slice(0, 10));
-          
-          // Look for a directory that might contain our file
-          for (const movieDir of movies) {
-            if (movieDir.toLowerCase().includes('13 going on 30') || movieDir.toLowerCase().includes('13.going.on.30')) {
-              console.log('🎬 [VIDEO] Found potential match:', movieDir);
-              const moviePath = path.join(moviesDir, movieDir);
-              if (fs.existsSync(moviePath)) {
-                const files = fs.readdirSync(moviePath);
-                console.log('🎬 [VIDEO] Files in directory:', files);
-                const mp4File = files.find(f => f.toLowerCase().includes('.mp4'));
-                if (mp4File) {
-                  const fullPath = path.join(moviePath, mp4File);
-                  console.log('🎬 [VIDEO] Found MP4 file:', fullPath);
-                  searchResults.push(fullPath);
-                }
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.log('🎬 [VIDEO] Error searching movies directory:', error.message);
-      }
-      
-      if (searchResults.length > 0) {
-        console.log('🎬 [VIDEO] Found potential files:', searchResults);
-        resolvedPath = searchResults[0];
-        console.log('🎬 [VIDEO] Using found file:', resolvedPath);
-      } else {
-        return res.status(404).send('File not found');
-      }
+      // File not found - return proper error instead of playing wrong video
+      console.log('🎬 [VIDEO] File not found in any media root for relative path:', videoPath);
+      console.log('🎬 [VIDEO] Tried paths:', possiblePaths);
+      return res.status(404).json({
+        error: 'File not found',
+        message: `The requested video file could not be found: ${videoPath}`,
+        triedPaths: possiblePaths
+      });
     }
     
     console.log('🎬 [VIDEO] Resolved relative path to:', resolvedPath);

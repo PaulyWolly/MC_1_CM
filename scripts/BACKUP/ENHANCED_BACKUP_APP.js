@@ -1,15 +1,9 @@
 /*
   ENHANCED_BACKUP_APP.JS
-  Version: 1.0
-  AppName: mc_1_cm [Enhanced Backup with Auto-Analysis]
-  Updated: 9/12/2025 @7:30PM
-  Created by AI Assistant
-
-  Enhanced version of BACKUP_APP.js with automatic change detection and analysis
-  - Scans code for TODO comments, change markers, and new functions
-  - Generates detailed markdown summaries
-  - Analyzes git history for recent changes
-  - Creates comprehensive backup documentation
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
+  Created by Paul Welby
 */
 
 const fs = require('fs');
