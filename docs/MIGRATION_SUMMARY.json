@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-08-25T00:03:21.431Z",
+  "status": "migration_prepared",
+  "files_created": [
+    "MIGRATION_GUIDE.md",
+    "VERIFICATION_SCRIPT.js"
+  ],
+  "next_steps": [
+    "Visit Favorites tab to auto-migrate favorites",
+    "Visit Watch Later tab to migrate watch later data",
+    "Visit Collections tab to migrate collections",
+    "Run verification script to confirm success"
+  ],
+  "critical_notes": [
+    "Favorites auto-migrate when you visit the tab",
+    "Other tabs need to be visited to trigger migration",
+    "MongoDB data may need manual cleanup",
+    "All data will use unified structure after migration"
+  ]
+}

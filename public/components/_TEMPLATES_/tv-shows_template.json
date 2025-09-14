@@ -1,0 +1,244 @@
+
+{
+    "jupiters.legacy.(2021)": {
+    "TMDBTitle": "Jupiter's Legacy",
+    "type": "tvshow",
+    "isMovie": false,
+    "normalizedKey": "jupiters.legacy.(2021)",
+    "title": "Jupiter's Legacy (2021)",
+    "mediaType": "tvshow",
+    "tmdbId": 93484,
+    "poster": "https://image.tmdb.org/t/p/w500/9yxep7oJdkj3Pla9TD9gKflRApY.jpg",
+    "description": "As the world's first generation of superheroes (who received their powers in the 1930s) become the revered elder guard in the present, their superpowered children struggle to live up to the legendary feats of their parents.",
+    "about": {
+      "description": "As the world's first generation of superheroes (who received their powers in the 1930s) become the revered elder guard in the present, their superpowered children struggle to live up to the legendary feats of their parents.",
+      "status": "Canceled",
+      "first_air_date": "2021-05-07",
+      "last_air_date": "2021-05-07",
+      "number_of_seasons": 1,
+      "number_of_episodes": 8,
+      "vote_average": 6.945,
+      "vote_count": 723
+    },
+    "genres": [
+      "Sci-Fi & Fantasy",
+      "Action & Adventure",
+      "Drama",
+      "Mystery"
+    ],
+    "cast": [
+      {
+        "name": "Josh Duhamel",
+        "character": "Sheldon Sampson / The Utopian",
+        "profile_path": "https://image.tmdb.org/t/p/w185/5Rp9aeWdN2S623KCjwfii9MhDK1.jpg"
+      },
+      {
+        "name": "Ben Daniels",
+        "character": "Walter Sampson / Brainwave",
+        "profile_path": "https://image.tmdb.org/t/p/w185/8ngIQbSnkS783qlCWhfWDT2JQ7C.jpg"
+      },
+      {
+        "name": "Leslie Bibb",
+        "character": "Grace Sampson / Lady Liberty",
+        "profile_path": "https://image.tmdb.org/t/p/w185/fCw9HHkG09HWsZg7KXXr8TJwgnP.jpg"
+      },
+      {
+        "name": "Andrew Horton",
+        "character": "Brandon Sampson / Paragon",
+        "profile_path": "https://image.tmdb.org/t/p/w185/rnjftcwDfeQo9XknjUxxbi8NeIa.jpg"
+      },
+      {
+        "name": "Elena Kampouris",
+        "character": "Chloe Sampson",
+        "profile_path": "https://image.tmdb.org/t/p/w185/smQnz0PqKG2x3GKdmavV4Ea9JQt.jpg"
+      },
+      {
+        "name": "Mike Wade",
+        "character": "Fitz Small / The Flare",
+        "profile_path": "https://image.tmdb.org/t/p/w185/tplb4d0Y47y5cTPLE93bDay45jA.jpg"
+      },
+      {
+        "name": "Matt Lanter",
+        "character": "George Hutchene / Skyfox",
+        "profile_path": "https://image.tmdb.org/t/p/w185/2ms8DR9n4wh9ZU6lIuqsE58LPT9.jpg"
+      }
+    ],
+    "year": 2021,
+    "path": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)",
+    "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)",
+    "backdrop": "https://image.tmdb.org/t/p/w1280/hT4HTQJhfnWNl7tHBY3E6Nda9M6.jpg",
+    "seasons": {
+      "1": {
+        "poster": "https://media.themoviedb.org/t/p/w260_and_h390_bestv2/gSFDXb6IMXDSdw4avtzCVWouIfk.jpg",
+        "season_poster": "https://media.themoviedb.org/t/p/w260_and_h390_bestv2/gSFDXb6IMXDSdw4avtzCVWouIfk.jpg",
+        "season_thumbnail": "https://media.themoviedb.org/t/p/w260_and_h390_bestv2/gSFDXb6IMXDSdw4avtzCVWouIfk.jpg",
+        "episodes": {
+          "01": {
+            "title": "Jupiters Legacy (2021) | S01E01 | By Dawn's Early Light",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E01.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E01.mkv",
+            "duration": 47,
+            "season": 1,
+            "episode": 1,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/fkLyxnI9pKsfUoABbrb5z8xtmJJ.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/fkLyxnI9pKsfUoABbrb5z8xtmJJ.jpg"
+          },
+          "02": {
+            "title": "Jupiters Legacy (2021) | S01E02 | Paper and Stone",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E02.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E02.mkv",
+            "duration": 35,
+            "season": 1,
+            "episode": 2,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/7mp86HhN05qFj1FJ6EhMUJwjzqR.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/7mp86HhN05qFj1FJ6EhMUJwjzqR.jpg"
+          },
+          "03": {
+            "title": "Jupiters Legacy (2021) | S01E03 | Painting the Clouds With Sunshine",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E03.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E03.mkv",
+            "duration": 44,
+            "season": 1,
+            "episode": 3,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/miskGgAVDWk3bfl6049OTcH4yyk.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/miskGgAVDWk3bfl6049OTcH4yyk.jpg"
+          },
+          "04": {
+            "title": "Jupiters Legacy (2021) | S01E04 | All the Devils Are Here",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E04.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E04.mkv",
+            "duration": 48,
+            "season": 1,
+            "episode": 4,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/zDiSZSb7Mq2oMJBEEXIqTzQtH9Y.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/zDiSZSb7Mq2oMJBEEXIqTzQtH9Y.jpg"
+          },
+          "05": {
+            "title": "Jupiters Legacy (2021) | S01E05 | What's the Use?",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E05.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E05.mkv",
+            "duration": 48,
+            "season": 1,
+            "episode": 5,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/daLuedUIJKNmQBjXBccU46XF1Do.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/daLuedUIJKNmQBjXBccU46XF1Do.jpg"
+          },
+          "06": {
+            "title": "Jupiters Legacy (2021) | S01E06 | Cover Her Face",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E06.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E06.mkv",
+            "duration": 44,
+            "season": 1,
+            "episode": 6,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/eFVODVGmnV9f4z3PkZHdjoBPhNM.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/eFVODVGmnV9f4z3PkZHdjoBPhNM.jpg"
+          },
+          "07": {
+            "title": "Jupiters Legacy (2021) | S01E07 | Omnes Pro Uno",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E07.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E07.mkv",
+            "duration": 56,
+            "season": 1,
+            "episode": 7,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/bN4kx98cYf8tI8sClq6evnCMcEf.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/bN4kx98cYf8tI8sClq6evnCMcEf.jpg"
+          },
+          "08": {
+            "title": "Jupiters Legacy (2021) | S01E08 | How It All Ends",
+            "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E08.mkv",
+            "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E08.mkv",
+            "duration": 36,
+            "season": 1,
+            "episode": 8,
+            "type": "episode",
+            "isSpecials": false,
+            "videoFormat": ".mkv",
+            "supportsVideo": true,
+            "still": "https://image.tmdb.org/t/p/w500/nsyd0XggnfX0STjJTTxth7zk6hk.jpg",
+            "thumbnail": "https://image.tmdb.org/t/p/w500/nsyd0XggnfX0STjJTTxth7zk6hk.jpg"
+          }
+        }
+      }
+    },
+    "created": "2025-09-06T22:41:45.144Z",
+    "updated": "2025-09-06T22:41:45.149Z",
+    "files": [
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E01.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E01.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E02.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E02.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E03.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E03.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E04.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E04.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E05.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E05.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E06.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E06.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E07.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E07.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      },
+      {
+        "path": "TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E08.mkv",
+        "absPath": "S:/MEDIA/TV-SHOWS/Jupiters Legacy (2021)/Season 01/Jupiters Legacy (2021) - S01E08.mkv",
+        "quality": "1080p",
+        "size": 1234567890
+      }
+    ]
+  }
+}

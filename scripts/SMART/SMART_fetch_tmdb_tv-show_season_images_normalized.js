@@ -1,8 +1,8 @@
 /*
   SMART_FETCH_TMDB_TV-SHOW_SEASON_IMAGES_NORMALIZED.JS
-  Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
   Created by Paul Welby
 */
 

@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
   Created by Paul Welby
 */
 
@@ -1235,18 +1235,52 @@
   display: none !important;
 }
 
+/* Hide A-Z sidebar on TV show pages (seasons and episodes) - STRONG RULE */
+.media-library-modal-content.tv-showseason .media-library-az-sidebar-movies,
+.media-library-modal-content.tv-showseason .media-library-az-sidebar-tv-shows,
+.media-library-modal-content.tv-showepisodes .media-library-az-sidebar-movies,
+.media-library-modal-content.tv-showepisodes .media-library-az-sidebar-tv-shows {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* Ensure A-Z sidebar is ONLY visible on main Movies and TV Shows grid pages */
 .media-library-modal-content.movies .media-library-az-sidebar-movies {
   display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 .media-library-modal-content.tv-shows .media-library-az-sidebar-tv-shows {
   display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* NUCLEAR OPTION: Hide A-Z sidebars EVERYWHERE except main pages */
+.media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-movies,
+.media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-tv-shows {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Hide A-Z sidebar by default on ALL other views */
 .media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-movies,
 .media-library-modal-content:not(.movies):not(.tv-shows) .media-library-az-sidebar-tv-shows {
   display: none !important;
+}
+
+/* AGGRESSIVE: Hide A-Z sidebars on TV show pages by ID */
+.media-library-modal-content.tv-showseason #mediaLibraryAZSidebarMovie,
+.media-library-modal-content.tv-showseason #mediaLibraryAZSidebarTVShow,
+.media-library-modal-content.tv-showepisodes #mediaLibraryAZSidebarMovie,
+.media-library-modal-content.tv-showepisodes #mediaLibraryAZSidebarTVShow {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Hide A-Z sidebar in Season view */
@@ -2307,9 +2341,9 @@
   }
 
 .watch-later-img-movie {
-  width: 90%;
+  width: 80%;
   display: block;
-  height: 220px;
+  height: 200px;
   margin: 0 auto;
 }
 
@@ -2530,19 +2564,52 @@
 .media-library-details-collection-info {
     background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
     color: #1976d2;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin: 16px 0;
-    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 13px;
     position: absolute;
-    top: 16px;
-    right: 50px;
+    bottom: 10px;
+    right: 30px;
     font-weight: 500;
     border: 1px solid #90caf9;
-    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
+    box-shadow: 0 1px 3px rgba(25, 118, 210, 0.15);
     display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.media-library-details-collection-info .collections-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
     align-items: center;
-    gap: 8px;
+    flex: 1;
+}
+
+.media-library-details-collection-info .collection-tag {
+    background: rgba(25, 118, 210, 0.1);
+    color: #1976d2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid rgba(25, 118, 210, 0.2);
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.media-library-details-collection-info .collection-count {
+    background: #1976d2;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 4px;
 }
 
 .media-library-details-collection-info::before {
@@ -4868,7 +4935,7 @@ color: #fff;
 
 /* Collections Modal Content */
 .modal-collections-content {
-  background: #333;
+  background: #516c89;
   border-radius: 12px;
   padding: 20px;
   max-width: 90%;
@@ -4940,8 +5007,9 @@ color: #fff;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  border: 1px solid #444;
-  border-radius: 8px;
+  border: 3px solid #fff;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
   padding: 15px 15px 35px 15px;
   background: rgba(0, 0, 0, 0.2);
   min-height: 0;
@@ -4967,8 +5035,9 @@ color: #fff;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  border: 1px solid #444;
-  border-radius: 8px;
+  border: 3px solid #fff;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
   padding: 15px 15px 35px 15px;
   background: rgba(0, 0, 0, 0.2);
   min-height: 0;
@@ -5142,7 +5211,7 @@ color: #fff;
   color: #888;
   text-align: center;
   font-style: italic;
-  padding: 20px;
+  padding: 2px;
   grid-column: 1 / -1;
 }
 
@@ -5686,9 +5755,9 @@ color: #fff;
 
 /* Collection Layout Classes - No Inline Styles */
 .layout-movies-content {
-    flex: 0.85 !important;
-    height: 85% !important;
-    min-height: 85% !important;
+    flex: 0.80 !important;
+    height: 80% !important;
+    min-height: 80% !important;
 }
 
 .layout-tvshows-empty {
@@ -5704,8 +5773,8 @@ color: #fff;
 }
 
 .layout-tvshows-content {
-    flex: 0.85 !important;
-    height: 85% !important;
+    flex: 0.80 !important;
+    height: 80% !important;
     min-height: 80% !important;
 }
 

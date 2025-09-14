@@ -1,3 +1,11 @@
+/*
+  COLLECTIONSSYNCCONTROLLER.JS
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
+  Created by Paul Welby
+*/
+
 /**
  * COLLECTIONS SYNC CONTROLLER
  * Centralized controller to monitor and maintain all collection data sources in perfect sync

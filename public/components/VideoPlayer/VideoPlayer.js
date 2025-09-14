@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 24
-  AppName: mc_1_cm [v24]
-  Updated: 9/8/2025 @9:30AM
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
   Created by Paul Welby
 */
 
@@ -426,6 +426,14 @@ class VideoPlayer {
                     async handleClick() {
                         // Get the current playing movie from the video player
                         let movie = window.mediaLibraryManager?.currentMediaItem;
+                        
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Save for Later clicked');
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: currentMediaItem:', movie);
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode name:', movie?.name);
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode title:', movie?.title);
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode season:', movie?.season);
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode episode:', movie?.episode);
+                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode filename:', movie?.filename);
                         
                         // If no movie found, try to get it from the video player
                         if (!movie) {
@@ -5606,8 +5614,13 @@ class VideoPlayer {
                     networkState: this.vjsPlayer.networkState()
                 });
                 console.error('[DEBUG - VIDEO-PLAYER] Attempted source:', src);
-                // SUPPRESSED: Don't show error message to user since video often loads successfully anyway
-                // this.showMessage(`Error loading video. Please check the console for details.`);
+                
+                // Show error message to user for 404 errors (file not found)
+                if (error.code === 4 || error.message.includes('404') || error.message.includes('not found')) {
+                    this.showMessage(`❌ ERROR: Video file not found. Please check the console for details.`);
+                } else {
+                    this.showMessage(`❌ ERROR: Failed to load video. Please check the console for details.`);
+                }
             });
             
             // Add metadata loaded event to ensure amplification is reset

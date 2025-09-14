@@ -1,6 +1,6 @@
 {
   "name": "multichat-chatty-server",
-  "version": "2.0.0",
+  "version": "1.25.1",
   "description": "Backend server for MultiChat Chatty application",
   "main": "server.js",
   "scripts": {

@@ -1,3 +1,11 @@
+/*
+  FIX_COMIC_BOOK_MOVIES_COLLECTION_DUPLICATES.JS
+  Version: 1.25.1
+  AppName: MultiChat_Chatty [v1.25.1]
+  Updated: 9/14/2025 @5:55AM
+  Created by Paul Welby
+*/
+
 const fs = require('fs');
 const path = require('path');
 
