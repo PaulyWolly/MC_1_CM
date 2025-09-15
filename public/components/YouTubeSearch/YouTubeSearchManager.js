@@ -2438,44 +2438,44 @@ export default class YouTubeSearchManager {
       }
     );
 
-    console.log("📊 [DROPDOWN] Database queries loaded:", dbQueries.length);
+    //console.log("📊 [DROPDOWN] Database queries loaded:", dbQueries.length);
 
     // Get local queries from localStorage cache
 
     const localQueries = this.getLocalStorageQueries();
 
-    console.log("📊 [DROPDOWN] Local queries loaded:", localQueries.length);
+   // console.log("📊 [DROPDOWN] Local queries loaded:", localQueries.length);
 
     // Merge and dedupe queries - prioritize database entries
 
     const mergedQueries = this.mergeAndDedupeQueries(localQueries, dbQueries);
 
-    console.log("📊 [DROPDOWN] Total merged queries:", mergedQueries.length);
+    // console.log("📊 [DROPDOWN] Total merged queries:", mergedQueries.length);
 
     // DEBUG: Log access history for debugging
-    console.log(
-      "📊 [DROPDOWN] Current access history:",
-      this.queryAccessHistory.map((item) => ({
-        query: item.query,
-        cleanQuery: item.cleanQuery,
-        accessTime: item.accessTime,
-      }))
-    );
+    // console.log(
+    //   "📊 [DROPDOWN] Current access history:",
+    //   this.queryAccessHistory.map((item) => ({
+    //     query: item.query,
+    //     cleanQuery: item.cleanQuery,
+    //     accessTime: item.accessTime,
+    //   }))
+    // );
 
     // DEBUG: Log zucchini queries in merged results
     const zucchiniQueries = mergedQueries.filter(
       (q) => q.query && q.query.toLowerCase().includes("zucchini")
     );
     if (zucchiniQueries.length > 0) {
-      console.log(
-        "🔍 [ZUCCHINI-MERGED] Found zucchini queries in merged results:",
-        zucchiniQueries.map((q) => ({
-          query: q.query,
-          originalQuery: q.originalQuery,
-          displayName: q.displayName,
-          source: q.source,
-        }))
-      );
+      // console.log(
+      //   "🔍 [ZUCCHINI-MERGED] Found zucchini queries in merged results:",
+      //   zucchiniQueries.map((q) => ({
+      //     query: q.query,
+      //     originalQuery: q.originalQuery,
+      //     displayName: q.displayName,
+      //     source: q.source,
+      //   }))
+      // );
     }
 
     // FILTER: Show queries that have video data OR are in access history (preserve user's search history)
@@ -2495,25 +2495,25 @@ export default class YouTubeSearchManager {
 
 
       if (!hasVideoData && !isInAccessHistory) {
-        console.log(
-          `🚫 [FILTER] Filtering out query "${query.query}" - no video data and not in access history`
-        );
+        // console.log(
+        //   `🚫 [FILTER] Filtering out query "${query.query}" - no video data and not in access history`
+        // );
 
         return false;
       }
 
       if (!hasVideoData && isInAccessHistory) {
-        console.log(
-          `⚠️ [FILTER] Query "${query.query}" has no video data but is in access history - keeping it`
-        );
+        // console.log(
+        //   `⚠️ [FILTER] Query "${query.query}" has no video data but is in access history - keeping it`
+        // );
 
         return true;
       }
 
       if (hasVideoData) {
-        console.log(
-          `✅ [FILTER] Query "${query.query}" has video data - keeping it`
-        );
+        // console.log(
+        //   `✅ [FILTER] Query "${query.query}" has video data - keeping it`
+        // );
 
         return true;
       }
@@ -2521,9 +2521,9 @@ export default class YouTubeSearchManager {
       return false;
     });
 
-    console.log(
-      `📊 [DROPDOWN] Queries with video data or in access history: ${queriesWithVideoData.length} (filtered from ${mergedQueries.length} total)`
-    );
+    // console.log(
+    //   `📊 [DROPDOWN] Queries with video data or in access history: ${queriesWithVideoData.length} (filtered from ${mergedQueries.length} total)`
+    // );
     
 
 
@@ -2600,10 +2600,10 @@ export default class YouTubeSearchManager {
     try {
       // STEP 1: Get queries from access history (includes new queries that may not have cache yet)
 
-      console.log(
-        "🔍 [LOCAL-STORAGE] Access history items:",
-        this.queryAccessHistory.map((item) => item.query)
-      );
+      // console.log(
+      //   "🔍 [LOCAL-STORAGE] Access history items:",
+      //   this.queryAccessHistory.map((item) => item.query)
+      // );
 
       this.queryAccessHistory.forEach((historyItem) => {
         if (!localQueries.find((q) => q.query === historyItem.query)) {
@@ -2627,10 +2627,10 @@ export default class YouTubeSearchManager {
         }
       });
 
-      console.log(
-        "🔍 [LOCAL-STORAGE] Local queries after adding access history:",
-        localQueries.map((q) => q.query)
-      );
+      // console.log(
+      //   "🔍 [LOCAL-STORAGE] Local queries after adding access history:",
+      //   localQueries.map((q) => q.query)
+      // );
 
       // Count YouTube-related keys for summary
 

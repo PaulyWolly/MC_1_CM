@@ -585,11 +585,11 @@ class GlobalDataSyncController {
         );
         
         if (!hasMediaItems) {
-          console.log(`🚫 [GLOBAL-SYNC] Removing EMPTY actor collection: ${name} (no media items)`);
+          // console.log(`🚫 [GLOBAL-SYNC] Removing EMPTY actor collection: ${name} (no media items)`);
           removedCount++;
           return;
         } else {
-          console.log(`✅ [GLOBAL-SYNC] Keeping actor collection: ${name} (has ${Array.isArray(items) ? items.length : Object.keys(items).length} media items)`);
+          // console.log(`✅ [GLOBAL-SYNC] Keeping actor collection: ${name} (has ${Array.isArray(items) ? items.length : Object.keys(items).length} media items)`);
           cleaned[name] = items;
           keptActorCount++;
           return;
@@ -606,9 +606,9 @@ class GlobalDataSyncController {
     });
     
     if (removedCount > 0) {
-      console.log(`🧹 [GLOBAL-SYNC] Cleaned ${removedCount} invalid collections, kept ${keptActorCount} actor collections with media`);
+      // console.log(`🧹 [GLOBAL-SYNC] Cleaned ${removedCount} invalid collections, kept ${keptActorCount} actor collections with media`);
     } else if (keptActorCount > 0) {
-      console.log(`✅ [GLOBAL-SYNC] All ${keptActorCount} actor collections have media items - keeping them all`);
+      // console.log(`✅ [GLOBAL-SYNC] All ${keptActorCount} actor collections have media items - keeping them all`);
     }
     
     return cleaned;
