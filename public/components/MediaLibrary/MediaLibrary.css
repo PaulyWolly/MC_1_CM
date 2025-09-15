@@ -1520,6 +1520,7 @@
     margin: 0 !important;
 }
 
+
 .favorites-only-heart-btn {
   border: none;
   background: none;
@@ -3873,6 +3874,7 @@
   position: relative;
   transition: all 0.3s ease;
   cursor: pointer;
+  margin-bottom: 20px;
 }
 
 .media-library-movie-card-movies-collections.dragging {
@@ -5321,6 +5323,38 @@ color: #fff;
     margin: 2px;
     border-radius: 12px;
     font-size: 12px;
+}
+
+.collections-modal-tag-current {
+    background: #28a745; /* Green for current collections */
+    color: white;
+}
+
+.collections-modal-tag-selected {
+    background: #007bff; /* Blue for newly selected collections */
+    color: white;
+}
+
+.remove-collection-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    margin-left: 4px;
+    cursor: pointer;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.remove-collection-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .collection-modal-header h3 {

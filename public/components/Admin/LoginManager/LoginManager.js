@@ -236,43 +236,40 @@
         console.log('🔧 [LoginManager] window.adminPanel available:', !!window.adminPanel);
         console.log('🔧 [LoginManager] window.LoginManager.onLogin available:', typeof window.LoginManager.onLogin);
         
-        setTimeout(() => {
-          hideModal();
+        // Hide modal immediately to prevent flash
+        hideModal();
+        
+        // Disable login modal display after use to prevent automatic showing
+        this.disableLoginModal();
+        
+        // Handle post-login intent for admin access immediately
+        if (window._postLoginIntent === 'admin') {
+          console.log('🔧 [LoginManager] Post-login intent: admin, opening admin panel...');
+          // Clear the intent
+          window._postLoginIntent = null;
           
-          // Disable login modal display after use to prevent automatic showing
-          this.disableLoginModal();
-          
-          // Handle post-login intent for admin access
-          if (window._postLoginIntent === 'admin') {
-            console.log('🔧 [LoginManager] Post-login intent: admin, opening admin panel...');
-            // Clear the intent
-            window._postLoginIntent = null;
-            
-            // Instead of calling adminPanel.show() directly, let the onLogin callback handle it
-            // This ensures proper coordination between LoginManager and AdminPanel
-            if (typeof window.LoginManager.onLogin === 'function') {
-              console.log('🔧 [LoginManager] Executing onLogin callback for admin access...');
-              window.LoginManager.onLogin(data.user);
-            } else {
-              console.warn('🔧 [LoginManager] No onLogin callback registered, falling back to direct show...');
-              // Fallback: try to open admin panel directly
-              if (window.adminPanel && typeof window.adminPanel.show === 'function') {
-                console.log('🔧 [LoginManager] AdminPanel available, calling show() as fallback...');
-                setTimeout(() => {
-                  window.adminPanel.show();
-                }, 100);
-              }
-            }
+          // Instead of calling adminPanel.show() directly, let the onLogin callback handle it
+          // This ensures proper coordination between LoginManager and AdminPanel
+          if (typeof window.LoginManager.onLogin === 'function') {
+            console.log('🔧 [LoginManager] Executing onLogin callback for admin access...');
+            window.LoginManager.onLogin(data.user);
           } else {
-            // Call the onLogin callback if it exists
-            if (typeof window.LoginManager.onLogin === 'function') {
-              console.log('🔧 [LoginManager] Executing onLogin callback...');
-              window.LoginManager.onLogin(data.user);
-            } else {
-              console.warn('🔧 [LoginManager] No onLogin callback registered');
+            console.warn('🔧 [LoginManager] No onLogin callback registered, falling back to direct show...');
+            // Fallback: try to open admin panel directly
+            if (window.adminPanel && typeof window.adminPanel.show === 'function') {
+              console.log('🔧 [LoginManager] AdminPanel available, calling show() as fallback...');
+              window.adminPanel.show();
             }
           }
-        }, 800);
+        } else {
+          // Call the onLogin callback if it exists
+          if (typeof window.LoginManager.onLogin === 'function') {
+            console.log('🔧 [LoginManager] Executing onLogin callback...');
+            window.LoginManager.onLogin(data.user);
+          } else {
+            console.warn('🔧 [LoginManager] No onLogin callback registered');
+          }
+        }
       } else if (mode === 'forgot') {
         setMessage('If this email exists, a reset link will be sent.', true);
       }
