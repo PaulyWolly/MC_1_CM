@@ -1,8 +1,8 @@
 /*
   CONVERT_SRT_TO_VTT.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -32,13 +32,14 @@ fs.readdirSync(subtitlesDir).forEach(file => {
     }
     convertSrtToVtt(srtPath, vttPath);
     console.log(`Converted: ${file} -> ${path.basename(vttPath)}`);
-    // Delete the original .srt file after successful conversion
-    try {
-      fs.unlinkSync(srtPath);
-      console.log(`Deleted original .srt: ${file}`);
-    } catch (err) {
-      console.error(`Failed to delete .srt: ${file}`, err);
-    }
+    // SAFETY: Never auto-delete source files - manual cleanup only
+    // try {
+    //   fs.unlinkSync(srtPath);
+    //   console.log(`Deleted original .srt: ${file}`);
+    // } catch (err) {
+    //   console.error(`Failed to delete .srt: ${file}`, err);
+    // }
+    console.log(`⚠️ SAFETY: Original .srt preserved: ${file}`);
   }
 });
 

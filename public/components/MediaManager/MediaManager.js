@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -915,19 +915,80 @@ class MediaManager {
     }
   }
 
+  clearMovieForm() {
+    console.log('[MediaManager] Clearing movie form for next entry');
+    
+    // Clear all form inputs
+    if (this.inputTitle) this.inputTitle.value = '';
+    if (this.inputPath) this.inputPath.value = '';
+    if (this.inputTMDBId) this.inputTMDBId.value = '';
+    if (this.descInput) this.descInput.value = '';
+    
+    // Clear poster
+    if (this.posterImg) {
+      this.posterImg.src = '';
+      this.posterImg.style.display = 'none';
+    }
+    
+    // Clear cast list
+    if (this.castList) {
+      this.castList.innerHTML = '';
+    }
+    this.currentCastData = [];
+    
+    // Disable confirm button until new data is loaded
+    if (this.confirmBtn) {
+      this.confirmBtn.disabled = true;
+    }
+    
+    console.log('[MediaManager] Movie form cleared - ready for next movie');
+  }
+
   handleClose() {
+    // Check if there are unprocessed movies from scan results
+    const hasUnprocessedMovies = this.scanResultsMovies && this.scanResultsMovies.length > 0;
+    
+    if (hasUnprocessedMovies) {
+      // Show friendly confirmation but allow user to close
+      const confirmClose = confirm(
+        `You still have ${this.scanResultsMovies.length} unprocessed movies.\n\n` +
+        `Are you sure you want to close the Media Manager?\n\n` +
+        `(You can re-scan later to continue adding them)`
+      );
+      
+      if (!confirmClose) {
+        console.log('[MediaManager] User cancelled close - keeping MediaManager open');
+        return; // User chose to stay - don't close
+      }
+      
+      console.log('[MediaManager] User confirmed close despite unprocessed movies');
+    }
+    
+    // User confirmed close or no unprocessed movies - proceed with closing
     this.destroy();
     if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
       console.log('[MediaManager] Reopening MediaLibrary modal and refreshing content...');
-      setTimeout(() => {
-        window.mediaLibraryManager.openMediaBrowser();
-        // Also refresh the content to show any changes made
+      setTimeout(async () => {
+        // Reopen the MediaLibrary modal
+        await window.mediaLibraryManager.openMediaBrowser();
+        
+        // Wait for modal to be fully loaded, then refresh content to show any changes
         if (typeof window.mediaLibraryManager.refreshCurrentContent === 'function') {
-          setTimeout(() => {
-            window.mediaLibraryManager.refreshCurrentContent();
-          }, 500); // Small delay to ensure modal is open first
+          setTimeout(async () => {
+            console.log('[MediaManager] Refreshing MediaLibrary content after close...');
+            
+            // Use the proper method to reload data instead of clearing it
+            if (window.mediaLibraryManager) {
+              // Clear localStorage cache
+              localStorage.removeItem('mediaLibraryCache');
+              localStorage.removeItem('mediaCollections');
+              
+              // Use the proper reload method to refresh all data
+              await window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+            }
+          }, 1000); // Increased delay to ensure modal is fully loaded and rendered
         }
-      }, 0);
+      }, 100); // Small initial delay to ensure MediaManager is fully destroyed
     } else {
       console.warn('[MediaManager] Could not reopen MediaLibrary modal: mediaLibraryManager or openMediaBrowser missing');
     }
@@ -1158,15 +1219,83 @@ class MediaManager {
         
         this.showModalToast('Movie added successfully! All files scanned and metadata saved.', 'success');
         
-        // Refresh the media library
-        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid === 'function') {
-          window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+        // Remove the added movie from scan results and from the displayed list
+        if (this.currentMovieBeingAdded && this.scanResultsMovies) {
+          const movieKey = this.currentMovieBeingAdded.key || this.currentMovieBeingAdded.title;
+          const movieIndex = this.scanResultsMovies.findIndex(m => 
+            (m.key && m.key === movieKey) || m.title === this.currentMovieBeingAdded.title
+          );
+          
+          if (movieIndex !== -1) {
+            this.scanResultsMovies.splice(movieIndex, 1);
+            console.log(`[MediaManager] Removed movie from scan results. ${this.scanResultsMovies.length} movies remaining.`);
+            
+            // Remove the movie from the displayed list
+            const listItem = this.containerElement.querySelector(`li[data-movie-key="${movieKey}"]`);
+            if (listItem) {
+              listItem.remove();
+              console.log('[MediaManager] Removed movie from displayed list');
+            }
+            
+            // Update the header count
+            const header = this.containerElement.querySelector('.new-movies-list-container h4');
+            if (header) {
+              header.textContent = `New Movies Found (${this.scanResultsMovies.length}):`;
+            }
+          }
         }
         
-        // Close MediaManager and reopen MediaLibrary modal
-        this.destroy();
-        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
-          window.mediaLibraryManager.openMediaBrowser();
+        // Check if there are more movies to add
+        const hasMoreMovies = this.scanResultsMovies && this.scanResultsMovies.length > 0;
+        
+        if (hasMoreMovies) {
+          // More movies remain - keep MediaManager open and clear the form
+          console.log('[MediaManager] More movies remain - keeping MediaManager open');
+          this.showModalToast(`Movie added! ${this.scanResultsMovies.length} more movies to process.`, 'success');
+          
+          // Clear the form for the next movie
+          this.clearMovieForm();
+          this.currentMovieBeingAdded = null;
+          
+          // Optionally refresh MediaLibrary in the background without closing MediaManager
+          if (window.mediaLibraryManager) {
+            // Use the proper method to reload data instead of clearing it
+            setTimeout(async () => {
+              await window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+            }, 500); // Small delay to ensure server file operations are complete
+          }
+          
+        } else {
+          // No more movies - close MediaManager and reopen MediaLibrary modal
+          console.log('[MediaManager] Last movie added - closing MediaManager');
+          this.destroy();
+          if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
+            setTimeout(async () => {
+              // Reopen the MediaLibrary modal
+              await window.mediaLibraryManager.openMediaBrowser();
+              
+              // Force a complete refresh with fresh data to show the new movie
+              if (typeof window.mediaLibraryManager.refreshCurrentContent === 'function') {
+                setTimeout(async () => {
+                  console.log('[MediaManager] Forcing complete refresh after movie add...');
+                  // Add extra delay to ensure file write operations are complete on server
+                  setTimeout(async () => {
+                    console.log('[MediaManager] Clearing all caches and forcing complete refresh...');
+                    
+                    // Use the proper method to reload data instead of clearing it
+                    if (window.mediaLibraryManager) {
+                      // Clear localStorage cache
+                      localStorage.removeItem('mediaLibraryCache');
+                      localStorage.removeItem('mediaCollections');
+                      
+                      // Use the proper reload method to refresh all data
+                      await window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+                    }
+                  }, 500); // Additional delay for server file operations
+                }, 1000); // Initial delay to ensure modal is fully loaded and rendered
+              }
+            }, 100); // Small initial delay to ensure MediaManager is fully destroyed
+          }
         }
         
         return; // Exit early for movies since we handled everything
@@ -1269,21 +1398,28 @@ class MediaManager {
         console.info('[MediaManager] Saved info successfully.');
         console.info('[MediaManager] Key saved:', data.keySaved || '');
       }
-      // Always reload movie posters and refresh grid after save
-      if (window.mediaLibraryManager && typeof window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid === 'function') {
-        window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
-      }
       // Immediately close MediaManager and reopen MediaLibrary modal
       this.destroy();
       if (window.mediaLibraryManager && typeof window.mediaLibraryManager.openMediaBrowser === 'function') {
         console.log('[MediaManager] Reopening MediaLibrary modal after Confirm...');
-        setTimeout(() => {
-          window.mediaLibraryManager.openMediaBrowser();
-          // Also refresh the content to show any changes made
+        setTimeout(async () => {
+          // Reopen the MediaLibrary modal
+          await window.mediaLibraryManager.openMediaBrowser();
+          // Force refresh with fresh data to show any changes made
           if (typeof window.mediaLibraryManager.refreshCurrentContent === 'function') {
-            setTimeout(() => {
-              window.mediaLibraryManager.refreshCurrentContent();
-            }, 500); // Small delay to ensure modal is open first
+            setTimeout(async () => {
+              console.log('[MediaManager] Forcing complete refresh after movie details save...');
+              
+              // Clear all browser caches and localStorage
+              if (window.mediaLibraryManager) {
+                // Clear localStorage cache
+                localStorage.removeItem('mediaLibraryCache');
+                localStorage.removeItem('mediaCollections');
+                
+                // Use the proper reload method to refresh all data
+                await window.mediaLibraryManager.reloadMoviePostersAndRefreshGrid();
+              }
+            }, 1000); // Increased delay to ensure modal is fully loaded and rendered
           }
         }, 0);
       } else {
@@ -2193,7 +2329,7 @@ class MediaManager {
       let seasonName = season.path || season.seasonName || `Season ${seasonNumber}`;
       
       if (season.path) {
-        // Extract season number from folder name like "Season 01" or "S01"
+        // Extract season number from folder name like "Season 1" or "S01"
         const seasonMatch = season.path.match(/Season\s*(\d+)/i) || season.path.match(/^S(\d+)/i);
         if (seasonMatch) {
           seasonNumber = parseInt(seasonMatch[1], 10);
@@ -2489,7 +2625,7 @@ Modified: ${new Date(episode.modified).toLocaleString()}
         });
         
         folders.push({
-          path: `Season ${seasonNum.toString().padStart(2, '0')}`,
+          path: `Season ${seasonNum.toString()}`,
           files: files
         });
       });
@@ -3751,13 +3887,13 @@ MediaManager.prototype.handleScanMovies = async function() {
       throw new Error(data.error || 'Failed to scan movies');
     }
     
-    // Handle the response structure from /api/scan-movies (not /api/media/scan-movies)
-    // The response structure is: {success, message, newMovies, output}
+    // Handle the response structure from /api/media/scan-movies
+    // The response structure is: {success, message, newMovies, totalMovies, newMoviesData, output}
     const newMoviesCount = data.newMovies || 0;
+    const newMoviesData = data.newMoviesData || [];
     
-    // For compatibility, create a movies array structure
-    const newMovies = []; // The /api/scan-movies endpoint only returns a count, not movie details
     console.log(`[DEBUG - SCAN_MOVIES] Found ${newMoviesCount} new movies`);
+    console.log(`[DEBUG - SCAN_MOVIES] New movies data:`, newMoviesData);
     
     // Re-enable the button
     if (this.scanMoviesBtn) {
@@ -3766,10 +3902,14 @@ MediaManager.prototype.handleScanMovies = async function() {
     }
     
     // Show completion message as toast
-    if (newMoviesCount > 0) {
-      const successMsg = `Scan complete! Found ${newMoviesCount} new movies.\n\nYou can now add details for any of these movies using the form above.`;
+    if (newMoviesData.length > 0) {
+      const successMsg = `Scan complete! Found ${newMoviesData.length} movies that need TMDB data.\n\nClick on any movie below to populate the form and fetch details.`;
       this.showModalToast(successMsg, 'success');
       console.log('[DEBUG - SCAN_MOVIES] Scan completed successfully');
+      this.displayNewMoviesList(newMoviesData);
+    } else if (newMoviesCount > 0) {
+      this.showModalToast(`Scan complete! Found ${newMoviesCount} new movies, but all already have complete data.`, 'info');
+      console.log('[DEBUG - SCAN_MOVIES] New movies found but all have complete data');
     } else {
       this.showModalToast('Scan complete! No new movies found in your library folders.', 'info');
       console.log('[DEBUG - SCAN_MOVIES] No new movies found');
@@ -4309,6 +4449,121 @@ async function fetchMovieDetailsFromTMDB(title, year) {
     })) : [];
     return { poster, description, cast, tmdbId: movie.id, year: (movie.release_date || '').slice(0,4) };
 }
+
+// NEW: Display bullet point listing of new movies
+MediaManager.prototype.displayNewMoviesList = function(newMoviesData) {
+  console.log('[DEBUG - DISPLAY_MOVIES] Displaying new movies list:', newMoviesData);
+  
+  // Store the scan results for tracking remaining movies
+  this.scanResultsMovies = newMoviesData || [];
+  this.currentMovieBeingAdded = null; // Track which movie is currently being added
+  
+  // Create or find the movies list container
+  let moviesListContainer = this.containerElement.querySelector('.new-movies-list-container');
+  if (!moviesListContainer) {
+    moviesListContainer = document.createElement('div');
+    moviesListContainer.className = 'new-movies-list-container';
+    moviesListContainer.style.cssText = `
+      margin-top: 20px;
+      padding: 15px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    `;
+    
+    // Insert after the action buttons
+    const actionButtons = this.containerElement.querySelector('.media-manager-action-buttons');
+    if (actionButtons && actionButtons.parentNode) {
+      actionButtons.parentNode.insertBefore(moviesListContainer, actionButtons.nextSibling);
+    }
+  }
+  
+  // Clear existing content
+  moviesListContainer.innerHTML = '';
+  
+  // Add header
+  const header = document.createElement('h4');
+  header.textContent = `New Movies Found (${newMoviesData.length}):`;
+  header.style.cssText = 'color: #4CAF50; margin: 0 0 10px 0; font-size: 16px;';
+  moviesListContainer.appendChild(header);
+  
+  // Add bullet point list
+  const list = document.createElement('ul');
+  list.style.cssText = 'margin: 0; padding-left: 20px; color: #fff;';
+  
+  newMoviesData.forEach((movie, index) => {
+    const listItem = document.createElement('li');
+    listItem.style.cssText = 'margin-bottom: 8px; line-height: 1.4;';
+    listItem.setAttribute('data-movie-key', movie.key || movie.title); // For removal after adding
+    
+    // Create clickable movie entry
+    const movieEntry = document.createElement('div');
+    movieEntry.style.cssText = 'cursor: pointer; padding: 5px; border-radius: 4px; transition: background-color 0.2s;';
+    movieEntry.addEventListener('mouseenter', () => {
+      movieEntry.style.backgroundColor = '#333';
+    });
+    movieEntry.addEventListener('mouseleave', () => {
+      movieEntry.style.backgroundColor = 'transparent';
+    });
+    movieEntry.addEventListener('click', () => {
+      this.currentMovieBeingAdded = movie; // Track which movie is being added
+      this.populateFormWithMovie(movie);
+    });
+    
+    // Movie title and year
+    const title = document.createElement('strong');
+    title.textContent = `${movie.title} (${movie.year})`;
+    title.style.color = '#4CAF50';
+    
+    // Movie path
+    const path = document.createElement('div');
+    path.textContent = movie.path;
+    path.style.cssText = 'font-size: 12px; color: #888; margin-top: 2px;';
+    
+    movieEntry.appendChild(title);
+    movieEntry.appendChild(path);
+    listItem.appendChild(movieEntry);
+    list.appendChild(listItem);
+  });
+  
+  moviesListContainer.appendChild(list);
+  
+  // Add instruction text
+  const instruction = document.createElement('div');
+  instruction.textContent = 'Click on any movie to populate the form above with its details.';
+  instruction.style.cssText = 'margin-top: 10px; font-size: 12px; color: #888; font-style: italic;';
+  moviesListContainer.appendChild(instruction);
+};
+
+// NEW: Populate form with movie data
+MediaManager.prototype.populateFormWithMovie = function(movie) {
+  console.log('[DEBUG - POPULATE_FORM] Populating form with movie:', movie);
+  
+  // Populate the form fields
+  const titleInput = this.containerElement.querySelector('#media-manager-title');
+  const tmdbIdInput = this.containerElement.querySelector('#media-manager-tmdbid');
+  const pathInput = this.containerElement.querySelector('#media-manager-path');
+  const descriptionInput = this.containerElement.querySelector('#media-manager-description');
+  
+  if (titleInput) titleInput.value = movie.title || '';
+  if (tmdbIdInput) tmdbIdInput.value = movie.tmdbId || '';
+  if (pathInput) pathInput.value = movie.path || '';
+  if (descriptionInput) descriptionInput.value = movie.description || '';
+  
+  // Trigger form validation after populating fields
+  this.validateForm();
+  
+  // Show success message
+  this.showModalToast(`Form populated with "${movie.title}" details. You can now edit and add the movie.`, 'success');
+  
+  // Scroll to top of form
+  const form = this.containerElement.querySelector('.media-manager-main-details-section');
+  if (form) {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
 
 // NEW: Global function for scanMoviesDirectory (for backward compatibility)
 window.scanMoviesDirectory = async function() {

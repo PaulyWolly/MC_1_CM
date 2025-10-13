@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -153,6 +153,9 @@ app.use('/api/youtube/clicked-videos', clickedVideosRoutes);
 app.use('/api/watch-later', watchLaterRoutes);
 app.use('/api/lyrics', lyricsRoutes);
 app.use('/api/collections', require('./routes/collections.routes'));
+app.use('/api/backup', require('./routes/backup.routes'));
+app.use('/api/movies', require('./routes/movies.routes'));
+app.use('/api/tv-shows', require('./routes/tvshows.routes'));
 app.use('/', thumbnailsRoutes);
 
 // 1. Serve S:/MEDIA as /media (STATIC)
@@ -217,8 +220,17 @@ app.get('/api/youtube/restore-cache/:query', async (req, res) => {
 const mediaManagerRoutes = require('./routes/mediaManager.routes');
 app.use('/api/media', mediaManagerRoutes);
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve static frontend files with cache control for JSON files
+app.use(express.static(path.join(__dirname, '../public'), {
+  setHeaders: (res, path) => {
+    // Disable caching for JSON files to ensure fresh data
+    if (path.endsWith('.json')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Subtitle file serving endpoint
 app.get('/api/subtitles', (req, res) => {
@@ -4233,7 +4245,7 @@ app.get('/api/video', (req, res) => {
       return res.status(404).send('File not found');
     }
   } else if (!videoPath.includes(':') && !videoPath.startsWith('/') && !videoPath.startsWith('\\')) {
-    // Handle relative paths (like "Lucifer (2016)/Season 06/..." or "TV-SHOWS/Show Name/...")
+    // Handle relative paths (like "Lucifer (216)/season 6/..." or "TV-SHOWS/Show Name/...")
     console.log('🎬 [VIDEO] Processing relative path:', videoPath);
     
     let cleanedPath = videoPath;

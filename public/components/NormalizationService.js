@@ -1,8 +1,8 @@
 /*
   NORMALIZATIONSERVICE.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -15,7 +15,22 @@ function normalizeKey(name) {
   return name
     .replace(/\\/g, '/')
     // First, protect periods within words (like "vs.") by temporarily replacing them
-    .replace(/(\w+)\.(\w+)/g, '$1__PERIOD__$2')
+    // BUT avoid interfering with single letters followed by periods (like "E.T.") or word.letter patterns (like "WALL.E")
+    .replace(/(\w+)\.(\w+)/g, (match, p1, p2) => {
+      // Don't replace if either part is "period" to avoid "eperiodt" issues
+      if (p1.toLowerCase() === 'period' || p2.toLowerCase() === 'period') {
+        return match; // Keep original
+      }
+      // Don't replace single letters followed by periods (like "E.T." -> "E.T.")
+      if (p1.length === 1 && p2.length === 1) {
+        return match; // Keep original for single letter abbreviations
+      }
+      // Don't replace word.letter patterns (like "WALL.E" -> "WALL.E")
+      if (p1.length > 1 && p2.length === 1) {
+        return match; // Keep original for word.single-letter patterns
+      }
+      return p1 + '__PERIOD__' + p2;
+    })
     // Handle common abbreviations and special cases
     .replace(/\bMr\.\b/gi, 'mr')
     .replace(/\bMrs\.\b/gi, 'mrs')
@@ -33,6 +48,10 @@ function normalizeKey(name) {
     .replace(/\bLtd\.\b/gi, 'ltd')
     .replace(/\bCorp\.\b/gi, 'corp')
     .replace(/\bLLC\b/gi, 'llc')
+    // CRITICAL: Standardize X-Men variations to "x.men" for internal consistency
+    .replace(/\bX[-\s]*Men\b/gi, 'X-Men')
+    .replace(/\bXmen\b/gi, 'X-Men')
+    .replace(/\bX\s+Men\b/gi, 'X-Men')
     .replace(/\bU\.S\.A\.\b/gi, 'usa')
     .replace(/\bU\.S\.A\b/gi, 'usa')
     .replace(/\bU\.S\.\b/gi, 'us')
@@ -248,6 +267,8 @@ function normalizeKey(name) {
     .replace(/\s+Themselves\s+/gi, '.themselves.')
     // Convert all other spaces to dots
     .replace(/\s+/g, '.')
+    // Handle hyphens in abbreviations (like Wall-E -> Wall.E)
+    .replace(/([a-zA-Z])-([a-zA-Z])/g, '$1.$2')
     // Remove special characters except dots, parentheses, and brackets
     .replace(/[^a-zA-Z0-9.\[\]()]/g, '')
     // Clean up multiple dots
@@ -305,4 +326,13 @@ if (typeof window !== 'undefined') {
   
   // Log successful initialization
   console.log('✅ [NORMALIZATION] NormalizationService loaded and ready');
+}
+
+// Export for Node.js usage
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizeKey,
+    getDisplayName,
+    getInternalKey
+  };
 } 

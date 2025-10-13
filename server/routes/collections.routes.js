@@ -1,8 +1,8 @@
 /*
   COLLECTIONS.ROUTES.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -10,7 +10,10 @@ const express = require('express');
 const Collection = require('../models/Collection');
 const fs = require('fs').promises;
 const path = require('path');
+const { exec } = require('child_process');
+const { promisify } = require('util');
 
+const execAsync = promisify(exec);
 const router = express.Router();
 
 // GET - Get all collections for a user
@@ -352,28 +355,38 @@ router.post('/save-json', async (req, res) => {
   try {
     const collectionsData = req.body;
     
-    if (!collectionsData || !collectionsData.collections) {
+    // Ensure data has the proper collections wrapper structure
+    let finalCollectionsData;
+    if (collectionsData.collections) {
+      // Data is already properly wrapped
+      finalCollectionsData = collectionsData;
+      console.log('[COLLECTIONS-API] Data already has collections wrapper, using as-is...');
+    } else if (collectionsData.my_collections || collectionsData.actors || collectionsData.directors) {
+      // Data needs to be wrapped in collections object
+      finalCollectionsData = { collections: collectionsData };
+      console.log('[COLLECTIONS-API] Wrapping data in collections object...');
+    } else {
       return res.status(400).json({ 
         success: false, 
-        error: 'Invalid collections data format' 
+        error: 'Invalid collections data format - must contain collections or direct data' 
       });
     }
     
     console.log('[COLLECTIONS-API] Saving collections to JSON file...');
     
-    // Path to collections.json
-    const collectionsPath = path.join(__dirname, '../../public/components/MediaLibrary/data/collections.json');
+    // Path to collections-unified.json
+    const collectionsPath = path.join(__dirname, '../../public/components/MediaLibrary/data/collections/collections-unified.json');
     
-    // Write collections data to file
-    await fs.writeFile(collectionsPath, JSON.stringify(collectionsData, null, 2), 'utf8');
+    // Write the complete wrapped structure to file (preserving the collections wrapper)
+    await fs.writeFile(collectionsPath, JSON.stringify(finalCollectionsData, null, 2), 'utf8');
     
     console.log('[COLLECTIONS-API] Successfully saved collections to JSON file');
     
     res.json({
       success: true,
       message: 'Collections saved to JSON file successfully',
-      totalCategories: Object.keys(collectionsData.collections).length,
-      totalCollections: Object.values(collectionsData.collections).reduce((total, category) => {
+      totalCategories: Object.keys(finalCollectionsData.collections).length,
+      totalCollections: Object.values(finalCollectionsData.collections).reduce((total, category) => {
         return total + Object.keys(category).length;
       }, 0)
     });
@@ -383,6 +396,77 @@ router.post('/save-json', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to save collections to JSON file' 
+    });
+  }
+});
+
+// POST - Save collection listing to JSON file
+router.post('/save-listing', async (req, res) => {
+  try {
+    const listingData = req.body;
+    
+    if (!listingData || typeof listingData !== 'object') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid listing data format' 
+      });
+    }
+    
+    console.log('[COLLECTIONS-API] Saving collection listing to JSON file...');
+    
+    // Path to collection-listing.json
+    const listingPath = path.join(__dirname, '../../public/components/MediaLibrary/data/collection-listing.json');
+    
+    // Write listing data to file
+    await fs.writeFile(listingPath, JSON.stringify(listingData, null, 2), 'utf8');
+    
+    console.log('[COLLECTIONS-API] Successfully saved collection listing to JSON file');
+    
+    res.json({
+      success: true,
+      message: 'Collection listing saved to JSON file successfully',
+      totalCategories: Object.keys(listingData).length,
+      totalItems: Object.values(listingData).reduce((total, category) => {
+        return total + (Array.isArray(category) ? category.length : 0);
+      }, 0)
+    });
+    
+  } catch (error) {
+    console.error('[COLLECTIONS-API] Error saving collection listing to JSON:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save collection listing to JSON file' 
+    });
+  }
+});
+
+// POST - Sort collections alphabetically
+router.post('/sort-alphabetically', async (req, res) => {
+  try {
+    const { section } = req.body;
+    console.log(`[COLLECTIONS-API] Sorting ${section || 'all'} collections alphabetically...`);
+    
+    // Run the sorting script
+    const scriptPath = path.join(__dirname, '../../scripts/FIX/auto_sort_all_collections.js');
+    const { stdout, stderr } = await execAsync(`node "${scriptPath}"`);
+    
+    if (stderr) {
+      console.warn('[COLLECTIONS-API] Sorting script stderr:', stderr);
+    }
+    
+    console.log('[COLLECTIONS-API] Sorting script output:', stdout);
+    
+    res.json({ 
+      success: true, 
+      message: `Collections sorted alphabetically${section ? ` (${section})` : ''}`,
+      output: stdout
+    });
+    
+  } catch (error) {
+    console.error('[COLLECTIONS-API] Error sorting collections:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to sort collections alphabetically' 
     });
   }
 });

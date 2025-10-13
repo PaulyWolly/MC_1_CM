@@ -1,0 +1,103 @@
+{
+  "timestamp": "2025-10-01T07:01:34.654Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "about": {
+        "title": "blazing.saddles.(1974)",
+        "year": "1974",
+        "description": "A town—where everyone seems to be named Johnson—stands in the way of the railroad. In order to grab their land, robber baron Hedley Lamarr sends his henchmen to make life in the town unbearable. After the sheriff is killed, the town demands a new sheriff from the Governor, so Hedley convinces him to send the town the first black sheriff in the west."
+      },
+      "type": "movie",
+      "TMDBTitle": "Blazing Saddles (1974)",
+      "normalizedKey": "blazing.saddles.(1974)",
+      "title": "blazing.saddles.(1974)",
+      "tmdbId": 11072,
+      "poster": "https://image.tmdb.org/t/p/w500/vNw1gOEDdYTDeNMuuq8OmiEHrfH.jpg",
+      "genres": [
+        "Western",
+        "Comedy"
+      ],
+      "cast": [
+        {
+          "name": "Cleavon Little",
+          "character": "Bart",
+          "profile": "https://image.tmdb.org/t/p/w185/z7zbiyLGMPocD2fvD9zMSoBSJVi.jpg",
+          "_id": "68ba8b0036dd57f03fd52f21"
+        },
+        {
+          "name": "Gene Wilder",
+          "character": "Jim",
+          "profile": "https://image.tmdb.org/t/p/w185/mwwOSWS2m8ArpiUKnoxVVyT8fND.jpg",
+          "_id": "68ba8b0036dd57f03fd52f22"
+        },
+        {
+          "name": "Slim Pickens",
+          "character": "Taggart",
+          "profile": "https://image.tmdb.org/t/p/w185/8UwvsZe0frSzCoyC8KGSfjAaZBf.jpg",
+          "_id": "68ba8b0036dd57f03fd52f23"
+        },
+        {
+          "name": "Harvey Korman",
+          "character": "Hedley Lamarr",
+          "profile": "https://image.tmdb.org/t/p/w185/cE5X1OAa6iDOo3JKj9uM8kHwQQI.jpg",
+          "_id": "68ba8b0036dd57f03fd52f24"
+        },
+        {
+          "name": "Madeline Kahn",
+          "character": "Lili Von Shtupp",
+          "profile": "https://image.tmdb.org/t/p/w185/5jbkrxx0uaymKDnv5EImUXxWQyN.jpg",
+          "_id": "68ba8b0036dd57f03fd52f25"
+        },
+        {
+          "name": "Mel Brooks",
+          "character": "Governor William J. Le Petomane/ Indian Chief",
+          "profile": "https://image.tmdb.org/t/p/w185/c21qNcMJlHnRolfhQhZOVacjtwI.jpg",
+          "_id": "68ba8b0036dd57f03fd52f26"
+        },
+        {
+          "name": "Burton Gilliam",
+          "character": "Lyle",
+          "profile": "https://image.tmdb.org/t/p/w185/ac02zgqz8Mz393CacSTI3wBXOjt.jpg",
+          "_id": "68ba8b0036dd57f03fd52f27"
+        },
+        {
+          "name": "Alex Karras",
+          "character": "Mongo",
+          "profile": "https://image.tmdb.org/t/p/w185/hLnBrpfcRIi4wXazuVsmiMPNdfS.jpg",
+          "_id": "68ba8b0036dd57f03fd52f28"
+        }
+      ],
+      "files": [
+        {
+          "absPath": "S:\\MEDIA\\MOVIES\\Blazing Saddles (1974)\\Blazing.Saddles.(1974).mp4",
+          "_id": "68ba8b0036dd57f03fd52f29"
+        }
+      ],
+      "mediaId": "movie_blazing_saddles__1974__unknown",
+      "mediaType": "movie",
+      "filePath": "Blazing Saddles (1974)\\Blazing.Saddles.(1974).mp4",
+      "fileName": "Blazing.Saddles.(1974).mp4",
+      "absPath": "S:\\MEDIA\\MOVIES\\Blazing Saddles (1974)\\Blazing.Saddles.(1974).mp4",
+      "currentTime": 4618.039675,
+      "duration": 5571.84,
+      "season": null,
+      "episode": null,
+      "episodeTitle": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1757014296935,
+      "_id": "68ba8b0036dd57f03fd52f20",
+      "addedAt": "2025-09-05T07:02:24.678Z",
+      "lastUpdated": "2025-09-26T22:25:16.246Z",
+      "createdAt": "2025-09-05T07:02:24.774Z",
+      "updatedAt": "2025-09-26T22:25:16.300Z",
+      "path": "Blazing Saddles (1974)\\Blazing.Saddles.(1974).mp4"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

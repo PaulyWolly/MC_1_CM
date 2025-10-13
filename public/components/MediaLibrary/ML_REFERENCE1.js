@@ -1,8 +1,8 @@
 /*
   ML_REFERENCE1.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -8172,7 +8172,7 @@ class MediaLibraryManager {
 
                 
 
-                // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
+                // Try to match 'TV-SHOWS/Show/Season 1/Show S01E02 ...'
 
                 let match = path.match(/TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i);
 
@@ -16242,7 +16242,7 @@ class MediaLibraryManager {
 
                 
 
-                // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
+                // Try to match 'TV-SHOWS/Show/Season 1/Show S01E02 ...'
 
                 let match = path.match(/TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i);
 
@@ -19090,7 +19090,7 @@ class MediaLibraryManager {
 
                 seasonNumber: season.seasonNumber,
 
-                path: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
+                path: `Season ${season.seasonNumber.toString()}`,
 
                 episodes: season.episodes || {},
 
@@ -19198,7 +19198,7 @@ class MediaLibraryManager {
 
                             seasonNumber: parseInt(seasonNum, 10),
 
-                            path: `Season ${seasonNum.padStart(2, '0')}`,
+                            path: `Season ${seasonNum}`,
 
                             episodes: seasonData.episodes || {},
 
@@ -19234,7 +19234,7 @@ class MediaLibraryManager {
 
             
 
-            // Handle new format: array of season names like ["Season 01", "Season 02"]
+            // Handle new format: array of season names like ["Season 1", "Season 2"]
 
             if (typeof show.seasons[0] === 'string') {
 
@@ -19290,7 +19290,7 @@ class MediaLibraryManager {
 
                 seasonNumber: season.seasonNumber,
 
-                path: `Season ${season.seasonNumber.toString().padStart(2, '0')}`,
+                path: `Season ${season.seasonNumber.toString()}`,
 
                 episodes: season.episodes || []
 
@@ -19654,7 +19654,7 @@ class MediaLibraryManager {
 
                 // console.log('[EPISODE DEBUG] Processing new format with season objects containing episodes');
 
-                // Extract season number from seasonPath (e.g., "Season 01" -> 1)
+                // Extract season number from seasonPath (e.g., "Season 1" -> 1)
 
                 const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i) || seasonPath.match(/^s(\d+)/i);
 
@@ -19762,7 +19762,7 @@ class MediaLibraryManager {
 
                 // console.log('[EPISODE DEBUG] Processing old format with seasonNumber');
 
-            // Extract season number from seasonPath (e.g., "Season 01" -> 1)
+            // Extract season number from seasonPath (e.g., "Season 1" -> 1)
 
             const seasonMatch = seasonPath.match(/season[ _-]?(\d+)/i) || seasonPath.match(/^s(\d+)/i);
 
@@ -20324,7 +20324,7 @@ class MediaLibraryManager {
 
             const showKey = window.getInternalKey(cleanShowName, year);
 
-            // Normalize season number (handle both 'Season 01' and 1)
+            // Normalize season number (handle both 'Season 1' and 1)
 
             let seasonNum = null;
 
@@ -21566,7 +21566,7 @@ class MediaLibraryManager {
 
             if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
 
-                // Get everything after TV-SHOWS: ["Show Name", "Season 01", "episode.mkv"]
+                // Get everything after TV-SHOWS: ["Show Name", "Season 1", "episode.mkv"]
 
                 workingPath = pathParts.slice(tvShowsIndex + 1).join('/');
 
@@ -21594,7 +21594,7 @@ class MediaLibraryManager {
 
         const showPath = pathParts[0]; // e.g., "Bored to Death (2009)"
 
-        const seasonPath = pathParts[0] + '/' + pathParts[1]; // e.g., "Bored to Death (2009)/Season 01"
+        const seasonPath = pathParts[0] + '/' + pathParts[1]; // e.g., "Bored to Death (209)/season 1"
 
         const episodeFilename = pathParts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
 
@@ -21732,7 +21732,7 @@ class MediaLibraryManager {
 
                             // Debug logging for first few episodes to see path formats
 
-                            if (show.name === 'Bored to Death' && season.name === 'Season 01' && episode.name && episode.name.includes('S01E03')) {
+                            if (show.name === 'Bored to Death' && season.name === 'Season 1' && episode.name && episode.name.includes('S01E03')) {
 
                                 // console.log('[DEBUG - PATH-MATCHING] Looking for:', normalizedEpisodePath);
 
@@ -21818,7 +21818,7 @@ class MediaLibraryManager {
 
                                 const showPart = parts[0]; // e.g., "Bored to Death (2009)"
 
-                                const seasonPart = parts[1]; // e.g., "Season 01"
+                                const seasonPart = parts[1]; // e.g., "Season 1"
 
                                 const episodePart = parts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
 

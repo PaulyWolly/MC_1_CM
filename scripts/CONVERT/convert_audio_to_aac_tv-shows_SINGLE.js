@@ -1,8 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_TV-SHOWS_SINGLE.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -13,8 +13,10 @@ const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
 
-// Import logging helper
-const { logToFile } = require('../logging-helper');
+// Simple logging function
+function logToFile(module, message) {
+    console.log(`[${module}] ${message}`);
+}
 
 // Import animation helpers
 const {
@@ -66,8 +68,10 @@ if (!inputArg) {
   console.log('   • Unified data integration using normalized keys');
   console.log('   • Visual success/failure indicators');
   console.log('   • SAFE ARCHIVING - Original files are NEVER deleted');
+  console.log('   • BKUP folder organization - Originals moved to BKUP folder');
+  console.log('   • JSON auto-update - Updates tv-shows-unified.json with new file names');
   console.log('\n💡 Tip: You can use either the display name or the normalized key');
-  console.log('💡 Safety: Original files are preserved as _backup.mkv, new AAC versions as _AAC.mkv');
+  console.log('💡 Safety: Original files moved to BKUP folder, new AAC versions remain in root');
   process.exit(1);
 }
 
@@ -101,7 +105,7 @@ function getFFmpegCommand(inputPath, outputPath) {
 }
 
 // Create backup and convert
-async function convertFile(inputPath, currentIndex, totalFiles, startTime) {
+async function convertFile(inputPath, currentIndex, totalFiles, startTime, bkupsFolder) {
     try {
         const dir = path.dirname(inputPath);
         const ext = path.extname(inputPath);
@@ -127,10 +131,28 @@ async function convertFile(inputPath, currentIndex, totalFiles, startTime) {
         logToFile('convert_audio_to_aac_tv-shows', `✅ [ARCHIVE] Creating AAC version: ${path.basename(aacPath)}`);
         await execAsync(`ren "${tempOutputPath}" "${path.basename(aacPath)}"`);
         
-        // Step 4: Complete
-        showConversionStep(3, currentIndex, totalFiles, fileName, 'Complete!');
+        // Step 4: Move original and backup to BKUP folder
+        showConversionStep(3, currentIndex, totalFiles, fileName, 'Moving to BKUP folder...');
+        const originalInBkup = path.join(bkupsFolder, fileName);
+        const backupInBkup = path.join(bkupsFolder, `${name}_backup${ext}`);
         
-        return { success: true, backupPath, aacPath };
+        logToFile('convert_audio_to_aac_tv-shows', `📁 [MOVE] Moving original to BKUP: ${path.basename(originalInBkup)}`);
+        await execAsync(`move "${inputPath}" "${originalInBkup}"`);
+        
+        logToFile('convert_audio_to_aac_tv-shows', `📁 [MOVE] Moving backup to BKUP: ${path.basename(backupInBkup)}`);
+        await execAsync(`move "${backupPath}" "${backupInBkup}"`);
+        
+        // Step 5: Complete
+        showConversionStep(4, currentIndex, totalFiles, fileName, 'Complete!');
+        
+        return { 
+            success: true, 
+            originalPath: inputPath,
+            aacPath, 
+            originalInBkup,
+            backupInBkup,
+            newFileName: `${name}_AAC${ext}`
+        };
     } catch (error) {
         const errorMsg = `❌ [ERROR] Failed to convert ${path.basename(inputPath)}: ${error.message}`;
         logToFile('convert_audio_to_aac_tv-shows', errorMsg);
@@ -204,6 +226,81 @@ function extractFilesFromUnifiedData(unifiedData, showFolder) {
     }
     
     return files;
+}
+
+// Update unified data with new AAC file names
+function updateUnifiedDataWithAACFiles(unifiedData, showFolder, conversionResults) {
+    const showName = path.basename(showFolder);
+    
+    // Convert display name to normalized key format
+    const normalizedKey = showName.toLowerCase()
+        .replace(/[^a-z0-9()]/g, '.')
+        .replace(/\.+/g, '.')
+        .replace(/^\.|\.$/g, '');
+    
+    // Find the show in unified data
+    let showData = null;
+    let foundKey = null;
+    
+    if (unifiedData[normalizedKey]) {
+        showData = unifiedData[normalizedKey];
+        foundKey = normalizedKey;
+    } else {
+        for (const [key, show] of Object.entries(unifiedData)) {
+            if (show.title && show.title.toLowerCase().includes(showName.toLowerCase())) {
+                showData = show;
+                foundKey = key;
+                break;
+            }
+        }
+    }
+    
+    if (!showData || !showData.seasons) {
+        logToFile('convert_audio_to_aac_tv-shows', `❌ [UPDATE] Show not found in unified data: ${showName}`);
+        return false;
+    }
+    
+    logToFile('convert_audio_to_aac_tv-shows', `✅ [UPDATE] Updating unified data for show: ${foundKey}`);
+    
+    let updatedCount = 0;
+    
+    // Update each converted file in the unified data
+    for (const result of conversionResults) {
+        if (!result.success) continue;
+        
+        const { season, episode, originalPath, newFileName } = result;
+        
+        // Find the episode in the unified data
+        if (showData.seasons[season] && showData.seasons[season].episodes && showData.seasons[season].episodes[episode]) {
+            const episodeData = showData.seasons[season].episodes[episode];
+            
+            // Update the file paths to point to the new AAC file
+            const newPath = originalPath.replace(path.basename(originalPath), newFileName);
+            const newAbsPath = result.aacPath;
+            
+            // Update all path fields
+            if (episodeData.path) episodeData.path = newPath;
+            if (episodeData.absPath) episodeData.absPath = newAbsPath;
+            if (episodeData.relPath) episodeData.relPath = newPath;
+            if (episodeData.filePath) episodeData.filePath = newPath;
+            
+            // Update the episode title to reflect AAC conversion
+            if (episodeData.title) {
+                episodeData.title = episodeData.title.replace(/\.mkv$/, '_AAC.mkv');
+            }
+            
+            // Update the name field
+            if (episodeData.name) {
+                episodeData.name = episodeData.name.replace(/\.mkv$/, '_AAC.mkv');
+            }
+            
+            updatedCount++;
+            logToFile('convert_audio_to_aac_tv-shows', `📝 [UPDATE] Updated S${season}E${episode}: ${newFileName}`);
+        }
+    }
+    
+    logToFile('convert_audio_to_aac_tv-shows', `✅ [UPDATE] Updated ${updatedCount} episodes in unified data`);
+    return updatedCount > 0;
 }
 
 async function main() {
@@ -315,8 +412,11 @@ async function main() {
             console.log(`  ${index + 1}. ${path.basename(item.path)} (${item.incompatibleCodecs.join(', ')}) ${fileInfo}`);
         });
         
-        console.log(`\n⚠️  WARNING: This will create backups and replace original files!`);
-        console.log(`   Make sure you have enough disk space for backups.`);
+        console.log(`\n⚠️  WARNING: This will create backups and move original files to BKUP folder!`);
+        console.log(`   • Original files will be moved to BKUP folder`);
+        console.log(`   • Backup files will be moved to BKUP folder`);
+        console.log(`   • Only _AAC files will remain in the root directory`);
+        console.log(`   • Make sure you have enough disk space for backups`);
         console.log(`   Files to convert: ${filesNeedingConversion.length}`);
         
         // Ask for confirmation
@@ -324,6 +424,19 @@ async function main() {
         await new Promise(resolve => {
             process.stdin.once('data', resolve);
         });
+        
+        // Create BKUP folder for this conversion
+        const showName = path.basename(showFolder);
+        const bkupsFolder = path.join(showFolder, 'BKUP');
+        
+        if (!fs.existsSync(bkupsFolder)) {
+            fs.mkdirSync(bkupsFolder, { recursive: true });
+            logToFile('convert_audio_to_aac_tv-shows', `📁 [BKUP] Created BKUP folder: ${bkupsFolder}`);
+            showStatus(`Created BKUP folder: ${path.basename(bkupsFolder)}`, 'info');
+        } else {
+            logToFile('convert_audio_to_aac_tv-shows', `📁 [BKUP] Using existing BKUP folder: ${bkupsFolder}`);
+            showStatus(`Using existing BKUP folder: ${path.basename(bkupsFolder)}`, 'info');
+        }
         
         const results = [];
         let converted = 0;
@@ -338,6 +451,7 @@ async function main() {
             const file = filesNeedingConversion[i];
             const fileName = path.basename(file.path);
             
+            // Show initial file progress
             showFileProgress(fileName, i + 1, filesNeedingConversion.length, `From: ${file.incompatibleCodecs.join(', ')} → To: AAC (192k)`);
             
             if (file.incompatibleCodecs && file.incompatibleCodecs.length > 0) {
@@ -346,7 +460,36 @@ async function main() {
                 showStatus(codecMsg, 'info');
             }
             
-            const result = await convertFile(file.path, i + 1, filesNeedingConversion.length, startTime);
+            // Start conversion with real-time progress animation
+            const conversionPromise = convertFile(file.path, i + 1, filesNeedingConversion.length, startTime, bkupsFolder);
+            
+            // Show animated progress during conversion using the same frame-based approach as scanning
+            const progressAnimation = async () => {
+                const percentage = Math.round(((i + 1) / filesNeedingConversion.length) * 100);
+                const barLength = 40;
+                const filledLength = Math.round((barLength * (i + 1)) / filesNeedingConversion.length);
+                const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
+                
+                // Use the same 5-frame cycling animation as the scanning phase
+                for (let frame = 0; frame < 5; frame++) {
+                    const animationFrames = ['|', '/', '-', '\\'];
+                    const frameChar = animationFrames[frame % animationFrames.length];
+                    
+                    const progressText = `\r${frameChar} [${bar}] ● ${percentage}% (${i + 1}/${filesNeedingConversion.length}) Converting: ${fileName}`;
+                    process.stdout.write(progressText);
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                }
+            };
+            
+            // Start the animation loop
+            const animationPromise = progressAnimation();
+            
+            // Wait for both conversion and animation to complete
+            const [result] = await Promise.all([conversionPromise, animationPromise]);
+            
+            // Clear the progress animation
+            clearProgress();
+            
             results.push({
                 path: file.path,
                 title: file.title,
@@ -357,8 +500,10 @@ async function main() {
             
             if (result.success) {
                 converted++;
+                showStatus(`✅ Converted: ${fileName}`, 'success');
             } else {
                 failed++;
+                showStatus(`❌ Failed: ${fileName}`, 'error');
             }
             
             // Show time estimate
@@ -372,7 +517,19 @@ async function main() {
         if (converted > 0) {
             showTimeline(4, timelineSteps.length, timelineSteps);
             showStatus('Updating unified data...', 'info');
-            // TODO: Implement unified data update for single show
+            
+            // Update the unified data with new AAC file names
+            const updateSuccess = updateUnifiedDataWithAACFiles(unifiedData, showFolder, results.filter(r => r.success));
+            
+            if (updateSuccess) {
+                // Save the updated unified data
+                fs.writeFileSync(UNIFIED_DATA_PATH, JSON.stringify(unifiedData, null, 2));
+                showStatus('✅ Updated tv-shows-unified.json with new AAC file names', 'success');
+                logToFile('convert_audio_to_aac_tv-shows', '✅ [UPDATE] Successfully updated unified data file');
+            } else {
+                showStatus('⚠️ Failed to update unified data', 'warning');
+                logToFile('convert_audio_to_aac_tv-shows', '⚠️ [UPDATE] Failed to update unified data');
+            }
         }
         
         // Save conversion log

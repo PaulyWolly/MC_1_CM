@@ -1,8 +1,8 @@
 /*
   CONVERT_TV_SHOWS_SCAN_TO_ARRAY.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -23,7 +23,7 @@ function extractShowTitle(folderPath) {
 }
 
 function extractSeasonNumber(seasonPath) {
-  // Try to extract season number from path like 'Season 01'
+  // Try to extract season number from path like 'Season 1'
   const match = seasonPath.match(/Season\s*(\d+)/i);
   return match ? parseInt(match[1], 10) : null;
 }

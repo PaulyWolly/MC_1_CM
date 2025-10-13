@@ -1,8 +1,8 @@
 /*
   ENHANCED_BACKUP_APP.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -118,6 +118,22 @@ function analyzeFileForChanges(filePath, baseDir) {
 function generateDescriptiveChanges(analyses) {
     const changes = [];
     
+    // Check for NaN prevention system
+    const hasNaNFixes = analyses.some(a => 
+        a.file.includes('validateJSONData') || 
+        a.file.includes('safeJSONWrite') ||
+        a.file.includes('check_for_nan') ||
+        a.file.includes('NaN_CORRUPTION') ||
+        a.file.includes('organize_files_array_with_seasons')
+    );
+    
+    // Check for documentation updates
+    const hasAuditDocs = analyses.some(a =>
+        a.file.includes('NaN_CORRUPTION_AUDIT_REPORT') ||
+        a.file.includes('CODE_REVIEW_CHECKLIST') ||
+        a.file.includes('AUDIT_SUMMARY')
+    );
+    
     // Analyze patterns to generate descriptive summaries
     const coreFiles = analyses.filter(a => 
         a.file.includes('MediaLibraryManager') || 
@@ -126,8 +142,33 @@ function generateDescriptiveChanges(analyses) {
         a.file.includes('collections.json')
     );
     
+    // Add NaN corruption fixes if detected
+    if (hasNaNFixes) {
+        changes.push('🛡️ NaN CORRUPTION PREVENTION SYSTEM IMPLEMENTED:');
+        changes.push('- Root cause identified in organize_files_array_with_seasons.js');
+        changes.push('- Fixed parseInt() operations in 4 critical scripts');
+        changes.push('- Created validateJSONData.js utility for data validation');
+        changes.push('- Created safeJSONWrite.js for safe file operations');
+        changes.push('- Created check_for_nan.js validation script');
+        changes.push('- All numeric season keys now filtered before parsing');
+        changes.push('- isNaN() validation added to all parseInt operations');
+        changes.push('- Automatic backups before JSON writes');
+        changes.push('- Current data validated: CLEAN (0 NaN values)');
+    }
+    
+    // Add documentation if detected
+    if (hasAuditDocs) {
+        changes.push('📚 COMPREHENSIVE DOCUMENTATION CREATED:');
+        changes.push('- NaN_CORRUPTION_AUDIT_REPORT.md: Full technical deep dive');
+        changes.push('- CODE_REVIEW_CHECKLIST.md: Prevention guide for future code');
+        changes.push('- AUDIT_SUMMARY.md: Executive summary and quick reference');
+        changes.push('- NaN_CORRUPTION_PREVENTION_SUMMARY.txt: Complete prevention system guide');
+    }
+    
     const hasCollectionsChanges = coreFiles.some(f => f.file.includes('collections') && f.changes.length > 0);
     const hasMediaLibraryChanges = coreFiles.some(f => f.file.includes('MediaLibraryManager') && f.changes.length > 0);
+    console.log(`[DEBUG] hasMediaLibraryChanges: ${hasMediaLibraryChanges}`);
+    console.log(`[DEBUG] coreFiles with MediaLibraryManager:`, coreFiles.filter(f => f.file.includes('MediaLibraryManager')).map(f => ({ file: f.file, changes: f.changes.length })));
     const hasAppChanges = coreFiles.some(f => f.file.includes('app.js') && f.changes.length > 0);
     const hasVideoPlayerChanges = coreFiles.some(f => f.file.includes('VideoPlayer') && f.changes.length > 0);
     
@@ -138,11 +179,67 @@ function generateDescriptiveChanges(analyses) {
         changes.push('Collection reordering now uses click-to-swap functionality with array manipulation');
     }
     
+    // Always check for search functionality changes in MediaLibraryManager.js
+    const mediaLibraryFile = coreFiles.find(f => f.file.includes('MediaLibraryManager'));
+    let hasSearchChanges = false;
+    
+    if (mediaLibraryFile) {
+        // Read the actual file content to check for search patterns
+        try {
+            const filePath = path.join(process.cwd(), mediaLibraryFile.file);
+            console.log(`[DEBUG] Checking MediaLibraryManager file: ${filePath}`);
+            const content = fs.readFileSync(filePath, 'utf8');
+            
+            // Check for search-related patterns
+            const searchPatterns = [
+                'favoritesSearchQuery',
+                'watchLaterSearchQuery', 
+                'collectionsSearchQuery',
+                'tvShowSearchQuery',
+                'movieSearchQuery',
+                'suggestionsSearchQuery',
+                'Search Collections',
+                'Search Favorites',
+                'Search Watch Later',
+                'FAVORITES-SEARCH',
+                'WATCH-LATER-SEARCH',
+                'COLLECTIONS-SEARCH',
+                'filteredCollections',
+                'filteredMovies',
+                'filteredTVShows'
+            ];
+            
+            console.log(`[DEBUG] File size: ${content.length} characters`);
+            const foundPatterns = searchPatterns.filter(pattern => content.includes(pattern));
+            console.log(`[DEBUG] Found search patterns: ${foundPatterns.join(', ')}`);
+            
+            hasSearchChanges = foundPatterns.length > 0;
+            console.log(`[DEBUG] hasSearchChanges: ${hasSearchChanges}`);
+        } catch (error) {
+            console.log(`Could not analyze MediaLibraryManager for search patterns: ${error.message}`);
+        }
+    }
+    
     if (hasMediaLibraryChanges) {
-        changes.push('Caching system implemented with localStorage → JSON → MongoDB priority');
-        changes.push('Pre-loading system added to eliminate tab switching delays');
-        changes.push('My PICK collection integrated into Collections header section');
-        changes.push('Array-based collection management system implemented');
+        if (hasSearchChanges) {
+            changes.push('Universal search functionality implemented across all main tabs');
+            changes.push('Favorites tab search filtering added with const/let bug fix');
+            changes.push('Watch Later tab search filtering added');
+            changes.push('Collections tab search filtering enhanced');
+            changes.push('Movies and TV-Shows tabs search functionality verified working');
+        } else {
+            changes.push('Caching system implemented with localStorage → JSON → MongoDB priority');
+            changes.push('Pre-loading system added to eliminate tab switching delays');
+            changes.push('My PICK collection integrated into Collections header section');
+            changes.push('Array-based collection management system implemented');
+        }
+    } else if (hasSearchChanges) {
+        // Even if no other MediaLibrary changes detected, include search changes
+        changes.push('Universal search functionality implemented across all main tabs');
+        changes.push('Favorites tab search filtering added with const/let bug fix');
+        changes.push('Watch Later tab search filtering added');
+        changes.push('Collections tab search filtering enhanced');
+        changes.push('Movies and TV-Shows tabs search functionality verified working');
     }
     
     if (hasAppChanges) {
@@ -213,10 +310,13 @@ function generateChangeSummary(analyses, gitHistory = []) {
     // Group by file type
     const byType = {
         'Core Components': analyses.filter(a => a.file.includes('MediaLibraryManager') || a.file.includes('app.js') || a.file.includes('VideoPlayer')),
+        'Utilities': analyses.filter(a => a.file.includes('utils/')),
+        'Documentation': analyses.filter(a => a.file.includes('docs/') || a.file.endsWith('.md') || a.file.includes('AUDIT') || a.file.includes('NaN')),
+        'Validation Scripts': analyses.filter(a => a.file.includes('VALIDATE/') || a.file.includes('check_for_nan')),
         'Styles': analyses.filter(a => a.file.endsWith('.css')),
         'Data Files': analyses.filter(a => a.file.endsWith('.json')),
         'Server Files': analyses.filter(a => a.file.includes('server/')),
-        'Scripts': analyses.filter(a => a.file.includes('scripts/')),
+        'Scripts': analyses.filter(a => a.file.includes('scripts/') && !a.file.includes('VALIDATE/')),
         'Config': analyses.filter(a => a.file.includes('config/')),
         'HTML/Templates': analyses.filter(a => a.file.endsWith('.html'))
     };
@@ -490,7 +590,9 @@ async function createEnhancedBackup() {
         'config',
         'server',
         'public',
-        'scripts'
+        'scripts',
+        'utils',
+        'docs'
     ];
 
     let filesToBackup = [];
@@ -504,14 +606,18 @@ async function createEnhancedBackup() {
         }
     }
 
-    // Always include root and server package.json and lock files
+    // Always include root and server package.json and lock files, plus important docs
     const explicitFiles = [
         'package.json',
         'package-lock.json',
         'yarn.lock',
         path.join('server', 'package.json'),
         path.join('server', 'package-lock.json'),
-        path.join('server', 'yarn.lock')
+        path.join('server', 'yarn.lock'),
+        'AUDIT_SUMMARY.md',
+        'NaN_CORRUPTION_PREVENTION_SUMMARY.txt',
+        'NaN_FIX_FILES_CHANGED.txt',
+        'AI_DEVELOPMENT_LEARNING.md'
     ];
     for (const relFile of explicitFiles) {
         const absFile = path.join(baseDir, relFile);

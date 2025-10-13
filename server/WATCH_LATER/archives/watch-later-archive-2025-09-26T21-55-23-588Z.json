@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-09-26T21:55:23.588Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "type": "movie",
+      "normalizedKey": "heroes.(2006).S1E16.unexpected",
+      "title": "Heroes (2006) | S1E16 | Unexpected",
+      "tmdbId": null,
+      "poster": null,
+      "genres": [],
+      "files": [],
+      "mediaId": "movie_heroes__2006____S1E16___unexpected_unknown",
+      "mediaType": "movie",
+      "filePath": "Heroes (2006)\\Season 1\\Heroes - S1E16 - Unexpected.mkv",
+      "fileName": "Heroes - S1E16 - Unexpected.mkv",
+      "absPath": "S:\\MEDIA\\TV-SHOWS\\Heroes (2006)\\Season 1\\Heroes - S1E16 - Unexpected.mkv",
+      "currentTime": 2.016442,
+      "duration": 2605.44,
+      "season": 1,
+      "episode": 1,
+      "episodeTitle": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1756956616552,
+      "_id": "68b907c9ccba5bf6f413f5bf",
+      "cast": [],
+      "addedAt": "2025-09-04T03:30:17.333Z",
+      "lastUpdated": "2025-09-04T03:30:57.146Z",
+      "createdAt": "2025-09-04T03:30:17.490Z",
+      "updatedAt": "2025-09-04T03:30:57.206Z",
+      "path": "Heroes (2006)\\Season 1\\Heroes - S1E16 - Unexpected.mkv"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

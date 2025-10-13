@@ -1,8 +1,8 @@
 /*
   CONVERT_SUPERMAN_LOIS_SEASON4_VIDEO.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -21,7 +21,7 @@ const BASE_OUTPUT_PATH = 'S:/MEDIA/TV-SHOWS/Superman & Lois/converted';
 
 // Function to get season folder name with leading zero
 function getSeasonFolderName(seasonNumber) {
-    return `Season ${seasonNumber.toString().padStart(2, '0')}`;
+    return `Season ${seasonNumber.toString()}`;
 }
 
 // Function to get all MP4 files in a directory recursively
