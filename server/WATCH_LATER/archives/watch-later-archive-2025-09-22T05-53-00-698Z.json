@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-09-22T05:53:00.698Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "tmdbId": null,
+      "poster": null,
+      "mediaId": "movie_pulp_fiction__1994___1080p_",
+      "mediaType": "movie",
+      "title": "Pulp Fiction (1994) [1080p]",
+      "filePath": "Pulp Fiction (1994) [1080p]",
+      "fileName": "Pulp Fiction (1994) [1080p]",
+      "absPath": "S:\\MEDIA\\MOVIES\\Pulp Fiction (1994) [1080p]\\Pulp.Fiction.(1994).[1080p].mp4",
+      "currentTime": 2714.409506,
+      "duration": 9267.36254,
+      "season": null,
+      "episode": null,
+      "episodeTitle": null,
+      "posterPath": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1754946719060,
+      "_id": "689963078f8066fdd208e43c",
+      "addedAt": "2025-08-11T03:27:03.133Z",
+      "lastUpdated": "2025-09-21T23:15:29.458Z",
+      "createdAt": "2025-08-11T03:27:03.141Z",
+      "updatedAt": "2025-09-21T23:15:29.479Z",
+      "cast": [],
+      "files": [],
+      "genres": [],
+      "normalizedKey": "pulp.fiction.(1994)",
+      "type": "movie",
+      "path": "Pulp Fiction (1994) [1080p]"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

@@ -1,0 +1,154 @@
+# ============================================================================
+# NODE.JS / NPM
+# ============================================================================
+node_modules/
+package-lock.json   # Optional: some prefer to commit this
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ============================================================================
+# ENVIRONMENT & SECRETS (NEVER COMMIT!)
+# ============================================================================
+.env
+.env.*
+*.env
+.env.backup*
+*api*key*
+*token*
+*secret*
+
+# ============================================================================
+# USER DATA & RUNTIME FILES (NEVER COMMIT!)
+# ============================================================================
+# Media Library data (user's media metadata)
+/public/components/MediaLibrary/data/
+/public/data/
+/server/data/
+
+# User preferences & state
+localStorage*.json
+watch_later.json
+/cache/
+*.cache
+
+# User uploads
+/uploads/
+
+# ============================================================================
+# BACKUPS (NEVER COMMIT!)
+# ============================================================================
+/backups/
+*.backup
+*.bak
+*.bak*
+*-backup-*.json
+*backup*.json
+/public/components/MediaLibrary/bkup/
+/server/data/bkup/
+
+# ============================================================================
+# LOGS & TEMPORARY FILES (NEVER COMMIT!)
+# ============================================================================
+*.log
+*.tmp
+*.temp
+/scripts/logs/
+
+# ============================================================================
+# DEVELOPMENT SCRIPTS (CAREFUL!)
+# ============================================================================
+# One-off migration/fix scripts (these are historical, not part of the app)
+/scripts/FIX/
+/scripts/MIGRATE/
+/scripts/CLEANUP/
+/scripts/DEBUG/
+/scripts/RENAME/
+/scripts/CONVERT/
+/scripts/RESTRUCTURE/
+/scripts/REFACTOR/
+/scripts/REPAIR/
+/scripts/CONSOLIDATE/
+/scripts/NORMALIZE/
+/scripts/PURGE/
+
+# Keep these - they're reusable utilities:
+# !/scripts/FETCH/          # API fetching utilities
+# !/scripts/GENERATE/       # Still generation, etc.
+# !/scripts/TEMPLATES/      # Script templates
+# !/scripts/BACKUP/         # Backup utilities
+# !/scripts/UTILS/          # General utilities
+
+# ============================================================================
+# REFERENCE REPOSITORIES (NEVER COMMIT!)
+# ============================================================================
+ref_repo*/
+*ref_repo*/
+__REF_REPO*/
+perfect_styles*/
+/archive/
+/__ARCHIVE__/
+/_ARCHIVE_/
+\old
+
+# ============================================================================
+# MEDIA FILES (TOO LARGE FOR GIT!)
+# ============================================================================
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m4v
+
+# Large images (keep small UI images)
+/public/assets/media/
+/public/api/
+
+# ============================================================================
+# SYSTEM FILES
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================================
+# IDE / EDITOR
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Keep Cursor rules/commands
+!.cursor/
+
+# ============================================================================
+# BUILD OUTPUT (if you add a build step later)
+# ============================================================================
+/dist/
+/build/
+*.min.js
+*.min.css
+
+# ============================================================================
+# TEST OUTPUT
+# ============================================================================
+test_output.*
+/scripts/TEST/test_output*
+coverage/
+.nyc_output/
+

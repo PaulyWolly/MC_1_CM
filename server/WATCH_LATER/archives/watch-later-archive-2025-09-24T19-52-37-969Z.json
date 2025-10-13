@@ -1,0 +1,119 @@
+{
+  "timestamp": "2025-09-24T19:52:37.969Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "type": "movie",
+      "TMDBTitle": "Season Of The Witch (2011)",
+      "normalizedKey": "season.of.the.witch.(2011)",
+      "title": "Season Of The Witch (2011)",
+      "tmdbId": 23047,
+      "poster": "https://image.tmdb.org/t/p/w500/dNVqi8EsBtnnwfR6TgiWM51JOuS.jpg",
+      "genres": [],
+      "cast": [
+        {
+          "name": "Nicolas Cage",
+          "character": "Behman",
+          "profile": "https://image.tmdb.org/t/p/w500/y1RtezurZYveYkVNRht7CwEgSYY.jpg",
+          "_id": "68b8558c7c7cb22d1350c825"
+        },
+        {
+          "name": "Ron Perlman",
+          "character": "Felson",
+          "profile": "https://image.tmdb.org/t/p/w500/pOgMRdJhbBsvwGLRFXPRASTfcay.jpg",
+          "_id": "68b8558c7c7cb22d1350c826"
+        },
+        {
+          "name": "Ulrich Thomsen",
+          "character": "Eckhardt",
+          "profile": "https://image.tmdb.org/t/p/w500/2D4ZA0QtTmuAgzzZfZdHdYJJf5x.jpg",
+          "_id": "68b8558c7c7cb22d1350c827"
+        },
+        {
+          "name": "Christopher Lee",
+          "character": "Cardinal D'Ambroise",
+          "profile": "https://image.tmdb.org/t/p/w500/4zPu5YaRPbhrcp9aVjXQDjpfwPC.jpg",
+          "_id": "68b8558c7c7cb22d1350c828"
+        },
+        {
+          "name": "Fernanda Dorogi",
+          "character": "Givaudon",
+          "profile": "https://image.tmdb.org/t/p/w500/wgsPUb56rJVPwuFrpwSrhlEUn0P.jpg",
+          "_id": "68b8558c7c7cb22d1350c829"
+        },
+        {
+          "name": "Stephen Graham",
+          "character": "Hagamar",
+          "profile": "https://image.tmdb.org/t/p/w500/1m9RWRRkQzJEAphJm9kQhMk1r1Q.jpg",
+          "_id": "68b8558c7c7cb22d1350c82a"
+        },
+        {
+          "name": "Rebekah Kennedy",
+          "character": "Peasant Trurk Girl",
+          "profile": "https://image.tmdb.org/t/p/w500/d23uj6cZsC5CYSUcePIbTQev13b.jpg",
+          "_id": "68b8558c7c7cb22d1350c82b"
+        },
+        {
+          "name": "Matt Devere",
+          "character": "Sergeant in Arms",
+          "profile": "https://image.tmdb.org/t/p/w500/5rgHPFJ028clroKVryimQWfQxUY.jpg",
+          "_id": "68b8558c7c7cb22d1350c82c"
+        },
+        {
+          "name": "Robert Sheehan",
+          "character": "Kay",
+          "profile": "https://image.tmdb.org/t/p/w500/1lCAN0FZeUhXZo5goabMxk5mYDl.jpg",
+          "_id": "68b8558c7c7cb22d1350c82d"
+        },
+        {
+          "name": "Claire Foy",
+          "character": "The Girl",
+          "profile": "https://image.tmdb.org/t/p/w500/a7ws0h1TQeoC97lBo0unFolNe4q.jpg",
+          "_id": "68b8558c7c7cb22d1350c82e"
+        },
+        {
+          "name": "Stephen Campbell Moore",
+          "character": "Debelzaq",
+          "profile": "https://image.tmdb.org/t/p/w500/5w4EvQfi5YipR5I5lhtN5dCDiEY.jpg",
+          "_id": "68b8558c7c7cb22d1350c82f"
+        },
+        {
+          "name": "Rory McCann",
+          "character": "Soldier Commander",
+          "profile": "https://image.tmdb.org/t/p/w500/xcM4iZ6DAZ6P5LuJpx0fJn7sKqO.jpg",
+          "_id": "68b8558c7c7cb22d1350c830"
+        }
+      ],
+      "files": [
+        {
+          "absPath": "S:\\MEDIA\\MOVIES\\Season Of The Witch (2011)\\Season.Of.The.Witch.(2011).mp4",
+          "_id": "68b8558c7c7cb22d1350c831"
+        }
+      ],
+      "mediaId": "movie_season_of_the_witch__2011__unknown",
+      "mediaType": "movie",
+      "filePath": "Season Of The Witch (2011)\\Season.Of.The.Witch.(2011).mp4",
+      "fileName": "Season.Of.The.Witch.(2011).mp4",
+      "absPath": "S:\\MEDIA\\MOVIES\\Season Of The Witch (2011)\\Season.Of.The.Witch.(2011).mp4",
+      "currentTime": 406.541206,
+      "duration": 5699.402,
+      "season": null,
+      "episode": null,
+      "episodeTitle": null,
+      "year": null,
+      "quality": null,
+      "addedAt": "2025-09-03T02:41:31.327Z",
+      "lastWatched": 1756863477470,
+      "lastUpdated": "2025-09-03T15:24:31.903Z",
+      "_id": "68b7aadbb0471aa42e9a3144",
+      "createdAt": "2025-09-03T02:41:31.335Z",
+      "updatedAt": "2025-09-03T15:24:31.967Z",
+      "path": "Season Of The Witch (2011)\\Season.Of.The.Witch.(2011).mp4"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

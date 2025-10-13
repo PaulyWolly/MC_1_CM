@@ -1,8 +1,8 @@
 /*
   EPISODEMODAL.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -272,7 +272,10 @@ class EpisodeModal {
                 if (a.contentType !== b.contentType) {
                     return a.contentType.localeCompare(b.contentType);
                 }
-                return parseInt(a.episodeNumber) - parseInt(b.episodeNumber);
+                const numA = parseInt(a.episodeNumber);
+                const numB = parseInt(b.episodeNumber);
+                if (isNaN(numA) || isNaN(numB)) return 0;
+                return numA - numB;
             }
             
             // For regular seasons, sort by season and episode number
@@ -311,7 +314,14 @@ class EpisodeModal {
 
         // Create episode buttons with season headers
         let episodeButtons = '';
-        Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNumber => {
+        Object.keys(episodesBySeason)
+            .filter(key => !isNaN(parseInt(key)))
+            .sort((a, b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                if (isNaN(numA) || isNaN(numB)) return 0;
+                return numA - numB;
+            }).forEach(seasonNumber => {
             const seasonEpisodes = episodesBySeason[seasonNumber];
             
             // Add season header
@@ -373,10 +383,10 @@ class EpisodeModal {
                         episodeNum = parseInt(episode.episodeNumber) || 1;
                     }
                 } else {
-                    // Regular episodes: S01E01 format
+                    // Regular episodes: S1E1 format (no leading zeros)
                     seasonNum = parseInt(episode.seasonNumber) || 1;
                     episodeNum = parseInt(episode.episodeNumber) || 1;
-                    episodeLabel = `S${seasonNum.toString().padStart(2, '0')}E${episodeNum.toString().padStart(2, '0')}`;
+                    episodeLabel = `S${seasonNum}E${episodeNum}`;
                 }
                 
                 const isCurrentEpisode = currentEpisodeInfo && 
@@ -432,7 +442,7 @@ class EpisodeModal {
     extractEpisodeInfo(filePath) {
         const fileName = filePath.split('/').pop() || filePath;
         
-        // Look for S01E01 pattern
+        // Look for S01E01 pattern (regular episodes)
         const seasonEpisodeMatch = fileName.match(/S(\d{1,2})E(\d{1,2})/i);
         if (seasonEpisodeMatch) {
             return {
@@ -442,7 +452,17 @@ class EpisodeModal {
             };
         }
         
-        // Look for Season 01 Episode 01 pattern
+        // Look for S01X01 pattern (special episodes)
+        const seasonSpecialMatch = fileName.match(/S(\d{1,2})X(\d{1,2})/i);
+        if (seasonSpecialMatch) {
+            return {
+                seasonNumber: parseInt(seasonSpecialMatch[1]),
+                episodeNumber: parseInt(seasonSpecialMatch[2]),
+                showName: this.extractShowName(fileName)
+            };
+        }
+        
+        // Look for Season 1 Episode 01 pattern
         const seasonMatch = fileName.match(/Season\s*(\d{1,2})/i);
         const episodeMatch = fileName.match(/Episode\s*(\d{1,2})/i);
         if (seasonMatch && episodeMatch) {
@@ -486,7 +506,7 @@ class EpisodeModal {
         let episodeTitle = nameWithoutExt
             .replace(/^.*?\([0-9]{4}\)\s*-\s*/, '') // Remove "Show Name (Year) - "
             .replace(/^.*?S\d{1,2}E\d{1,2}\s*-\s*/, '') // Remove "Show Name S01E01 - "
-            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 01 Episode 01 - "
+            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 1 Episode 01 - "
             .trim();
         
         // If no title found, try to extract from S01E01 format

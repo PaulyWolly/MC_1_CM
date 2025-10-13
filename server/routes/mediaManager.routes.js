@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -133,11 +133,53 @@ router.post('/scan-movies', async (req, res) => {
     const newMovies = Math.max(0, afterCount - beforeCount);
     console.log(`[SCAN-MOVIES] New movies detected: ${newMovies} (${afterCount} - ${beforeCount})`);
     
+    // Get the actual movie data for the new movies
+    let newMoviesData = [];
+    try {
+      if (fs.existsSync(outputFile)) {
+        const afterData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+        
+        // Since we can't easily compare before/after data, let's return all movies
+        // and let the client filter for ones that need TMDB data
+        const allMovies = Object.entries(afterData);
+        console.log(`[SCAN-MOVIES] Total movies in database: ${allMovies.length}`);
+        
+        // Filter for movies that need TMDB data completion
+        // These are movies that were previously scanned but are awaiting Media Manager completion
+        newMoviesData = allMovies
+          .filter(([key, movie]) => {
+            // A movie needs TMDB data if it has an empty cast array (previously scanned, awaiting MM completion)
+            // or is missing essential TMDB metadata
+            const hasEmptyCast = !movie.cast || movie.cast.length === 0;
+            const missingPoster = !movie.poster || movie.poster === '';
+            const missingDescription = !movie.description || movie.description === '';
+            
+            // Show movies that are awaiting Media Manager completion
+            return hasEmptyCast || missingPoster || missingDescription;
+          })
+          .map(([key, movie]) => ({
+            key: key,
+            title: movie.title || movie.TMDBTitle || movie.name || 'Unknown Title',
+            year: movie.year || 'Unknown Year',
+            path: movie.path || movie.absPath || 'Unknown Path',
+            tmdbId: movie.tmdbId || null,
+            poster: movie.poster || null,
+            description: movie.description || movie.overview || 'No description available'
+          }));
+        
+        console.log(`[SCAN-MOVIES] Found ${newMoviesData.length} movies awaiting Media Manager completion`);
+        console.log(`[SCAN-MOVIES] Sample movie data:`, newMoviesData.slice(0, 3));
+      }
+    } catch (e) {
+      console.error('[SCAN-MOVIES] Error reading movie data:', e);
+    }
+    
     return res.json({ 
       success: true, 
       message: 'Movie scan completed successfully',
       newMovies: newMovies,
       totalMovies: afterCount,
+      newMoviesData: newMoviesData,
       output: result
     });
     
@@ -780,7 +822,7 @@ router.post('/api/media/validate-path', (req, res) => {
     if (type === 'movie') {
       valid = /.+ \(\d{4}\) \[.+\]\/[^\/]+\.(mp4|mkv|avi|mov)$/i.test(mediaPath);
     } else if (type === 'tv') {
-      // Example: /<show>/Season 01/S01E01.ext
+      // Example: /<show>/Season 1/S01E01.ext
       valid = /.+\/Season \d{2}\/S\d{2}E\d{2}\.(mp4|mkv|avi|mov)$/i.test(mediaPath);
     }
     return res.json({ success: true, valid });
@@ -966,12 +1008,12 @@ router.post('/scan-tv-structure', (req, res) => {
     const seasonFolders = showDir
       .filter(dirent => dirent.isDirectory())
       .filter(dirent => {
-        // Support both "Season 01" and "S01" formats
+        // Support both "Season 1" and "S01" formats
         return /season\s*\d+/i.test(dirent.name) || /^s\d+/i.test(dirent.name);
       });
     seasonFolders.forEach(seasonFolder => {
       const seasonPath = path.join(showPath, seasonFolder.name);
-      // Support both "Season 01" and "S01" formats for season number extraction
+      // Support both "Season 1" and "S01" formats for season number extraction
       let seasonMatch = seasonFolder.name.match(/season\s*(\d+)/i);
       if (!seasonMatch) {
         seasonMatch = seasonFolder.name.match(/^s(\d+)/i);
@@ -1044,7 +1086,7 @@ router.post('/scan-tv-folders', (req, res) => {
     const seasonFolders = showDir
       .filter(dirent => dirent.isDirectory())
       .filter(dirent => {
-        // Support both "Season 01" and "S01" formats
+        // Support both "Season 1" and "S01" formats
         return /season\s*\d+/i.test(dirent.name) || /^s\d+/i.test(dirent.name);
       });
     
@@ -1124,7 +1166,14 @@ router.post('/scan-tv-folders', (req, res) => {
         });
         
         // Create virtual season folders for each season found
-        Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
+        Object.keys(episodesBySeason)
+          .filter(key => !isNaN(parseInt(key)))
+          .sort((a, b) => {
+            const numA = parseInt(a);
+            const numB = parseInt(b);
+            if (isNaN(numA) || isNaN(numB)) return 0;
+            return numA - numB;
+          }).forEach(seasonNum => {
           const seasonEpisodes = episodesBySeason[seasonNum];
           
           // Sort episodes by episode number
@@ -1136,7 +1185,7 @@ router.post('/scan-tv-folders', (req, res) => {
           });
           
           folders.push({
-            path: `Season ${seasonNum.padStart(2, '0')}`,
+            path: `Season ${seasonNum}`,
             files: seasonEpisodes
           });
         });
@@ -1163,7 +1212,14 @@ router.post('/scan-tv-folders', (req, res) => {
       });
       
       // Create season folders for any remaining files
-      Object.keys(episodesBySeason).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
+      Object.keys(episodesBySeason)
+        .filter(key => !isNaN(parseInt(key)))
+        .sort((a, b) => {
+          const numA = parseInt(a);
+          const numB = parseInt(b);
+          if (isNaN(numA) || isNaN(numB)) return 0;
+          return numA - numB;
+        }).forEach(seasonNum => {
         const seasonEpisodes = episodesBySeason[seasonNum];
         
         // Sort episodes by episode number
@@ -1175,7 +1231,7 @@ router.post('/scan-tv-folders', (req, res) => {
         });
         
         finalFolders.push({
-          path: `Season ${seasonNum.padStart(2, '0')}`,
+          path: `Season ${seasonNum}`,
           files: seasonEpisodes
         });
       });
@@ -1210,17 +1266,7 @@ router.post('/add-movie-unified', async (req, res) => {
       });
     }
 
-    // Step 1: Scan the movie folder and create the basic structure
-    const scanResult = await scanMovieFolder(moviePath, title);
-    if (!scanResult.success) {
-      return res.status(400).json({ 
-        success: false, 
-        error: scanResult.error 
-      });
-    }
-
-    // Step 2: Add TMDB metadata (TMDB ID is required)
-    const movieData = scanResult.movieData;
+    // Step 1: Create movie data structure directly from provided data
     if (!tmdbId) {
       return res.status(400).json({ 
         success: false, 
@@ -1228,11 +1274,44 @@ router.post('/add-movie-unified', async (req, res) => {
       });
     }
     
-    // Add TMDB metadata to the movie data
-    movieData.tmdbId = tmdbId;
-    if (description) movieData.description = description;
-    if (cast) movieData.cast = cast;
-    if (poster) movieData.poster = poster;
+    // Generate normalized key from title
+    const { normalizeKey } = require('../../shared/NormalizationService.js');
+    const normalizedKey = normalizeKey(title);
+    
+    // Helper function to extract year from title
+    function extractYearFromTitle(title) {
+      const yearMatch = title.match(/(19|20)\d{2}/);
+      return yearMatch ? yearMatch[0] : '';
+    }
+    
+    // Create the movie data structure
+    const movieData = {
+      type: "movie",
+      isMovie: true,
+      title: title,
+      TMDBTitle: title,
+      year: extractYearFromTitle(title),
+      normalizedKey: normalizedKey,
+      tmdbId: tmdbId,
+      description: description || '',
+      cast: cast || [],
+      poster: poster || '',
+      files: []
+    };
+    
+    // Add video file if moviePath is provided
+    if (moviePath) {
+      const fileName = path.basename(moviePath);
+      const ext = path.extname(fileName).toLowerCase();
+      
+      if (['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'].includes(ext)) {
+        movieData.files.push({
+          name: fileName,
+          absPath: moviePath,
+          relPath: path.relative('S:/MEDIA/MOVIES', moviePath)
+        });
+      }
+    }
 
     // Step 3: Save to movies-unified.json
     const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
@@ -1249,17 +1328,31 @@ router.post('/add-movie-unified', async (req, res) => {
     // Add the new movie
     existingData[movieData.normalizedKey] = movieData;
     
-    // Write back to file
-    fs.writeFileSync(outputFile, JSON.stringify(existingData, null, 2));
-    
-    console.log(`[ADD-MOVIE-UNIFIED] Successfully added movie: ${movieData.normalizedKey}`);
-    
-    return res.json({ 
-      success: true, 
-      message: 'Movie added successfully',
-      normalizedKey: movieData.normalizedKey,
-      movieData: movieData
-    });
+    // Write back to file with proper error handling
+    try {
+      fs.writeFileSync(outputFile, JSON.stringify(existingData, null, 2), 'utf8');
+      
+      // Verify the file was written correctly
+      const verifyData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+      if (!verifyData[movieData.normalizedKey]) {
+        throw new Error('File write verification failed - movie not found in saved data');
+      }
+      
+      console.log(`[ADD-MOVIE-UNIFIED] Successfully added movie: ${movieData.normalizedKey}`);
+      
+      return res.json({ 
+        success: true, 
+        message: 'Movie added successfully',
+        normalizedKey: movieData.normalizedKey,
+        movieData: movieData
+      });
+    } catch (writeError) {
+      console.error('[ADD-MOVIE-UNIFIED] File write error:', writeError);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to save movie data: ' + writeError.message 
+      });
+    }
 
   } catch (err) {
     console.error('[ADD-MOVIE-UNIFIED] Error:', err);
@@ -1272,33 +1365,41 @@ async function scanMovieFolder(moviePath, title) {
   try {
     const MEDIA_ROOT = 'S:/MEDIA/MOVIES';
     
+    // Normalize the path to handle different separators
+    const normalizedPath = moviePath.replace(/\\/g, '/');
+    
     // Determine if the path is a file or folder
     let folderPath, videoFiles = [];
     
-    if (moviePath.includes('S:/MEDIA/MOVIES') || moviePath.includes('S:\\MEDIA\\MOVIES')) {
+    if (normalizedPath.includes('S:/MEDIA/MOVIES')) {
       // Check if it's a file path or folder path
-      if (fs.existsSync(moviePath)) {
-        const stats = fs.statSync(moviePath);
+      if (fs.existsSync(normalizedPath)) {
+        const stats = fs.statSync(normalizedPath);
         if (stats.isFile()) {
-          // It's a file path - extract the folder and scan the folder
-          folderPath = path.dirname(moviePath);
-          const fileName = path.basename(moviePath);
+          // It's a file path - extract the folder and add the file
+          const extractedFolderPath = path.dirname(normalizedPath);
+          const fileName = path.basename(normalizedPath);
           const ext = path.extname(fileName).toLowerCase();
           
           // Check if it's a video file
           if (['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'].includes(ext)) {
             videoFiles.push({
               name: fileName,
-              absPath: moviePath,
-              relPath: path.relative(MEDIA_ROOT, moviePath)
+              absPath: normalizedPath,
+              relPath: path.relative(MEDIA_ROOT, normalizedPath)
             });
+            
+            // Set folderPath for later use but don't scan since we already have the file
+            folderPath = extractedFolderPath;
+          } else {
+            return { success: false, error: `File is not a video file: ${normalizedPath}` };
           }
         } else if (stats.isDirectory()) {
           // It's a folder path
-          folderPath = moviePath;
+          folderPath = normalizedPath;
         }
       } else {
-        return { success: false, error: `Path not found: ${moviePath}` };
+        return { success: false, error: `Path not found: ${normalizedPath}` };
       }
     } else {
       // Just title provided - construct full path
@@ -1309,6 +1410,11 @@ async function scanMovieFolder(moviePath, title) {
     if (folderPath && videoFiles.length === 0) {
       if (!fs.existsSync(folderPath)) {
         return { success: false, error: `Movie folder not found: ${folderPath}` };
+      }
+
+      const folderStats = fs.statSync(folderPath);
+      if (!folderStats.isDirectory()) {
+        return { success: false, error: `Path is not a directory: ${folderPath}` };
       }
 
       // Scan for video files in the folder

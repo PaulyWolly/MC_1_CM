@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-09-22T18:25:10.605Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "tmdbId": null,
+      "poster": null,
+      "mediaId": "movie_forgetting_sarah_marshall__2008___1080p_",
+      "mediaType": "tvshow",
+      "title": "Forgetting Sarah Marshall (2008) [1080p]",
+      "filePath": "Forgetting Sarah Marshall (2008) [1080p]",
+      "fileName": "Forgetting Sarah Marshall (2008) [1080p]",
+      "absPath": "S:\\MEDIA\\MOVIES\\Forgetting Sarah Marshall (2008) [1080p]\\Forgetting.Sarah.Marshall.(2008).[1080p].mp4",
+      "currentTime": 487.922417,
+      "duration": 7066.645,
+      "season": null,
+      "episode": null,
+      "episodeTitle": null,
+      "posterPath": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1755315207170,
+      "_id": "689e00d476d4c84164d85cd9",
+      "addedAt": "2025-08-14T15:29:24.741Z",
+      "lastUpdated": "2025-09-21T23:15:29.198Z",
+      "createdAt": "2025-08-14T15:29:24.759Z",
+      "updatedAt": "2025-09-21T23:15:29.214Z",
+      "cast": [],
+      "files": [],
+      "genres": [],
+      "normalizedKey": "forgetting.sarah.marshall.(2008)",
+      "type": "tvshow",
+      "path": "Forgetting Sarah Marshall (2008) [1080p]"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

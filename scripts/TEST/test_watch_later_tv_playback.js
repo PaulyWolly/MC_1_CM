@@ -1,8 +1,8 @@
 /*
   TEST_WATCH_LATER_TV_PLAYBACK.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -93,7 +93,7 @@ function testWatchLaterLogic() {
             seasons: [
                 {
                     episodes: [
-                        { relPath: 'Test Show/Season 01/Episode 01.mp4', filePath: '/media/tv-shows/Test Show/Season 01/Episode 01.mp4' }
+                        { relPath: 'Test Show/season 1/Episode 01.mp4', filePath: '/media/tv-shows/Test Show/season 1/Episode 01.mp4' }
                     ]
                 }
             ]
@@ -127,9 +127,9 @@ function testPathExtraction() {
     }
     
     const testPaths = [
-        'C:/media/tv-shows/Test Show/Season 01/Episode 01.mp4',
-        'D:/media/tv-shows/Another Show/Season 02/Episode 05.mp4',
-        'Test Show/Season 01/Episode 01.mp4'
+        'C:/media/tv-shows/Test Show/season 1/Episode 01.mp4',
+        'D:/media/tv-shows/Another Show/season 2/Episode 05.mp4',
+        'Test Show/season 1/Episode 01.mp4'
     ];
     
     let allPassed = true;

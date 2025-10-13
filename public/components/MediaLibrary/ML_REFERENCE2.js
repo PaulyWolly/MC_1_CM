@@ -1,9 +1,9 @@
 
 /*
   ML_REFERENCE2.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -973,10 +973,10 @@ class MediaLibraryManager {
         if (this.seasonEpisodeImages && this.seasonEpisodeImages[showKey]) {
           console.log('✅ Found Bored to Death data:', this.seasonEpisodeImages[showKey]);
           console.log('✅ Seasons available:', Object.keys(this.seasonEpisodeImages[showKey].seasons));
-          console.log('✅ Season 01 data:', this.seasonEpisodeImages[showKey].seasons['01']);
+          console.log('✅ season 1 data:', this.seasonEpisodeImages[showKey].seasons['01']);
           if (this.seasonEpisodeImages[showKey].seasons['01']) {
-            console.log('✅ Season 01 episodes count:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes).length);
-            console.log('✅ Season 01 episodes keys:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes));
+            console.log('✅ season 1 episodes count:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes).length);
+            console.log('✅ season 1 episodes keys:', Object.keys(this.seasonEpisodeImages[showKey].seasons['01'].episodes));
           }
         } else {
           console.log('❌ Bored to Death data NOT found in seasonEpisodeImages');
@@ -4356,7 +4356,7 @@ class MediaLibraryManager {
       }
       // If we didn't find the show in JSON data, fall back to path parsing
       if (!show) {
-        // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
+        // Try to match 'TV-SHOWS/Show/Season 1/Show S01E02 ...'
         let match = path.match(
           /TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i
         );
@@ -4969,7 +4969,7 @@ class MediaLibraryManager {
     
     // If we didn't find the show in JSON data, fall back to path parsing
     if (!show) {
-      // Try to match 'TV-SHOWS/Show/Season 01/Show S01E02 ...'
+      // Try to match 'TV-SHOWS/Show/Season 1/Show S01E02 ...'
       let match = path.match(
         /TV-?SHOWS[\\/](.*?)[\\/].*?[Ss](\d{2})[Ee](\d{2})/i
       );
@@ -5095,7 +5095,7 @@ class MediaLibraryManager {
         }
       
       // Handle both normalized paths (lost.(2004)/season.01/lost.s01e02.pilot.mkv) 
-      // and human-readable paths (TV-SHOWS/Show Name/Season 01/Show S01E02...)
+      // and human-readable paths (TV-SHOWS/Show Name/Season 1/Show S01E02...)
       let showName = null, seasonNum = null, episodeNum = null;
       
       // Try normalized path format first (e.g., "lost.(2004)/season.01/lost.s01e02.pilot.mkv")
@@ -5106,7 +5106,7 @@ class MediaLibraryManager {
         episodeNum = parseInt(normalizedMatch[4], 10);
         // console.log('🔍 [TV-IMAGE-DEBUG] ✅ Normalized path match:', { showName, seasonNum, episodeNum });
       } else {
-        // Try human-readable path format (e.g., "TV-SHOWS/Show Name/Season 01/Show S01E02...")
+        // Try human-readable path format (e.g., "TV-SHOWS/Show Name/Season 1/Show S01E02...")
         let humanMatch = path.match(/TV-?SHOWS[\\/]([^\\\/]+)[\\/]Season[ _-]?(\d+)[\\/].*?[Ss](\d+)[Ee](\d+)/i);
         if (humanMatch) {
           showName = humanMatch[1].trim();
@@ -11872,7 +11872,7 @@ class MediaLibraryManager {
       // );
       const seasons = show.seasons.map((season) => ({
         seasonNumber: season.seasonNumber,
-        path: `Season ${season.seasonNumber.toString().padStart(2, "0")}`,
+        path: `Season ${season.seasonNumber.toString()}`,
         episodes: season.episodes || {},
         poster: null, // Will be loaded from seasonEpisodeImages
       }));
@@ -11984,7 +11984,7 @@ class MediaLibraryManager {
           const episodeCount = seasonData.episodes ? Object.keys(seasonData.episodes).length : 0;
           allSeasons.push({
                 seasonNumber: parseInt(seasonNum, 10),
-                path: `Season ${seasonNum.padStart(2, "0")}`,
+                path: `Season ${seasonNum}`,
                 episodes: seasonData.episodes || {},
                 season_poster: seasonData.season_poster || seasonData.poster || null,
                 poster: seasonData.season_poster || seasonData.poster || null,
@@ -12428,7 +12428,7 @@ class MediaLibraryManager {
         const seasonMatch = seasonPath.match(/season\.(\d+)/i);
         const seasonNumber = seasonMatch ? seasonMatch[1] : null;
         
-        // Extract season number from folder path (e.g., "Season 03" -> "03")
+        // Extract season number from folder path (e.g., "Season 3" -> "03")
         const folderMatch = folderPath.match(/season\s+(\d+)/i);
         const folderSeasonNumber = folderMatch ? folderMatch[1] : null;
         
@@ -12581,7 +12581,7 @@ class MediaLibraryManager {
       //   show.files.length,
       //   "files"
       // );
-      // Extract season number from seasonPath (e.g., "Season 01" -> "01", "S01" -> "01")
+      // Extract season number from seasonPath (e.g., "Season 1" -> "01", "S01" -> "01")
       const seasonMatch =
         seasonPath.match(/season[ _-]?(\d+)/i) || seasonPath.match(/^s(\d+)/i);
       const seasonNumber = seasonMatch ? seasonMatch[1] : null;
@@ -12982,7 +12982,7 @@ class MediaLibraryManager {
       const year = yearMatch ? yearMatch[1] : null;
       // Create standardized key - use normalizeKey for JSON files (no tvshows prefix)
       const showKey = window.normalizeKey(cleanShowName);
-      // Normalize season number (handle both 'Season 01' and 1)
+      // Normalize season number (handle both 'Season 1' and 1)
       let seasonNum = null;
       if (typeof seasonName === "string") {
         const match = seasonName.match(/season[ _-]?(\d+)/i);
@@ -14296,7 +14296,7 @@ class MediaLibraryManager {
         part.toLowerCase().includes("tvshows")
       );
       if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
-        // Get everything after TV-SHOWS: ["Show Name", "Season 01", "episode.mkv"]
+        // Get everything after TV-SHOWS: ["Show Name", "Season 1", "episode.mkv"]
         workingPath = pathParts.slice(tvShowsIndex + 1).join("/");
         console.log(
           "[DEBUG - PATH-PROCESSING] Converted absolute path:",
@@ -14314,7 +14314,7 @@ class MediaLibraryManager {
         part.toLowerCase().includes("tvshows")
       );
       if (tvShowsIndex !== -1 && tvShowsIndex + 1 < pathParts.length) {
-        // Get everything after tvshows: ["Show Name", "Season 01", "episode.mkv"]
+        // Get everything after tvshows: ["Show Name", "Season 1", "episode.mkv"]
         workingPath = pathParts.slice(tvShowsIndex + 1).join("/");
         console.log(
           "[DEBUG - PATH-PROCESSING] Converted relative tvshows path:",
@@ -14338,7 +14338,7 @@ class MediaLibraryManager {
     }
     
     const showPath = pathParts[0]; // e.g., "lost.(2004)" or "Bored to Death (2009)"
-    const seasonPath = pathParts[0] + "/" + pathParts[1]; // e.g., "lost.(2004)/season.01" or "Bored to Death (2009)/Season 01"
+    const seasonPath = pathParts[0] + "/" + pathParts[1]; // e.g., "lost.(204)/season.01" or "Bored to Death (2009)/season 1"
     const episodeFilename = pathParts[2]; // e.g., "lost.s01e02.pilot.mkv"
     
     console.log("[DEBUG - PATH-PARSING] Parsed path:", { 
@@ -14350,12 +14350,12 @@ class MediaLibraryManager {
     });
     
     // Convert normalized season path to human-readable format for matching
-    // Handle both "season.01" and "Season 01" formats
+    // Handle both "season.1" and "Season 1" formats
     let humanReadableSeasonPath = seasonPath;
     
     // If it's in normalized format (e.g., "lost.(2004)/season.01")
     if (seasonPath.includes("season.")) {
-      // Convert "season.01" to "Season 01" format
+      // Convert "season.1" to "Season 1" format
       const seasonMatch = seasonPath.match(/season\.(\d+)/i);
       if (seasonMatch) {
         const seasonNumber = seasonMatch[1];
@@ -14427,7 +14427,7 @@ class MediaLibraryManager {
             if (!s.normalizedKey) return false;
             
             // Extract the show name from the path (before the first slash)
-            // Example: "Chuck (2007)/Season 03/..." -> "Chuck (2007)"
+            // Example: "Chuck (207)/season 3/..." -> "Chuck (2007)"
             const showNameFromPath = showPath.split('/')[0];
             
             // Convert to normalized key format (same as backup system)
@@ -14606,7 +14606,7 @@ class MediaLibraryManager {
               // Debug logging for first few episodes to see path formats
               if (
                 show.name === "Bored to Death" &&
-                season.name === "Season 01" &&
+                season.name === "Season 1" &&
                 episode.name &&
                 episode.name.includes("S01E03")
               ) {
@@ -14656,7 +14656,7 @@ class MediaLibraryManager {
                 const parts = path.split("/");
                 if (parts.length < 3) return null;
                 const showPart = parts[0]; // e.g., "Bored to Death (2009)"
-                const seasonPart = parts[1]; // e.g., "Season 01"
+                const seasonPart = parts[1]; // e.g., "Season 1"
                 const episodePart = parts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
                 // Extract show name without year
                 const showMatch = showPart.match(/^(.+?)\s*\(\d{4}\)$/);
@@ -14750,7 +14750,7 @@ class MediaLibraryManager {
             const parts = path.split("/");
             if (parts.length < 3) return null;
             const showPart = parts[0]; // e.g., "Bored to Death (2009)"
-            const seasonPart = parts[1]; // e.g., "Season 01"
+            const seasonPart = parts[1]; // e.g., "Season 1"
             const episodePart = parts[2]; // e.g., "Bored to Death - S01E03 - The Case of the Missing Screenplay.mkv"
             // Extract show name without year
             const showMatch = showPart.match(/^(.+?)\s*\(\d{4}\)$/);

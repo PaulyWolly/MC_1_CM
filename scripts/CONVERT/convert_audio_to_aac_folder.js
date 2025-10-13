@@ -1,8 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_FOLDER.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -45,7 +45,7 @@ function usage() {
     console.log('🎵 Enhanced Audio Conversion with Visual Feedback');
     console.log('=' .repeat(60));
     console.log('Usage: node convert_audio_to_aac_folder.js <folder>');
-    console.log('Example: node convert_audio_to_aac_folder.js "S:\\MEDIA\\TV-SHOWS\\Lucifer (2016)\\Season 06"');
+    console.log('Example: node convert_audio_to_aac_folder.js "S:\\MEDIA\\TV-SHOWS\\Lucifer (2016)\\season 6"');
     console.log('\n✨ Features:');
     console.log('   • Real-time progress bars with animations');
     console.log('   • Timeline tracking for each conversion step');

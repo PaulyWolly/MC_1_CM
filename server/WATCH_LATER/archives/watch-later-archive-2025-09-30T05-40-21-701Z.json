@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-09-30T05:40:21.701Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "type": "tvshow",
+      "normalizedKey": "heroes.(2006).S1E3.one.giant.leap",
+      "title": "Heroes (2006) | S1E3 | One Giant Leap",
+      "tmdbId": null,
+      "poster": null,
+      "genres": [],
+      "files": [],
+      "mediaId": "movie_heroes__2006____S1E3___one_giant_leap_unknown",
+      "mediaType": "tvshow",
+      "filePath": "Heroes (2006)/Season 1/Heroes - S1E3 - One Giant Leap.mkv",
+      "fileName": "Heroes - S1E3 - One Giant Leap.mkv",
+      "absPath": "S:\\MEDIA\\TV-SHOWS\\Heroes (2006)\\Season 1\\Heroes - S1E3 - One Giant Leap.mkv",
+      "currentTime": 129.417534,
+      "duration": 2613.504,
+      "season": 1,
+      "episode": 1,
+      "episodeTitle": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1756957038470,
+      "_id": "68b909f2d46d9a483f6464c0",
+      "cast": [],
+      "addedAt": "2025-09-04T03:39:30.479Z",
+      "lastUpdated": "2025-09-04T03:39:30.479Z",
+      "createdAt": "2025-09-04T03:39:30.548Z",
+      "updatedAt": "2025-09-04T03:39:30.548Z",
+      "path": "Heroes (2006)/Season 1/Heroes - S1E3 - One Giant Leap.mkv"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

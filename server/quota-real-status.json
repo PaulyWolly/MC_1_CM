@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-10-03T21:03:07.282Z",
+  "local": {
+    "used": 0,
+    "remaining": 10000,
+    "total": 10000,
+    "percentage": 0,
+    "resetTime": "2025-10-04T07:00:00.000Z",
+    "timeUntilReset": 597
+  },
+  "real": {
+    "hasQuota": true,
+    "error": null
+  },
+  "cacheStats": {
+    "keys": 0,
+    "hits": 0,
+    "misses": 0
+  },
+  "summary": {
+    "hasQuota": true,
+    "canMakeSearches": true,
+    "quotaExceeded": false,
+    "lastChecked": "2025-10-03T21:03:07.282Z"
+  }
+}

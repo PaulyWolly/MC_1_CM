@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-09-30T22:01:49.691Z",
+  "totalItems": 1,
+  "items": [
+    {
+      "type": "tvshow",
+      "normalizedKey": "silicon.valley.(2014).S1E4.fiduciary.duties",
+      "title": "Silicon Valley (2014) | S1E4 | Fiduciary Duties",
+      "tmdbId": null,
+      "poster": null,
+      "genres": [],
+      "files": [],
+      "mediaId": "movie_silicon_valley__2014____S1E4___fiduciary_duties_unknown",
+      "mediaType": "tvshow",
+      "filePath": "Silicon Valley (2014)/Season 1/Silicon.Valley.S1E4.Fiduciary.Duties.mp4",
+      "fileName": "Silicon.Valley.S1E4.Fiduciary.Duties.mp4",
+      "absPath": "S:\\MEDIA\\TV-SHOWS\\Silicon Valley (2014)\\Season 1\\Silicon.Valley.S1E4.Fiduciary.Duties.mp4",
+      "currentTime": 193.559635,
+      "duration": 1710.879,
+      "season": 1,
+      "episode": 1,
+      "episodeTitle": null,
+      "year": null,
+      "quality": null,
+      "lastWatched": 1756957995847,
+      "_id": "68b90dab9ea738345838e859",
+      "cast": [],
+      "addedAt": "2025-09-04T03:55:23.714Z",
+      "lastUpdated": "2025-09-08T03:48:50.395Z",
+      "createdAt": "2025-09-04T03:55:23.744Z",
+      "updatedAt": "2025-09-08T03:48:50.456Z",
+      "path": "Silicon Valley (2014)/Season 1/Silicon.Valley.S1E4.Fiduciary.Duties.mp4"
+    }
+  ],
+  "metadata": {
+    "reason": "localStorage quota management",
+    "source": "mediaLibraryResumeList",
+    "archivedBy": "MediaLibraryManager"
+  }
+}

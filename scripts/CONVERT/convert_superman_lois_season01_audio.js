@@ -1,8 +1,8 @@
 /*
   CONVERT_SUPERMAN_LOIS_SEASON01_AUDIO.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -13,7 +13,7 @@ const util = require('util');
 const execAsync = util.promisify(exec);
 
 // Paths
-const SEASON_PATH = 'S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\Season 01';
+const SEASON_PATH = 'S:\\MEDIA\\TV-SHOWS\\Superman & Lois\\season 1';
 const LOG_PATH = path.join(__dirname, '../logs/convert_superman_lois_season01_audio.js.log');
 
 // Helper to log to both console and file
@@ -82,14 +82,14 @@ async function convertAudioToAAC(inputPath, outputPath) {
 async function processSeason01() {
     try {
         fs.writeFileSync(LOG_PATH, '');
-        logLine(`[AUDIO-CONVERT] Starting Superman & Lois Season 01 audio conversion...`);
+        logLine(`[AUDIO-CONVERT] Starting Superman & Lois season 1 audio conversion...`);
         
-        // Get all .mkv files in the Season 01 directory
+        // Get all .mkv files in the Season 1 directory
         const files = fs.readdirSync(SEASON_PATH)
             .filter(file => file.toLowerCase().endsWith('.mkv'))
             .map(file => path.join(SEASON_PATH, file));
         
-        logLine(`[AUDIO-CONVERT] Found ${files.length} .mkv files in Season 01`);
+        logLine(`[AUDIO-CONVERT] Found ${files.length} .mkv files in season 1`);
         
         const results = [];
         let processed = 0;

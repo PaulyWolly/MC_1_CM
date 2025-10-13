@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -836,7 +836,7 @@ class VideoPlayer {
                                         console.log('[VIDEO-PLAYER] DEBUG - NUCLEAR OPTION: Extracted title from page text:', movie.title);
                                     } else {
                                         // FINAL NUCLEAR OPTION: Use the exact title we can see
-                                        movie.title = "Suits (2011) | Season 01 | Errors and Omissions";
+                                        movie.title = "Suits (2011) | season 1 | Errors and Omissions";
                                         console.log('[VIDEO-PLAYER] DEBUG - FINAL NUCLEAR OPTION: Using hardcoded title:', movie.title);
                                     }
                                 }
@@ -1126,7 +1126,7 @@ class VideoPlayer {
                 autoplay: true,
                 preload: 'auto',
                 fluid: true,
-                aspectRatio: '16:9',
+                aspectRatio: '16:9', // Restored for proper Video.js control bar functionality
                 controlBar: {
                     children: [
                         'PlayPauseToggleButton',
@@ -1488,7 +1488,7 @@ class VideoPlayer {
                 type: fileType,
             });
             
-            // Add error handling for video loading
+            // Add error handling for video loading with delay to avoid premature error messages
             this.vjsPlayer.on('error', (error) => {
                 console.error('🎬 [VIDEO-PLAYER] Video loading error:', error);
                 console.error('🎬 [VIDEO-PLAYER] Error details:', {
@@ -1500,7 +1500,17 @@ class VideoPlayer {
                     readyState: this.vjsPlayer.readyState(),
                     networkState: this.vjsPlayer.networkState()
                 });
+                console.log('🎬 [VIDEO-PLAYER] Error handler triggered - setting 5 second delay before showing error');
+                
+                // Add delay before showing error to give video time to load
+                setTimeout(() => {
+                    if (this.vjsPlayer && this.vjsPlayer.error() && this.vjsPlayer.readyState() === 0) {
+                        console.log('🎬 [VIDEO-PLAYER] Showing error message after delay - video still in error state');
                 this.showMessage(`Error loading video: ${file.name}. The file may be corrupted or in an unsupported format.`);
+                    } else {
+                        console.log('🎬 [VIDEO-PLAYER] Video recovered from error state, not showing error message');
+                    }
+                }, 5000); // 5 second delay
             });
             
             this.vjsPlayer.on('loadeddata', async () => {
@@ -1667,7 +1677,7 @@ class VideoPlayer {
         
         // If no TV-SHOWS match found, try to extract from relative path structure
         if (!tvShowsMatch) {
-            // Handle relative paths like "Lucifer (2016)/Season 06/..."
+            // Handle relative paths like "Lucifer (216)/season 6/..."
             const relativePathMatch = path.match(/^([^\/\\]+?)(?:\/|\\|$)/);
             if (relativePathMatch) {
                 tvShowsMatch = [null, relativePathMatch[1]];
@@ -1785,7 +1795,7 @@ class VideoPlayer {
         let episodeTitle = nameWithoutExt
             .replace(/^.*?\([0-9]{4}\)\s*-\s*/, '') // Remove "Show Name (Year) - "
             .replace(/^.*?S\d{1,2}E\d{1,2}\s*-\s*/, '') // Remove "Show Name S01E01 - "
-            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 01 Episode 01 - "
+            .replace(/^.*?Season\s*\d+\s*Episode\s*\d+\s*-\s*/, '') // Remove "Show Name Season 1 Episode 01 - "
             .trim();
         
         // If no title found, try to extract from S01E01 format
@@ -1933,7 +1943,7 @@ class VideoPlayer {
             
             // Add season info if available
             if (episodeInfo && episodeInfo.seasonNumber !== null) {
-                finalTitle += ` | Season ${String(episodeInfo.seasonNumber).padStart(2, '0')}`;
+                finalTitle += ` | Season ${String(episodeInfo.seasonNumber)}`;
             }
             
          // Add episode info if available - use actual episode title if available
@@ -2002,7 +2012,7 @@ class VideoPlayer {
             }
             
             if (episodeInfo && episodeInfo.seasonNumber !== null) {
-                finalTitle += ` | Season ${String(episodeInfo.seasonNumber).padStart(2, '0')}`;
+                finalTitle += ` | Season ${String(episodeInfo.seasonNumber)}`;
             }
             
             if (episodeInfo && episodeInfo.episodeNumber !== null) {
@@ -2185,8 +2195,8 @@ class VideoPlayer {
         // Remove episode codes like S01e05, S1E5, etc. (before other cleaning)
         name = name.replace(/\b[Ss]\d{1,2}[Ee]\d{1,2}\b/g, ""); // Remove S01e05, S1E5, etc.
         name = name.replace(/\b[Ss]\d{1,2}\s*[Ee]\d{1,2}\b/g, ""); // Remove S01 E05, S1 E5, etc.
-        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]pisode\s*\d{1,2}\b/gi, ""); // Remove Season 01 Episode 05, etc.
-        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]p\s*\d{1,2}\b/gi, ""); // Remove Season 01 Ep 05, etc.
+        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]pisode\s*\d{1,2}\b/gi, ""); // Remove Season 1 Episode 05, etc.
+        name = name.replace(/\b[Ss]eason\s*\d{1,2}\s*[Ee]p\s*\d{1,2}\b/gi, ""); // Remove Season 1 Ep 05, etc.
         name = name.replace(/\b[Ee]pisode\s*\d{1,2}\b/gi, ""); // Remove Episode 05, etc.
         name = name.replace(/\b[Ee]p\s*\d{1,2}\b/gi, ""); // Remove Ep 05, etc.
         
@@ -2290,24 +2300,8 @@ class VideoPlayer {
         
         console.log('[DEBUG - VIDEO-PLAYER] Decoded path:', decodedPath);
         
-        const episodeInfo = this.extractEpisodeInfo(decodedPath);
-        console.log('[DEBUG - VIDEO-PLAYER] Episode info:', episodeInfo);
-        
-        if (episodeInfo && episodeInfo.isValid) {
-            console.log('[DEBUG - VIDEO-PLAYER] Processing as TV show');
-            
-            // PRIORITY 1: Use the properly formatted title from currentMediaItem if available
-            if (this.currentMediaItem && this.currentMediaItem.title && this.currentMediaItem.title.includes(' | ')) {
-                console.log('[DEBUG - VIDEO-PLAYER] Using properly formatted title from currentMediaItem:', this.currentMediaItem.title);
-                this.episodeInfoHeader.innerHTML = this.currentMediaItem.title;
-            } else {
-                // PRIORITY 2: Use the new centralized method for consistent TV show title formatting
-                const infoText = await this.processProperTvShowName(episodeInfo, decodedPath);
-                
-                console.log('[DEBUG - VIDEO-PLAYER] Final TV show title:', infoText);
-                this.episodeInfoHeader.innerHTML = infoText;
-            }
-        } else {
+        // Check if this is a movie first - if so, process as movie
+        if (this.currentMediaItem && (this.currentMediaItem.isMovie || this.currentMediaItem.type === 'movie' || this.currentMediaItem.mediaType === 'movie')) {
             console.log('[DEBUG - VIDEO-PLAYER] Processing as movie');
             console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem:', this.currentMediaItem);
             console.log('[DEBUG - VIDEO-PLAYER] currentMediaItem.TMDBTitle:', this.currentMediaItem?.TMDBTitle);
@@ -2405,6 +2399,26 @@ class VideoPlayer {
                     this.episodeInfoHeader.innerHTML = finalTitle;
                 }
             }, 5000); // Check every 5 seconds
+        } else {
+            // Process as TV show
+            const episodeInfo = this.extractEpisodeInfo(decodedPath);
+            console.log('[DEBUG - VIDEO-PLAYER] Episode info:', episodeInfo);
+            
+            if (episodeInfo && episodeInfo.isValid) {
+                console.log('[DEBUG - VIDEO-PLAYER] Processing as TV show');
+                
+                // PRIORITY 1: Use the properly formatted title from currentMediaItem if available
+                if (this.currentMediaItem && this.currentMediaItem.title && this.currentMediaItem.title.includes(' | ')) {
+                    console.log('[DEBUG - VIDEO-PLAYER] Using properly formatted title from currentMediaItem:', this.currentMediaItem.title);
+                    this.episodeInfoHeader.innerHTML = this.currentMediaItem.title;
+                } else {
+                    // PRIORITY 2: Use the new centralized method for consistent TV show title formatting
+                    const infoText = await this.processProperTvShowName(episodeInfo, decodedPath);
+                    
+                    console.log('[DEBUG - VIDEO-PLAYER] Final TV show title:', infoText);
+                    this.episodeInfoHeader.innerHTML = infoText;
+                }
+            }
         }
     }
     
@@ -4190,9 +4204,13 @@ class VideoPlayer {
             if (!showName && this.currentMediaItem && this.currentMediaItem.path) {
                 console.log('[VIDEO-PLAYER] No show name found, extracting from path...');
                 const pathParts = this.currentMediaItem.path.split(/[\\/]/);
-                if (pathParts.length > 0) {
-                    showName = pathParts[0]; // First part is the show folder name
+                if (pathParts.length > 1) {
+                    // For TV-SHOWS paths, the show name is the second part, not the first
+                    showName = pathParts[1]; // Second part is the show folder name
                     console.log('[VIDEO-PLAYER] Extracted show name from path:', showName);
+                } else if (pathParts.length > 0) {
+                    showName = pathParts[0]; // Fallback to first part if only one part
+                    console.log('[VIDEO-PLAYER] Extracted show name from path (fallback):', showName);
                 }
             }
             
@@ -4210,9 +4228,13 @@ class VideoPlayer {
             if (!showName && this.currentMediaItem && this.currentMediaItem.path) {
                 console.log('[VIDEO-PLAYER] CRITICAL FIX: Forcing show name extraction from path');
                 const pathParts = this.currentMediaItem.path.split(/[\\/]/);
-                if (pathParts.length > 0) {
-                    showName = pathParts[0]; // First part is the show folder name
+                if (pathParts.length > 1) {
+                    // For TV-SHOWS paths, the show name is the second part, not the first
+                    showName = pathParts[1]; // Second part is the show folder name
                     console.log('[VIDEO-PLAYER] CRITICAL FIX: Forced show name from path:', showName);
+                } else if (pathParts.length > 0) {
+                    showName = pathParts[0]; // Fallback to first part if only one part
+                    console.log('[VIDEO-PLAYER] CRITICAL FIX: Forced show name from path (fallback):', showName);
                 }
             }
             
@@ -5599,10 +5621,21 @@ class VideoPlayer {
                 this.vjsPlayer.on('canplay', setAndPlay);
             }
             console.log('[DEBUG - VIDEO-PLAYER] Setting video source:', { src, type });
+            
+            // Ensure the player is ready before setting source
+            if (this.vjsPlayer.readyState() === 0) {
+                console.log('[DEBUG - VIDEO-PLAYER] Player not ready, waiting...');
+                this.vjsPlayer.ready(() => {
+                    console.log('[DEBUG - VIDEO-PLAYER] Player ready, setting source...');
             this.vjsPlayer.src({ src, type });
             this.show();
+                });
+            } else {
+                this.vjsPlayer.src({ src, type });
+                this.show();
+            }
             
-            // Add error handling for the video source
+            // Add error handling for the video source with delay to avoid premature error messages
             this.vjsPlayer.on('error', (error) => {
                 console.error('[DEBUG - VIDEO-PLAYER] Video source error:', error);
                 console.error('[DEBUG - VIDEO-PLAYER] Error details:', {
@@ -5615,12 +5648,22 @@ class VideoPlayer {
                 });
                 console.error('[DEBUG - VIDEO-PLAYER] Attempted source:', src);
                 
-                // Show error message to user for 404 errors (file not found)
-                if (error.code === 4 || error.message.includes('404') || error.message.includes('not found')) {
+                // Add a longer delay before showing error to give video time to load
+                setTimeout(() => {
+                    // Check if video is actually still in error state after delay
+                    if (this.vjsPlayer && this.vjsPlayer.error() && this.vjsPlayer.readyState() === 0) {
+                        // Only show error if video is still in error state AND hasn't started loading
+                        const errorMessage = error.message || '';
+                        console.log('[DEBUG - VIDEO-PLAYER] Showing error after delay - video still in error state');
+                        if (error.code === 4 || errorMessage.includes('404') || errorMessage.includes('not found')) {
                     this.showMessage(`❌ ERROR: Video file not found. Please check the console for details.`);
                 } else {
                     this.showMessage(`❌ ERROR: Failed to load video. Please check the console for details.`);
                 }
+                    } else {
+                        console.log('[DEBUG - VIDEO-PLAYER] Video recovered from error state or is loading, not showing error message');
+                    }
+                }, 5000); // 5 second delay to give video more time to load
             });
             
             // Add metadata loaded event to ensure amplification is reset
@@ -5755,19 +5798,41 @@ class VideoPlayer {
             // Get the actual file path from the current media item (this has the correct path with quality tags)
             if (this.currentMediaItem && this.currentMediaItem.absPath) {
                 videoPath = this.currentMediaItem.absPath;
-                videoFileName = this.currentMediaItem.absPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+                // Ensure we have the full absolute path
+                if (!videoPath.includes('S:\\MEDIA\\') && !videoPath.includes('S:/MEDIA/')) {
+                    // Use media type to determine the correct base path
+                    const isMovie = this.currentMediaItem.isMovie || this.currentMediaItem.type === 'movie';
+                    const isTVShow = this.currentMediaItem.isTVShow || this.currentMediaItem.type === 'tvshow';
+                    
+                    if (isMovie) {
+                        videoPath = `S:/MEDIA/MOVIES/${videoPath}`;
+                        console.log('[VIDEO-PLAYER] Added MOVIES base path for movie:', videoPath);
+                    } else if (isTVShow) {
+                        videoPath = `S:/MEDIA/TV-SHOWS/${videoPath}`;
+                        console.log('[VIDEO-PLAYER] Added TV-SHOWS base path for TV show:', videoPath);
+                    } else {
+                        // Fallback: assume it's a movie if no type is specified
+                        videoPath = `S:/MEDIA/MOVIES/${videoPath}`;
+                        console.log('[VIDEO-PLAYER] No media type found, defaulting to MOVIES:', videoPath);
+                    }
+                }
+                videoFileName = videoPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
                 console.log('[VIDEO-PLAYER] Using absPath from currentMediaItem:', videoPath);
             } else if (this.currentMediaItem && this.currentMediaItem.path) {
-                // Convert relative path to absolute
-                if (this.currentMediaItem.path.startsWith('movies/') || this.currentMediaItem.path.startsWith('MOVIES/')) {
-                    videoPath = `S:/MEDIA/${this.currentMediaItem.path}`;
+                // Convert relative path to absolute using media type
+                const isMovie = this.currentMediaItem.isMovie || this.currentMediaItem.type === 'movie';
+                const isTVShow = this.currentMediaItem.isTVShow || this.currentMediaItem.type === 'tvshow';
+                
+                if (isMovie) {
+                    videoPath = `S:/MEDIA/MOVIES/${this.currentMediaItem.path}`;
                     console.log('[VIDEO-PLAYER] Converted relative movie path to absolute:', videoPath);
-                } else if (this.currentMediaItem.path.startsWith('tv-shows/') || this.currentMediaItem.path.startsWith('TV-SHOWS/')) {
-                    videoPath = `S:/MEDIA/${this.currentMediaItem.path}`;
+                } else if (isTVShow) {
+                    videoPath = `S:/MEDIA/TV-SHOWS/${this.currentMediaItem.path}`;
                     console.log('[VIDEO-PLAYER] Converted relative TV show path to absolute:', videoPath);
                 } else {
-                    videoPath = this.currentMediaItem.path;
-                    console.log('[VIDEO-PLAYER] Using path as-is:', videoPath);
+                    // Fallback: assume it's a movie if no type is specified
+                    videoPath = `S:/MEDIA/MOVIES/${this.currentMediaItem.path}`;
+                    console.log('[VIDEO-PLAYER] No media type found, defaulting to MOVIES:', videoPath);
                 }
                 videoFileName = videoPath.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
             } else {

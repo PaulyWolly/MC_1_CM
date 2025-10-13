@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.CSS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -4490,8 +4490,6 @@
 .media-manager-submit-buttons-movie {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
   border-top: 1px solid #444a56;
 }
 
@@ -4501,4 +4499,63 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.new-movies-list-container {
+  margin-top: 20px !important;
+  padding: 15px !important;
+  background: rgb(26, 26, 26);
+  border: 1px solid rgb(51, 51, 51) !important;
+  border-radius: 8px !important;
+  max-height: 100px !important;
+  overflow-y: auto !important;
+}
+
+.media-library-card-movies {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  padding: 8px 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+
+.media-library-movie-card-movies {
+  width: 172px;
+  height: 37.7vh;
+  margin-left: 14px;
+  padding: 10px;
+  margin-bottom: -45px;
+}
+
+.media-library-watch-later-card-tvshows {
+  width: 172px;
+  height: 37.7vh;
+  margin-left: 14px;
+  padding: 10px;
+  margin-bottom: -45px;
+
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  padding: 8px 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.watch-later-card {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  padding: 8px 8px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }

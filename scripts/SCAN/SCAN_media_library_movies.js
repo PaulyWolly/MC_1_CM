@@ -1,14 +1,14 @@
 /*
   SCAN_MEDIA_LIBRARY_MOVIES.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
 const fs = require('fs');
 const path = require('path');
-const { normalizeKey } = require('../../shared/NormalizationService');
+const { normalizeKey } = require('../../public/components/NormalizationService');
 const fetch = require('node-fetch');
 require('dotenv').config({ path: require('path').join(__dirname, '../../server/.env') });
 
@@ -102,7 +102,88 @@ function extractYearFromTitle(title) {
   return match ? match[1] : '';
 }
 
+// FIXED: Star Trek era detection that doesn't modify existing entries
+function detectStarTrekEra(movieTitle, existingKeys) {
+  if (!movieTitle.toLowerCase().includes('star trek')) {
+    return movieTitle; // Not a Star Trek movie
+  }
+  
+  // CRITICAL FIX: If any Star Trek variation already exists, DON'T modify the title
+  // This prevents re-detection of existing movies
+  const baseTitle = movieTitle.replace(/\s*\((original|v2|new)\)\s*/gi, '').trim();
+  const baseTitleNormalized = normalizeKey(baseTitle).toLowerCase();
+  
+  // Check if any variation of this Star Trek movie already exists
+  const existingVariations = [
+    normalizeKey(baseTitle + ' (original)').toLowerCase(),
+    normalizeKey(baseTitle + ' (v2)').toLowerCase(),
+    normalizeKey(baseTitle + ' (new)').toLowerCase(),
+    baseTitleNormalized
+  ];
+  
+  for (const variation of existingVariations) {
+    if (existingKeys.has(variation)) {
+      console.log(`🎬 [SCAN] Star Trek movie already exists in library: "${movieTitle}" (found variation: ${variation})`);
+      return null; // Signal that this movie should be skipped
+    }
+  }
+  
+  // ADDITIONAL CHECK: Look for existing Star Trek movies with any era designator
+  // This catches cases where the existing movie might have a different designator
+  const existingKeysArray = Array.from(existingKeys);
+  for (const existingKey of existingKeysArray) {
+    if (existingKey.includes('star.trek') && existingKey.includes(baseTitleNormalized.replace(/star\.trek\./g, ''))) {
+      console.log(`🎬 [SCAN] Star Trek movie already exists with different designator: "${movieTitle}" (found: ${existingKey})`);
+      return null; // Signal that this movie should be skipped
+    }
+  }
+  
+  // If already has era designator, keep it
+  if (movieTitle.includes('(v2)') || movieTitle.includes('(new)') || movieTitle.includes('(original)')) {
+    return movieTitle;
+  }
+  
+  // Extract year from title
+  const yearMatch = movieTitle.match(/\((\d{4})\)/);
+  if (!yearMatch) return movieTitle;
+  
+  const year = parseInt(yearMatch[1]);
+  
+    // ORIGINAL ERA: 1979-1991 (William Shatner, Leonard Nimoy)
+    if (year >= 1979 && year <= 1991) {
+      return movieTitle.replace(/(Star Trek[^\d]*?)\s*(\(\d{4}\))/, '$1 (original) $2');
+    }
+    
+    // V2 ERA: 1994-2002 (Patrick Stewart, Brent Spiner)
+    if (year >= 1994 && year <= 2002) {
+      return movieTitle.replace(/(Star Trek[^\d]*?)\s*(\(\d{4}\))/, '$1 (v2) $2');
+    }
+    
+    // NEW ERA: 2009+ (Chris Pine, Zachary Quinto)
+    if (year >= 2009) {
+      return movieTitle.replace(/(Star Trek[^\d]*?)\s*(\(\d{4}\))/, '$1 (new) $2');
+    }
+  
+  return movieTitle;
+}
+
+// FIXED: Improved title cleaning that handles E.T. properly
 function cleanTitleForTMDB(title) {
+  // CRITICAL FIX: Handle E.T. specifically to prevent "eperiodot" issue
+  if (title.toLowerCase().includes('e.t.') || title.toLowerCase().includes('e t ')) {
+    // For E.T., clean it but preserve the proper format
+    return title
+      .replace(/\([0-9]{4}\)/g, '') // remove (year)
+      .replace(/\(colorized\)/gi, '') // remove (colorized)
+      .replace(/\[[^\]]*\]/g, '') // remove [tags]
+      .replace(/\{[^\}]*\}/g, '') // remove {tags}
+      .replace(/\b(1080p|720p|2160p|4K|UHD|HD|SD|EXTENDED|SPECIAL|REMASTERED|DC|35mm|UNRATED|UNCUT|WEB[- ]?DL|BLURAY|BRRIP|HDR|XVID|H264|HEVC|AAC|DTS|YIFY|JYK|X265|X264|10bit|8bit|DUAL|MULTI|PROPER|LIMITED|INTERNAL|COMPLETE|REPACK|REMUX|TRUEHD|ATMOS|DV|HDR10|HDR10\+|SDR|FS|WS|RERIP|READNFO|SUBBED|DUBBED|CUSTOM|FRENCH|GERMAN|SPANISH|ITALIAN|RUSSIAN|JAPANESE|KOREAN|CHINESE|HINDI|TAMIL|TELUGU|MALAYALAM|KANADA|THAI|VIETNAMESE|PORTUGUESE|POLISH|TURKISH|ARABIC|DANISH|DUTCH|FINNISH|GREEK|HEBREW|HUNGARIAN|NORWEGIAN|ROMANIAN|SLOVAK|SWEDISH|CROATIAN|SERBIAN|SLOVENIAN|BULGARIAN|CZECH|ESTONIAN|LATVIAN|LITHUANIAN|UKRAINIAN|ENGLISH|ENG|FRE|SPA|ITA|GER|RUS|JPN|KOR|CHI|HIN|TAM|TEL|MAL|KAN|THA|VIE|POR|POL|TUR|ARA|DAN|NLD|FIN|GRE|HEB|HUN|NOR|RON|SLK|SWE|HRV|SRP|SLV|BGR|CES|EST|LAV|LIT|UKR)\b/gi, '') // remove common tags
+      .replace(/\s{2,}/g, ' ') // collapse multiple spaces
+      .replace(/[^a-zA-Z0-9\s:,'!.-]/g, '') // FIXED: preserve periods for E.T.
+      .trim()
+      .replace(/\bE\s*T\b/gi, 'E.T.'); // Ensure E.T. is properly formatted
+  }
+  
   // Remove (year), [type], {tags}, (colorized), and common quality/edition tags
   return title
     .replace(/\([0-9]{4}\)/g, '') // remove (year)
@@ -141,7 +222,7 @@ async function fetchTMDBId(title, year) {
   }
 }
 
-async function walkMediaWithTMDB(dir, relPath = '') {
+async function walkMediaWithTMDB(dir, relPath = '', existingKeys = new Set()) {
   const absPath = path.join(dir, relPath);
   const { folders, files } = scanDirectory(absPath);
   
@@ -158,8 +239,8 @@ async function walkMediaWithTMDB(dir, relPath = '') {
     
     // Process each immediate subdirectory as a potential movie folder
     for (const folder of folders) {
-      const subResult = await walkMediaWithTMDB(dir, folder);
-      if (subResult.normalizedKey) {
+      const subResult = await walkMediaWithTMDB(dir, folder, existingKeys);
+      if (subResult && subResult.normalizedKey) {
         // This is a movie folder, add it to our results
         result.folders.push(subResult);
       }
@@ -179,7 +260,10 @@ async function walkMediaWithTMDB(dir, relPath = '') {
       files: []
     };
     for (const folder of folders) {
-      result.folders.push(await walkMediaWithTMDB(dir, path.join(relPath, folder)));
+      const subResult = await walkMediaWithTMDB(dir, path.join(relPath, folder), existingKeys);
+      if (subResult) {
+        result.folders.push(subResult);
+      }
     }
     return result;
   }
@@ -200,7 +284,10 @@ async function walkMediaWithTMDB(dir, relPath = '') {
     };
     // Still recurse into subfolders
     for (const folder of folders) {
-      result.folders.push(await walkMediaWithTMDB(dir, path.join(relPath, folder)));
+      const subResult = await walkMediaWithTMDB(dir, path.join(relPath, folder), existingKeys);
+      if (subResult) {
+        result.folders.push(subResult);
+      }
     }
     return result;
   }
@@ -208,42 +295,119 @@ async function walkMediaWithTMDB(dir, relPath = '') {
   // This is a top-level movie folder (immediate subdirectory of MEDIA_ROOT)
   const folderName = relPath;
   
-  // CRITICAL FIX: Remove quality tags BEFORE creating normalizedKey
-  // This ensures we get ONE entry per movie, not duplicates for each quality
+  // CRITICAL FIX: Remove ONLY technical quality tags, but PRESERVE edition tags and era designators
+  // This ensures we get ONE entry per movie per edition/era, not duplicates for each quality
   const cleanFolderName = folderName
-    .replace(/\[[^\]]*\]/g, '') // Remove [1080p], [720p], etc.
+    .replace(/\[(1080p|720p|2160p|4K|UHD|HD|SD|REMASTERED|35mm|UNRATED|UNCUT|WEB[- ]?DL|BLURAY|BRRIP|HDR|XVID|H264|HEVC|AAC|DTS|YIFY|JYK|X265|X264|10bit|8bit|DUAL|MULTI|PROPER|LIMITED|INTERNAL|COMPLETE|REPACK|REMUX|TRUEHD|ATMOS|DV|HDR10|HDR10\+|SDR|FS|WS|RERIP|READNFO|SUBBED|DUBBED|CUSTOM|FRENCH|GERMAN|SPANISH|ITALIAN|RUSSIAN|JAPANESE|KOREAN|CHINESE|HINDI|TAMIL|TELUGU|MALAYALAM|KANADA|THAI|VIETNAMESE|PORTUGUESE|POLISH|TURKISH|ARABIC|DANISH|DUTCH|FINNISH|GREEK|HEBREW|HUNGARIAN|NORWEGIAN|ROMANIAN|SLOVAK|SWEDISH|CROATIAN|SERBIAN|SLOVENIAN|BULGARIAN|CZECH|ESTONIAN|LATVIAN|LITHUANIAN|UKRAINIAN|ENGLISH|ENG|FRE|SPA|ITA|GER|RUS|JPN|KOR|CHI|HIN|TAM|TEL|MAL|KAN|THA|VIE|POR|POL|TUR|ARA|DAN|NLD|FIN|GRE|HEB|HUN|NOR|RON|SLK|SWE|HRV|SRP|SLV|BGR|CES|EST|LAV|LIT|UKR)\]/gi, '') // Remove technical quality tags only (PRESERVE EXTENDED, SPECIAL, DC, ENHANCED, ORIGINAL, V2, NEW)
     .replace(/\s+/g, ' ') // Clean up extra spaces
     .trim();
   
   const normalizedKey = cleanFolderName ? normalizeKey(cleanFolderName) : '';
   
   let tmdbId = null;
+  let skipMovie = false;
+  
   if (normalizedKey && existingTMDBMap[normalizedKey]) {
     tmdbId = existingTMDBMap[normalizedKey];
   } else if (cleanFolderName) {
-    const year = extractYearFromTitle(cleanFolderName);
-    const cleanTitle = cleanTitleForTMDB(cleanFolderName);
-    tmdbId = await fetchTMDBId(cleanTitle, year);
-    if (!tmdbId && !existingTMDBMap[normalizedKey]) {
-      console.log(`[WARN] TMDB ID not found for: ${cleanFolderName}`);
+    // Check for existing Star Trek movies with different era delegators
+    if (cleanFolderName.toLowerCase().includes('star trek')) {
+      const year = extractYearFromTitle(cleanFolderName);
+      
+      // Look for existing Star Trek movies with the same year
+      for (const [existingKey, existingTmdbId] of Object.entries(existingTMDBMap)) {
+        if (existingKey.includes('star.trek') && existingKey.includes(year)) {
+          console.log(`[INFO] Skipping Star Trek movie - already exists with different era: ${existingKey}`);
+          skipMovie = true;
+          break;
+        }
+      }
+    }
+    
+    // Check for existing Star Wars movies with Roman numerals vs Arabic numerals
+    if (cleanFolderName.toLowerCase().includes('star wars')) {
+      const year = extractYearFromTitle(cleanFolderName);
+      
+      // Look for existing Star Wars movies with the same year
+      for (const [existingKey, existingTmdbId] of Object.entries(existingTMDBMap)) {
+        if (existingKey.includes('star.wars') && existingKey.includes(year)) {
+          // Check if this is a Roman numeral vs Arabic numeral conflict
+          const hasRomanNumeral = /episode\.(iv|v|vi|vii|viii|ix|x)\./i.test(existingKey);
+          const hasArabicNumeral = /episode\.(4|5|6|7|8|9|10)\./i.test(normalizedKey);
+          
+          if (hasRomanNumeral && hasArabicNumeral) {
+            console.log(`[INFO] Skipping Star Wars movie - already exists with Roman numerals: ${existingKey}`);
+            skipMovie = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Check for existing X-Men movies with different variations (X-Men, X Men, Xmen)
+    if (cleanFolderName.toLowerCase().includes('x-men') || 
+        cleanFolderName.toLowerCase().includes('x men') || 
+        cleanFolderName.toLowerCase().includes('xmen')) {
+      const year = extractYearFromTitle(cleanFolderName);
+      
+      // Look for existing X-Men movies with the same year
+      for (const [existingKey, existingTmdbId] of Object.entries(existingTMDBMap)) {
+        if (existingKey.includes('x.men') && existingKey.includes(year)) {
+          console.log(`[INFO] Skipping X-Men movie - already exists: ${existingKey}`);
+          skipMovie = true;
+          break;
+        }
+      }
+    }
+    
+    if (!skipMovie && !tmdbId) {
+      const year = extractYearFromTitle(cleanFolderName);
+      const cleanTitle = cleanTitleForTMDB(cleanFolderName);
+      tmdbId = await fetchTMDBId(cleanTitle, year);
+      if (!tmdbId && !existingTMDBMap[normalizedKey]) {
+        console.log(`[WARN] TMDB ID not found for: ${cleanFolderName}`);
+      }
     }
   }
   
+  // Skip this movie if it's a duplicate Star Trek
+  if (skipMovie) {
+    return null;
+  }
+  
+  // Helper function to fix common naming issues in folder/file names
+  function fixCommonNamingIssues(pathString) {
+    if (!pathString) return pathString;
+    
+    // Fix "X Men" (with space) to "X-Men" (with hyphen) - X-Men is a special case
+    // This should only apply to "X Men" not "2 Guns" or other number+word combinations
+    pathString = pathString.replace(/\bX\s+Men\b/gi, 'X-Men');
+    
+    // Fix "X.Men" (with dots) to "X-Men" (with hyphen) in file names
+    // This should only apply to "X.Men" not "2.Guns" or other number+word combinations
+    pathString = pathString.replace(/\bX\.Men\b/gi, 'X-Men');
+    
+    return pathString;
+  }
+  
   const result = {
-    path: relPath,
+    path: fixCommonNamingIssues(relPath),
     normalizedKey,
     tmdbId: tmdbId || null,
     folders: [],
     files: files.map(f => ({
-      name: f,
+      name: fixCommonNamingIssues(f),
       absPath: path.join(absPath, f),
-      relPath: path.join(relPath, f)
+      relPath: fixCommonNamingIssues(path.join(relPath, f))
     }))
   };
   
   // Recurse into subfolders but don't treat them as movies
   for (const folder of folders) {
-    result.folders.push(await walkMediaWithTMDB(dir, path.join(relPath, folder)));
+    const subResult = await walkMediaWithTMDB(dir, path.join(relPath, folder), existingKeys);
+    if (subResult) {
+      result.folders.push(subResult);
+    }
   }
   return result;
 }
@@ -271,10 +435,7 @@ async function main() {
     }
     
     try {
-        const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT);
-        const flatFolders = flattenFolders(mediaTree);
-        
-        // FIXED: Only add NEW movies, NEVER overwrite existing data
+        // FIXED: Load existing data first to create proper exclusion set
         let existingData = {};
         try {
             if (fs.existsSync(OUTPUT_FILE)) {
@@ -285,19 +446,44 @@ async function main() {
             console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
         }
         
+        // BULLETPROOF: Create a set of all existing keys (normalized to lowercase) for fast lookup
+        const existingKeysSet = new Set(Object.keys(existingData).map(key => key.toLowerCase()));
+        
+        const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT, '', existingKeysSet);
+        const flatFolders = flattenFolders(mediaTree);
+        
         // Start with existing data - DO NOT OVERWRITE
         const unifiedOutput = { ...existingData };
         
         let newMoviesAdded = 0;
         let existingMoviesSkipped = 0;
+        const newMoviesList = []; // Track which movies were added
         
-        // BULLETPROOF: Create a set of all existing keys (normalized to lowercase) for fast lookup
-        const existingKeysSet = new Set(Object.keys(existingData).map(key => key.toLowerCase()));
+        console.log(`📊 [SCAN] Found ${Object.keys(existingData).length} existing movies in library`);
+        console.log(`📊 [SCAN] Found ${flatFolders.length} folders to process`);
         
         for (const folder of flatFolders) {
-            const normalizedKey = folder.normalizedKey;
+            let normalizedKey = folder.normalizedKey;
             if (normalizedKey) {
-                // BULLETPROOF: Check if this movie already exists using the normalized set
+                console.log(`🔍 [SCAN] Processing folder: "${folder.path}" → normalizedKey: "${normalizedKey}"`);
+                
+                // CRITICAL FIX: Apply Star Trek era detection BEFORE checking for duplicates
+                let processedTitle = detectStarTrekEra(folder.path, existingKeysSet);
+                
+                // If Star Trek detection returns null, skip this movie (already exists)
+                if (processedTitle === null) {
+                    existingMoviesSkipped++;
+                    continue;
+                }
+                
+                if (processedTitle !== folder.path) {
+                  console.log(`🎬 [SCAN] Star Trek era detected: "${folder.path}" → "${processedTitle}"`);
+                  // CRITICAL FIX: Use NormalizationService to ensure consistent normalization
+                  normalizedKey = normalizeKey(processedTitle);
+                  console.log(`🔄 [SCAN] Updated normalizedKey: "${folder.normalizedKey}" → "${normalizedKey}"`);
+                }
+                
+                // BULLETPROOF: Check if this movie already exists using the normalized set (after Star Trek processing)
                 const normalizedKeyLower = normalizedKey.toLowerCase();
                 
                 if (existingKeysSet.has(normalizedKeyLower)) {
@@ -305,10 +491,13 @@ async function main() {
                     const existingKey = Object.keys(existingData).find(key => 
                         key.toLowerCase() === normalizedKeyLower
                     );
-                    console.log(`⏭️ [SCAN] Skipping existing movie: ${normalizedKey} (found as: ${existingKey})`);
+                    console.log(`⏭️ [SCAN] ✅ SKIPPING existing movie: "${folder.path}" → "${normalizedKey}" (found as: "${existingKey}")`);
                     existingMoviesSkipped++;
                     continue; // SKIP - don't touch existing movies!
                 }
+                
+                console.log(`➕ [SCAN] ✅ NEW movie found: "${folder.path}" → "${normalizedKey}"`);
+                newMoviesList.push(`${folder.path} → ${normalizedKey}`); // Track this new movie
                 
                 // BULLETPROOF: Double-check that we're not about to create a duplicate
                 if (unifiedOutput[normalizedKey]) {
@@ -317,9 +506,10 @@ async function main() {
                     continue;
                 }
                 
-                // Only add NEW movies
+                // Only add NEW movies (after potential Star Trek era detection)
                 console.log(`➕ [SCAN] Adding NEW movie: ${normalizedKey}`);
-                const year = extractYearFromTitle(folder.path);
+                
+                const year = extractYearFromTitle(processedTitle || folder.path);
                 
                 // CRITICAL: Ensure all required path fields are included
                 const primaryFile = folder.files && folder.files.length > 0 ? folder.files[0] : null;
@@ -329,8 +519,8 @@ async function main() {
                 unifiedOutput[normalizedKey] = {
                     type: "movie",
                     isMovie: true,
-                    title: folder.path,
-                    TMDBTitle: folder.path,
+                    title: processedTitle, // Use the processed title with era designator
+                    TMDBTitle: folder.path, // Use the original title for TMDB (without our custom era designators)
                     year: year,
                     normalizedKey: normalizedKey,
                     tmdbId: folder.tmdbId,
@@ -339,7 +529,9 @@ async function main() {
                     poster: '', // New movie, no poster yet
                     path: moviePath, // CRITICAL: Required for save functionality
                     absPath: path.dirname(movieAbsPath), // CRITICAL: Required for save functionality
-                    files: folder.files || []
+                    relPath: moviePath, // CRITICAL: Required for Watch Later save functionality
+                    files: folder.files || [],
+                    genres: ['Drama'] // Default genre for new movies
                 };
                 
                 // BULLETPROOF: Add to our tracking set to prevent duplicates within this run
@@ -352,7 +544,6 @@ async function main() {
         console.log(`   - Existing movies preserved: ${existingMoviesSkipped}`);
         console.log(`   - New movies added: ${newMoviesAdded}`);
         console.log(`   - Total movies in library: ${Object.keys(unifiedOutput).length}`);
-        console.log(`   - Expected: 530 movies (one per actual movie folder)`);
         
         // Only create backup if we're actually making changes
         if (newMoviesAdded > 0) {
@@ -374,13 +565,20 @@ async function main() {
             // Write the updated data
             fs.writeFileSync(OUTPUT_FILE, JSON.stringify(unifiedOutput, null, 2));
             console.log(`✅ [SCAN] MOVIES scan complete. Added ${newMoviesAdded} new movies.`);
-            console.log(`✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies (should be ~530)`);
+            
+            // FIXED: List the new movies that were added with bullet points
+            if (newMoviesList.length > 0) {
+                console.log(`\n📋 [SCAN] NEW MOVIES ADDED:`);
+                newMoviesList.forEach((movie, index) => {
+                    console.log(`   • ${movie}`);
+                });
+            }
+            
+            console.log(`\n✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies`);
         } else {
             console.log(`✅ [SCAN] No new movies found. Existing library unchanged.`);
-            console.log(`✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies (should be ~530)`);
+            console.log(`✅ [SCAN] Total: ${Object.keys(unifiedOutput).length} movies`);
         }
-        
-
         
     } catch (error) {
         console.error(`❌ [SCAN] Fatal error during scan: ${error.message}`);

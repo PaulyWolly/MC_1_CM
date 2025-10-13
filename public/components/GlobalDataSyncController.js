@@ -1,8 +1,8 @@
 /*
   GLOBALDATASYNCCONTROLLER.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -30,7 +30,7 @@ class GlobalDataSyncController {
     // Initialize default data types
     this.initializeDataTypes();
     
-    console.log('🌐 [GLOBAL-SYNC] Global Data Sync Controller initialized');
+    // console.log('🌐 [GLOBAL-SYNC] Global Data Sync Controller initialized');
   }
 
   /**
@@ -82,7 +82,7 @@ class GlobalDataSyncController {
       cleaner: this.cleanYouTubeSearchesData.bind(this)
     });
 
-    console.log('📋 [GLOBAL-SYNC] Initialized data types:', Array.from(this.dataSources.keys()));
+    // console.log('📋 [GLOBAL-SYNC] Initialized data types:', Array.from(this.dataSources.keys()));
   }
 
   /**
@@ -96,7 +96,7 @@ class GlobalDataSyncController {
       validator: config.validator || this.defaultValidator,
       cleaner: config.cleaner || this.defaultCleaner
     });
-    console.log(`📝 [GLOBAL-SYNC] Registered data type: ${dataType}`);
+    // console.log(`📝 [GLOBAL-SYNC] Registered data type: ${dataType}`);
   }
 
   /**
@@ -106,7 +106,7 @@ class GlobalDataSyncController {
     if (this.isInitialized) return;
     
     try {
-      console.log('🔄 [GLOBAL-SYNC] Initializing global sync controller...');
+      // console.log('🔄 [GLOBAL-SYNC] Initializing global sync controller...');
       
       // Load actor names for collections validation (if needed)
       await this.loadActorNames();
@@ -115,7 +115,7 @@ class GlobalDataSyncController {
       await this.performInitialSyncCheck();
       
       this.isInitialized = true;
-      console.log('✅ [GLOBAL-SYNC] Global sync controller initialized successfully');
+      // console.log('✅ [GLOBAL-SYNC] Global sync controller initialized successfully');
       
     } catch (error) {
       console.error('❌ [GLOBAL-SYNC] Failed to initialize:', error);
@@ -160,7 +160,7 @@ class GlobalDataSyncController {
         });
       }
       
-      console.log(`👥 [GLOBAL-SYNC] Loaded ${this.actorNames.size} actor names for validation`);
+      // console.log(`👥 [GLOBAL-SYNC] Loaded ${this.actorNames.size} actor names for validation`);
       
     } catch (error) {
       console.warn('⚠️ [GLOBAL-SYNC] Could not load actor names:', error);
@@ -172,13 +172,13 @@ class GlobalDataSyncController {
    */
   async performInitialSyncCheck() {
     try {
-      console.log('🔍 [GLOBAL-SYNC] Performing initial sync check for all data types...');
+      // console.log('🔍 [GLOBAL-SYNC] Performing initial sync check for all data types...');
       
       for (const dataType of this.dataSources.keys()) {
         await this.checkDataTypeSync(dataType);
       }
       
-      console.log('✅ [GLOBAL-SYNC] Initial sync check completed for all data types');
+      // console.log('✅ [GLOBAL-SYNC] Initial sync check completed for all data types');
       
     } catch (error) {
       console.error('❌ [GLOBAL-SYNC] Initial sync check failed:', error);
@@ -190,7 +190,7 @@ class GlobalDataSyncController {
    */
   async checkDataTypeSync(dataType) {
     try {
-      console.log(`🔍 [GLOBAL-SYNC] Checking sync for data type: ${dataType}`);
+      // console.log(`🔍 [GLOBAL-SYNC] Checking sync for data type: ${dataType}`);
       
       const localStorageData = this.getLocalStorageData(dataType);
       const jsonFileData = await this.getJsonFileData(dataType);
@@ -204,7 +204,7 @@ class GlobalDataSyncController {
         console.warn(`⚠️ [GLOBAL-SYNC] Found inconsistencies in ${dataType}:`, inconsistencies);
         await this.resolveInconsistencies(dataType, cleanLocalStorageData, cleanJsonFileData);
       } else {
-        console.log(`✅ [GLOBAL-SYNC] ${dataType} is in sync`);
+       //  console.log(`✅ [GLOBAL-SYNC] ${dataType} is in sync`);
       }
       
     } catch (error) {
@@ -222,7 +222,7 @@ class GlobalDataSyncController {
     }
 
     if (this.syncInProgress.get(dataType)) {
-      console.log(`⏳ [GLOBAL-SYNC] Sync already in progress for ${dataType}, queuing operation...`);
+      // console.log(`⏳ [GLOBAL-SYNC] Sync already in progress for ${dataType}, queuing operation...`);
       return new Promise((resolve) => {
         if (!this.syncQueues.has(dataType)) {
           this.syncQueues.set(dataType, []);
@@ -234,19 +234,19 @@ class GlobalDataSyncController {
     this.syncInProgress.set(dataType, true);
     
     try {
-      console.log(`🌊 [GLOBAL-SYNC] Starting STREAM STORAGE for ${dataType}: ${operation}`);
+      // console.log(`🌊 [GLOBAL-SYNC] Starting STREAM STORAGE for ${dataType}: ${operation}`);
       
       // STREAM STEP 1: GATHER current data using retrieve flow
       const currentData = await this.getCleanData(dataType);
-      console.log(`📊 [GLOBAL-SYNC] Current ${dataType} data retrieved:`, this.getDataSize(currentData));
+      // console.log(`📊 [GLOBAL-SYNC] Current ${dataType} data retrieved:`, this.getDataSize(currentData));
       
       // STREAM STEP 2: MERGE new data with current data
       const mergedData = { ...currentData, ...newData };
-      console.log(`🔀 [GLOBAL-SYNC] Merged ${dataType} with new data:`, this.getDataSize(mergedData));
+      // console.log(`🔀 [GLOBAL-SYNC] Merged ${dataType} with new data:`, this.getDataSize(mergedData));
       
       // STREAM STEP 3: CLEAN the merged data
       const cleanedData = this.cleanData(dataType, mergedData);
-      console.log(`🧹 [GLOBAL-SYNC] Cleaned ${dataType} data:`, this.getDataSize(cleanedData));
+      // console.log(`🧹 [GLOBAL-SYNC] Cleaned ${dataType} data:`, this.getDataSize(cleanedData));
       
       // STREAM STEP 4: STORE following stream flow: localStorage → JSON → MongoDB
       await this.streamStorage(dataType, cleanedData);
@@ -254,7 +254,7 @@ class GlobalDataSyncController {
       // Update timestamp
       this.lastSyncTimestamps.set(dataType, Date.now());
       
-      console.log(`✅ [GLOBAL-SYNC] STREAM STORAGE completed for ${dataType}: ${operation}`);
+      // console.log(`✅ [GLOBAL-SYNC] STREAM STORAGE completed for ${dataType}: ${operation}`);
       
       // Process queued operations
       this.processSyncQueue(dataType);
@@ -278,22 +278,22 @@ class GlobalDataSyncController {
 
     await this.initialize();
     
-    console.log(`🌊 [GLOBAL-SYNC] STREAM RETRIEVE: ${dataType} data flow: localStorage (cache) → JSON (local store) → MongoDB (persistent store)`);
+    // console.log(`🌊 [GLOBAL-SYNC] STREAM RETRIEVE: ${dataType} data flow: localStorage (cache) → JSON (local store) → MongoDB (persistent store)`);
     
     // STREAM STEP 1: Try localStorage first (cache - most current data)
     let data = this.getLocalStorageData(dataType);
-    console.log(`💾 [GLOBAL-SYNC] ${dataType} localStorage (cache):`, this.getDataSize(data));
+    // console.log(`💾 [GLOBAL-SYNC] ${dataType} localStorage (cache):`, this.getDataSize(data));
     
     // STREAM STEP 2: If cache is empty/outdated, try JSON file (local store)
     if (this.isEmpty(data) || this.isDataOutdated(dataType, data)) {
       console.log(`📄 [GLOBAL-SYNC] ${dataType} cache empty/outdated, retrieving from JSON (local store)...`);
       data = await this.getJsonFileData(dataType);
-      console.log(`📄 [GLOBAL-SYNC] ${dataType} JSON (local store):`, this.getDataSize(data));
+      // console.log(`📄 [GLOBAL-SYNC] ${dataType} JSON (local store):`, this.getDataSize(data));
       
       // Stream the JSON data back to cache for future retrievals
       if (!this.isEmpty(data)) {
         this.streamToCache(dataType, data);
-        console.log(`🌊 [GLOBAL-SYNC] Streamed ${dataType} JSON data to localStorage cache`);
+        // console.log(`🌊 [GLOBAL-SYNC] Streamed ${dataType} JSON data to localStorage cache`);
       }
     }
     
@@ -301,19 +301,19 @@ class GlobalDataSyncController {
     if (this.isEmpty(data)) {
       console.log(`🗄️ [GLOBAL-SYNC] ${dataType} local store empty/purged, retrieving from MongoDB (persistent store)...`);
       data = await this.getMongoDBData(dataType);
-      console.log(`🗄️ [GLOBAL-SYNC] ${dataType} MongoDB (persistent store):`, this.getDataSize(data));
+      // console.log(`🗄️ [GLOBAL-SYNC] ${dataType} MongoDB (persistent store):`, this.getDataSize(data));
       
       // Stream the MongoDB data back through the entire pipeline
       if (!this.isEmpty(data)) {
         await this.streamToLocalStore(dataType, data);
         this.streamToCache(dataType, data);
-        console.log(`🌊 [GLOBAL-SYNC] Streamed ${dataType} MongoDB data through entire pipeline`);
+        // console.log(`🌊 [GLOBAL-SYNC] Streamed ${dataType} MongoDB data through entire pipeline`);
       }
     }
     
     // Clean the streamed data
     const cleanData = this.cleanData(dataType, data);
-    console.log(`✅ [GLOBAL-SYNC] Final clean ${dataType} data streamed:`, this.getDataSize(cleanData));
+    // console.log(`✅ [GLOBAL-SYNC] Final clean ${dataType} data streamed:`, this.getDataSize(cleanData));
     
     return cleanData;
   }
@@ -364,7 +364,7 @@ class GlobalDataSyncController {
    */
   async getMongoDBData(dataType) {
     try {
-      console.log(`🗄️ [GLOBAL-SYNC] Gathering ${dataType} data from MongoDB...`);
+      // console.log(`🗄️ [GLOBAL-SYNC] Gathering ${dataType} data from MongoDB...`);
       
       const response = await fetch(`/api/${dataType}/get`, {
         method: 'GET',
@@ -385,7 +385,7 @@ class GlobalDataSyncController {
           });
         }
         
-        console.log(`✅ [GLOBAL-SYNC] Successfully gathered ${dataType} from MongoDB:`, this.getDataSize(flatData));
+        // console.log(`✅ [GLOBAL-SYNC] Successfully gathered ${dataType} from MongoDB:`, this.getDataSize(flatData));
         return flatData;
       } else {
         console.warn(`⚠️ [GLOBAL-SYNC] ${dataType} MongoDB gathering failed:`, response.status);
@@ -403,19 +403,19 @@ class GlobalDataSyncController {
    */
   async streamStorage(dataType, data) {
     try {
-      console.log(`🌊 [GLOBAL-SYNC] STREAM STORAGE: ${dataType} following flow: localStorage (cache) → JSON (local store) → MongoDB (persistent store)`);
+      // console.log(`🌊 [GLOBAL-SYNC] STREAM STORAGE: ${dataType} following flow: localStorage (cache) → JSON (local store) → MongoDB (persistent store)`);
       
       // STREAM STEP 1: Store to localStorage (cache - immediate access)
       this.streamToCache(dataType, data);
-      console.log(`💾 [GLOBAL-SYNC] Streamed ${dataType} to localStorage (cache)`);
+      // console.log(`💾 [GLOBAL-SYNC] Streamed ${dataType} to localStorage (cache)`);
       
       // STREAM STEP 2: Clone to JSON file (local store - backup)
       await this.streamToLocalStore(dataType, data);
-      console.log(`📄 [GLOBAL-SYNC] Streamed ${dataType} to JSON (local store)`);
+      // console.log(`📄 [GLOBAL-SYNC] Streamed ${dataType} to JSON (local store)`);
       
       // STREAM STEP 3: Push to MongoDB (persistent store - long-term storage)
       await this.streamToPersistentStore(dataType, data);
-      console.log(`🗄️ [GLOBAL-SYNC] Streamed ${dataType} to MongoDB (persistent store)`);
+      // console.log(`🗄️ [GLOBAL-SYNC] Streamed ${dataType} to MongoDB (persistent store)`);
       
     } catch (error) {
       console.error(`❌ [GLOBAL-SYNC] STREAM STORAGE failed for ${dataType}:`, error);
@@ -435,7 +435,7 @@ class GlobalDataSyncController {
         _dataType: dataType
       };
       localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
-      console.log(`💾 [GLOBAL-SYNC] ${dataType} streamed to cache with timestamp`);
+      // console.log(`💾 [GLOBAL-SYNC] ${dataType} streamed to cache with timestamp`);
     } catch (error) {
       console.error(`❌ [GLOBAL-SYNC] Failed to stream ${dataType} to cache:`, error);
       throw error;
@@ -448,7 +448,7 @@ class GlobalDataSyncController {
   async streamToLocalStore(dataType, data) {
     try {
       await this.saveToJsonFile(dataType, data);
-      console.log(`📄 [GLOBAL-SYNC] ${dataType} streamed to local store`);
+      // console.log(`📄 [GLOBAL-SYNC] ${dataType} streamed to local store`);
     } catch (error) {
       console.warn(`⚠️ [GLOBAL-SYNC] Failed to stream ${dataType} to local store:`, error);
       // Don't throw - local store is backup only
@@ -701,7 +701,7 @@ class GlobalDataSyncController {
                 searchType: this.extractSearchTypeFromCacheKey(key)
               };
             } else {
-              console.log(`🗑️ [GLOBAL-SYNC] Removing invalid YouTube cache entry: ${key}`);
+              // console.log(`🗑️ [GLOBAL-SYNC] Removing invalid YouTube cache entry: ${key}`);
               removedCount++;
             }
           } else {
@@ -715,7 +715,7 @@ class GlobalDataSyncController {
                 cacheKeys: data.cacheKeys || []
               };
             } else {
-              console.log(`🗑️ [GLOBAL-SYNC] Removing invalid YouTube search entry: ${key}`);
+              // console.log(`🗑️ [GLOBAL-SYNC] Removing invalid YouTube search entry: ${key}`);
               removedCount++;
             }
           }
@@ -900,11 +900,36 @@ class GlobalDataSyncController {
   }
 
   /**
+   * Save data to all sources following the flow: localStorage → JSON → MongoDB
+   */
+  async saveToAllSources(dataType, data) {
+    try {
+      console.log(`💾 [GLOBAL-SYNC] Saving ${dataType} following data flow: localStorage → JSON → MongoDB`);
+      
+      // PRIORITY 1: Save to localStorage (primary source for UI)
+      this.streamToCache(dataType, data);
+      console.log(`✅ [GLOBAL-SYNC] Saved ${dataType} to localStorage (PRIORITY 1)`);
+      
+      // PRIORITY 2: Save to JSON file (backup/fallback source)
+      await this.saveToJsonFile(dataType, data);
+      console.log(`✅ [GLOBAL-SYNC] Saved ${dataType} to JSON file (PRIORITY 2)`);
+      
+      // PRIORITY 3: Save to MongoDB (final backup source)
+      await this.saveToMongoDB(dataType, data);
+      console.log(`✅ [GLOBAL-SYNC] Saved ${dataType} to MongoDB (PRIORITY 3)`);
+      
+    } catch (error) {
+      console.error(`❌ [GLOBAL-SYNC] Failed to save ${dataType} to all sources:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Resolve inconsistencies between data sources
    */
   async resolveInconsistencies(dataType, localStorageData, jsonFileData) {
     try {
-      console.log(`🔧 [GLOBAL-SYNC] Resolving inconsistencies for ${dataType}...`);
+      // console.log(`🔧 [GLOBAL-SYNC] Resolving inconsistencies for ${dataType}...`);
       
       // Use localStorage as the source of truth (most recent)
       let masterData = { ...localStorageData };
@@ -913,14 +938,14 @@ class GlobalDataSyncController {
       Object.entries(jsonFileData).forEach(([key, value]) => {
         if (!masterData[key]) {
           masterData[key] = value;
-          console.log(`➕ [GLOBAL-SYNC] Added missing ${dataType} item from JSON: ${key}`);
+        // console.log(`➕ [GLOBAL-SYNC] Added missing ${dataType} item from JSON: ${key}`);
         }
       });
       
       // Save the resolved data to all sources
       await this.saveToAllSources(dataType, masterData);
       
-      console.log(`✅ [GLOBAL-SYNC] Inconsistencies resolved for ${dataType}`);
+      // console.log(`✅ [GLOBAL-SYNC] Inconsistencies resolved for ${dataType}`);
       
     } catch (error) {
       console.error(`❌ [GLOBAL-SYNC] Failed to resolve inconsistencies for ${dataType}:`, error);

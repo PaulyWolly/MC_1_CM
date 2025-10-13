@@ -1,8 +1,8 @@
 /*
   TEST_WATCH_LATER_FUNCTIONALITY.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -189,9 +189,9 @@ async function runTests() {
     const tvShow1 = {
         title: 'Breaking Bad S01E01',
         name: 'Breaking Bad S01E01',
-        path: 'tv-shows/Breaking Bad/Season 01/Breaking Bad S01E01.mp4',
-        relPath: 'Breaking Bad/Season 01/Breaking Bad S01E01.mp4',
-        filePath: '/media/tv-shows/Breaking Bad/Season 01/Breaking Bad S01E01.mp4'
+        path: 'tv-shows/Breaking Bad/season 1/Breaking Bad S01E01.mp4',
+        relPath: 'Breaking Bad/season 1/Breaking Bad S01E01.mp4',
+        filePath: '/media/tv-shows/Breaking Bad/season 1/Breaking Bad S01E01.mp4'
     };
     resumeList = simulateSaveResumeProgress(resumeList, tvShow1, 900, 3600, true);
     
@@ -200,9 +200,9 @@ async function runTests() {
     const tvShow1Duplicate = {
         title: 'Breaking Bad S01E01',
         name: 'Breaking Bad S01E01',
-        path: 'tv-shows/Breaking Bad/Season 01/Breaking Bad S01E01.mp4',
-        relPath: 'Breaking Bad/Season 01/Breaking Bad S01E01.mp4',
-        filePath: '/media/tv-shows/Breaking Bad/Season 01/Breaking Bad S01E01.mp4'
+        path: 'tv-shows/Breaking Bad/season 1/Breaking Bad S01E01.mp4',
+        relPath: 'Breaking Bad/season 1/Breaking Bad S01E01.mp4',
+        filePath: '/media/tv-shows/Breaking Bad/season 1/Breaking Bad S01E01.mp4'
     };
     resumeList = simulateSaveResumeProgress(resumeList, tvShow1Duplicate, 1200, 3600, true);
     
@@ -211,9 +211,9 @@ async function runTests() {
     const tvShow2 = {
         title: 'Breaking Bad S01E02',
         name: 'Breaking Bad S01E02',
-        path: 'tv-shows/Breaking Bad/Season 01/Breaking Bad S01E02.mp4',
-        relPath: 'Breaking Bad/Season 01/Breaking Bad S01E02.mp4',
-        filePath: '/media/tv-shows/Breaking Bad/Season 01/Breaking Bad S01E02.mp4'
+        path: 'tv-shows/Breaking Bad/season 1/Breaking Bad S01E02.mp4',
+        relPath: 'Breaking Bad/season 1/Breaking Bad S01E02.mp4',
+        filePath: '/media/tv-shows/Breaking Bad/season 1/Breaking Bad S01E02.mp4'
     };
     resumeList = simulateSaveResumeProgress(resumeList, tvShow2, 600, 3600, true);
     
@@ -232,9 +232,9 @@ async function runTests() {
     const tvShow1DifferentPath = {
         title: 'Breaking Bad S01E01',
         name: 'Breaking Bad S01E01',
-        path: 'TV-SHOWS\\Breaking Bad\\Season 01\\Breaking Bad S01E01.mp4',
-        relPath: 'Breaking Bad\\Season 01\\Breaking Bad S01E01.mp4',
-        filePath: 'S:/MEDIA/TV-SHOWS/Breaking Bad/Season 01/Breaking Bad S01E01.mp4'
+        path: 'TV-SHOWS\\Breaking Bad\\season 1\\Breaking Bad S01E01.mp4',
+        relPath: 'Breaking Bad\\season 1\\Breaking Bad S01E01.mp4',
+        filePath: 'S:/MEDIA/TV-SHOWS/Breaking Bad/season 1/Breaking Bad S01E01.mp4'
     };
     resumeList = simulateSaveResumeProgress(resumeList, tvShow1DifferentPath, 1500, 3600, true);
     

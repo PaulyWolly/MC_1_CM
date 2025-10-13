@@ -1,8 +1,8 @@
 /*
   TEST_TITANS_EPISODES.JS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -23,44 +23,44 @@ try {
     } else {
         console.log('✅ Found Titans (2018) in media-library-tv-shows.json');
         
-        // Check Season 01
-        const season01 = titansShow.folders.find(folder => folder.path.includes('Season 01'));
+        // Check Season 1
+        const season01 = titansShow.folders.find(folder => folder.path.includes('Season 1'));
         if (season01) {
-            console.log(`✅ Season 01 found with ${season01.files.length} files`);
+            console.log(`✅ season 1 found with ${season01.files.length} files`);
             
             // Check for S01E01
             const s01e01 = season01.files.find(file => file.name.includes('S01E01'));
             if (s01e01) {
                 console.log('✅ S01E01 found:', s01e01.name);
             } else {
-                console.log('❌ S01E01 not found in Season 01 files');
+                console.log('❌ S01E01 not found in season 1 files');
             }
             
-            // List all episodes in Season 01
+            // List all episodes in Season 1
             const episodes = season01.files.filter(file => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(file.name));
-            console.log('📋 Season 01 episodes:', episodes.map(e => e.name));
+            console.log('📋 season 1 episodes:', episodes.map(e => e.name));
         } else {
-            console.log('❌ Season 01 not found');
+            console.log('❌ season 1 not found');
         }
         
-        // Check Season 04
-        const season04 = titansShow.folders.find(folder => folder.path.includes('Season 04'));
+        // Check Season 4
+        const season04 = titansShow.folders.find(folder => folder.path.includes('Season 4'));
         if (season04) {
-            console.log(`✅ Season 04 found with ${season04.files.length} files`);
+            console.log(`✅ season 4 found with ${season04.files.length} files`);
             
             // Check for S04E01
             const s04e01 = season04.files.find(file => file.name.includes('S04E01'));
             if (s04e01) {
                 console.log('✅ S04E01 found:', s04e01.name);
             } else {
-                console.log('❌ S04E01 not found in Season 04 files');
+                console.log('❌ S04E01 not found in season 4 files');
             }
             
-            // List all episodes in Season 04
+            // List all episodes in Season 4
             const episodes = season04.files.filter(file => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(file.name));
-            console.log('📋 Season 04 episodes:', episodes.map(e => e.name));
+            console.log('📋 season 4 episodes:', episodes.map(e => e.name));
         } else {
-            console.log('❌ Season 04 not found');
+            console.log('❌ season 4 not found');
         }
     }
 } catch (error) {

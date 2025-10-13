@@ -1,8 +1,8 @@
 /*
   CUSTOMTOOLTIP.CSS
-  Version: 1.25.1
-  AppName: MultiChat_Chatty [v1.25.1]
-  Updated: 9/14/2025 @5:55AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/13/2025 @4:00PM
   Created by Paul Welby
 */
 
@@ -28,46 +28,7 @@
   white-space: pre-line;
 }
 
-.media-manager-info-icon {
-  color: #4a90e2;
-  font-size: 1.1em;
-  font-weight: bold;
-  margin-left: 6px;
-  cursor: pointer;
-  vertical-align: middle;
-  user-select: none;
-  transition: color 0.2s;
+.cast-image-tooltip:hover {
+  border: 2px solid #4a90e2 !important;
+  box-shadow: 0 0 8px rgba(74, 144, 226, 0.3);
 }
-.media-manager-info-icon:hover {
-  color: #e67e22;
-}
-
-.media-manager-info-icon-inner {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #4a90e2;
-    color: #fff;
-    font-size: .8em;
-    font-weight: normal !important;
-    font-family: Arial, sans-serif;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
-    margin-left: 0;
-    margin-right: 0;
-    position: relative;
-}
-
-.media-manager-info-icon-inner::after {
-  content: 'i';
-  font-size: 1em;
-  font-weight: normal !important;
-  color: #fff;
-  display: block;
-  line-height: 1;
-  font-family: Arial, Helvetica, sans-serif;
-  position: relative;
-  top: 0.5px;
-} 
