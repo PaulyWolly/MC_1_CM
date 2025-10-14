@@ -4001,6 +4001,11 @@ class MediaLibraryManager {
 
       "Corp of the Lambs": "Corp. of the Lambs",
 
+      // Ant-Man corrections for proper hyphenation
+      "Ant Man": "Ant-Man",
+      "Ant Man And The Wasp": "Ant-Man & The Wasp",
+      "Ant Man & The Wasp": "Ant-Man & The Wasp",
+
       Mr: "Mr.",
 
       Mrs: "Mrs.",
@@ -5395,185 +5400,6 @@ class MediaLibraryManager {
     // console.log('[DEBUG - TITLE] No corrections found for:', baseTitle);
 
     return title;
-  }
-
-  // Convert normalized key to readable display title
-
-  convertNormalizedKeyToDisplayTitle(normalizedKey) {
-    if (!normalizedKey || typeof normalizedKey !== "string")
-      return normalizedKey;
-
-    // console.log('[DEBUG - TITLE] convertNormalizedKeyToDisplayTitle input:', normalizedKey);
-
-    // Extract year before removing other elements
-
-    const yearMatch = normalizedKey.match(/\((\d{4})\)/);
-
-    const year = yearMatch ? yearMatch[1] : null;
-
-    // Remove quality tags first
-
-    let cleanKey = normalizedKey.replace(/\[\d{3,4}p\]/gi, ""); // Remove [1080p], [720p], etc.
-
-    cleanKey = cleanKey.replace(/\[.*?\]/g, ""); // Remove any other brackets
-
-    // Remove year in parentheses (we already extracted it above)
-
-    cleanKey = cleanKey.replace(/\(\d{4}\)/g, "");
-
-    // Remove extra spaces and trim
-
-    cleanKey = cleanKey.replace(/\s+/g, " ").trim();
-
-    // Replace dots with spaces and capitalize properly
-
-    let displayTitle = cleanKey.replace(/\./g, " ");
-
-    // Capitalize each word
-
-    displayTitle = displayTitle
-
-      .split(" ")
-
-      .map((word) => {
-        if (word.length === 0) return word;
-
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-
-      .join(" ");
-
-    // Special corrections for common titles
-
-    const corrections = {
-      "Mr and Mrs Smith": "Mr. and Mrs. Smith",
-
-      "Mr Magoriums Wonder Emporium": "Mr. Magorium's Wonder Emporium",
-
-      "Mrs Doubtfire": "Mrs. Doubtfire",
-
-      "Dr Strangelove": "Dr. Strangelove",
-
-      "St Elmos Fire": "St. Elmo's Fire",
-
-      "Ave Maria": "Ave. Maria",
-
-      "Blvd of Broken Dreams": "Blvd. of Broken Dreams",
-
-      "Rd to Perdition": "Rd. to Perdition",
-
-      "Ln of the Lambs": "Ln. of the Lambs",
-
-      "Ct of the Lambs": "Ct. of the Lambs",
-
-      "Co of the Lambs": "Co. of the Lambs",
-
-      "Inc of the Lambs": "Inc. of the Lambs",
-
-      "Ltd of the Lambs": "Ltd. of the Lambs",
-
-      "Corp of the Lambs": "Corp. of the Lambs",
-
-      Mr: "Mr.",
-
-      Mrs: "Mrs.",
-
-      Dr: "Dr.",
-
-      Prof: "Prof.",
-
-      St: "St.",
-
-      Ave: "Ave.",
-
-      Blvd: "Blvd.",
-
-      Rd: "Rd.",
-
-      Ln: "Ln.",
-
-      Ct: "Ct.",
-
-      Co: "Co.",
-
-      Inc: "Inc.",
-
-      Ltd: "Ltd.",
-
-      Corp: "Corp.",
-    };
-
-    // Apply corrections - first check for exact matches
-
-    for (const [wrong, correct] of Object.entries(corrections)) {
-      if (displayTitle.toLowerCase() === wrong.toLowerCase()) {
-        displayTitle = correct;
-
-        break;
-      }
-    }
-
-    // Then apply word-level corrections for abbreviations
-
-    const abbreviationCorrections = {
-      Mr: "Mr.",
-
-      Mrs: "Mrs.",
-
-      Dr: "Dr.",
-
-      Prof: "Prof.",
-
-      St: "St.",
-
-      Ave: "Ave.",
-
-      Blvd: "Blvd.",
-
-      Rd: "Rd.",
-
-      Ln: "Ln.",
-
-      Ct: "Ct.",
-
-      Co: "Co.",
-
-      Inc: "Inc.",
-
-      Ltd: "Ltd.",
-
-      Corp: "Corp.",
-    };
-
-    // Apply abbreviation corrections to individual words
-
-    const words = displayTitle.split(" ");
-
-    const correctedWords = words.map((word) => {
-      const lowerWord = word.toLowerCase();
-
-      for (const [abbrev, corrected] of Object.entries(
-        abbreviationCorrections
-      )) {
-        if (lowerWord === abbrev.toLowerCase()) {
-          return corrected;
-        }
-      }
-
-      return word;
-    });
-
-    displayTitle = correctedWords.join(" ");
-
-    // Add year back to the display title if it exists
-
-    if (year) {
-      displayTitle = `${displayTitle} (${year})`;
-    }
-
-    // console.log('[DEBUG - TITLE] Final display title:', displayTitle);
-
-    return displayTitle;
   }
 
   // Helper function to process Star Trek designators
@@ -15248,9 +15074,9 @@ class MediaLibraryManager {
       // Sort movies alphabetically by title
 
       const sortedMovies = movies.sort((a, b) => {
-        const titleA = this.extractTitleFromPath(a);
+        const titleA = this.convertNormalizedKeyToDisplayTitle(a);
 
-        const titleB = this.extractTitleFromPath(b);
+        const titleB = this.convertNormalizedKeyToDisplayTitle(b);
 
         return titleA.localeCompare(titleB, undefined, {
           sensitivity: "base",
@@ -15264,9 +15090,9 @@ class MediaLibraryManager {
       // Sort TV shows alphabetically by title
 
       const sortedTVShows = tvShows.sort((a, b) => {
-        const titleA = this.extractTitleFromPath(a);
+        const titleA = this.convertNormalizedKeyToDisplayTitle(a);
 
-        const titleB = this.extractTitleFromPath(b);
+        const titleB = this.convertNormalizedKeyToDisplayTitle(b);
 
         return titleA.localeCompare(titleB, undefined, {
           sensitivity: "base",
@@ -15310,11 +15136,12 @@ class MediaLibraryManager {
             continue;
           }
 
-          // Extract title from path and humanize it
+          // For Collections, paths are normalized keys, so use convertNormalizedKeyToDisplayTitle
+          // instead of extractTitleFromPath which is for file paths
+          const title = this.convertNormalizedKeyToDisplayTitle(path);
 
-          const rawTitle = this.extractTitleFromPath(path);
-
-          const title = this.humanizeMovieTitle(rawTitle);
+          console.log("[COLLECTIONS-MODAL] Processing movie path:", path);
+          console.log("[COLLECTIONS-MODAL] Final display title:", title);
 
           // Get poster from unified data using proper file path matching
 
@@ -15556,11 +15383,12 @@ class MediaLibraryManager {
               posterPath = tvShowData.poster;
             }
           } else {
-            // Fallback: extract title from key (for backward compatibility)
+            // For Collections, paths are normalized keys, so use convertNormalizedKeyToDisplayTitle
+            // instead of extractTitleFromPath which is for file paths
+            title = this.convertNormalizedKeyToDisplayTitle(key);
 
-            const rawTitle = this.extractTitleFromPath(key);
-
-            title = this.humanizeTVShowTitle(rawTitle);
+            console.log("[COLLECTIONS-MODAL] Processing TV show path:", key);
+            console.log("[COLLECTIONS-MODAL] Final display title:", title);
           }
 
           // Get TV show data for description and cast
@@ -19047,21 +18875,12 @@ class MediaLibraryManager {
 
         if (sortedMovies.length > 0) {
           sortedMovies.forEach((path) => {
-            const title = this.extractTitleFromPath(path);
-
-            // console.log('[COLLECTIONS] Processing movie path:', path);
-
-            // console.log('[COLLECTIONS] Extracted title:', title);
-
             // Find the movie in unified data using the normalized key directly
-
             let movieData = null;
-
             let posterPath = "/assets/img/placeholder-poster.jpg";
 
             if (this.unifiedData) {
               // Direct lookup using the normalized key from collections
-
               movieData = this.unifiedData[path];
 
               if (movieData && movieData.type === "movie") {
@@ -19069,7 +18888,6 @@ class MediaLibraryManager {
                   movieData.poster || "/assets/img/placeholder-poster.jpg";
               } else {
                 // Fallback: search for similar key patterns
-
                 for (const [key, item] of Object.entries(this.unifiedData)) {
                   if (
                     item.type === "movie" &&
@@ -19078,19 +18896,46 @@ class MediaLibraryManager {
                       .includes(path.toLowerCase().replace(/\./g, " "))
                   ) {
                     movieData = item;
-
                     posterPath =
                       item.poster || "/assets/img/placeholder-poster.jpg";
-
                     break;
                   }
                 }
               }
             }
 
-            // console.log('[COLLECTIONS] Found movie data:', movieData);
+            // Get the proper display title with hyphens and formatting
+            let title;
+            if (movieData && movieData.TMDBTitle) {
+              // Use TMDB title if available (already properly formatted)
+              title = movieData.TMDBTitle;
+              console.log("[COLLECTIONS] Using TMDBTitle:", title);
+            } else if (movieData && movieData.normalizedKey) {
+              // Use convertNormalizedKeyToDisplayTitle for proper hyphenation
+              title = this.convertNormalizedKeyToDisplayTitle(
+                movieData.normalizedKey
+              );
+              console.log(
+                "[COLLECTIONS] Using movieData.normalizedKey:",
+                movieData.normalizedKey,
+                "→",
+                title
+              );
+            } else {
+              // For Collections, paths are normalized keys, so use convertNormalizedKeyToDisplayTitle
+              // instead of extractTitleFromPath which is for file paths
+              title = this.convertNormalizedKeyToDisplayTitle(path);
+              console.log(
+                "[COLLECTIONS] Using path as fallback:",
+                path,
+                "→",
+                title
+              );
+            }
 
-            // console.log('[COLLECTIONS] Poster path result:', posterPath);
+            console.log("[COLLECTIONS] Processing movie path:", path);
+            console.log("[COLLECTIONS] Final display title:", title);
+            console.log("[COLLECTIONS] Found movie data:", movieData);
 
             html += `
 
@@ -19172,40 +19017,26 @@ class MediaLibraryManager {
 
         if (sortedTVShows.length > 0) {
           sortedTVShows.forEach((path) => {
-            const title = this.extractTitleFromPath(path);
-
-            // console.log('[COLLECTIONS] Processing TV show path:', path);
-
-            // console.log('[COLLECTIONS] Extracted title:', title);
-
             // Find the TV show in unified data using the normalized key directly
-
             let tvShowData = null;
-
             let posterPath = "/assets/img/placeholder-poster.jpg";
 
             if (this.unifiedData) {
               // Direct lookup using the normalized key from collections
-
               tvShowData = this.unifiedData[path];
 
               if (tvShowData && tvShowData.type === "tvshow") {
                 // Use the actual TV show data for poster lookup
-
                 const mediaItem = {
                   path: path,
-
                   type: "tvshow",
-
                   title: tvShowData.TMDBTitle || tvShowData.title || title,
-
                   normalizedKey: tvShowData.normalizedKey || path,
                 };
 
                 posterPath = this.getTVShowPosterPath(mediaItem);
               } else {
                 // Fallback: search for similar key patterns
-
                 for (const [key, item] of Object.entries(this.unifiedData)) {
                   if (
                     item.type === "tvshow" &&
@@ -19217,9 +19048,7 @@ class MediaLibraryManager {
 
                     const mediaItem = {
                       path: path,
-
                       type: "tvshow",
-
                       title: item.TMDBTitle || item.title || title,
 
                       normalizedKey: item.normalizedKey || key,
@@ -19232,6 +19061,39 @@ class MediaLibraryManager {
                 }
               }
             }
+
+            // Get the proper display title with hyphens and formatting
+            let title;
+            if (tvShowData && tvShowData.TMDBTitle) {
+              // Use TMDB title if available (already properly formatted)
+              title = tvShowData.TMDBTitle;
+              console.log("[COLLECTIONS] Using TV TMDBTitle:", title);
+            } else if (tvShowData && tvShowData.normalizedKey) {
+              // Use convertNormalizedKeyToDisplayTitle for proper hyphenation
+              title = this.convertNormalizedKeyToDisplayTitle(
+                tvShowData.normalizedKey
+              );
+              console.log(
+                "[COLLECTIONS] Using TV showData.normalizedKey:",
+                tvShowData.normalizedKey,
+                "→",
+                title
+              );
+            } else {
+              // For Collections, paths are normalized keys, so use convertNormalizedKeyToDisplayTitle
+              // instead of extractTitleFromPath which is for file paths
+              title = this.convertNormalizedKeyToDisplayTitle(path);
+              console.log(
+                "[COLLECTIONS] Using TV path as fallback:",
+                path,
+                "→",
+                title
+              );
+            }
+
+            console.log("[COLLECTIONS] Processing TV show path:", path);
+            console.log("[COLLECTIONS] Final display title:", title);
+            console.log("[COLLECTIONS] Found TV show data:", tvShowData);
 
             html += `
 
@@ -20440,11 +20302,11 @@ class MediaLibraryManager {
         );
         await this.switchTab("movies");
         console.log("[DEBUG] Successfully returned to Movies tab");
-        
+
         // Fix scrolling container after switchTab completes - with multiple attempts
         setTimeout(() => {
           console.log("[DEBUG] Fixing scrolling container after switchTab...");
-          
+
           // CRITICAL: Ensure the modal structure is correct for content-only scrolling
           const modal = document.querySelector(".media-library-modal");
           if (modal) {
@@ -20453,69 +20315,107 @@ class MediaLibraryManager {
             modal.classList.add("modal-open");
             console.log("[DEBUG] Fixed modal overflow classes");
           }
-          
+
           // Ensure modal content has proper structure
-          const modalContent = document.querySelector(".media-library-modal-content");
+          const modalContent = document.querySelector(
+            ".media-library-modal-content"
+          );
           if (modalContent) {
             // Modal content should have overflow: hidden (from CSS)
-            modalContent.classList.remove("fixed-height", "no-scroll", "hidden-overflow");
+            modalContent.classList.remove(
+              "fixed-height",
+              "no-scroll",
+              "hidden-overflow"
+            );
             modalContent.classList.add("movies"); // Ensure it has the movies class
             console.log("[DEBUG] Fixed modal content classes");
           }
-          
+
           // CRITICAL: Ensure content wrapper handles scrolling (not body)
-          const contentWrapper = document.querySelector(".media-library-content-wrapper");
+          const contentWrapper = document.querySelector(
+            ".media-library-content-wrapper"
+          );
           if (contentWrapper) {
-            contentWrapper.classList.remove("fixed-height", "no-scroll", "hidden-overflow");
+            contentWrapper.classList.remove(
+              "fixed-height",
+              "no-scroll",
+              "hidden-overflow"
+            );
             contentWrapper.classList.add("scrollable-container", "auto-height");
             console.log("[DEBUG] Fixed content wrapper scrolling classes");
           }
-          
+
           // Ensure the grid container has proper scrolling classes
           const grid = document.getElementById("mediaGrid");
           if (grid) {
-            grid.classList.remove("fixed-height", "no-scroll", "hidden-overflow");
+            grid.classList.remove(
+              "fixed-height",
+              "no-scroll",
+              "hidden-overflow"
+            );
             grid.classList.add("scrollable-grid", "auto-height");
             console.log("[DEBUG] Fixed grid scrolling classes");
           }
         }, 100);
-        
+
         // SECOND ATTEMPT: Run again after more time to override any subsequent changes
         setTimeout(() => {
-          console.log("[DEBUG] SECOND ATTEMPT: Re-applying scrolling fix using CSS classes only...");
-          
+          console.log(
+            "[DEBUG] SECOND ATTEMPT: Re-applying scrolling fix using CSS classes only..."
+          );
+
           // CRITICAL: Prevent body scrolling using CSS class
           document.body.classList.add("modal-open");
-          console.log("[DEBUG] Added modal-open class to body to prevent page scrolling");
-          
+          console.log(
+            "[DEBUG] Added modal-open class to body to prevent page scrolling"
+          );
+
           // CRITICAL: Remove the .scrollable-modal class that's causing the full modal scrollbar!
           const modal = document.querySelector(".media-library-modal");
           if (modal) {
             modal.classList.remove("scrollable-modal"); // Remove the problematic class
             modal.classList.add("modal-no-scroll"); // Add a class to prevent scrolling
-            console.log("[DEBUG] Removed scrollable-modal class and added modal-no-scroll class");
+            console.log(
+              "[DEBUG] Removed scrollable-modal class and added modal-no-scroll class"
+            );
           }
-          
+
           // Ensure content wrapper handles scrolling with CSS classes
-          const contentWrapper = document.querySelector(".media-library-content-wrapper");
+          const contentWrapper = document.querySelector(
+            ".media-library-content-wrapper"
+          );
           if (contentWrapper) {
-            contentWrapper.classList.remove("fixed-height", "no-scroll", "hidden-overflow");
+            contentWrapper.classList.remove(
+              "fixed-height",
+              "no-scroll",
+              "hidden-overflow"
+            );
             contentWrapper.classList.add("scrollable-container", "auto-height");
             console.log("[DEBUG] Applied content wrapper scrolling classes");
           }
-          
+
           // CRITICAL: Ensure the flex-row container can scroll (this is where the content scrollbar should appear)
           const flexRow = document.querySelector(".media-library-flex-row");
           if (flexRow) {
-            flexRow.classList.remove("no-scroll", "hidden-overflow", "fixed-height");
+            flexRow.classList.remove(
+              "no-scroll",
+              "hidden-overflow",
+              "fixed-height"
+            );
             flexRow.classList.add("scrollable-content");
-            console.log("[DEBUG] Applied scrollable-content class to flex-row for content scrolling");
+            console.log(
+              "[DEBUG] Applied scrollable-content class to flex-row for content scrolling"
+            );
           }
-          
+
           // Ensure grid is scrollable with CSS classes
           const grid = document.getElementById("mediaGrid");
           if (grid) {
-            grid.classList.remove("fixed-height", "no-scroll", "hidden-overflow");
+            grid.classList.remove(
+              "fixed-height",
+              "no-scroll",
+              "hidden-overflow"
+            );
             grid.classList.add("scrollable-grid", "auto-height");
             console.log("[DEBUG] Applied grid scrolling classes");
           }
