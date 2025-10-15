@@ -764,7 +764,7 @@
     font-size: 28px;
     cursor: pointer;
     position: absolute;
-    right: 128px;
+    right: 80px;
     transition: all 0.2s ease;
     margin-left: 8px;
     display: flex;
@@ -2340,7 +2340,7 @@
     gap: 10px;
     align-items:flex-end;
     position: absolute;
-    right: 182px;
+    right: 145px;
     top: 180px;
   }
   
@@ -2970,9 +2970,33 @@
 
 .stat-value {
   display: block;
-  color: #357ab8;
+  color: #28a745;
   font-size: 1.3em;
   font-weight: bold;
+}
+
+.manage-data-log {
+  background: #0d1117;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.log-entry {
+  color: #ffffff;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .manage-data-log {
@@ -3468,7 +3492,7 @@
     color: #222;
     text-align: justify;
     word-break: break-word;
-    margin-top: 0px;
+    margin-top: 40px;
     margin-bottom: 0;
     padding: 12px 18px;
     background: #fafbfc;
