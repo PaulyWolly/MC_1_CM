@@ -4347,7 +4347,7 @@ class MediaLibraryManager {
   async saveWatchLaterToJSON(data) {
     try {
       const response = await fetch('/api/watch-later/update-json', {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -7673,41 +7673,36 @@ class MediaLibraryManager {
                                         ${finalTVShows
 
                                           .map((item) => {
-                                            // Use the EXACT SAME method as main TV-SHOWS tab - get episode object directly
-
-                                            let episodeObj =
-                                              this.getEpisodeObjectFromPath(
-                                                item.path
-                                              );
-
-                                            if (!episodeObj) {
-                                              console.warn(
-                                                "[WARNING - TV-RENDER] No episode object found, creating fallback for special content:",
-                                                item.title,
-
-                                                "path:",
-
-                                                item.path
-                                              );
-
-                                              // Create a fallback episode object for special content
+                                            // RULE: Use the item object directly (which has normalizedKey from JSON)
+                                            // Only use path-based lookup as fallback for missing episode details
+                                            
+                                            let episodeObj = {
+                                              ...item, // Start with all data from the Watch Later item
+                                              type: item.type || "tvshow",
+                                              mediaType: item.mediaType || "tvshow",
+                                              season: item.season || 1,
+                                              episode: item.episode || 1,
+                                              normalizedKey: item.normalizedKey, // CRITICAL: Include normalizedKey from JSON
+                                            };
+                                            
+                                            // Try to enrich with episode details from unified data if needed
+                                            const enrichedEpisode = this.getEpisodeObjectFromPath(item.path);
+                                            if (enrichedEpisode) {
+                                              // Merge enriched data but preserve normalizedKey from item
                                               episodeObj = {
-                                                title:
-                                                  item.title ||
-                                                  "Unknown Episode",
-                                                path: item.path,
-                                                filePath: item.path,
-                                                type: "tvshow",
-                                                mediaType: "tvshow",
-                                                season: 1,
-                                                episode: 1,
-                                                showName:
-                                                  item.title || "Unknown Show",
-                                                year: new Date().getFullYear(),
-                                                data: {
-                                                  year: new Date().getFullYear(),
-                                                },
+                                                ...enrichedEpisode,
+                                                ...episodeObj, // item data takes priority
+                                                normalizedKey: item.normalizedKey || enrichedEpisode.normalizedKey,
                                               };
+                                            }
+                                            
+                                            if (!episodeObj.normalizedKey) {
+                                              console.warn(
+                                                "[WARNING - TV-RENDER] Episode missing normalizedKey:",
+                                                item.title,
+                                                "path:",
+                                                item.path
+                                              );
                                             }
 
                                             // Create the EXACT SAME HTML structure as main TV-SHOWS tab
@@ -28616,81 +28611,36 @@ class MediaLibraryManager {
           "items"
         );
 
-        // RULE: Work with DATA OBJECTS! Use ONLY structured data fields from the item
+        // SIMPLE RULE: Just match by normalizedKey and remove the item!
         const updatedData = currentData.filter((item) => {
-          // For TV shows: match by normalizedKey + season + episode
-          if (
-            itemToDelete.mediaType === "tvshow" &&
-            item.mediaType === "tvshow"
-          ) {
-            // Match by season and episode
-            if (
-              item.season === itemToDelete.season &&
-              item.episode === itemToDelete.episode
-            ) {
-              // Also check normalizedKey or title to ensure it's the same show
-              if (
-                item.normalizedKey &&
-                itemToDelete.normalizedKey &&
-                item.normalizedKey === itemToDelete.normalizedKey
-              ) {
-                console.log(
-                  "[REMOVE-RESUME-PROGRESS] ✅ Found TV show match by normalizedKey:",
-                  item.title,
-                  `S${item.season}E${item.episode}`
-                );
-                return false; // Remove this item
-              }
-
-              // Fallback: match by title (first word)
-              if (item.title && itemToDelete.title) {
-                const itemFirstWord = item.title.toLowerCase().split(/\s+/)[0];
-                const targetFirstWord = itemToDelete.title
-                  .toLowerCase()
-                  .split(/\s+/)[0];
-                if (itemFirstWord === targetFirstWord) {
-                  console.log(
-                    "[REMOVE-RESUME-PROGRESS] ✅ Found TV show match by title:",
-                    item.title,
-                    `S${item.season}E${item.episode}`
-                  );
-                  return false; // Remove this item
-                }
-              }
+          // If both items have normalizedKey, use that for matching
+          if (item.normalizedKey && itemToDelete.normalizedKey) {
+            if (item.normalizedKey === itemToDelete.normalizedKey) {
+              console.log(
+                "[REMOVE-RESUME-PROGRESS] ✅ Found match by normalizedKey:",
+                item.title,
+                `(${item.mediaType})`,
+                `key: ${item.normalizedKey}`
+              );
+              return false; // Remove this item
             }
           }
-
-          // For movies: match by normalizedKey (primary) or title (fallback)
-          if (
-            (itemToDelete.mediaType === "movie" || !itemToDelete.mediaType) &&
-            (item.mediaType === "movie" || !item.mediaType)
-          ) {
-            // First try normalizedKey (most reliable)
-            if (item.normalizedKey && itemToDelete.normalizedKey) {
-              if (item.normalizedKey === itemToDelete.normalizedKey) {
-                console.log(
-                  "[REMOVE-RESUME-PROGRESS] ✅ Found movie match by normalizedKey:",
-                  item.title
-                );
-                return false; // Remove this item
-              }
-            }
-
-            // Fallback: match by title
-            if (item.title && itemToDelete.title) {
-              const itemTitle = item.title.toLowerCase().trim();
-              const targetTitle = itemToDelete.title.toLowerCase().trim();
-
-              if (itemTitle === targetTitle) {
-                console.log(
-                  "[REMOVE-RESUME-PROGRESS] ✅ Found movie match by title:",
-                  item.title
-                );
-                return false; // Remove this item
-              }
+          
+          // Fallback: if no normalizedKey, match by title
+          if (item.title && itemToDelete.title) {
+            const itemTitle = item.title.toLowerCase().trim();
+            const targetTitle = itemToDelete.title.toLowerCase().trim();
+            
+            if (itemTitle === targetTitle) {
+              console.log(
+                "[REMOVE-RESUME-PROGRESS] ✅ Found match by title:",
+                item.title,
+                `(${item.mediaType})`
+              );
+              return false; // Remove this item
             }
           }
-
+          
           return true; // Keep this item
         });
 
@@ -28787,8 +28737,25 @@ class MediaLibraryManager {
 
   // Helper method to remove item from MongoDB
 
-  async removeFromMongoDB(mediaId, mediaType) {
+  async removeFromMongoDB(mediaId, mediaType, normalizedKey = null, season = null, episode = null) {
     try {
+      const payload = { mediaId, mediaType };
+      
+      // Add normalizedKey if available (preferred method)
+      if (normalizedKey) {
+        payload.normalizedKey = normalizedKey;
+      }
+      
+      // Add season/episode for TV shows if available
+      if (season) {
+        payload.season = season;
+      }
+      if (episode) {
+        payload.episode = episode;
+      }
+      
+      console.log('[REMOVE-FROM-MONGODB] Sending DELETE request with payload:', payload);
+      
       const response = await fetch("/api/watch-later/remove", {
         method: "DELETE",
 
@@ -28796,7 +28763,7 @@ class MediaLibraryManager {
           "Content-Type": "application/json",
         },
 
-        body: JSON.stringify({ mediaId, mediaType }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -28804,6 +28771,7 @@ class MediaLibraryManager {
       }
 
       const result = await response.json();
+      console.log('[REMOVE-FROM-MONGODB] Server response:', result);
     } catch (error) {
       console.error("[MEDIA-LIBRARY] MongoDB remove error:", error);
 

@@ -113,50 +113,145 @@ router.post('/add', async (req, res) => {
     try {
         const itemData = req.body;
         
-        // Validate required fields
-        if (!itemData.mediaId || !itemData.mediaType || !itemData.title || !itemData.filePath) {
+        // Validate required fields - be flexible with path fields
+        if (!itemData.mediaType || !itemData.title || (!itemData.filePath && !itemData.path && !itemData.absPath)) {
             return res.status(400).json({ 
-                error: 'Missing required fields: mediaId, mediaType, title, filePath' 
+                error: 'Missing required fields: mediaType, title, and a path (filePath, path, or absPath)' 
             });
         }
+        
+        // RULE: Get ALL data from unified data - NO GENERATION, NO FALLBACKS!
+        // The unified data object has ALL the data any process would need
         
         console.log('[WATCH-LATER-API] Adding item:', itemData.title, '(', itemData.mediaType, ')');
         console.log('[WATCH-LATER-API] Debug - itemData keys:', Object.keys(itemData));
         console.log('[WATCH-LATER-API] Debug - has seasons:', !!itemData.seasons);
         console.log('[WATCH-LATER-API] Debug - path:', itemData.path);
+        console.log('[WATCH-LATER-API] Debug - generated mediaId:', itemData.mediaId);
         
         // SIMPLE APPROACH: Read array, add item, write array
         const items = readWatchLaterJSON();
         
-        // Extract episode data for TV shows (try multiple approaches)
+        // Get ALL data from unified data - NO FALLBACKS!
+        try {
+            // Load unified data
+            const unifiedDataPath = path.join(__dirname, '../../public/data');
+            let unifiedData = {};
+            
         if (itemData.mediaType === 'tvshow') {
-            // Find the current episode from the path
-            const currentPath = itemData.path || itemData.filePath || itemData.relPath || itemData.absPath;
-            if (currentPath) {
-                // Extract season and episode from path like "Season 2/Ally McBeal - S2E1 - The Real World.mkv"
-                const seasonMatch = currentPath.match(/Season\s+(\d+)/i);
-                const episodeMatch = currentPath.match(/S(\d+)E(\d+)/i);
-                
-                if (seasonMatch && episodeMatch) {
-                    const seasonNum = parseInt(seasonMatch[1]);
-                    const episodeNum = parseInt(episodeMatch[2]);
-                    
-                    // Add season/episode to root level for duplicate detection
-                    itemData.season = seasonNum;
-                    itemData.episode = episodeNum;
-                    
-                    console.log('[WATCH-LATER-API] ✅ Extracted episode data:', { 
-                        title: itemData.title, 
-                        season: seasonNum, 
-                        episode: episodeNum 
-                    });
-                } else {
-                    console.log('[WATCH-LATER-API] ❌ Failed to extract episode data from path:', currentPath);
+                const tvShowsPath = path.join(unifiedDataPath, 'tv-shows-unified.json');
+                if (fs.existsSync(tvShowsPath)) {
+                    const tvShowsData = JSON.parse(fs.readFileSync(tvShowsPath, 'utf8'));
+                    unifiedData = tvShowsData;
                 }
-            } else {
-                console.log('[WATCH-LATER-API] ❌ No path found for TV show:', itemData.title);
+            } else if (itemData.mediaType === 'movie') {
+                const moviesPath = path.join(unifiedDataPath, 'movies-unified.json');
+                if (fs.existsSync(moviesPath)) {
+                    const moviesData = JSON.parse(fs.readFileSync(moviesPath, 'utf8'));
+                    unifiedData = moviesData;
+                }
             }
+            
+            // Find the item in unified data by path
+            const currentPath = itemData.path || itemData.filePath || itemData.relPath || itemData.absPath;
+            if (currentPath && unifiedData) {
+                for (const [key, unifiedItem] of Object.entries(unifiedData)) {
+                    if (unifiedItem.path === currentPath || unifiedItem.absPath === currentPath) {
+                        // For TV shows: Extract only the specific episode, not the entire show
+                        if (itemData.mediaType === 'tvshow' && unifiedItem.seasons) {
+                            // Find the specific episode in the seasons data
+                            const season = itemData.season || 1;
+                            const episode = itemData.episode || 1;
+                            
+                            let specificEpisode = null;
+                            if (unifiedItem.seasons[season] && unifiedItem.seasons[season].episodes && unifiedItem.seasons[season].episodes[episode]) {
+                                specificEpisode = unifiedItem.seasons[season].episodes[episode];
+                            }
+                            
+                            // Create episode-specific data - ALL fields from unified data
+                            itemData = {
+                                TMDBTitle: unifiedItem.TMDBTitle,
+                                type: 'tvshow',
+                                isMovie: false,
+                                normalizedKey: key,
+                                title: specificEpisode ? specificEpisode.title : `${unifiedItem.title} | S${season}E${episode} | Episode`,
+                                mediaType: 'tvshow',
+                                tmdbId: unifiedItem.tmdbId,
+                                poster: unifiedItem.poster,
+                                description: unifiedItem.description,
+                                about: unifiedItem.about,
+                                genres: unifiedItem.genres || [],
+                                cast: unifiedItem.cast || [],
+                                year: unifiedItem.year,
+                                path: specificEpisode ? specificEpisode.path : currentPath,
+                                absPath: unifiedItem.absPath,
+                                filePath: specificEpisode ? specificEpisode.path : currentPath, // MongoDB compatibility
+                                mediaId: key, // Use normalizedKey as mediaId for MongoDB
+                                backdrop: null, // Don't store backdrop for specific episodes
+                                seasons: null, // Don't store all seasons - just the specific episode
+                                season: season,
+                                episode: episode,
+                                episodeTitle: specificEpisode ? specificEpisode.title.split(' | ').pop() : 'Episode',
+                                currentTime: itemData.currentTime || 0,
+                                duration: specificEpisode ? specificEpisode.duration : itemData.duration,
+                                quality: itemData.quality || null,
+                                lastWatched: itemData.lastWatched || null,
+                                _id: itemData._id || null,
+                                addedAt: itemData.addedAt || new Date().toISOString(),
+                                lastUpdated: new Date().toISOString(),
+                                createdAt: itemData.createdAt || new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            };
+                            
+                            console.log('[WATCH-LATER-API] ✅ Created episode-specific TV show entry:', {
+                        title: itemData.title, 
+                                season: itemData.season,
+                                episode: itemData.episode,
+                                normalizedKey: key,
+                                source: 'unified-data-episode-specific'
+                    });
+                        } else {
+                            // For movies: Use all unified data (movies don't have seasons)
+                            itemData = {
+                                ...unifiedItem, // Use all unified data for movies
+                                ...itemData,    // Override with any Watch Later specific data
+                                normalizedKey: key, // Ensure normalizedKey is set
+                                filePath: unifiedItem.path || unifiedItem.filePath || currentPath, // MongoDB compatibility
+                                mediaId: key, // Use normalizedKey as mediaId for MongoDB
+                                addedAt: itemData.addedAt || new Date().toISOString(),
+                                lastUpdated: new Date().toISOString()
+                            };
+                            
+                            console.log('[WATCH-LATER-API] ✅ Using unified data for movie:', {
+                                title: itemData.title,
+                                normalizedKey: key,
+                                source: 'unified-data'
+                            });
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // If item not found in unified data, reject it
+            if (!itemData.normalizedKey) {
+                console.error('[WATCH-LATER-API] ❌ Item not found in unified data - REJECTING:', {
+                    title: itemData.title,
+                    mediaType: itemData.mediaType,
+                    path: currentPath
+                });
+                return res.status(400).json({ 
+                    error: 'Item not found in unified data. Cannot add to Watch Later.' 
+                });
+            }
+        } catch (error) {
+            console.error('[WATCH-LATER-API] Error loading unified data:', error);
+            return res.status(500).json({ 
+                error: 'Failed to load unified data' 
+            });
         }
+
+        // All data comes from unified data - no path parsing needed!
         
         // Check if item already exists using unified data structure
         const existingIndex = items.findIndex(item => {
@@ -212,8 +307,25 @@ router.post('/add', async (req, res) => {
             });
         }
         
+        // Ensure all items have required fields before writing to JSON
+        const itemsWithRequiredFields = items.map(item => {
+            const updatedItem = { ...item };
+            
+            // Ensure mediaId is present (use normalizedKey as mediaId)
+            if (!updatedItem.mediaId && updatedItem.normalizedKey) {
+                updatedItem.mediaId = updatedItem.normalizedKey;
+            }
+            
+            // Ensure filePath is present (use path as filePath)
+            if (!updatedItem.filePath && updatedItem.path) {
+                updatedItem.filePath = updatedItem.path;
+            }
+            
+            return updatedItem;
+        });
+        
         // Write back to JSON
-        writeWatchLaterJSON(items);
+        writeWatchLaterJSON(itemsWithRequiredFields);
         
         // Also sync to MongoDB for backup
         try {
@@ -323,26 +435,40 @@ router.put('/update-progress', async (req, res) => {
 // DELETE - Remove item from watch later
 router.delete('/remove', async (req, res) => {
     try {
-        // Support both body and query parameters
+        // Support multiple identification methods for maximum compatibility
+        const normalizedKey = req.body.normalizedKey || req.query.normalizedKey;
         const mediaId = req.body.mediaId || req.query.mediaId;
         const mediaType = req.body.mediaType || req.query.mediaType;
         const itemPath = req.body.path || req.query.path;
+        const season = req.body.season || req.query.season;
+        const episode = req.body.episode || req.query.episode;
         
-        if (!mediaId && !itemPath) {
+        if (!normalizedKey && !mediaId && !itemPath) {
             return res.status(400).json({ 
-                error: 'Missing required parameter: mediaId or path' 
+                error: 'Missing required parameter: normalizedKey, mediaId, or path' 
             });
         }
         
-        console.log('[WATCH-LATER-API] Removing item - mediaId:', mediaId, 'mediaType:', mediaType, 'path:', itemPath);
+        console.log('[WATCH-LATER-API] Removing item - normalizedKey:', normalizedKey, 'mediaId:', mediaId, 'mediaType:', mediaType, 'path:', itemPath, 'season:', season, 'episode:', episode);
         
         // SIMPLE APPROACH: Read array, filter out item, write array
         const items = readWatchLaterJSON();
         const originalCount = items.length;
         
-        // Filter out the item to remove
+        // Filter out the item to remove - prioritize normalizedKey for most reliable matching
         let filteredItems;
-        if (itemPath) {
+        if (normalizedKey) {
+            // Use normalizedKey for most reliable matching
+            filteredItems = items.filter(item => {
+                // For TV shows, also check season/episode if provided
+                if (item.mediaType === 'tvshow' && season && episode) {
+                    return !(item.normalizedKey === normalizedKey && item.season == season && item.episode == episode);
+                }
+                // For movies or when no season/episode specified, just match normalizedKey
+                return item.normalizedKey !== normalizedKey;
+            });
+        } else if (itemPath) {
+            // Fallback to path matching
             const normalizedPath = itemPath.replace(/\\/g, '/').toLowerCase().trim();
             filteredItems = items.filter(item => {
                 const itemPaths = [item.path, item.relPath, item.filePath, item.absPath]
@@ -351,6 +477,7 @@ router.delete('/remove', async (req, res) => {
                 return !itemPaths.some(p => p === normalizedPath);
             });
         } else {
+            // Fallback to mediaId/mediaType matching
             filteredItems = items.filter(item => 
                 !(item.mediaId === mediaId && item.mediaType === mediaType)
             );
@@ -489,8 +616,25 @@ router.post('/bulk-import', async (req, res) => {
         
         console.log('[WATCH-LATER-API] Bulk import processed:', processedItems.length, 'unique items from', items.length, 'total');
         
+        // Ensure all processed items have required fields before writing to JSON
+        const processedItemsWithRequiredFields = processedItems.map(item => {
+            const updatedItem = { ...item };
+            
+            // Ensure mediaId is present (use normalizedKey as mediaId)
+            if (!updatedItem.mediaId && updatedItem.normalizedKey) {
+                updatedItem.mediaId = updatedItem.normalizedKey;
+            }
+            
+            // Ensure filePath is present (use path as filePath)
+            if (!updatedItem.filePath && updatedItem.path) {
+                updatedItem.filePath = updatedItem.path;
+            }
+            
+            return updatedItem;
+        });
+        
         // Write the processed array to JSON
-        writeWatchLaterJSON(processedItems);
+        writeWatchLaterJSON(processedItemsWithRequiredFields);
         
         // Also sync to MongoDB for backup
         try {
@@ -542,8 +686,25 @@ router.post('/update-json', async (req, res) => {
             fs.mkdirSync(dir, { recursive: true });
         }
         
-        fs.writeFileSync(jsonFilePath, JSON.stringify(items, null, 2), 'utf8');
-        console.log('[WATCH-LATER-API] File written successfully');
+        // Ensure all items have required fields before writing to JSON
+        const itemsWithRequiredFields = items.map(item => {
+            const updatedItem = { ...item };
+            
+            // Ensure mediaId is present (use normalizedKey as mediaId)
+            if (!updatedItem.mediaId && updatedItem.normalizedKey) {
+                updatedItem.mediaId = updatedItem.normalizedKey;
+            }
+            
+            // Ensure filePath is present (use path as filePath)
+            if (!updatedItem.filePath && updatedItem.path) {
+                updatedItem.filePath = updatedItem.path;
+            }
+            
+            return updatedItem;
+        });
+        
+        fs.writeFileSync(jsonFilePath, JSON.stringify(itemsWithRequiredFields, null, 2), 'utf8');
+        console.log('[WATCH-LATER-API] File written successfully with required fields ensured');
         
         res.json({
             success: true,
@@ -681,6 +842,83 @@ router.get('/archives/:filename', async (req, res) => {
     } catch (error) {
         console.error('[WATCH-LATER-API] Get archive error:', error);
         res.status(500).json({ error: 'Failed to get archive' });
+    }
+});
+
+// DELETE - Remove item from Watch Later
+router.delete('/remove', async (req, res) => {
+    try {
+        // Support multiple identification methods for maximum compatibility
+        const normalizedKey = req.body.normalizedKey || req.query.normalizedKey;
+        const mediaId = req.body.mediaId || req.query.mediaId;
+        const mediaType = req.body.mediaType || req.query.mediaType;
+        const itemPath = req.body.path || req.query.path;
+        const season = req.body.season || req.query.season;
+        const episode = req.body.episode || req.query.episode;
+        
+        if (!normalizedKey && !mediaId && !itemPath) {
+            return res.status(400).json({ 
+                error: 'Missing required parameter: normalizedKey, mediaId, or path' 
+            });
+        }
+        
+        console.log('[WATCH-LATER-API] Removing item - normalizedKey:', normalizedKey, 'mediaId:', mediaId, 'mediaType:', mediaType, 'path:', itemPath, 'season:', season, 'episode:', episode);
+        
+        // SIMPLE APPROACH: Read array, filter out item, write array
+        const items = readWatchLaterJSON();
+        const originalCount = items.length;
+        
+        // Filter out the item to remove - prioritize normalizedKey for most reliable matching
+        let filteredItems;
+        if (normalizedKey) {
+            // Use normalizedKey for most reliable matching
+            filteredItems = items.filter(item => {
+                // For TV shows, also check season/episode if provided
+                if (item.mediaType === 'tvshow' && season && episode) {
+                    return !(item.normalizedKey === normalizedKey && item.season == season && item.episode == episode);
+                }
+                // For movies or when no season/episode specified, just match normalizedKey
+                return item.normalizedKey !== normalizedKey;
+            });
+        } else if (itemPath) {
+            // Fallback to path matching
+            const normalizedPath = itemPath.replace(/\\/g, '/').toLowerCase().trim();
+            filteredItems = items.filter(item => {
+                const itemPaths = [item.path, item.relPath, item.filePath, item.absPath]
+                    .filter(p => p)
+                    .map(p => p.replace(/\\/g, '/').toLowerCase().trim());
+                return !itemPaths.some(p => p === normalizedPath);
+            });
+        } else {
+            // Fallback to mediaId/mediaType matching
+            filteredItems = items.filter(item => 
+                !(item.mediaId === mediaId && item.mediaType === mediaType)
+            );
+        }
+        
+        const removedCount = originalCount - filteredItems.length;
+        console.log('[WATCH-LATER-API] Removed', removedCount, 'item(s). Remaining:', filteredItems.length);
+        
+        // Write back to JSON
+        writeWatchLaterJSON(filteredItems);
+        
+        // Also sync to MongoDB for backup
+        try {
+            await WatchLater.removeItem(mediaId, mediaType);
+        } catch (mongoError) {
+            console.warn('[WATCH-LATER-API] MongoDB sync failed (non-critical):', mongoError.message);
+        }
+        
+        res.json({
+            success: true,
+            message: 'Item removed from watch later',
+            itemCount: filteredItems.length,
+            removedCount: removedCount
+        });
+        
+    } catch (error) {
+        console.error('[WATCH-LATER-API] Remove error:', error);
+        res.status(500).json({ error: 'Failed to remove item from watch later' });
     }
 });
 
