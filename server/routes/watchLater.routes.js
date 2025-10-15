@@ -528,39 +528,22 @@ router.post('/update-json', async (req, res) => {
     try {
         const { items } = req.body;
         
-        console.log('[WATCH-LATER-API] Received request body:', JSON.stringify(req.body, null, 2).substring(0, 500) + '...');
-        console.log('[WATCH-LATER-API] Items type:', typeof items, 'Is array:', Array.isArray(items));
-        
         if (!Array.isArray(items)) {
-            console.error('[WATCH-LATER-API] Items is not an array:', items);
             return res.status(400).json({ error: 'Items must be an array' });
         }
         
-        console.log('[WATCH-LATER-API] Updating JSON file with', items.length, 'items');
-        console.log('[WATCH-LATER-API] Sample items:', items.slice(0, 3).map(item => ({ title: item.title, path: item.path })));
+        const jsonFilePath = path.join(__dirname, '../public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
         
-    // Define the JSON file path - must match where frontend reads from
-    const jsonFilePath = path.join(__dirname, '../public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
+        console.log('[WATCH-LATER-API] Writing to:', jsonFilePath);
+        console.log('[WATCH-LATER-API] Items count:', items.length);
         
-        // Ensure directory exists
         const dir = path.dirname(jsonFilePath);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
         
-        // Create the data structure for the JSON file - frontend expects an array
-        // The frontend code handles both array format and object with items property
-        const jsonData = items; // Save as array directly since that's what frontend expects
-        
-        // CRITICAL: Don't write empty arrays to JSON file - this empties the file!
-        if (jsonData && jsonData.length > 0) {
-            // Write to JSON file
-            fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2), 'utf8');
-            console.log('[WATCH-LATER-API] JSON file updated successfully with', items.length, 'items');
-        } else {
-            console.warn('[WATCH-LATER-API] ⚠️ PREVENTED WRITING EMPTY ARRAY TO JSON FILE! jsonData is empty:', jsonData);
-            console.log('[WATCH-LATER-API] Skipping JSON file update to prevent data loss');
-        }
+        fs.writeFileSync(jsonFilePath, JSON.stringify(items, null, 2), 'utf8');
+        console.log('[WATCH-LATER-API] File written successfully');
         
         res.json({
             success: true,

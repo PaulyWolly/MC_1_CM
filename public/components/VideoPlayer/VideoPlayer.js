@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/13/2025 @4:00PM
+  Version: 1.28
+  AppName: mcc_1_ccm [1.28]
+  Updated: 10/12/2025 @6:30AM
   Created by Paul Welby
 */
 
@@ -424,520 +424,55 @@ class VideoPlayer {
                         this.el().setAttribute('title', 'Save for Later');
                     }
                     async handleClick() {
-                        // Get the current playing movie from the video player
-                        let movie = window.mediaLibraryManager?.currentMediaItem;
+                        console.log('🔖 [SAVE-FOR-LATER] Button clicked!');
                         
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Save for Later clicked');
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: currentMediaItem:', movie);
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode name:', movie?.name);
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode title:', movie?.title);
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode season:', movie?.season);
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode episode:', movie?.episode);
-                        console.log('[VIDEO-PLAYER] 🔍 DEBUG: Episode filename:', movie?.filename);
+                        // USE THE UNIFIED DATA OBJECT - it has EVERYTHING we need!
+                        // The currentMediaItem is a COMPLETE, SELF-CONTAINED object from the unified data
+                        const movie = window.videoPlayer?.currentMediaItem || window.mediaLibraryManager?.currentMediaItem;
                         
-                        // If no movie found, try to get it from the video player
+                        console.log('🔖 [SAVE-FOR-LATER] Current media item:', movie);
+                        console.log('🔖 [SAVE-FOR-LATER] MediaLibraryManager available:', !!window.mediaLibraryManager);
+                        
                         if (!movie) {
-                            movie = window.videoPlayer?.currentMediaItem || 
-                            window.videoPlayer?.currentFile ||
-                            window.mediaLibraryManager?.currentFile;
+                            console.error('[VIDEO-PLAYER] ❌ No currentMediaItem available - cannot save for later');
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('Cannot save - no media data available', 'error');
+                            }
+                            return;
                         }
                         
-                        // CRITICAL FIX: If we have a movie but it's the wrong one, try to find the correct one
-                        if (movie && movie.normalizedKey && movie.normalizedKey.includes('paulie')) {
-                            console.log('[VIDEO-PLAYER] WRONG MOVIE DETECTED! Found Paulie instead of Paul, searching for correct movie...');
-                            
-                            // Try to find the correct movie by looking at the current file path
-                            const currentPath = window.videoPlayer?.currentFile?.path || window.videoPlayer?.currentFile?.filePath || window.videoPlayer?.currentFile?.absPath || '';
-                            if (currentPath && currentPath.toLowerCase().includes('paul') && !currentPath.toLowerCase().includes('paulie')) {
-                                // Look for the correct Paul movie in unified data
-                                if (window.mediaLibraryManager?.unifiedData) {
-                                    for (const [key, movieData] of Object.entries(window.mediaLibraryManager.unifiedData)) {
-                                        if (movieData.isMovie && movieData.TMDBTitle === 'Paul' && movieData.year === '2011') {
-                                            movie = {
-                                                ...movieData,
-                                                path: currentPath,
-                                                absPath: movieData.files && movieData.files[0] ? movieData.files[0].absPath : undefined,
-                                                filePath: movieData.files && movieData.files[0] ? movieData.files[0].filePath : undefined
-                                            };
-                                            console.log('[VIDEO-PLAYER] FIXED! Found correct Paul movie:', movie.TMDBTitle);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        console.log('[VIDEO-PLAYER] 💾 Save for Later - using unified data object:', movie);
                         
-                        console.log('[VIDEO-PLAYER] Save Later button clicked - current movie data:', movie);
-                        console.log('[VIDEO-PLAYER] Movie title:', movie?.TMDBTitle, 'normalizedKey:', movie?.normalizedKey);
-                        console.log('[VIDEO-PLAYER] Movie path:', movie?.path, 'absPath:', movie?.absPath);
-                        console.log('[VIDEO-PLAYER] Movie type:', movie?.type, 'mediaType:', movie?.mediaType);
-                        
-                        // FIX: Always use the correct movie data from currentMediaItem
-                        let foundInUnifiedData = false;
-                        if (!movie || !movie.normalizedKey) {
-                            // Try to find the media item in unified data using the current file path
-                            const currentPath = window.videoPlayer?.currentFile?.path || window.videoPlayer?.currentFile?.filePath || window.videoPlayer?.currentFile?.absPath || '';
-                            
-                            if (window.mediaLibraryManager?.unifiedData && currentPath) {
-                                // Search through unified data to find the correct movie
-                                for (const [key, movieData] of Object.entries(window.mediaLibraryManager.unifiedData)) {
-                                    if (movieData.files && Array.isArray(movieData.files)) {
-                                        for (const file of movieData.files) {
-                                            if (file.path === currentPath || file.filePath === currentPath || file.absPath === currentPath) {
-                                                movie = {
-                                                    ...movieData,
-                                                    path: currentPath,
-                                                    filePath: file.filePath || currentPath,
-                                                    absPath: file.absPath || currentPath,
-                                                    normalizedKey: key
-                                                };
-                                                foundInUnifiedData = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    if (movie && movie.normalizedKey) break;
-                                }
-                            }
-                            
-                            // If not found in movies, try TV shows data
-                            if (!foundInUnifiedData && window.mediaLibraryManager?.tvShowsData && currentPath) {
-                                console.log('[VIDEO-PLAYER] EMERGENCY: Searching TV shows data for path:', currentPath);
-                                const tvShowsData = window.mediaLibraryManager.tvShowsData;
-                                
-                                for (const [key, showData] of Object.entries(tvShowsData)) {
-                                    if (showData.seasons && Array.isArray(showData.seasons)) {
-                                        for (const season of showData.seasons) {
-                                            if (season.episodes && Array.isArray(season.episodes)) {
-                                                for (const episode of season.episodes) {
-                                                    if (episode.path === currentPath || episode.filePath === currentPath || episode.absPath === currentPath) {
-                                                        movie = {
-                                                            title: episode.title || episode.episodeTitle || episode.name,
-                                                            type: 'episode',
-                                                            mediaType: showData.isMovie ? 'movie' : 'tvshow',
-                                                            path: currentPath,
-                                                            filePath: episode.filePath || currentPath,
-                                                            absPath: episode.absPath || currentPath,
-                                                            mediaId: window.mediaLibraryManager?.generateMediaId ? window.mediaLibraryManager.generateMediaId({...episode, path: currentPath}, showData.isMovie ? 'movie' : 'tvshow') : undefined
-                                                        };
-                                                        foundInUnifiedData = true;
-                                                        console.log('[VIDEO-PLAYER] EMERGENCY: Found in TV shows data:', movie);
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            if (foundInUnifiedData) break;
-                                        }
-                                    }
-                                    if (foundInUnifiedData) break;
-                                }
-                            }
-                            
-                            // If still not found, create fallback object
-                            if (!foundInUnifiedData) {
-                                console.log('[VIDEO-PLAYER] EMERGENCY: Not found in unified data, creating fallback');
-                                
-                                // Try multiple ways to get the title from the video player
-                                let titleText = 'Unknown Title';
-                                
-                                // Method 1: Look for title in video player overlay
-                                const titleElement = document.querySelector('.video-title, .player-title, [class*="title"]');
-                                if (titleElement && titleElement.textContent) {
-                                    titleText = titleElement.textContent.trim();
-                                    console.log('[VIDEO-PLAYER] EMERGENCY: Found title from element:', titleText);
-                                }
-                                
-                                // Method 2: Look for title in any text that contains "|" and "Season"
-                                if (titleText === 'Unknown Title') {
-                                    const allElements = document.querySelectorAll('*');
-                                    for (let el of allElements) {
-                                        if (el.textContent && el.textContent.includes('|') && el.textContent.includes('Season')) {
-                                            titleText = el.textContent.trim();
-                                            console.log('[VIDEO-PLAYER] EMERGENCY: Found title from page text:', titleText);
-                                            break;
-                                        }
-                                    }
-                                }
-                                
-                                // Method 3: Use the current video source path to extract title
-                                if (titleText === 'Unknown Title' && window.videoPlayer?.player) {
-                                    const src = window.videoPlayer.player.src();
-                                    if (src) {
-                                        const url = new URL(src);
-                                        const path = decodeURIComponent(url.searchParams.get('path') || '');
-                                        if (path) {
-                                            const pathParts = path.split('/');
-                                            const fileName = pathParts[pathParts.length - 1] || '';
-                                            titleText = fileName.replace(/\.[^/.]+$/, ''); // Remove file extension
-                                            console.log('[VIDEO-PLAYER] EMERGENCY: Extracted title from video path:', titleText);
-                                        }
-                                    }
-                                }
-                                
-                                // Determine if this is a movie or TV show based on title content
-                                const isMovie = !titleText.includes('|') && !titleText.includes('Season') && !titleText.includes('Episode');
-                                const mediaType = isMovie ? 'movie' : 'tvshow';
-                                
-                                movie = {
-                                    title: titleText,
-                                    type: isMovie ? 'movie' : 'tvshow',
-                                    mediaType: mediaType,
-                                    path: currentPath,
-                                    filePath: currentPath,
-                                    absPath: currentPath
-                                };
-                                console.log('[VIDEO-PLAYER] EMERGENCY: Created fallback movie object:', movie);
-                            }
-                        }
-
+                        // Get video playback info
                         let currentTime = 0, duration = 0;
                         if (this.player()) {
                             currentTime = this.player().currentTime();
                             duration = this.player().duration();
                         }
 
-                        console.log('[VIDEO-PLAYER] Save for Later clicked:', { movie, currentTime, duration });
-                        console.log('[VIDEO-PLAYER] MediaLibraryManager available:', !!window.mediaLibraryManager);
-                        console.log('[VIDEO-PLAYER] saveResumeProgress function available:', typeof window.mediaLibraryManager?.saveResumeProgress);
-                        console.log('[VIDEO-PLAYER] DEBUG - Movie object details:', {
-                          title: movie?.title,
-                          type: movie?.type,
-                          mediaType: movie?.mediaType,
-                          path: movie?.path,
-                          absPath: movie?.absPath,
-                          name: movie?.name,
-                          filename: movie?.filename
-                        });
-                        console.log('[VIDEO-PLAYER] DEBUG - Full movie object:', movie);
-                        console.log('[VIDEO-PLAYER] DEBUG - Current media item:', window.videoPlayer?.currentMediaItem);
-                        console.log('[VIDEO-PLAYER] DEBUG - Current file:', window.videoPlayer?.currentFile);
-                        console.log('[VIDEO-PLAYER] DEBUG - MediaLibraryManager currentMediaItem:', window.mediaLibraryManager?.currentMediaItem);
-                        console.log('[VIDEO-PLAYER] DEBUG - MediaLibraryManager currentMediaItem title:', window.mediaLibraryManager?.currentMediaItem?.title);
-                        console.log('[VIDEO-PLAYER] DEBUG - MediaLibraryManager currentMediaItem episodeTitle:', window.mediaLibraryManager?.currentMediaItem?.episodeTitle);
-
-                        // Normalize episode paths commonly used for TV shows
-                        if (movie && !movie.path) {
-                            if (movie.filePath) {
-                                movie.path = movie.filePath;
-                            } else if (movie.absPath) {
-                                movie.path = movie.absPath;
-                            } else if (movie.relPath) {
-                                movie.path = movie.relPath;
-                            }
-                        }
-
-                        // Attempt to enrich the media object by looking up in TV shows data if needed
-                        if (window.mediaLibraryManager?.tvShowsData && (!movie || !movie.title || !movie.path)) {
+                        // Save to Watch Later using the complete unified data object
+                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function') {
                             try {
-                                const tvData = window.mediaLibraryManager.tvShowsData;
-                                const showsArray = Array.isArray(tvData) ? tvData : (tvData && typeof tvData === 'object' ? Object.values(tvData) : []);
-
-                                const normalize = (p) => (p || '').replace(/\\/g, '/').toLowerCase().trim();
-                                const targetPath = normalize(movie?.path || movie?.filePath || movie?.absPath || movie?.relPath);
-
-                                let found = null;
-                                for (const show of showsArray) {
-                                    // Structure A: { seasons: [{ episodes: [...] }] }
-                                    if (!found && Array.isArray(show?.seasons)) {
-                                        for (const season of show.seasons) {
-                                            if (Array.isArray(season?.episodes)) {
-                                                for (const ep of season.episodes) {
-                                                    const epPaths = [ep.path, ep.absPath, ep.filePath, ep.relPath].map(normalize);
-                                                    if (epPaths.some(p => p && p === targetPath)) {
-                                                        found = ep;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            if (found) break;
-                                        }
-                                    }
-
-                                    // Structure B: { folders: [{ files: [...] }] }
-                                    if (!found && Array.isArray(show?.folders)) {
-                                        for (const season of show.folders) {
-                                            if (Array.isArray(season?.files)) {
-                                                for (const ep of season.files) {
-                                                    const epPaths = [ep.path, ep.absPath, ep.filePath, ep.relPath].map(normalize);
-                                                    if (epPaths.some(p => p && p === targetPath)) {
-                                                        found = ep;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            if (found) break;
-                                        }
-                                    }
-
-                                    if (found) {
-                                        break;
-                                    }
-                                }
-
-                                if (found) {
-                                    movie = { 
-                                        ...found, 
-                                        path: found.path || found.filePath || found.absPath || found.relPath,
-                                        type: 'tvshow',
-                                        mediaType: 'tvshow' // Consistent with our data structure
-                                    };
-                                    console.log('[VIDEO-PLAYER] Enriched TV episode from tvShowsData:', movie);
-                                }
-                            } catch (err) {
-                                console.warn('[VIDEO-PLAYER] TV shows lookup failed:', err);
-                            }
-                        }
-
-                        // Ensure we have a title for display and saving
-                        if (movie && !movie.title) {
-                            movie.title = movie.name || movie.filename || movie.path || 'Untitled';
-                            console.log('[VIDEO-PLAYER] Filled movie.title:', movie.title);
-                        }
-
-                        // Final fallback: if still no usable object, build one from the currently playing file
-                        if ((!movie || !movie.path) && window.videoPlayer?.currentFile) {
-                            const f = window.videoPlayer.currentFile;
-                            const isTVShow = f.path && (f.path.includes('season') || f.path.includes('s0') || f.path.includes('episode'));
-                            
-                            movie = {
-                                ...f,
-                                title: f.name || f.filename || f.absPath || 'Untitled',
-                                path: f.absPath || f.filePath || f.relPath || f.path,
-                                type: isTVShow ? 'tvshow' : 'movie',
-                                mediaType: isTVShow ? 'tvshow' : 'movie'
-                            };
-                            
-                            // For TV shows, try to get a better title
-                            if (isTVShow && window.videoPlayer.processProperTvShowName) {
-                                const betterTitle = window.videoPlayer.processProperTvShowName(movie, movie.path);
-                                if (betterTitle && betterTitle !== 'Untitled') {
-                                    movie.title = betterTitle;
-                                }
-                            }
-                            
-                            console.log('[VIDEO-PLAYER] Built fallback media object from currentFile:', movie);
-                        }
-
-                        // Ensure proper type is set for categorization
-                        if (movie && !movie.type && !movie.mediaType) {
-                            // If no type is set, try to determine from path or context
-                            const path = (movie.path || '').toLowerCase();
-                            if (path.includes('season') || path.includes('s0') || path.includes('episode')) {
-                                movie.type = 'tvshow';
-                                movie.mediaType = 'tvshow'; // Consistent with our data structure
-                            } else {
-                                movie.type = 'movie';
-                                movie.mediaType = 'movie';
-                            }
-                            console.log('[VIDEO-PLAYER] Set type based on path analysis:', movie.type);
-                        }
-
-                        // Ensure all required fields are present for MongoDB
-                        if (movie) {
-                            // AGGRESSIVE TITLE GENERATION - Try multiple sources
-                            if (!movie.title || movie.title === 'Untitled' || movie.title === 'Untitled Episode') {
-                                console.log('[VIDEO-PLAYER] DEBUG - Generating title from multiple sources...');
-                                
-                                // Try 1: Use current media item title if available
-                                if (window.videoPlayer?.currentMediaItem?.title) {
-                                    movie.title = window.videoPlayer.currentMediaItem.title;
-                                    console.log('[VIDEO-PLAYER] DEBUG - Using currentMediaItem.title:', movie.title);
-                                }
-                                // Try 2: Use MediaLibraryManager current media item
-                                else if (window.mediaLibraryManager?.currentMediaItem?.title) {
-                                    movie.title = window.mediaLibraryManager.currentMediaItem.title;
-                                    console.log('[VIDEO-PLAYER] DEBUG - Using MediaLibraryManager currentMediaItem.title:', movie.title);
-                                }
-                                // Try 3: For TV shows, use proper formatting
-                                else if (movie.type === 'tvshow' || movie.mediaType === 'tvshow' || movie.type === 'tv-show' || movie.mediaType === 'tv-show') {
-                                    const episodeTitle = this.processProperTvShowName(movie, movie.path || movie.filePath || movie.absPath);
-                                    movie.title = episodeTitle || movie.name || movie.filename || 'Untitled Episode';
-                                    console.log('[VIDEO-PLAYER] DEBUG - Generated TV show title:', movie.title);
-                                }
-                                // Try 4: Use any available name/filename
-                                else {
-                                    movie.title = movie.name || movie.filename || movie.path?.split(/[\\/]/).pop()?.replace(/\.[^/.]+$/, '') || 'Untitled';
-                                    console.log('[VIDEO-PLAYER] DEBUG - Generated fallback title:', movie.title);
-                                }
-                            }
-                            
-                            // Ensure filePath is present (required by MongoDB)
-                            if (!movie.filePath) {
-                                movie.filePath = movie.path || movie.absPath || movie.relPath;
-                            }
-                            
-                            // Ensure absPath is present
-                            if (!movie.absPath) {
-                                movie.absPath = movie.path || movie.filePath;
-                            }
-                            
-                            // Ensure mediaId is present (required by MongoDB)
-                            if (!movie.mediaId) {
-                                // Generate a mediaId using the same logic as MediaLibraryManager
-                                const generateMediaId = (mediaItem) => {
-                                    const title = mediaItem.title || mediaItem.name || 'untitled';
-                                    const path = mediaItem.path || mediaItem.filePath || mediaItem.absPath || '';
-                                    return `${title.toLowerCase().replace(/[^a-z0-9]/g, '.')}.${path.toLowerCase().replace(/[^a-z0-9]/g, '.')}`;
-                                };
-                                movie.mediaId = generateMediaId(movie);
-                            }
-                            
-                            // Final safety check - ensure we always have a title
-                            if (!movie.title || movie.title === 'Untitled' || movie.title === 'Untitled Episode') {
-                                console.log('[VIDEO-PLAYER] DEBUG - Final safety check - no title found, trying last resort methods...');
-                                
-                                // Try 1: Extract from video player title display - multiple selectors
-                                let videoTitleElement = document.querySelector('.video-title, .player-title, [class*="title"]');
-                                if (!videoTitleElement) {
-                                    // Try more specific selectors for the video player
-                                    videoTitleElement = document.querySelector('h1, h2, h3, .title, .episode-title, .show-title');
-                                }
-                                if (!videoTitleElement) {
-                                    // Try to find any element containing the show title pattern
-                                    const allElements = document.querySelectorAll('*');
-                                    for (let el of allElements) {
-                                        if (el.textContent && el.textContent.includes('|') && el.textContent.includes('Season')) {
-                                            videoTitleElement = el;
-                                            break;
-                                        }
-                                    }
-                                }
-                                
-                                // Try 2: Look for the specific title pattern in the video player area
-                                if (!videoTitleElement) {
-                                    const videoPlayerArea = document.querySelector('.video-js, .vjs-tech, .video-player, [class*="video"]');
-                                    if (videoPlayerArea) {
-                                        const titleInPlayer = videoPlayerArea.querySelector('*');
-                                        if (titleInPlayer && titleInPlayer.textContent && titleInPlayer.textContent.includes('|')) {
-                                            videoTitleElement = titleInPlayer;
-                                        }
-                                    }
-                                }
-                                
-                                if (videoTitleElement && videoTitleElement.textContent && videoTitleElement.textContent.trim()) {
-                                    movie.title = videoTitleElement.textContent.trim();
-                                    console.log('[VIDEO-PLAYER] DEBUG - Extracted title from video player display:', movie.title);
-                                }
-                                // Try 2: Extract from path as last resort
-                                else {
-                                    const pathParts = (movie.path || movie.filePath || movie.absPath || '').split(/[\\/]/);
-                                    const fileName = pathParts[pathParts.length - 1] || 'Unknown';
-                                    movie.title = fileName.replace(/\.[^/.]+$/, ''); // Remove file extension
-                                    console.log('[VIDEO-PLAYER] DEBUG - Generated title from filename as last resort:', movie.title);
-                                }
-                                
-                                // If still no title, use a generic one
-                                if (!movie.title || movie.title === 'Unknown') {
-                                    // NUCLEAR OPTION: Try to extract from any visible text that looks like a title
-                                    const allText = document.body.innerText || document.body.textContent || '';
-                                    const titleMatch = allText.match(/([^|]+)\s*\|\s*Season\s+\d+\s*\|\s*([^|]+)/);
-                                    if (titleMatch) {
-                                        movie.title = titleMatch[0].trim();
-                                        console.log('[VIDEO-PLAYER] DEBUG - NUCLEAR OPTION: Extracted title from page text:', movie.title);
-                                    } else {
-                                        // FINAL NUCLEAR OPTION: Use the exact title we can see
-                                        movie.title = "Suits (2011) | season 1 | Errors and Omissions";
-                                        console.log('[VIDEO-PLAYER] DEBUG - FINAL NUCLEAR OPTION: Using hardcoded title:', movie.title);
-                                    }
-                                }
-                            }
-                            
-                            console.log('[VIDEO-PLAYER] Final movie object before save:', {
-                                mediaId: movie.mediaId,
-                                title: movie.title,
+                                console.log('🔖 [SAVE-FOR-LATER] Saving unified data object:', {
+                                    title: movie.name || movie.title,
                                 type: movie.type,
-                                mediaType: movie.mediaType,
-                                path: movie.path,
-                                filePath: movie.filePath,
-                                absPath: movie.absPath
-                            });
-                        }
-
-                        // Set mediaType if missing (fallback for compatibility)
-                        if (!movie.mediaType) {
-                            movie.mediaType = movie.type || 'movie';
-                            console.log('[VIDEO-PLAYER] Set missing mediaType to:', movie.mediaType);
-                        }
-                        
-                        // Validate required fields before saving
-                        const validationErrors = [];
-                        if (!movie.mediaId) validationErrors.push("Missing mediaId");
-                        if (!movie.mediaType) validationErrors.push("Missing mediaType");
-                        if (!movie.title || movie.title.trim() === '') validationErrors.push("Missing title");
-                        if (!movie.path && !movie.filePath && !movie.absPath) validationErrors.push("Missing path/filePath/absPath");
-                        
-                        if (validationErrors.length > 0) {
-                            console.error('[VIDEO-PLAYER] Validation failed:', validationErrors);
-                            if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
-                                window.videoPlayer.showOverlayAlert(`Error saving to Watch Later: Missing required fields: ${validationErrors.join(", ")}`);
-                            }
-                            return;
-                        }
-
-                        // AUTO-FIX: Fix movie object before saving
-                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.autoFixMediaItem === 'function') {
-                            movie = window.mediaLibraryManager.autoFixMediaItem(movie);
-                            console.log('[VIDEO-PLAYER] Auto-fixed movie object:', movie);
-                        }
-
-                        // Save to Watch Later using MediaLibraryManager
-                        if (window.mediaLibraryManager && typeof window.mediaLibraryManager.saveResumeProgress === 'function' && movie && (movie.path || movie.filePath || movie.absPath)) {
-                            console.log('🔖 [SAVE-FOR-LATER] Attempting to save:', {
-                                title: movie.title,
-                                type: movie.type,
-                                mediaType: movie.mediaType,
-                                path: movie.path,
-                                currentTime: currentTime,
-                                duration: duration
-                            });
-                            
-                            try {
-                            // CRITICAL FIX: Ensure we're saving the correct movie by using the normalizedKey
-                            if (movie.normalizedKey && window.mediaLibraryManager.unifiedData && window.mediaLibraryManager.unifiedData[movie.normalizedKey]) {
-                                // Use the complete movie data from unified data to ensure correct movie is saved
-                                const correctMovie = window.mediaLibraryManager.unifiedData[movie.normalizedKey];
+                                    currentTime,
+                                    duration
+                                });
                                 
-                                // Ensure the correct movie has the necessary path fields for saving
-                                const movieWithPaths = {
-                                    ...correctMovie,
-                                    path: movie.path || correctMovie.path || correctMovie.normalizedKey,
-                                    absPath: movie.absPath || (correctMovie.files && correctMovie.files[0] ? correctMovie.files[0].absPath : undefined),
-                                    filePath: movie.filePath || (correctMovie.files && correctMovie.files[0] ? correctMovie.files[0].filePath : undefined)
-                                };
-                                
-                                    console.log('🔖 [SAVE-FOR-LATER] Using correct movie data from unified data:', correctMovie.TMDBTitle);
-                                    await window.mediaLibraryManager.saveResumeProgress(movieWithPaths, currentTime, duration, true);
-                        } else {
-                                    console.log('🔖 [SAVE-FOR-LATER] Using original movie data:', movie.title);
                                     await window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
-                                }
-
                                 console.log('🔖 [SAVE-FOR-LATER] Successfully saved to Watch Later!');
-                                
-                                // Show success message
-                                // if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
-                                //     window.videoPlayer.showOverlayAlert('"Saved" - to Watch Later!', 2000);
-                                // }
                                 
                             } catch (error) {
                                 console.error('🔖 [SAVE-FOR-LATER] Error saving to Watch Later:', error);
-                                if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
-                                    window.videoPlayer.showOverlayAlert('Error saving to Watch Later: ' + error.message, 3000);
+                                if (typeof window.showToast === 'function') {
+                                    window.showToast('Error saving to Watch Later: ' + error.message, 'error');
                                 }
                             }
                         } else {
-                            console.warn('🔖 [SAVE-FOR-LATER] Cannot save to Watch Later:', {
-                                hasManager: !!window.mediaLibraryManager,
-                                hasSave: typeof window.mediaLibraryManager?.saveResumeProgress,
-                                hasMovie: !!movie,
-                                hasPath: !!movie?.path
-                            });
-
+                            console.warn('🔖 [SAVE-FOR-LATER] MediaLibraryManager not available');
                             if (typeof window.showToast === 'function') {
-                                window.showToast('Cannot save - no media data available', 'error');
-                            }
-                            if (window.videoPlayer && typeof window.videoPlayer.showOverlayAlert === 'function') {
-                                window.videoPlayer.showOverlayAlert('Cannot save - no media data available');
+                                window.showToast('Cannot save - system not ready', 'error');
                             }
                         }
                     }
