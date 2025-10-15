@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 1.28
-  AppName: mcc_1_ccm [1.28]
-  Updated: 10/12/2025 @6:30AM
+  Version: 1.30
+  AppName: MultiChat_Chatty [v1.30]
+  Updated: 10/15/2025 @8:00AM
   Created by Paul Welby
 */
 
