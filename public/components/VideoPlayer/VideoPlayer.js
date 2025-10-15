@@ -460,11 +460,14 @@ class VideoPlayer {
                                     duration
                                 });
                                 
-                                    await window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
+                                console.log('🔖 [SAVE-FOR-LATER] About to call saveResumeProgress...');
+                                const result = await window.mediaLibraryManager.saveResumeProgress(movie, currentTime, duration, true);
+                                console.log('🔖 [SAVE-FOR-LATER] saveResumeProgress returned:', result);
                                 console.log('🔖 [SAVE-FOR-LATER] Successfully saved to Watch Later!');
                                 
                             } catch (error) {
-                                console.error('🔖 [SAVE-FOR-LATER] Error saving to Watch Later:', error);
+                                console.error('🔖 [SAVE-FOR-LATER] ❌ CATCH BLOCK - Error saving to Watch Later:', error);
+                                console.error('🔖 [SAVE-FOR-LATER] ❌ Error stack:', error.stack);
                                 if (typeof window.showToast === 'function') {
                                     window.showToast('Error saving to Watch Later: ' + error.message, 'error');
                                 }
