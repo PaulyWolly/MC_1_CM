@@ -807,9 +807,14 @@ class MediaLibraryManager {
           "items"
         );
 
-        // Store JSON data in cache (NO localStorage sync)
-        this.setCachedData("watchlater", watchLater, "jsonFile");
-        console.log("[WATCH-LATER-DEBUG] Data cached successfully");
+        // Store JSON data in cache with proper validation
+        if (Array.isArray(watchLater) && watchLater.length > 0) {
+          this.setCachedData("watchlater", watchLater, "jsonFile");
+          console.log("[WATCH-LATER-DEBUG] Data cached successfully:", watchLater.length, "items");
+        } else {
+          console.warn("[WATCH-LATER-DEBUG] No valid data to cache");
+          this.setCachedData("watchlater", [], "jsonFile");
+        }
 
         return watchLater;
       } else {
@@ -3552,7 +3557,7 @@ class MediaLibraryManager {
     if (isTV) {
       // For TV shows, use normalizedKey from unified data (most reliable)
       showName = mediaItem.normalizedKey || mediaItem.TMDBTitle || mediaItem.title || mediaItem.name;
-    } else {
+      } else {
       // For movies, use normalizedKey from unified data (most reliable)
       showName = mediaItem.normalizedKey || mediaItem.TMDBTitle || mediaItem.title || mediaItem.name;
     }
@@ -4250,7 +4255,6 @@ class MediaLibraryManager {
         );
         // Update cache to reflect the JSON file update
         this.setCachedData("watchlater", watchLaterData, "jsonFile");
-        this.showToast("Watch Later data synced to JSON file!", "success");
       } else {
         console.error("[SYNC-LOCAL-TO-JSON] ❌ Failed to sync to JSON file");
         this.showToast("Failed to sync to JSON file", "error");
@@ -28263,8 +28267,6 @@ class MediaLibraryManager {
     // localStorage removed - using JSON only
 
     this.updateWatchLaterGrid();
-
-    this.showToast("Test Watch Later data populated", "success");
   }
 
   // Method to add movie content to JSON file
@@ -28614,33 +28616,33 @@ class MediaLibraryManager {
         // SIMPLE RULE: Just match by normalizedKey and remove the item!
         const updatedData = currentData.filter((item) => {
           // If both items have normalizedKey, use that for matching
-          if (item.normalizedKey && itemToDelete.normalizedKey) {
-            if (item.normalizedKey === itemToDelete.normalizedKey) {
-              console.log(
+            if (item.normalizedKey && itemToDelete.normalizedKey) {
+              if (item.normalizedKey === itemToDelete.normalizedKey) {
+                console.log(
                 "[REMOVE-RESUME-PROGRESS] ✅ Found match by normalizedKey:",
                 item.title,
                 `(${item.mediaType})`,
                 `key: ${item.normalizedKey}`
-              );
-              return false; // Remove this item
+                );
+                return false; // Remove this item
+              }
             }
-          }
-          
+
           // Fallback: if no normalizedKey, match by title
-          if (item.title && itemToDelete.title) {
-            const itemTitle = item.title.toLowerCase().trim();
-            const targetTitle = itemToDelete.title.toLowerCase().trim();
-            
-            if (itemTitle === targetTitle) {
-              console.log(
+            if (item.title && itemToDelete.title) {
+              const itemTitle = item.title.toLowerCase().trim();
+              const targetTitle = itemToDelete.title.toLowerCase().trim();
+
+              if (itemTitle === targetTitle) {
+                console.log(
                 "[REMOVE-RESUME-PROGRESS] ✅ Found match by title:",
                 item.title,
                 `(${item.mediaType})`
-              );
-              return false; // Remove this item
+                );
+                return false; // Remove this item
             }
           }
-          
+
           return true; // Keep this item
         });
 
@@ -28664,21 +28666,28 @@ class MediaLibraryManager {
             "[REMOVE-RESUME-PROGRESS] ✅ Step 1: Successfully updated JSON file"
           );
 
-          // STEP 2: Auto-sync to MongoDB
+          // STEP 2: Remove from MongoDB
           try {
-            const mongoResponse = await fetch("/api/watch-later/sync", {
-              method: "POST",
+            const mongoResponse = await fetch("/api/watch-later/remove", {
+              method: "DELETE",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ items: updatedData }),
+              body: JSON.stringify({
+                normalizedKey: itemToDelete.normalizedKey,
+                mediaId: itemToDelete.mediaId || itemToDelete.normalizedKey,
+                mediaType: itemToDelete.mediaType,
+                season: itemToDelete.season,
+                episode: itemToDelete.episode,
+                path: itemToDelete.path
+              }),
             });
 
             if (mongoResponse.ok) {
-              console.log("[REMOVE-RESUME-PROGRESS] ✅ Step 2: Auto-synced to MongoDB");
+              console.log("[REMOVE-RESUME-PROGRESS] ✅ Step 2: Removed from MongoDB");
             } else {
-              console.warn("[REMOVE-RESUME-PROGRESS] ⚠️ MongoDB sync failed (non-critical)");
+              console.warn("[REMOVE-RESUME-PROGRESS] ⚠️ MongoDB removal failed (non-critical)");
             }
           } catch (mongoError) {
-            console.warn("[REMOVE-RESUME-PROGRESS] ⚠️ MongoDB sync error (non-critical):", mongoError);
+            console.warn("[REMOVE-RESUME-PROGRESS] ⚠️ MongoDB removal error (non-critical):", mongoError);
           }
 
           // STEP 3: Clear cache to force reload from JSON
@@ -28836,12 +28845,20 @@ class MediaLibraryManager {
     
     // Read from JSON file (single source of truth)
     if (this.cache.watchlater && this.cache.watchlater.data && Array.isArray(this.cache.watchlater.data)) {
-      console.log("[WATCH-LATER] Reading from JSON file:", this.cache.watchlater.data.length, "items");
+      console.log("[WATCH-LATER] Reading from cache:", this.cache.watchlater.data.length, "items");
       return this.cache.watchlater.data.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
     }
     
-    // If no JSON data or data is not an array, return empty array
-    console.log("[WATCH-LATER] No valid JSON data available, returning empty array");
+    // If no cache data, try to load from JSON file
+    console.log("[WATCH-LATER] No cache data, attempting to load from JSON file...");
+    this.loadWatchLaterData().then(() => {
+      console.log("[WATCH-LATER] Data loaded, triggering UI update...");
+      this.updateWatchLaterGrid();
+    }).catch(error => {
+      console.error("[WATCH-LATER] Failed to load data:", error);
+    });
+    
+    // Return empty array for now, will be updated when data loads
     return [];
   }
 
@@ -29490,8 +29507,6 @@ class MediaLibraryManager {
       } catch (error) {
         console.error("[DEBUG - REFRESH] ❌ updateModalContent failed:", error);
 
-        this.showToast("Content refresh failed - please try again", "error");
-
         this.hideModalLoadingOverlay();
 
         this.isRefreshing = false;
@@ -29585,8 +29600,6 @@ class MediaLibraryManager {
       // Force a re-render of the media grid
 
       await this.updateModalContent();
-
-      this.showToast("Content refreshed successfully!", "success");
     } catch (error) {
       console.error("[DEBUG - REFRESH] ❌ ERROR:", error.message);
 
