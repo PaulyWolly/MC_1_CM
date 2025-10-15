@@ -532,7 +532,7 @@ router.post('/update-json', async (req, res) => {
             return res.status(400).json({ error: 'Items must be an array' });
         }
         
-        const jsonFilePath = path.join(__dirname, '../public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
+        const jsonFilePath = path.join(__dirname, '../../public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
         
         console.log('[WATCH-LATER-API] Writing to:', jsonFilePath);
         console.log('[WATCH-LATER-API] Items count:', items.length);

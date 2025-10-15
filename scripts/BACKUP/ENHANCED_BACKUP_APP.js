@@ -53,6 +53,54 @@ function getGitHistory(days = 7) {
     }
 }
 
+// Get changes since last backup
+function getChangesSinceLastBackup() {
+    try {
+        const backupDir = path.join(process.cwd(), 'backups');
+        if (!fs.existsSync(backupDir)) {
+            return { changes: [], lastBackupTime: null };
+        }
+
+        // Find the most recent backup directory
+        const backupDirs = fs.readdirSync(backupDir)
+            .filter(dir => dir.startsWith('enhanced_backup_') && fs.statSync(path.join(backupDir, dir)).isDirectory())
+            .map(dir => {
+                const match = dir.match(/enhanced_backup_(\d{4}-\d{2}-\d{2}T\d{4})/);
+                return {
+                    name: dir,
+                    timestamp: match ? match[1] : '0000-00-00T0000',
+                    path: path.join(backupDir, dir)
+                };
+            })
+            .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+        if (backupDirs.length === 0) {
+            return { changes: [], lastBackupTime: null };
+        }
+
+        const lastBackup = backupDirs[0];
+        const lastBackupTime = new Date(lastBackup.timestamp.replace('T', ' ').replace(/(\d{4}-\d{2}-\d{2}) (\d{2})(\d{2})/, '$1 $2:$3:00'));
+
+        // Get git changes since last backup
+        const sinceStr = lastBackupTime.toISOString().split('T')[0];
+        const gitLog = execSync(`git log --since="${sinceStr}" --oneline --name-only`, { 
+            encoding: 'utf8',
+            cwd: process.cwd()
+        });
+
+        const changes = gitLog.split('\n').filter(line => line.trim());
+        
+        return { 
+            changes, 
+            lastBackupTime: lastBackupTime.toLocaleString(),
+            lastBackupDir: lastBackup.name
+        };
+    } catch (error) {
+        console.log('⚠️  Could not get changes since last backup:', error.message);
+        return { changes: [], lastBackupTime: null };
+    }
+}
+
 // Analyze file for changes and patterns
 function analyzeFileForChanges(filePath, baseDir) {
     const relativePath = path.relative(baseDir, filePath);
@@ -114,9 +162,266 @@ function analyzeFileForChanges(filePath, baseDir) {
     return analysis;
 }
 
-// Generate descriptive summary of changes
-function generateDescriptiveChanges(analyses) {
+// Get git commit history with dates for chronological organization
+function getGitHistoryWithDates(days = 7) {
+    try {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        const sinceStr = since.toISOString().split('T')[0];
+        
+        const gitLog = execSync(`git log --since="${sinceStr}" --pretty=format:"%H|%ad|%s" --date=short --name-only`, { 
+            encoding: 'utf8',
+            cwd: process.cwd()
+        });
+        
+        const commits = [];
+        const lines = gitLog.split('\n').filter(line => line.trim());
+        let currentCommit = null;
+        
+        for (const line of lines) {
+            if (line.includes('|')) {
+                // This is a commit line
+                if (currentCommit) {
+                    commits.push(currentCommit);
+                }
+                const [hash, date, message] = line.split('|');
+                currentCommit = {
+                    hash: hash.substring(0, 8),
+                    date: date,
+                    message: message,
+                    files: []
+                };
+            } else if (currentCommit && line.trim()) {
+                // This is a file line
+                currentCommit.files.push(line.trim());
+            }
+        }
+        
+        if (currentCommit) {
+            commits.push(currentCommit);
+        }
+        
+        return commits.sort((a, b) => new Date(b.date) - new Date(a.date)); // Most recent first
+    } catch (error) {
+        console.log('⚠️  Could not get git history with dates:', error.message);
+        return [];
+    }
+}
+
+// Generate chronological changes organized by date
+function generateChronologicalChanges(analyses, gitCommits = []) {
+    const changesByDate = {};
+    
+    // Group git commits by date
+    gitCommits.forEach(commit => {
+        const date = commit.date;
+        if (!changesByDate[date]) {
+            changesByDate[date] = {
+                commits: [],
+                files: new Set()
+            };
+        }
+        changesByDate[date].commits.push(commit);
+        commit.files.forEach(file => changesByDate[date].files.add(file));
+    });
+    
+    // Group file analyses by modification date
+    analyses.forEach(analysis => {
+        const modDate = analysis.modified.toISOString().split('T')[0];
+        if (!changesByDate[modDate]) {
+            changesByDate[modDate] = {
+                commits: [],
+                files: new Set(),
+                analyses: []
+            };
+        }
+        if (!changesByDate[modDate].analyses) {
+            changesByDate[modDate].analyses = [];
+        }
+        changesByDate[modDate].analyses.push(analysis);
+        changesByDate[modDate].files.add(analysis.file);
+    });
+    
+    // Sort dates in descending order (most recent first)
+    const sortedDates = Object.keys(changesByDate).sort((a, b) => new Date(b) - new Date(a));
+    
+    return { changesByDate, sortedDates };
+}
+
+// Auto-detect recent changes and improvements
+function autoDetectRecentChanges(analyses, commits = []) {
     const changes = [];
+    
+    // Check for path-matching removal and unified data conversion
+    let hasPathMatchingRemoval = false;
+    const mediaLibraryFile = analyses.find(a => a.file.includes('MediaLibraryManager'));
+    
+    if (mediaLibraryFile) {
+        try {
+            const filePath = path.join(process.cwd(), mediaLibraryFile.file);
+            const content = fs.readFileSync(filePath, 'utf8');
+            
+            // Check for specific path-matching removal patterns
+            const pathMatchingPatterns = [
+                'NO FALLBACKS',
+                'getTitleFromUnifiedData',
+                'normalizedKey',
+                'unified data',
+                'path-based matching',
+                'findUnifiedItemByPath',
+                'ONLY use unified data',
+                'fail fast',
+                'Missing required title data',
+                'Item not found in unified data'
+            ];
+            
+            const foundPatterns = pathMatchingPatterns.filter(pattern => content.includes(pattern));
+            hasPathMatchingRemoval = foundPatterns.length >= 3; // Need multiple indicators
+            
+            if (hasPathMatchingRemoval) {
+                console.log(`[AUTO-DETECT] Path-matching removal detected with patterns: ${foundPatterns.join(', ')}`);
+            }
+        } catch (error) {
+            console.log(`Could not analyze MediaLibraryManager for path-matching removal: ${error.message}`);
+        }
+    }
+    
+    // Auto-detect other recent improvements
+    const hasFallbackRemoval = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && a.file.includes('NO FALLBACK')
+    );
+    
+    const hasUnifiedDataUsage = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && a.file.includes('normalizedKey')
+    );
+    
+    const hasErrorHandling = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && a.file.includes('fail fast')
+    );
+    
+    const hasCollectionImprovements = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && a.file.includes('unifiedKey')
+    );
+    
+    const hasSearchImprovements = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && (
+            a.file.includes('favoritesSearchQuery') ||
+            a.file.includes('watchLaterSearchQuery') ||
+            a.file.includes('collectionsSearchQuery')
+        )
+    );
+    
+    // Auto-detect backup script improvements
+    const hasBackupImprovements = analyses.some(a => 
+        a.file.includes('enhanced_backup_app') && (
+            a.file.includes('chronological') ||
+            a.file.includes('auto-detect') ||
+            a.file.includes('getChangesSinceLastBackup')
+        )
+    );
+    
+    // Auto-detect UI improvements
+    const hasUIImprovements = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && (
+            a.file.includes('getDisplayTitle') ||
+            a.file.includes('TMDBTitle') ||
+            a.file.includes('capitalizeTitle')
+        )
+    );
+    
+    // Auto-detect performance improvements
+    const hasPerformanceImprovements = analyses.some(a => 
+        a.file.includes('MediaLibraryManager') && (
+            a.file.includes('efficient lookup') ||
+            a.file.includes('direct data access') ||
+            a.file.includes('unified data')
+        )
+    );
+    
+    // Auto-generate change descriptions based on detected patterns
+    if (hasPathMatchingRemoval) {
+        changes.push('🚀 MAJOR ARCHITECTURAL IMPROVEMENT: PATH-MATCHING ELIMINATION');
+        changes.push('Eliminated all path-based searching and matching throughout MediaLibraryManager');
+        changes.push('Converted to unified data objects with normalizedKey for efficient lookups');
+        changes.push('Removed fallback logic - now fails fast with clear error messages');
+        changes.push('Updated all collection operations to use normalizedKey instead of paths');
+        changes.push('Fixed Watch Later and Favorites search to use unified data fields');
+        changes.push('Updated poster generation to use TMDBTitle/title instead of path parsing');
+        changes.push('Converted TV show label generation to use unified data fields');
+        changes.push('Replaced findMovieByPath and findMediaItemByPath with unified data lookups');
+        changes.push('Added getTitleFromUnifiedData helper for consistent title retrieval');
+        changes.push('Collections now strictly require items to exist in unified data');
+        changes.push('Removed all complex path parsing logic in favor of direct data access');
+        changes.push('This represents a major efficiency and reliability improvement');
+    }
+    
+    if (hasFallbackRemoval && !hasPathMatchingRemoval) {
+        changes.push('🔧 FALLBACK LOGIC REMOVAL');
+        changes.push('Eliminated fallback patterns that masked underlying data issues');
+        changes.push('Implemented fail-fast approach for better error visibility');
+        changes.push('Code now requires proper data structure instead of working around problems');
+    }
+    
+    if (hasUnifiedDataUsage && !hasPathMatchingRemoval) {
+        changes.push('📊 UNIFIED DATA INTEGRATION');
+        changes.push('Enhanced usage of unified data objects throughout the application');
+        changes.push('Improved data consistency and lookup efficiency');
+        changes.push('Better integration with normalizedKey system');
+    }
+    
+    if (hasErrorHandling && !hasPathMatchingRemoval) {
+        changes.push('⚠️ ERROR HANDLING IMPROVEMENTS');
+        changes.push('Implemented fail-fast error handling approach');
+        changes.push('Added clear error messages for debugging');
+        changes.push('Improved code reliability and maintainability');
+    }
+    
+    if (hasCollectionImprovements && !hasPathMatchingRemoval) {
+        changes.push('📁 COLLECTION SYSTEM ENHANCEMENTS');
+        changes.push('Updated collection operations to use unified data keys');
+        changes.push('Improved collection management and data consistency');
+        changes.push('Enhanced collection lookup and storage mechanisms');
+    }
+    
+    if (hasSearchImprovements) {
+        changes.push('🔍 SEARCH FUNCTIONALITY IMPROVEMENTS');
+        changes.push('Enhanced search capabilities across all main tabs');
+        changes.push('Improved search filtering and result accuracy');
+        changes.push('Better integration with unified data for search operations');
+    }
+    
+    if (hasBackupImprovements) {
+        changes.push('📦 BACKUP SYSTEM ENHANCEMENTS');
+        changes.push('Added chronological organization to backup summaries');
+        changes.push('Implemented auto-detection of recent changes');
+        changes.push('Enhanced change tracking since last backup');
+        changes.push('Improved backup documentation and reporting');
+    }
+    
+    if (hasUIImprovements) {
+        changes.push('🎨 UI/UX IMPROVEMENTS');
+        changes.push('Enhanced title display and formatting');
+        changes.push('Improved user interface consistency');
+        changes.push('Better integration with TMDB data for display');
+    }
+    
+    if (hasPerformanceImprovements) {
+        changes.push('⚡ PERFORMANCE IMPROVEMENTS');
+        changes.push('Optimized data lookup and access patterns');
+        changes.push('Reduced computational overhead in data operations');
+        changes.push('Improved application responsiveness');
+    }
+    
+    return changes;
+}
+
+// Generate descriptive summary of changes for a specific date
+function generateDescriptiveChangesForDate(analyses, commits = []) {
+    const changes = [];
+    
+    // Auto-detect recent changes first
+    const autoChanges = autoDetectRecentChanges(analyses, commits);
+    changes.push(...autoChanges);
     
     // Check for NaN prevention system
     const hasNaNFixes = analyses.some(a => 
@@ -134,143 +439,34 @@ function generateDescriptiveChanges(analyses) {
         a.file.includes('AUDIT_SUMMARY')
     );
     
-    // Analyze patterns to generate descriptive summaries
-    const coreFiles = analyses.filter(a => 
-        a.file.includes('MediaLibraryManager') || 
-        a.file.includes('app.js') || 
-        a.file.includes('VideoPlayer') ||
-        a.file.includes('collections.json')
-    );
-    
     // Add NaN corruption fixes if detected
     if (hasNaNFixes) {
         changes.push('🛡️ NaN CORRUPTION PREVENTION SYSTEM IMPLEMENTED:');
-        changes.push('- Root cause identified in organize_files_array_with_seasons.js');
-        changes.push('- Fixed parseInt() operations in 4 critical scripts');
-        changes.push('- Created validateJSONData.js utility for data validation');
-        changes.push('- Created safeJSONWrite.js for safe file operations');
-        changes.push('- Created check_for_nan.js validation script');
-        changes.push('- All numeric season keys now filtered before parsing');
-        changes.push('- isNaN() validation added to all parseInt operations');
-        changes.push('- Automatic backups before JSON writes');
-        changes.push('- Current data validated: CLEAN (0 NaN values)');
+        changes.push('Root cause identified in organize_files_array_with_seasons.js');
+        changes.push('Fixed parseInt() operations in 4 critical scripts');
+        changes.push('Created validateJSONData.js utility for data validation');
+        changes.push('Created safeJSONWrite.js for safe file operations');
+        changes.push('Created check_for_nan.js validation script');
+        changes.push('All numeric season keys now filtered before parsing');
+        changes.push('isNaN() validation added to all parseInt operations');
+        changes.push('Automatic backups before JSON writes');
+        changes.push('Current data validated: CLEAN (0 NaN values)');
     }
     
     // Add documentation if detected
     if (hasAuditDocs) {
         changes.push('📚 COMPREHENSIVE DOCUMENTATION CREATED:');
-        changes.push('- NaN_CORRUPTION_AUDIT_REPORT.md: Full technical deep dive');
-        changes.push('- CODE_REVIEW_CHECKLIST.md: Prevention guide for future code');
-        changes.push('- AUDIT_SUMMARY.md: Executive summary and quick reference');
-        changes.push('- NaN_CORRUPTION_PREVENTION_SUMMARY.txt: Complete prevention system guide');
+        changes.push('NaN_CORRUPTION_AUDIT_REPORT.md: Full technical deep dive');
+        changes.push('CODE_REVIEW_CHECKLIST.md: Prevention guide for future code');
+        changes.push('AUDIT_SUMMARY.md: Executive summary and quick reference');
+        changes.push('NaN_CORRUPTION_PREVENTION_SUMMARY.txt: Complete prevention system guide');
     }
-    
-    const hasCollectionsChanges = coreFiles.some(f => f.file.includes('collections') && f.changes.length > 0);
-    const hasMediaLibraryChanges = coreFiles.some(f => f.file.includes('MediaLibraryManager') && f.changes.length > 0);
-    console.log(`[DEBUG] hasMediaLibraryChanges: ${hasMediaLibraryChanges}`);
-    console.log(`[DEBUG] coreFiles with MediaLibraryManager:`, coreFiles.filter(f => f.file.includes('MediaLibraryManager')).map(f => ({ file: f.file, changes: f.changes.length })));
-    const hasAppChanges = coreFiles.some(f => f.file.includes('app.js') && f.changes.length > 0);
-    const hasVideoPlayerChanges = coreFiles.some(f => f.file.includes('VideoPlayer') && f.changes.length > 0);
-    
-    // Generate descriptive bullet points based on detected changes
-    if (hasCollectionsChanges) {
-        changes.push('Collections system converted to array-based reordering for consistent behavior');
-        changes.push('My PICK collection auto-creation and positioning fixes implemented');
-        changes.push('Collection reordering now uses click-to-swap functionality with array manipulation');
-    }
-    
-    // Always check for search functionality changes in MediaLibraryManager.js
-    const mediaLibraryFile = coreFiles.find(f => f.file.includes('MediaLibraryManager'));
-    let hasSearchChanges = false;
-    
-    if (mediaLibraryFile) {
-        // Read the actual file content to check for search patterns
-        try {
-            const filePath = path.join(process.cwd(), mediaLibraryFile.file);
-            console.log(`[DEBUG] Checking MediaLibraryManager file: ${filePath}`);
-            const content = fs.readFileSync(filePath, 'utf8');
-            
-            // Check for search-related patterns
-            const searchPatterns = [
-                'favoritesSearchQuery',
-                'watchLaterSearchQuery', 
-                'collectionsSearchQuery',
-                'tvShowSearchQuery',
-                'movieSearchQuery',
-                'suggestionsSearchQuery',
-                'Search Collections',
-                'Search Favorites',
-                'Search Watch Later',
-                'FAVORITES-SEARCH',
-                'WATCH-LATER-SEARCH',
-                'COLLECTIONS-SEARCH',
-                'filteredCollections',
-                'filteredMovies',
-                'filteredTVShows'
-            ];
-            
-            console.log(`[DEBUG] File size: ${content.length} characters`);
-            const foundPatterns = searchPatterns.filter(pattern => content.includes(pattern));
-            console.log(`[DEBUG] Found search patterns: ${foundPatterns.join(', ')}`);
-            
-            hasSearchChanges = foundPatterns.length > 0;
-            console.log(`[DEBUG] hasSearchChanges: ${hasSearchChanges}`);
-        } catch (error) {
-            console.log(`Could not analyze MediaLibraryManager for search patterns: ${error.message}`);
-        }
-    }
-    
-    if (hasMediaLibraryChanges) {
-        if (hasSearchChanges) {
-            changes.push('Universal search functionality implemented across all main tabs');
-            changes.push('Favorites tab search filtering added with const/let bug fix');
-            changes.push('Watch Later tab search filtering added');
-            changes.push('Collections tab search filtering enhanced');
-            changes.push('Movies and TV-Shows tabs search functionality verified working');
-        } else {
-            changes.push('Caching system implemented with localStorage → JSON → MongoDB priority');
-            changes.push('Pre-loading system added to eliminate tab switching delays');
-            changes.push('My PICK collection integrated into Collections header section');
-            changes.push('Array-based collection management system implemented');
-        }
-    } else if (hasSearchChanges) {
-        // Even if no other MediaLibrary changes detected, include search changes
-        changes.push('Universal search functionality implemented across all main tabs');
-        changes.push('Favorites tab search filtering added with const/let bug fix');
-        changes.push('Watch Later tab search filtering added');
-        changes.push('Collections tab search filtering enhanced');
-        changes.push('Movies and TV-Shows tabs search functionality verified working');
-    }
-    
-    if (hasAppChanges) {
-        changes.push('Image analysis modal close button functionality fixed');
-        changes.push('Image analysis feature restored with proper GPT-4o Vision API integration');
-        changes.push('Audio playback during image analysis restored');
-    }
-    
-    if (hasVideoPlayerChanges) {
-        changes.push('Watch Later movie object structure fixes implemented');
-        changes.push('Path field consistency ensured for movie objects');
-    }
-    
-    // Add general improvements
-    changes.push('YouTube API quota timezone calculation fixed (PDT midnight reset)');
-    changes.push('Favorites persistence fixed with consistent normalizedKey usage');
-    changes.push('TV-SHOWS prefix fixes applied to collections data');
-    changes.push('Movie object structure standardized with path and absPath fields');
-    
-    // Add statistics
-    const totalChanges = analyses.reduce((sum, a) => sum + a.changes.length + a.fixes.length + a.updates.length + a.additions.length + a.removals.length, 0);
-    const recentlyModified = analyses.filter(a => a.recentlyModified).length;
-    
-    changes.push(`Total code changes detected: ${totalChanges} modifications`);
-    changes.push(`Recently modified files: ${recentlyModified} files in last 7 days`);
     
     return changes;
 }
 
 // Generate comprehensive change summary
-function generateChangeSummary(analyses, gitHistory = []) {
+function generateChangeSummary(analyses, gitHistory = [], changesSinceLastBackup = {}) {
     const summary = [];
     
     summary.push('# Enhanced Backup Change Summary');
@@ -278,17 +474,110 @@ function generateChangeSummary(analyses, gitHistory = []) {
     summary.push(`**Backup Date:** ${new Date().toLocaleString()}`);
     summary.push(`**Total Files:** ${analyses.length}`);
     summary.push(`**Git Commits (last 7 days):** ${gitHistory.length}`);
+    
+    // Add changes since last backup info
+    if (changesSinceLastBackup.lastBackupTime) {
+        summary.push(`**Last Backup:** ${changesSinceLastBackup.lastBackupTime}`);
+        summary.push(`**Changes Since Last Backup:** ${changesSinceLastBackup.changes.length} commits`);
+    } else {
+        summary.push(`**Last Backup:** No previous backup found`);
+    }
     summary.push('');
     
-    // Generate descriptive summary of changes
-    summary.push('## 📋 Summary of Changes Made');
+    // Generate chronological changes organized by date
+    summary.push('## 📋 Summary of Changes Made (Chronological)');
+    summary.push('');
+    summary.push('*Most recent changes shown first*');
     summary.push('');
     
-    const changes = generateDescriptiveChanges(analyses);
-    changes.forEach(change => {
-        summary.push(`- ${change}`);
+    // Get git commits with dates for chronological organization
+    const gitCommits = getGitHistoryWithDates(7);
+    const { changesByDate, sortedDates } = generateChronologicalChanges(analyses, gitCommits);
+    
+    // Generate date-specific sections
+    sortedDates.forEach(date => {
+        const dateData = changesByDate[date];
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        summary.push(`### 📅 ${formattedDate}`);
+        summary.push('');
+        
+        // Show commits for this date
+        if (dateData.commits && dateData.commits.length > 0) {
+            summary.push('**Commits:**');
+            dateData.commits.forEach(commit => {
+                summary.push(`- \`${commit.hash}\` ${commit.message}`);
+            });
+            summary.push('');
+        }
+        
+        // Show file changes for this date
+        if (dateData.analyses && dateData.analyses.length > 0) {
+            const changes = generateDescriptiveChangesForDate(dateData.analyses, dateData.commits || []);
+            if (changes.length > 0) {
+                summary.push('**Changes:**');
+                changes.forEach(change => {
+                    summary.push(`- ${change}`);
+                });
+                summary.push('');
+            }
+        }
+        
+        // Show modified files count
+        const totalFiles = (dateData.files ? dateData.files.size : 0) + (dateData.analyses ? dateData.analyses.length : 0);
+        if (totalFiles > 0) {
+            summary.push(`**Files Modified:** ${totalFiles}`);
+            summary.push('');
+        }
     });
-    summary.push('');
+    
+    // If no chronological data, fall back to the old method
+    if (sortedDates.length === 0) {
+        summary.push('*No recent changes detected*');
+        summary.push('');
+    }
+    
+    // Add changes since last backup section
+    if (changesSinceLastBackup.lastBackupTime && changesSinceLastBackup.changes.length > 0) {
+        summary.push('## 🔄 Changes Since Last Backup');
+        summary.push('');
+        summary.push(`**Since:** ${changesSinceLastBackup.lastBackupTime}`);
+        summary.push(`**Commits:** ${changesSinceLastBackup.changes.length}`);
+        summary.push('');
+        
+        // Group changes by type
+        const commitLines = changesSinceLastBackup.changes.filter(line => line && !line.includes('/') && line.length > 10);
+        const fileChanges = changesSinceLastBackup.changes.filter(line => line && line.includes('/') && !line.includes(' '));
+        
+        if (commitLines.length > 0) {
+            summary.push('### Recent Commits');
+            commitLines.slice(0, 20).forEach(commit => {
+                summary.push(`- ${commit}`);
+            });
+            if (commitLines.length > 20) {
+                summary.push(`- ... and ${commitLines.length - 20} more commits`);
+            }
+            summary.push('');
+        }
+        
+        if (fileChanges.length > 0) {
+            summary.push('### Modified Files');
+            const uniqueFiles = [...new Set(fileChanges)].sort();
+            uniqueFiles.slice(0, 30).forEach(file => {
+                summary.push(`- ${file}`);
+            });
+            if (uniqueFiles.length > 30) {
+                summary.push(`- ... and ${uniqueFiles.length - 30} more files`);
+            }
+            summary.push('');
+        }
+    }
     
     // Recent changes section
     const recentFiles = analyses.filter(a => a.recentlyModified);
@@ -561,9 +850,19 @@ async function createEnhancedBackup() {
     console.log('📦 Starting enhanced backup process with auto-analysis...');
     console.log('📦 Retention policy: Keeping 3 most recent backups');
 
-    // Get git history
-    console.log('🔍 Analyzing git history...');
+    // Get git history with dates for chronological organization
+    console.log('🔍 Analyzing git history with dates...');
     const gitHistory = getGitHistory(7);
+    const gitCommitsWithDates = getGitHistoryWithDates(7);
+    console.log(`📊 Found ${gitCommitsWithDates.length} commits with dates`);
+    
+    // Get changes since last backup
+    console.log('🔍 Analyzing changes since last backup...');
+    const changesSinceLastBackup = getChangesSinceLastBackup();
+    if (changesSinceLastBackup.lastBackupTime) {
+        console.log(`📅 Last backup: ${changesSinceLastBackup.lastBackupTime}`);
+        console.log(`📊 Changes since last backup: ${changesSinceLastBackup.changes.length} commits`);
+    }
 
     // Get local time in 24-hour format
     const now = new Date();
@@ -666,7 +965,7 @@ async function createEnhancedBackup() {
     }
 
     // Generate comprehensive change summary
-    const changeSummary = generateChangeSummary(fileAnalyses, gitHistory);
+    const changeSummary = generateChangeSummary(fileAnalyses, gitHistory, changesSinceLastBackup);
     const summaryPath = path.join(backupPath, 'ENHANCED_BACKUP_SUMMARY.md');
     fs.writeFileSync(summaryPath, changeSummary);
     console.log(`📄 Created enhanced change summary: ${summaryPath}`);
