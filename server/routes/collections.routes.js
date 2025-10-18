@@ -377,14 +377,23 @@ router.post('/save-json', async (req, res) => {
     // Path to collections-unified.json
     const collectionsPath = path.join(__dirname, '../../public/components/MediaLibrary/data/collections/collections-unified.json');
     
+    // Log what we're about to save (check for Black & White specifically)
+    if (finalCollectionsData.collections.creative && finalCollectionsData.collections.creative['Black & White']) {
+      console.log('[COLLECTIONS-API] Black & White collection found in data being saved:', 
+        JSON.stringify(finalCollectionsData.collections.creative['Black & White'], null, 2));
+    } else {
+      console.log('[COLLECTIONS-API] Black & White collection NOT found in data being saved');
+    }
+    
     // Write the complete wrapped structure to file (preserving the collections wrapper)
     await fs.writeFile(collectionsPath, JSON.stringify(finalCollectionsData, null, 2), 'utf8');
     
-    console.log('[COLLECTIONS-API] Successfully saved collections to JSON file');
+    console.log('[COLLECTIONS-API] Successfully saved collections to JSON file at:', collectionsPath);
     
     res.json({
       success: true,
       message: 'Collections saved to JSON file successfully',
+      filePath: collectionsPath,
       totalCategories: Object.keys(finalCollectionsData.collections).length,
       totalCollections: Object.values(finalCollectionsData.collections).reduce((total, category) => {
         return total + Object.keys(category).length;

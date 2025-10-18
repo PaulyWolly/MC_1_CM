@@ -5116,6 +5116,11 @@ class MediaLibraryManager {
 
           const inCollection = itemCollections.length > 0;
 
+          // Debug: Check Austin Powers specifically
+          if (path && path.toLowerCase().includes('austin')) {
+            console.log("[DEBUG - AUSTIN POWERS] Collection count for Austin Powers:", itemCollections.length, "Collections:", itemCollections);
+          }
+
           // console.log('[DEBUG - COLLECTIONS] Path in collection:', path, 'Collections:', itemCollections, 'Result:', inCollection);
 
           if (inCollection) {
@@ -9638,7 +9643,7 @@ class MediaLibraryManager {
 
   async migrateCollectionsToMetadata() {
     try {
-      // Load collections-unified.json file
+      // Load collections.json file
 
       const response = await fetch(
         "/components/MediaLibrary/data/collections/collections-unified.json"
@@ -9906,7 +9911,7 @@ class MediaLibraryManager {
           );
         } else {
           console.error(
-            "[DEBUG - COLLECTIONS] Failed to save migrated metadata to collections-unified.json"
+            "[DEBUG - COLLECTIONS] Failed to save migrated metadata to collections.json"
           );
         }
       }
@@ -9921,20 +9926,20 @@ class MediaLibraryManager {
 
   /**
 
-   * Set collection type metadata in collections-unified.json file
+   * Set collection type metadata in collections.json file
 
    */
 
   async setCollectionTypeInFile(collectionName, type) {
     try {
-      // Load current collections-unified.json
+      // Load current collections.json
 
       const response = await fetch(
         "/components/MediaLibrary/data/collections/collections-unified.json"
       );
 
       if (!response.ok) {
-        throw new Error("Failed to load collections-unified.json");
+        throw new Error("Failed to load collections.json");
       }
 
       const data = await response.json();
@@ -10129,7 +10134,7 @@ class MediaLibraryManager {
       });
 
       if (!saveResponse.ok) {
-        throw new Error("Failed to save collections-unified.json");
+        throw new Error("Failed to save collections.json");
       }
 
       return true;
@@ -10401,7 +10406,7 @@ class MediaLibraryManager {
 
   /**
 
-   * Save collections to collections-unified.json file
+   * Save collections to collections.json file
 
    */
 
@@ -10584,7 +10589,7 @@ class MediaLibraryManager {
 
   /**
 
-   * Add an item to a collection in the collections-unified.json file
+   * Add an item to a collection in the collections.json file
 
    */
 
@@ -10595,14 +10600,14 @@ class MediaLibraryManager {
     isTVShow = null
   ) {
     try {
-      // Load current collections-unified.json
+      // Load current collections.json
 
       const response = await fetch(
         "/components/MediaLibrary/data/collections/collections-unified.json"
       );
 
       if (!response.ok) {
-        throw new Error("Failed to load collections-unified.json");
+        throw new Error("Failed to load collections.json");
       }
 
       const data = await response.json();
@@ -10749,7 +10754,7 @@ class MediaLibraryManager {
       });
 
       if (!saveResponse.ok) {
-        throw new Error("Failed to save collections-unified.json");
+        throw new Error("Failed to save collections.json");
       }
 
       return true;
@@ -10791,7 +10796,7 @@ class MediaLibraryManager {
 
   /**
 
-   * Set collection type metadata for a specific collection (both localStorage and collections-unified.json)
+   * Set collection type metadata for a specific collection (both localStorage and collections.json)
 
    */
 
@@ -10818,7 +10823,7 @@ class MediaLibraryManager {
         JSON.stringify(collectionMetadata)
       );
 
-      // Also store in collections-unified.json for persistence
+      // Also store in collections.json for persistence
 
       await this.setCollectionTypeInFile(collectionName, type);
 
@@ -10853,7 +10858,7 @@ class MediaLibraryManager {
 
       const localStorageType = collectionMetadata[collectionName]?.type;
 
-      // Also check collections-unified.json file
+      // Also check collections.json file
 
       let fileType = null;
 
@@ -10871,7 +10876,7 @@ class MediaLibraryManager {
         }
       } catch (error) {
         console.warn(
-          "[DEBUG - COLLECTIONS] Could not load from collections-unified.json:",
+          "[DEBUG - COLLECTIONS] Could not load from collections.json:",
           error
         );
       }
@@ -10926,7 +10931,7 @@ class MediaLibraryManager {
 
       if (!response.ok) {
         console.error(
-          "❌ [COLLECTIONS-CLEANUP] Failed to load collections-unified.json for cleanup:",
+          "❌ [COLLECTIONS-CLEANUP] Failed to load collections.json for cleanup:",
           response.status,
           response.statusText
         );
@@ -10937,7 +10942,7 @@ class MediaLibraryManager {
       const data = await response.json();
 
       console.log(
-        "📄 [COLLECTIONS-CLEANUP] Loaded collections-unified.json successfully"
+        "📄 [COLLECTIONS-CLEANUP] Loaded collections.json successfully"
       );
 
       if (!data.collections) {
@@ -11212,27 +11217,18 @@ class MediaLibraryManager {
             "[DEBUG - COLLECTIONS] Invalid JSON structure - missing or invalid collections object"
           );
 
-          throw new Error("Invalid collections-unified.json structure");
+          throw new Error("Invalid collections.json structure");
         }
 
         this.structuredCollectionsData = data;
 
-        // Cache the structured data in localStorage for faster subsequent access
-
-        try {
-          localStorage.setItem("mediaCollections", JSON.stringify(data));
-
-          console.log(
-            "💾 [COLLECTIONS] Cached structured data to localStorage"
-          );
-        } catch (e) {
-          console.warn("[COLLECTIONS] Failed to cache to localStorage:", e);
-        }
+        // Cache the structured data in memory for faster subsequent access
+        console.log("💾 [COLLECTIONS] Cached structured data in memory");
 
         return this.structuredCollectionsData;
       } else {
         console.error(
-          "[DEBUG - COLLECTIONS] Failed to load collections-unified.json, status:",
+          "[DEBUG - COLLECTIONS] Failed to load collections.json, status:",
           response.status
         );
       }
@@ -11243,53 +11239,9 @@ class MediaLibraryManager {
       );
     }
 
-    // Tier 2: Fallback to localStorage if JSON fails
-
-    try {
-      const collectionsData = localStorage.getItem("mediaCollections");
-
-      if (collectionsData) {
-        const collections = JSON.parse(collectionsData);
-
-        console.log("📱 [COLLECTIONS] Fallback to localStorage (Tier 2)");
-
-        // Check if localStorage already has the proper structure
-
-        if (
-          collections.collections &&
-          typeof collections.collections === "object"
-        ) {
-          // Already has proper structure
-
-          this.structuredCollectionsData = collections;
-
-          return this.structuredCollectionsData;
-        } else {
-          // Convert flat localStorage structure to nested structure
-
-          const structuredData = {
-            collections: { my_collections: collections },
-          };
-
-          this.structuredCollectionsData = structuredData;
-
-          return this.structuredCollectionsData;
-        }
-      }
-    } catch (error) {
-      console.error(
-        "[DEBUG - COLLECTIONS] Error loading from localStorage:",
-        error
-      );
-    }
-
-    // Tier 3: Try MongoDB (tertiary/persistent)
-
-    try {
-      const collectionsData = localStorage.getItem("mediaCollections");
-
-      if (collectionsData) {
-        const collections = JSON.parse(collectionsData);
+    // Return empty collections if JSON fails
+    console.warn("[COLLECTIONS] JSON file not available, returning empty collections");
+    return { collections: {} };
 
         // Load pre-defined category patterns from collection-listing.json
 
@@ -11554,7 +11506,7 @@ class MediaLibraryManager {
           "collections with metadata"
         );
 
-        // Also load from collections-unified.json file and merge
+        // Also load from collections.json file and merge
 
         try {
           const response = await fetch(
@@ -11582,7 +11534,7 @@ class MediaLibraryManager {
           }
         } catch (error) {
           console.warn(
-            "[DEBUG - COLLECTIONS] Could not load metadata from collections-unified.json:",
+            "[DEBUG - COLLECTIONS] Could not load metadata from collections.json:",
             error
           );
         }
@@ -11844,26 +11796,9 @@ class MediaLibraryManager {
       console.warn("[DEBUG - COLLECTIONS] Error saving to JSON file:", error);
     }
 
-    // Save to localStorage (primary source for UI) with proper nested structure
-
-    try {
-      // Wrap the flat collections data in the proper structure
-
-      const structuredData = { collections: collections };
-
-      localStorage.setItem("mediaCollections", JSON.stringify(structuredData));
-
-      console.log(
-        "[DEBUG - COLLECTIONS] Collections saved to localStorage successfully:",
-        Object.keys(collections).length,
-        "collections"
-      );
-    } catch (error) {
-      console.warn(
-        "[DEBUG - COLLECTIONS] Error saving to localStorage:",
-        error
-      );
-    }
+    // Clear cache to force fresh data loading from JSON
+    this.cachedCollections = null;
+    this.structuredCollectionsData = null;
 
     // Optional MongoDB sync (disabled to reduce noise - collections are saved to JSON and localStorage)
 
@@ -12234,6 +12169,12 @@ class MediaLibraryManager {
         "[DEBUG - ADD-TO-COLLECTION] Calling findUnifiedItemByPath for:",
         path
       );
+      
+      // Debug: Check if this is Austin Powers
+      if (path && path.toLowerCase().includes('austin')) {
+        console.log("[DEBUG - AUSTIN POWERS] Processing Austin Powers movie:", path);
+        console.log("[DEBUG - AUSTIN POWERS] Collections to add:", collectionsToAdd);
+      }
 
       const match = this.findUnifiedItemByPath(mediaItem);
 
@@ -12243,6 +12184,27 @@ class MediaLibraryManager {
         "[DEBUG - ADD-TO-COLLECTION] Match result:",
         match ? { key: match.key, type: match.item.type } : "No match found"
       );
+
+      if (!match) {
+        // Debug: Show some actual keys from unified data to help identify the issue
+        const sampleKeys = Object.keys(this.unifiedData).slice(0, 10);
+        console.error(
+          "[DEBUG - ADD-TO-COLLECTION] Sample unified data keys:",
+          sampleKeys
+        );
+        
+        // Try to find a partial match for Avatar
+        const avatarMatches = Object.keys(this.unifiedData).filter(key => 
+          key.toLowerCase().includes('avatar')
+        );
+        
+        if (avatarMatches.length > 0) {
+          console.error(
+            "[DEBUG - ADD-TO-COLLECTION] Found Avatar matches:",
+            avatarMatches
+          );
+        }
+      }
 
       // Determine if this is a TV show using the type field
 
@@ -12270,13 +12232,29 @@ class MediaLibraryManager {
           "[COLLECTIONS] Cannot add to collection: item not found in unified data for path:",
           path
         );
+        
+        // Try to find a close match by searching for similar keys
+        const searchTerm = path.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const closeMatches = Object.keys(this.unifiedData).filter(key => {
+          const keyClean = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return keyClean.includes(searchTerm) || searchTerm.includes(keyClean);
+        });
+
+        if (closeMatches.length > 0) {
+          console.error(
+            "[DEBUG - ADD-TO-COLLECTION] Found close matches:",
+            closeMatches
+          );
+        }
+        
         return {
           success: false,
-          error: "Item not found in unified data. Cannot add to collection.",
+          error: `Item not found in unified data. Looking for: "${path}". Check console for close matches.`,
+          message: `Item not found in unified data. Looking for: "${path}". Check console for close matches.`,
         };
       }
 
-      // collections-unified.json stores keys without TV-SHOWS/ prefix, so remove it if present
+      // Collections.json stores keys without TV-SHOWS/ prefix, so remove it if present
       let keyToStore = unifiedKey;
       if (keyToStore.startsWith("TV-SHOWS/")) {
         keyToStore = keyToStore.replace("TV-SHOWS/", "");
@@ -12437,7 +12415,7 @@ class MediaLibraryManager {
           }
         }
 
-        // Add to the structured collections-unified.json file in the correct category
+        // Add to the structured collections.json file in the correct category
 
         try {
           await this.addToCollectionInFile(
@@ -12460,7 +12438,7 @@ class MediaLibraryManager {
           results.push({ collection: collectionName, added: true });
         } catch (error) {
           console.error(
-            "[COLLECTIONS] Failed to add to structured collections-unified.json:",
+            "[COLLECTIONS] Failed to add to structured collections.json:",
             error
           );
 
@@ -12565,7 +12543,7 @@ class MediaLibraryManager {
         this.unifiedData &&
         path &&
         typeof path === "string" &&
-        /^[a-zA-Z0-9.()]+$/.test(path)
+        /^[a-z0-9.()]+$/.test(path)
       ) {
         if (this.unifiedData[path]) {
           unifiedKey = path;
@@ -12648,52 +12626,101 @@ class MediaLibraryManager {
 
       const keyToRemove = unifiedKey;
 
-      const collectionsData = await this.getCollections();
-      const collections = collectionsData.collections || {};
+      const collections = await this.getCollections();
 
       // Handle both single string and array of collection names
-      const namesToRemove = Array.isArray(collectionNames) ? collectionNames : [collectionNames];
-      const results = [];
+
+      const namesToRemove = Array.isArray(collectionNames)
+        ? collectionNames
+        : [collectionNames];
+
       let removedFromAny = false;
 
-      // Search through all categories to find the collection
-      for (const [category, categoryCollections] of Object.entries(collections)) {
-        for (const collectionName of namesToRemove) {
-          if (categoryCollections[collectionName]) {
-            const targetCollection = categoryCollections[collectionName];
-            const moviesObject = targetCollection.find(item => item.media === 'movies');
-            
-            if (moviesObject && moviesObject.items) {
-              const itemIndex = moviesObject.items.indexOf(unifiedKey);
-              if (itemIndex !== -1) {
-                moviesObject.items.splice(itemIndex, 1);
-                results.push({
-                  collection: collectionName,
-                  removed: true,
-                  item: unifiedKey,
-                });
-                removedFromAny = true;
-              } else {
-                results.push({
-                  collection: collectionName,
-                  removed: false,
-                  reason: "Item not found in movies array",
-                });
+      const results = [];
+
+      for (const collectionName of namesToRemove) {
+        if (!collections[collectionName]) {
+          results.push({
+            collection: collectionName,
+
+            removed: false,
+
+            reason: "Collection not found",
+          });
+
+          continue;
+        }
+
+        // Find and remove from appropriate media array
+
+        let removed = false;
+
+        // Determine media type from unified data
+
+        let mediaType = "movies"; // default to movies
+
+        if (this.unifiedData && this.unifiedData[keyToRemove]) {
+          mediaType =
+            this.unifiedData[keyToRemove].type === "tvshow"
+              ? "tvshows"
+              : "movies";
+        } else {
+          // Fallback: check if key contains TV-SHOWS prefix
+
+          mediaType = keyToRemove.includes("TV-SHOWS/") ? "tvshows" : "movies";
+        }
+
+        // Find the media object for this type
+
+        const mediaObject = collections[collectionName].find(
+          (item) => item.media === mediaType
+        );
+
+        if (
+          mediaObject &&
+          mediaObject.items &&
+          Array.isArray(mediaObject.items)
+        ) {
+          const itemIndex = mediaObject.items.findIndex(
+            (item) => item === keyToRemove
+          );
+
+          if (itemIndex !== -1) {
+            mediaObject.items.splice(itemIndex, 1);
+
+            removed = true;
+
+            removedFromAny = true;
+
+            results.push({ collection: collectionName, removed: true });
+
+            // If this was the last item in this media type, remove the media object
+
+            if (mediaObject.items.length === 0) {
+              const mediaObjectIndex = collections[collectionName].findIndex(
+                (item) => item.media === mediaType
+              );
+
+              if (mediaObjectIndex !== -1) {
+                collections[collectionName].splice(mediaObjectIndex, 1);
               }
-            } else {
-              results.push({
-                collection: collectionName,
-                removed: false,
-                reason: "No movies object found",
-              });
             }
           }
         }
+
+        if (!removed) {
+          results.push({
+            collection: collectionName,
+
+            removed: false,
+
+            reason: "Item not found in collection",
+          });
+        }
       }
 
-
       if (removedFromAny) {
-        await this.saveCollections(collectionsData);
+        await this.saveCollections(collections);
 
         // Clear structured data cache to force recategorization
 
@@ -13272,16 +13299,14 @@ class MediaLibraryManager {
 
   refreshCollectionDisplay() {
     try {
-      // Refresh collection pills in the media library
+      // Refresh collection buttons in the media library
+      this.updateCollectionButtons();
 
-      if (this.currentMediaItem) {
-        this.updateCollectionPills(this.currentMediaItem);
-      }
+      // Also refresh the current content to ensure all UI elements are updated
+      this.refreshCurrentContent();
 
       // Refresh any collection modals that might be open
-
       const openModal = document.getElementById("addToCollectionModal");
-
       if (openModal) {
         // Modal is still open, refresh it
       }
@@ -14121,7 +14146,7 @@ class MediaLibraryManager {
         // PERSISTENCE: Save the new item to the correct section
 
         try {
-          // Store collection type metadata in BOTH localStorage AND collections-unified.json file
+          // Store collection type metadata in BOTH localStorage AND collections.json file
 
           const collectionType = category.toLowerCase().slice(0, -1);
 
@@ -14144,11 +14169,11 @@ class MediaLibraryManager {
             JSON.stringify(collectionMetadata)
           );
 
-          // Store in collections-unified.json for persistence (this will add to the correct section)
+          // Store in collections.json for persistence (this will add to the correct section)
 
           await this.setCollectionTypeInFile(newItemName, collectionType);
 
-          // CRITICAL: Add the current movie to the new collection in collections-unified.json
+          // CRITICAL: Add the current movie to the new collection in collections.json
 
           const moviePath = mediaItem.path;
 
@@ -14536,10 +14561,11 @@ class MediaLibraryManager {
             // Add a small delay to ensure DOM is ready
 
             setTimeout(async () => {
+              console.log("[DEBUG - COLLECTIONS] Updating collection buttons after successful add...");
               await this.updateCollectionButtons();
 
               // Refresh the Movies page content to ensure UI is updated
-
+              console.log("[DEBUG - COLLECTIONS] Refreshing modal content...");
               if (this.currentTab === "movies") {
                 await this.updateModalContent();
               }
@@ -14721,7 +14747,7 @@ class MediaLibraryManager {
         collectionItems.slice(0, 5)
       );
 
-      // Get the collection data directly from collections-unified.json instead of relying on passed parameter
+      // Get the collection data directly from collections.json instead of relying on passed parameter
 
       const collectionsData = await this.getCollections();
 
@@ -17768,41 +17794,34 @@ class MediaLibraryManager {
 
    */
 
-  async synchronizeAllCollectionsSources(collections) {
+  async saveCollectionsToJSON(collections) {
     try {
       console.log(
-        "[SYNC-DEBUG] Starting synchronization with collections:",
+        "[COLLECTIONS] Saving collections to JSON:",
         Object.keys(collections).length,
         "collections"
       );
 
-      // Step 1: Save to localStorage (primary source) with proper nested structure
-
-      const structuredData = { collections: collections };
-
-      localStorage.setItem("mediaCollections", JSON.stringify(structuredData));
-
-      console.log("[SYNC-DEBUG] Saved to localStorage");
-
-      // Step 2: Save to JSON file (backup source)
+      // Save to JSON file (single source of truth)
 
       try {
         await this.saveCollections(collections);
 
-        console.log("[SYNC-DEBUG] Saved to JSON file");
+        console.log("[COLLECTIONS] Saved to JSON file successfully");
       } catch (error) {
-        console.error("❌ [COLLECTIONS] Failed to sync to JSON file:", error);
+        console.error("❌ [COLLECTIONS] Failed to save to JSON:", error);
+        throw error;
       }
 
-      // Step 3: Clear all caches to force fresh data loading
-
+      // Clear cache to force fresh data loading
+      this.cachedCollections = null;
       this.structuredCollectionsData = null;
 
-      // Step 4: Update UI immediately
+      // Update UI immediately
 
       await this.updateCollectionButtons();
     } catch (error) {
-      console.error("❌ [COLLECTIONS] Synchronization failed:", error);
+      console.error("❌ [COLLECTIONS] Failed to save collections:", error);
 
       throw error;
     }
@@ -19525,7 +19544,7 @@ class MediaLibraryManager {
       });
     }
 
-    // Also try to get actors from collections-unified.json for any additional actors
+    // Also try to get actors from collections.json for any additional actors
 
     try {
       const response = await fetch(
@@ -19543,7 +19562,7 @@ class MediaLibraryManager {
       }
     } catch (error) {
       console.warn(
-        "[ACTORS] Error loading actors from collections-unified.json:",
+        "[ACTORS] Error loading actors from collections.json:",
         error
       );
     }
@@ -31529,7 +31548,7 @@ class MediaLibraryManager {
 
   /**
 
-   * Restore collections-unified.json to correct structure
+   * Restore collections.json to correct structure
 
    */
 
@@ -31542,7 +31561,7 @@ class MediaLibraryManager {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to load collections-unified.json");
+        throw new Error("Failed to load collections.json");
       }
 
       const data = await response.json();
@@ -31576,11 +31595,11 @@ class MediaLibraryManager {
 
         return true;
       } else {
-        throw new Error("Failed to save restored collections-unified.json");
+        throw new Error("Failed to save restored collections.json");
       }
     } catch (error) {
       console.error(
-        "[COLLECTIONS-RESTORE] Error restoring collections-unified.json:",
+        "[COLLECTIONS-RESTORE] Error restoring collections.json:",
         error
       );
 

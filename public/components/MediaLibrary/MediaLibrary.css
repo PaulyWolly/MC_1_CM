@@ -3673,7 +3673,7 @@
 
 /* Toast notifications should always appear above modals */
 #mediaLibraryToast, .toast, .toast-container {
-  /* z-index: 30000 !important; */
+  z-index: 10000000010 !important;
 }
 /* --- EPISODES ARROW NAVIGATION & GRID (ROBUST, VISUALLY APPEALING) --- */
 .media-library-episodes-arrows-wrapper {
@@ -3860,7 +3860,7 @@
   border-radius: 8px;
   font-size: 1.1em;
   font-weight: 600;
-  z-index: 1000000000 !important;
+  z-index: 10000000010 !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   opacity: 0.95;
   transition: opacity 0.3s;
@@ -3880,6 +3880,12 @@
     background: #e53935;
     color: #ffffff !important;
     border: 3px solid #ff6b6b;
+}
+
+.loading-movies-text {  
+  font-size: 18px; 
+  margin-bottom: 10px;
+  margin-top: 150px;
 }
 
 /* FAVORITES COLUMN LAYOUT AND SCROLLING */
