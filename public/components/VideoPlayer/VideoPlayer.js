@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -733,6 +733,9 @@ class VideoPlayer {
                     this.updateTimeDisplay();
                 });
                 
+                // Auto-select English audio track when available
+                this.autoSelectEnglishAudioTrack();
+                
                 // REMOVED AUTOMATIC SUBTITLE OVERLAY CREATION - User will click "Subtitles" button when needed
                 console.log('[VIDEO-PLAYER] Player ready - subtitle overlay will be created on demand');
             });
@@ -1055,6 +1058,9 @@ class VideoPlayer {
                 console.log('🎬 [VIDEO-PLAYER] Video loaded successfully:', file.name);
                 this.showMessage(`Loaded: ${file.name}`);
                 
+                // Auto-select English audio track for this video
+                this.autoSelectEnglishAudioTrack();
+                
                 // Update episode info header
                 await this.updateMovieInfoHeader();
                 
@@ -1138,59 +1144,30 @@ class VideoPlayer {
     }
 
     // Centralized method to load episode video
+    // ALWAYS use absPath directly from JSON media object - no path manipulation
     loadEpisodeVideo(episodeFile, episodeName) {
         this.showOverlayAlert(`Loading: ${episodeName}`, 2000);
         
-        // Use webPath for video playback (already converted by MediaLibraryManager)
-        // while preserving original episode data for TV show detection
-        let videoPath = episodeFile.webPath || episodeFile.filePath || episodeFile.path;
-        if (videoPath) {
-            console.log('[VIDEO-PLAYER] Loading video from path:', videoPath);
-            console.log('[VIDEO-PLAYER] Episode data preserved for TV show detection:', {
+        // Use absPath directly from JSON media object - it has the exact correct path
+        if (episodeFile.absPath) {
+            // Convert backslashes to forward slashes for URL encoding
+            const videoPath = episodeFile.absPath.replace(/\\/g, "/");
+            const encodedPath = encodeURIComponent(videoPath);
+            const videoUrl = `/api/video?path=${encodedPath}`;
+            
+            console.log('[VIDEO-PLAYER] Using absPath from JSON:', episodeFile.absPath);
+            console.log('[VIDEO-PLAYER] Video URL:', videoUrl);
+            console.log('[VIDEO-PLAYER] Episode data from JSON:', {
                 type: episodeFile.type,
                 absPath: episodeFile.absPath,
                 season: episodeFile.season,
                 episode: episodeFile.episode
             });
             
-            // Use webPath directly (already converted) or convert if needed
-            let relativePath = episodeFile.webPath || this.convertPathToWebFormat(videoPath);
-            
-            // For Featurettes/Specials, we need to include the show name in the path
-            // The server expects paths like "Show Name (Year)/Featurettes/episode.avi"
-            if (relativePath.startsWith('Featurettes/') || relativePath.startsWith('Specials/')) {
-                console.log('[VIDEO-PLAYER] Processing Featurettes path, episodeFile:', episodeFile);
-                // Extract show name from the episode object or current context
-                let showName = null;
-                if (episodeFile.showName) {
-                    showName = episodeFile.showName;
-                    console.log('[VIDEO-PLAYER] Using episodeFile.showName:', showName);
-                } else if (episodeFile.path) {
-                    // Try to extract from path like "Lois And Clark The New Adventures Of Superman (1993)/Featurettes/..."
-                    const pathParts = episodeFile.path.split(/[\\/]/);
-                    if (pathParts.length > 0) {
-                        showName = pathParts[0];
-                        console.log('[VIDEO-PLAYER] Extracted showName from path:', showName);
-                    }
-                }
-                
-                if (showName) {
-                    relativePath = `${showName}/${relativePath}`;
-                    console.log('[VIDEO-PLAYER] Added show name to Featurettes path:', relativePath);
-                } else {
-                    console.log('[VIDEO-PLAYER] WARNING: Could not extract show name for Featurettes!');
-                }
-            }
-            
-            const encodedPath = encodeURIComponent(relativePath);
-            const videoUrl = `/api/video?path=${encodedPath}`;
-            
-            console.log('[VIDEO-PLAYER] Video URL:', videoUrl);
-            console.log('[VIDEO-PLAYER] Passing complete episode data to playUrl for TV show detection');
             this.playUrl(videoUrl, 'video/mp4', 0, episodeFile);
         } else {
-            console.error('[VIDEO-PLAYER] No video path found for episode:', episodeName);
-            this.showOverlayAlert('Error: No video path found', 2000);
+            console.error('[VIDEO-PLAYER] No absPath found in JSON media object for episode:', episodeName);
+            this.showOverlayAlert('Error: No video path found in media object', 2000);
         }
     }
 
@@ -2414,6 +2391,144 @@ class VideoPlayer {
             this.amplifyEnabled = false;
             this.updateAmplifyButton();
         }
+    }
+
+    // Auto-select English audio track when available
+    autoSelectEnglishAudioTrack() {
+        if (!this.vjsPlayer) return;
+        
+        try {
+            // Wait for audio tracks to be loaded
+            const checkAudioTracks = () => {
+                const audioTracks = this.vjsPlayer.audioTracks();
+                if (!audioTracks || audioTracks.length === 0) {
+                    // Try again after a short delay
+                    setTimeout(checkAudioTracks, 500);
+                    return;
+                }
+                
+                console.log('[VIDEO-PLAYER] Audio tracks available:', audioTracks.length);
+                
+                // Get audio preferences from current media item or use defaults
+                const audioPreferences = this.getAudioPreferences();
+                console.log('[VIDEO-PLAYER] Audio preferences:', audioPreferences);
+                
+                // Look for preferred audio tracks
+                let selectedTrack = null;
+                let englishTrack = null;
+                let fallbackTrack = null;
+                
+                for (let i = 0; i < audioTracks.length; i++) {
+                    const track = audioTracks[i];
+                    const language = track.language || track.label || '';
+                    const label = track.label || '';
+                    
+                    console.log(`[VIDEO-PLAYER] Audio track ${i}: language="${language}", label="${label}"`);
+                    
+                    // Check for English audio tracks (priority)
+                    if (this.isEnglishTrack(language, label)) {
+                        englishTrack = track;
+                        if (!selectedTrack) selectedTrack = track;
+                    }
+                    
+                    // Check for other preferred languages
+                    if (audioPreferences.preferredLanguages) {
+                        for (const prefLang of audioPreferences.preferredLanguages) {
+                            if (this.matchesLanguage(language, label, prefLang)) {
+                                selectedTrack = track;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Keep first track as fallback
+                    if (!fallbackTrack) fallbackTrack = track;
+                }
+                
+                // FORCE ENGLISH ONLY - NO EXCEPTIONS
+                if (englishTrack) {
+                    // Disable ALL tracks first
+                    for (let i = 0; i < audioTracks.length; i++) {
+                        audioTracks[i].enabled = false;
+                    }
+                    
+                    // Enable ONLY the English track
+                    englishTrack.enabled = true;
+                    
+                    const trackInfo = englishTrack.label || englishTrack.language || 'English';
+                    console.log(`[VIDEO-PLAYER] ✅ FORCED ENGLISH AUDIO: "${trackInfo}"`);
+                    console.log(`[VIDEO-PLAYER] 🚫 Disabled ${audioTracks.length - 1} non-English audio tracks`);
+                } else {
+                    console.log('❌ [VIDEO-PLAYER] NO ENGLISH AUDIO TRACK FOUND!');
+                    console.log('[VIDEO-PLAYER] Available tracks:');
+                    for (let i = 0; i < audioTracks.length; i++) {
+                        const track = audioTracks[i];
+                        console.log(`  - Track ${i}: ${track.label || track.language || 'Unknown'}`);
+                    }
+                    console.log('[VIDEO-PLAYER] Video will play with default audio (may not be English)');
+                }
+            };
+            
+            // Start checking for audio tracks
+            checkAudioTracks();
+            
+        } catch (error) {
+            console.warn('[VIDEO-PLAYER] Error in auto-select English audio track:', error);
+        }
+    }
+
+    // Get audio preferences - FORCE ENGLISH ONLY
+    getAudioPreferences() {
+        // ALWAYS FORCE ENGLISH - NO EXCEPTIONS
+        return {
+            preferredLanguages: ['en', 'english', 'eng', 'en-us', 'en-gb', 'en-ca', 'en-au'],
+            forceEnglish: true,
+            fallbackToDefault: false, // Don't fallback to non-English
+            englishOnly: true,
+            disableOtherLanguages: true
+        };
+    }
+
+    // Check if a track is English - AGGRESSIVE DETECTION
+    isEnglishTrack(language, label) {
+        const englishPatterns = [
+            'en', 'english', 'eng', 'en-us', 'en-gb', 'en-ca', 'en-au',
+            'america', 'american', 'british', 'canadian', 'australian',
+            'us', 'uk', 'usa', 'united states', 'united kingdom'
+        ];
+        
+        const langLower = (language || '').toLowerCase();
+        const labelLower = (label || '').toLowerCase();
+        
+        // Check for English patterns
+        const hasEnglishPattern = englishPatterns.some(pattern => 
+            langLower.includes(pattern) || labelLower.includes(pattern)
+        );
+        
+        // Also check if it's NOT a known non-English language
+        const nonEnglishPatterns = [
+            'rus', 'russian', 'русский', 'de', 'german', 'deutsch', 'немецкий',
+            'fr', 'french', 'français', 'французский', 'es', 'spanish', 'español',
+            'it', 'italian', 'italiano', 'pt', 'portuguese', 'português',
+            'ja', 'japanese', '日本語', 'ko', 'korean', '한국어', 'zh', 'chinese', '中文',
+            'ar', 'arabic', 'العربية', 'hi', 'hindi', 'हिन्दी'
+        ];
+        
+        const isNonEnglish = nonEnglishPatterns.some(pattern => 
+            langLower.includes(pattern) || labelLower.includes(pattern)
+        );
+        
+        // If it explicitly contains English patterns OR doesn't contain non-English patterns
+        return hasEnglishPattern || (!isNonEnglish && (langLower.length > 0 || labelLower.length > 0));
+    }
+
+    // Check if a track matches a preferred language
+    matchesLanguage(language, label, preferredLang) {
+        const langLower = language.toLowerCase();
+        const labelLower = label.toLowerCase();
+        const prefLower = preferredLang.toLowerCase();
+        
+        return langLower.includes(prefLower) || labelLower.includes(prefLower);
     }
 
     // Toggle amplification on/off
@@ -4763,14 +4878,14 @@ class VideoPlayer {
                                         filename: episode.title || `Episode ${episodeNum}`,
                                         path: episode.path || "",
                                         relPath: episode.path || "",
-                                        // No absPath reconstruction needed - use path directly
-                                        filePath: episode.path || "",
+                                        absPath: episode.absPath || "",
+                                        filePath: episode.filePath || episode.path || "",
                                         still: episode.still || "",
                                         thumbnail: episode.still || "",
                                         generated: false,
                                         timestamp: "",
-                                        episodeNumber: episodeNum,
-                                        seasonNumber: seasonNum
+                                        episodeNumber: Number(episodeNum),
+                                        seasonNumber: Number(seasonNum)
                                     });
                                 });
                             }
@@ -5080,8 +5195,18 @@ class VideoPlayer {
         
         // FORCE: Set new media item
         console.log('[DEBUG - VIDEO-PLAYER] 🎬 Setting new media item:', mediaItem);
+        
+        // PRESERVE episode and season information if available in mediaItem
+        if (mediaItem && !mediaItem.episode && mediaItem.episodeNum !== undefined) {
+            mediaItem.episode = mediaItem.episodeNum;
+        }
+        if (mediaItem && !mediaItem.season && mediaItem.seasonNum !== undefined) {
+            mediaItem.season = mediaItem.seasonNum;
+        }
+        
         this.currentMediaItem = mediaItem;
         console.log('[DEBUG - VIDEO-PLAYER] 🎬 Current media item AFTER update:', this.currentMediaItem);
+        console.log('[DEBUG - VIDEO-PLAYER] 🎬 Season:', this.currentMediaItem?.season, 'Episode:', this.currentMediaItem?.episode);
         
         // Use mediaItem if provided, otherwise create a minimal currentFile
         if (mediaItem) {
@@ -5208,6 +5333,12 @@ class VideoPlayer {
             this.vjsPlayer.on('loadedmetadata', () => {
                 console.log('[DEBUG - AMPLIFY] Video metadata loaded, ensuring amplification reset');
                 this.forceResetAmplificationUI();
+            });
+            
+            // Add loadeddata event to auto-select English audio track
+            this.vjsPlayer.on('loadeddata', () => {
+                console.log('[DEBUG - VIDEO-PLAYER] Video data loaded, auto-selecting English audio track');
+                this.autoSelectEnglishAudioTrack();
             });
             
             // Update episode info header

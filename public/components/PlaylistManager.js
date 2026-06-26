@@ -1,4 +1,8 @@
 import playlistService from '../services/playlist.service.js';
+import {
+  getPlaylistVisibleName,
+  getPlaylistVisibleNameKey
+} from '../utils/playlistNameNormalizer.js';
 
 export default class PlaylistManager {
   constructor() {
@@ -14,77 +18,21 @@ export default class PlaylistManager {
 
   /*
   PLAYLISTMANAGER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
   cleanPlaylistNameForDisplay(name) {
-    if (!name) return '';
-    
-    // First detect the search type from the playlist name
-    const type = this.detectSearchTypeFromName(name);
-    
-    // Clean the name by removing prefixes
-    let cleaned = name
-      .replace(/^youtube\s+search\s+/i, '')
-      .replace(/^youtube\s+channel\s+/i, '')
-      .replace(/^youtube\s+movies?\s+/i, '')
-      .replace(/^youtube\s+tv\s+/i, '')
-      .replace(/^youtube\s+/i, '')
-      .replace(/^search\s+/i, '')
-      .replace(/^channel\s+/i, '')
-      .replace(/^movies?\s+/i, '')
-      .replace(/^tv\s+/i, '')
-      .trim();
-      
-    // If cleaning results in empty string, use original
-    if (!cleaned) cleaned = name;
-    
-    // HUMANIZE: Convert normalized dot notation and underscores to human-readable format
-    // e.g., "jean.luc.ponty" -> "Jean Luc Ponty", "hillsong.united.of.dirt.and.grace" -> "Hillsong United Of Dirt And Grace"
-    // e.g., "jean_luc_ponty" -> "Jean Luc Ponty", "hillsong_united_of_dirt_and_grace" -> "Hillsong United Of Dirt And Grace"
-    const humanReadable = cleaned.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
-    // Add type indicators based on detected search type
-    switch (type) {
-      case 'channel':
-        return `${humanReadable} (ch)`;
-      case 'movies':
-        return `${humanReadable} (mv)`;
-      case 'tv':
-        return `${humanReadable} (tv)`;
-      case 'search':
-      default:
-        return humanReadable; // No indicator for regular searches
-    }
+    return getPlaylistVisibleName(name);
   }
 
-  detectSearchTypeFromName(name) {
-    if (!name) return 'search';
-    
-    const lowerName = name.toLowerCase();
-    
-    // Channel patterns
-    if (lowerName.includes('youtube channel') || lowerName.startsWith('channel ')) {
-      return 'channel';
-    }
-    
-    // Movies patterns
-    if (lowerName.includes('youtube movie') || lowerName.includes('youtube film') || 
-        lowerName.startsWith('movie ') || lowerName.startsWith('film ')) {
-      return 'movies';
-    }
-    
-    // TV patterns
-    if (lowerName.includes('youtube tv') || lowerName.includes('youtube television') || 
-        lowerName.includes('youtube series') || lowerName.includes('youtube show') ||
-        lowerName.startsWith('tv ') || lowerName.startsWith('television ') ||
-        lowerName.startsWith('series ') || lowerName.startsWith('show ')) {
-      return 'tv';
-    }
-    
-    return 'search'; // Default to regular search
+  findPlaylistByDisplayName(name) {
+    const key = getPlaylistVisibleNameKey(name);
+    if (!key) return null;
+    return this.playlists.find(
+      (pl) => getPlaylistVisibleNameKey(pl.name) === key
+    ) || null;
   }
 
   // Format YouTube ISO 8601 duration (PT4M13S) to readable format (4:13)
@@ -203,12 +151,8 @@ export default class PlaylistManager {
         const newPlaylist = await this.createPlaylist(name);
         input.value = '';
         await this.loadPlaylists();
-        // Select the new playlist if it was created
-        if (newPlaylist && newPlaylist.name) {
-          const created = this.playlists.find(pl => pl.name.toLowerCase() === newPlaylist.name.toLowerCase());
-          if (created) {
-            this.selectPlaylist(created._id);
-          }
+        if (newPlaylist && newPlaylist._id) {
+          this.selectPlaylist(newPlaylist._id);
         }
       }
     });
@@ -222,11 +166,8 @@ export default class PlaylistManager {
           const newPlaylist = await this.createPlaylist(name);
           input.value = '';
           await this.loadPlaylists();
-          if (newPlaylist && newPlaylist.name) {
-            const created = this.playlists.find(pl => pl.name.toLowerCase() === newPlaylist.name.toLowerCase());
-            if (created) {
-              this.selectPlaylist(created._id);
-            }
+          if (newPlaylist && newPlaylist._id) {
+            this.selectPlaylist(newPlaylist._id);
           }
         }
       }
@@ -257,14 +198,14 @@ export default class PlaylistManager {
       const playlistName = window.extractCleanQuery ? window.extractCleanQuery(playlistNameArg) : (playlistNameArg?.trim() || '');
       await this.loadPlaylists();
       if (playlistName) {
-        const existing = this.playlists.find(pl => pl.name.trim().toLowerCase() === playlistName.trim().toLowerCase());
+        const existing = this.findPlaylistByDisplayName(playlistName);
         if (existing) {
           this.selectPlaylist(existing._id);
           this.showPlaylistMessage('A playlist with this name already exists. Showing existing playlist.');
         } else {
           const newPlaylist = await this.createPlaylist(playlistName);
           await this.loadPlaylists();
-          const created = this.playlists.find(pl => pl.name.trim().toLowerCase() === playlistName.trim().toLowerCase());
+          const created = this.findPlaylistByDisplayName(playlistName);
           if (created) {
             this.selectPlaylist(created._id);
           }
@@ -290,14 +231,14 @@ export default class PlaylistManager {
     const playlistName = window.extractCleanQuery ? window.extractCleanQuery(arg) : (arg?.trim() || '');
     await this.loadPlaylists();
     if (playlistName) {
-      const existing = this.playlists.find(pl => pl.name.trim().toLowerCase() === playlistName.trim().toLowerCase());
+      const existing = this.findPlaylistByDisplayName(playlistName);
       if (existing) {
         this.selectPlaylist(existing._id);
         this.showPlaylistMessage('A playlist with this name already exists. Showing existing playlist.');
       } else {
         const newPlaylist = await this.createPlaylist(playlistName);
         await this.loadPlaylists();
-        const created = this.playlists.find(pl => pl.name.trim().toLowerCase() === playlistName.trim().toLowerCase());
+        const created = this.findPlaylistByDisplayName(playlistName);
         if (created) {
           this.selectPlaylist(created._id);
         }
@@ -330,11 +271,13 @@ export default class PlaylistManager {
   async loadPlaylists() {
     try {
       const response = await playlistService.getPlaylists();
-      // Normalize playlists: only one per normalized name
+      // One entry per display name (server also merges on fetch)
       const normalizedMap = {};
       response.playlists.forEach(pl => {
-        const normName = (pl.name || '').trim().toLowerCase();
-        if (!normalizedMap[normName]) {
+        const normName = getPlaylistVisibleNameKey(pl.name);
+        if (!normName) return;
+        const existing = normalizedMap[normName];
+        if (!existing || (pl.videos?.length || 0) > (existing.videos?.length || 0)) {
           normalizedMap[normName] = pl;
         }
       });
@@ -351,7 +294,10 @@ export default class PlaylistManager {
     let filtered = this.playlists;
     if (filter && filter.trim()) {
       const f = filter.trim().toLowerCase();
-      filtered = this.playlists.filter(p => p.name.toLowerCase().includes(f));
+      filtered = this.playlists.filter(p => {
+        const displayName = this.cleanPlaylistNameForDisplay(p.name).toLowerCase();
+        return displayName.includes(f) || p.name.toLowerCase().includes(f);
+      });
     }
     let sorted;
     if (this.sortMode === 'recent') {
@@ -368,13 +314,17 @@ export default class PlaylistManager {
       // Sort MRU by their order in recentPlaylistIds
       mru.sort((a, b) => this.recentPlaylistIds.indexOf(a._id) - this.recentPlaylistIds.indexOf(b._id));
       // Sort rest alphabetically
-      rest.sort((a, b) => a.name.localeCompare(b.name));
+      rest.sort((a, b) =>
+        getPlaylistVisibleName(a.name).localeCompare(getPlaylistVisibleName(b.name))
+      );
       sorted = [...mru, ...rest];
     } else {
       // ASC/DESC
       sorted = filtered.slice().sort((a, b) => {
-        if (a.name.toLowerCase() < b.name.toLowerCase()) return this.playlistSortAsc ? -1 : 1;
-        if (a.name.toLowerCase() > b.name.toLowerCase()) return this.playlistSortAsc ? 1 : -1;
+        const aName = getPlaylistVisibleName(a.name).toLowerCase();
+        const bName = getPlaylistVisibleName(b.name).toLowerCase();
+        if (aName < bName) return this.playlistSortAsc ? -1 : 1;
+        if (aName > bName) return this.playlistSortAsc ? 1 : -1;
         return 0;
       });
     }
@@ -709,8 +659,7 @@ export default class PlaylistManager {
 
   async createPlaylist(name) {
     if (!name) return;
-    // Prevent duplicate playlist creation
-    const existing = this.playlists.find(pl => pl.name.trim().toLowerCase() === name.trim().toLowerCase());
+    const existing = this.findPlaylistByDisplayName(name);
     if (existing) {
       this.selectPlaylist(existing._id);
       this.showPlaylistMessage('A playlist with this name already exists. Showing existing playlist.');
@@ -718,6 +667,11 @@ export default class PlaylistManager {
     }
     try {
       const response = await playlistService.createPlaylist(name);
+      if (response.duplicate && response.playlist) {
+        this.selectPlaylist(response.playlist._id);
+        this.showPlaylistMessage('A playlist with this name already exists. Showing existing playlist.');
+        return response.playlist;
+      }
       // Add to MRU
       if (response && response.playlist && response.playlist._id) {
         this.updateRecentPlaylists(response.playlist._id);
@@ -730,8 +684,17 @@ export default class PlaylistManager {
 
   async renamePlaylist(playlistId, name) {
     if (!playlistId) return;
+    const duplicate = this.findPlaylistByDisplayName(name);
+    if (duplicate && duplicate._id !== playlistId) {
+      this.showError('A playlist with this name already exists.');
+      return;
+    }
     try {
-      await playlistService.renamePlaylist(playlistId, name);
+      const response = await playlistService.renamePlaylist(playlistId, name);
+      if (response.duplicate && response.playlist) {
+        this.showError('A playlist with this name already exists.');
+        return;
+      }
       await this.loadPlaylists();
     } catch (error) {
       this.showError('Failed to rename playlist. Please try again.');

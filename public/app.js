@@ -1,8 +1,8 @@
 /*
   APP.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -1320,7 +1320,7 @@ async function searchAndDisplayImages(query, messageElement) {
             const seenUrls = new Set();
             
             for (const item of data.images) {
-                if (item.link && item.title && !seenUrls.has(item.link)) {
+                if (item.link && !seenUrls.has(item.link)) {
                     seenUrls.add(item.link);
                     uniqueImages.push(item);
                 }
@@ -1328,11 +1328,26 @@ async function searchAndDisplayImages(query, messageElement) {
             
             if (uniqueImages.length > 0) {
                 insertAndStyleImages(uniqueImages, messageElement, '', query);
-        }
+            } else {
+                showRecipeImageSearchError(messageElement, query);
+            }
+        } else {
+            showRecipeImageSearchError(messageElement, query);
         }
     } catch (error) {
         console.error('Error in searchAndDisplayImages:', error);
+        showRecipeImageSearchError(messageElement, query);
     }
+}
+
+function showRecipeImageSearchError(messageElement, query) {
+    if (!messageElement || messageElement.querySelector('.recipe-images-error')) return;
+    const err = document.createElement('p');
+    err.className = 'recipe-images-error';
+    err.style.cssText = 'color:#b45309;font-size:0.9em;margin-top:12px;font-style:italic;';
+    err.textContent = `Could not load images for "${normalizeImageSearchQuery(query) || query}". Try a shorter search term, or restart the server if you recently updated image search.`;
+    const content = messageElement.querySelector('.message-content') || messageElement;
+    content.appendChild(err);
 }
 
 // Helper to clean the subject for image headings
@@ -1402,9 +1417,12 @@ function insertAndStyleImages(images, messageElement, headingText, originalQuery
             link.className = 'image-link';
             // No inline styles
             const img = document.createElement('img');
-            img.src = imgObj.link;
-            img.alt = 'image';
+            img.src = imgObj.thumbnail || imgObj.link;
+            img.alt = imgObj.title || 'image';
             img.className = 'image-link-img';
+            img.loading = 'lazy';
+            img.referrerPolicy = 'no-referrer';
+            img.dataset.originalUrl = imgObj.originalUrl || imgObj.thumbnail || imgObj.link;
             link.appendChild(img);
             container.appendChild(link);
         });
@@ -1415,7 +1433,8 @@ function insertAndStyleImages(images, messageElement, headingText, originalQuery
     // Add event listener to "More Images" button
     const moreImagesBtn = messageElement.querySelector('.more-images-btn');
     
-    imagesSectionElement.setAttribute('data-query', originalQuery); // originalQuery is the actual query string used for the search
+    imagesSectionElement.setAttribute('data-query', normalizeImageSearchQuery(originalQuery));
+    imagesSectionElement.setAttribute('data-next-start', '11');
     moreImagesBtn.addEventListener('click', () => {
         const query = imagesSectionElement.getAttribute('data-query');
         fetchMoreImages(imagesSectionElement, query);
@@ -2641,19 +2660,20 @@ async function getAIResponse(message, selectedModel, history, systemPrompt, sess
                         continue; // Skip all other processing for Bing results
                     }
 
-                    // Check for image trigger phrase or placeholder
+                    // Check for image trigger phrase or placeholder (skip during recipe streaming — use recipe title after)
                     if (
-                        responseText.toLowerCase().includes('here are some relevant images for') ||
-                        containsImagePlaceholder(responseText)
+                        !isRecipeQuery &&
+                        (responseText.toLowerCase().includes('here are some relevant images for') ||
+                        containsImagePlaceholder(responseText))
                     ) {
                         // Try to extract the subject from the heading or placeholder
                         let searchQuery = '';
                         const imageMatch = responseText.match(/here are some relevant images for (.*?)[.!?\n]/i);
                         if (imageMatch && imageMatch[1]) {
-                            searchQuery = imageMatch[1].trim();
+                            searchQuery = normalizeImageSearchQuery(imageMatch[1].trim());
                         } else {
                             // Try to extract from placeholder or any 'Here are ... images of/for ...' line
-                            searchQuery = extractSubjectFromPlaceholder(responseText);
+                            searchQuery = normalizeImageSearchQuery(extractSubjectFromPlaceholder(responseText));
                         }
                         if (searchQuery) {
                             console.log('[IMAGE DEBUG] Detected image request for:', searchQuery);
@@ -2704,7 +2724,13 @@ async function getAIResponse(message, selectedModel, history, systemPrompt, sess
     // For recipes, only now render the card with the full response
     if (isRecipeQuery) {
         // (Removed: updateStatus(MESSAGES.STATUS.PROCESSING);)
-        messageElement = addMessageToChat('assistant', recipeBuffer, { model: selectedModel, startTime, tokenCount, isRecipeQuery: true });
+        messageElement = addMessageToChat('assistant', recipeBuffer, {
+            model: selectedModel,
+            startTime,
+            tokenCount,
+            isRecipeQuery: true,
+            originalUserQuery: message
+        });
         if (messageElement) {
             messageElement.dataset.startTime = startTime;
         }
@@ -2873,14 +2899,14 @@ function addMessageToChat(role, content, options = {}) {
         // Insert images if the recipe text contains the image trigger phrase (restored logic)
         const imageTrigger = content.toLowerCase().match(/here are some relevant images for (.*?)[.!?\n]/i);
         let searchQuery = null;
-        if (imageTrigger && imageTrigger[1]) {
-            searchQuery = imageTrigger[1].trim();
-            console.log('Detected image request for:', searchQuery);
-        } else if (options.originalUserQuery && userRequestedImages(options.originalUserQuery)) {
-            // Extract the recipe title (first non-empty line)
+        if (options.originalUserQuery && userRequestedImages(options.originalUserQuery)) {
+            // Prefer recipe title over AI placeholder text like "a recipe for crumb cake"
             const firstLine = content.split('\n').map(l => l.trim()).find(l => l.length > 0) || '';
-            searchQuery = firstLine;
+            searchQuery = normalizeImageSearchQuery(firstLine);
             console.log('[IMAGE DEBUG] User requested images, using recipe title for image search:', searchQuery);
+        } else if (imageTrigger && imageTrigger[1]) {
+            searchQuery = normalizeImageSearchQuery(imageTrigger[1].trim());
+            console.log('Detected image request for:', searchQuery);
         }
         if (searchQuery) {
             setTimeout(() => {
@@ -5878,7 +5904,8 @@ function addMoreImages(newImages, imagesSectionElement) {
     const newImagesHtml = newImages.map(imgObj => `
         <a href="${imgObj.contextLink || imgObj.link}" target="_blank" rel="noopener noreferrer" class="image-link new-image"
             style="cursor: pointer; text-decoration: none; display: block; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; transition: transform 0.2s ease-in-out; aspect-ratio: 1;">
-            <img src="${imgObj.link}" alt="${imgObj.title}" title="${imgObj.title}"
+            <img src="${imgObj.thumbnail || imgObj.link}" alt="${imgObj.title}" title="${imgObj.title}" loading="lazy" referrerpolicy="no-referrer"
+                    data-original-url="${imgObj.originalUrl || imgObj.thumbnail || imgObj.link}"
                     style="width: 100%; height: 100%; object-fit: cover; display: block;">
         </a>
     `).join('');
@@ -5895,93 +5922,77 @@ function addMoreImages(newImages, imagesSectionElement) {
 }
 
 
-// Simplified function - no pagination needed!
+// Fetch next page of images (Google CSE / Wikimedia use start=1, 11, 21, ...)
 async function fetchMoreImages(imagesSectionElement, query) {
     const moreImagesBtn = imagesSectionElement.querySelector('.more-images-btn');
-    // Show loading state
+    const nextStart = parseInt(imagesSectionElement.getAttribute('data-next-start'), 10) || 11;
+    if (nextStart > 91) {
+        moreImagesBtn.textContent = 'No more images';
+        moreImagesBtn.disabled = true;
+        return;
+    }
+
     moreImagesBtn.textContent = 'Loading...';
     moreImagesBtn.disabled = true;
     moreImagesBtn.style.background = '#6c757d';
     try {
-        console.log('IMAGE DEBUG: Fetching more images for:', query);
-        const response = await fetch(window.appConfig.getApiUrl('/api/google-image-search?q=' + encodeURIComponent(query)));
+        const searchQuery = normalizeImageSearchQuery(query);
+        console.log('[IMAGE DEBUG] Fetching more images for:', searchQuery, 'start:', nextStart);
+        const response = await fetch(
+            window.appConfig.getApiUrl('/api/google-image-search?q=' + encodeURIComponent(searchQuery) + '&start=' + nextStart)
+        );
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log('IMAGE DEBUG: More images response:', data);
+        console.log('[IMAGE DEBUG] More images response:', data.source, data.images?.length);
+
         if (data.images && data.images.length > 0) {
-            // Remove duplicates from new batch
-            const existingLinks = new Set(
-                Array.from(imagesSectionElement.querySelectorAll('.image-link img')).map(img => img.src)
+            const existingKeys = new Set(
+                Array.from(imagesSectionElement.querySelectorAll('.image-link img')).map(img =>
+                    img.dataset.originalUrl || img.src
+                )
             );
-            const newUniqueImages = data.images.filter(item =>
-                item.link && item.title && !existingLinks.has(item.link)
-            );
+            const newUniqueImages = data.images.filter(item => {
+                const key = item.originalUrl || item.thumbnail || item.link;
+                return key && !existingKeys.has(key);
+            });
+
             if (newUniqueImages.length > 0) {
-                console.log('IMAGE DEBUG: Adding', newUniqueImages.length, 'new unique images');
                 addMoreImages(newUniqueImages, imagesSectionElement);
+                imagesSectionElement.setAttribute('data-next-start', String(data.nextStart || nextStart + 10));
+            } else if (nextStart < 81) {
+                imagesSectionElement.setAttribute('data-next-start', String(nextStart + 10));
+                await fetchMoreImages(imagesSectionElement, query);
+                return;
             } else {
-                fetchMoreImagesWithVariation(imagesSectionElement, query);
+                moreImagesBtn.textContent = 'No more images';
+                moreImagesBtn.disabled = true;
+                return;
             }
+        } else if (nextStart < 81) {
+            imagesSectionElement.setAttribute('data-next-start', String(nextStart + 10));
+            await fetchMoreImages(imagesSectionElement, query);
+            return;
+        } else {
+            moreImagesBtn.textContent = 'No more images';
+            moreImagesBtn.disabled = true;
+            return;
         }
     } catch (error) {
         console.error('Error fetching more images:', error);
     } finally {
-        moreImagesBtn.textContent = 'More Images';
-        moreImagesBtn.disabled = false;
-        moreImagesBtn.style.background = '#007bff';
+        if (moreImagesBtn.textContent === 'Loading...') {
+            moreImagesBtn.textContent = 'More Images';
+            moreImagesBtn.disabled = false;
+            moreImagesBtn.style.background = '#007bff';
+        }
     }
 }
 
-// Optional: Add variety when we run out of unique images
-// Complete function with variation when we run out of unique images
+// Deprecated: random query variations returned irrelevant images (dogs, stir-fry, etc.)
 async function fetchMoreImagesWithVariation(imagesSectionElement, query) {
-    const variations = [
-        `${query} photos`,
-        `${query} pictures`, 
-        `${query} images`,
-        `${query} wallpaper`,
-        `beautiful ${query}`,
-        `${query} HD`,
-        `amazing ${query}`,
-        `${query} nature`,
-        `${query} wildlife`
-    ];
-    
-    const randomVariation = variations[Math.floor(Math.random() * variations.length)];
-    console.log('IMAGE DEBUG: Trying variation:', randomVariation);
-    
-    try {
-        const response = await fetch(window.appConfig.getApiUrl(`/api/google-image-search?q=${encodeURIComponent(randomVariation)}`));
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('IMAGE DEBUG: Variation response:', data);
-            
-            if (data.images && data.images.length > 0) {
-                // Remove duplicates from variation batch
-                const existingLinks = new Set(
-                    Array.from(imagesSectionElement.querySelectorAll('.image-link img')).map(img => img.src)
-                );
-                
-                const newUniqueImages = data.images.filter(item => 
-                    item.link && item.title && !existingLinks.has(item.link)
-                );
-                
-                if (newUniqueImages.length > 0) {
-                    console.log('IMAGE DEBUG: Adding', newUniqueImages.length, 'variation images');
-                    addMoreImages(newUniqueImages, imagesSectionElement);
-                } else {
-                    console.log('IMAGE DEBUG: No new images found even with variation');
-                }
-            }
-        
-    } catch (error) {
-        console.error('Error fetching variation images:', error);
-    }
+    await fetchMoreImages(imagesSectionElement, query);
 }
 
 // Function to add event listeners to images (hover + error handling)
@@ -7083,25 +7094,49 @@ function userRequestedImages(query) {
 }
 
 // Improved subject extraction for image search
+function normalizeImageSearchQuery(query) {
+    if (!query || typeof query !== 'string') return '';
+    let q = query.trim();
+    q = q.replace(/^(?:here are some relevant images (?:of|for)\s*)+/i, '');
+    q = q.replace(/^(?:(?:a|an|the)\s+)?(?:recipe\s+for|recipe\s+of)\s+/i, '');
+    q = q.replace(/^(?:for|of|about)\s+(?:a|an|the)\s+/i, '');
+    q = q.replace(/^(?:a|an|the)\s+/i, '');
+    q = q.replace(/\brecipe\b/gi, ' ').replace(/\s+/g, ' ').trim();
+    q = q.replace(/\s+(?:with\s+)?(?:images?|pictures?|photos?)\s*$/i, '').trim();
+    if (q.length > 60 || /\bis a\b|\bare a\b|\bwas a\b/i.test(q)) {
+        const lead = q.match(/^(.{3,80}?)\s+(?:is|are|was|were)\s+(?:a|an|the)\b/i);
+        if (lead?.[1]) q = lead[1].trim();
+    }
+    if (q.length > 80) q = q.slice(0, 80).replace(/\s+\S*$/, '').trim();
+    return q || query.trim().slice(0, 80);
+}
+
 function extractImageSubject(message, responseText) {
-    // Try to extract the main subject from the recipe title (first line) or before 'and provide images' etc.
     let subject = '';
-    // 1. For recipes, use the first non-empty line as the subject
-    const recipeTitleMatch = responseText && responseText.trim().match(/^([A-Za-z0-9 ,.'-]+)$/m);
-    if (recipeTitleMatch && recipeTitleMatch[1]) {
-        subject = recipeTitleMatch[1].trim();
-    } else {
-        // 2. For general queries, extract before 'and provide images' or similar
-        const generalMatch = message.match(/tell me about (.*?) (and|with)? (provide|show|display)? ?(images?|pictures?|photos?)/i);
-        if (generalMatch && generalMatch[1]) {
-            subject = generalMatch[1].trim();
-        } else {
-            // 3. Fallback: remove image-related words and trim
-            subject = message.replace(/(and|with)? ?(provide|show|display)? ?(images?|pictures?|photos?)/gi, '').trim();
+
+    if (message) {
+        const aboutMatch = message.match(
+            /tell me about (?:the\s+)?(.+?)\s+(?:and|with)?\s*(?:provide|show|display|give)?\s*(?:me\s+)?(?:some\s+)?(?:images?|pictures?|photos?)/i
+        );
+        if (aboutMatch?.[1]) subject = normalizeImageSearchQuery(aboutMatch[1]);
+    }
+    if (!subject && message) {
+        const imageOfMatch = message.match(/(?:show|provide|display|give)\s+(?:me\s+)?(?:some\s+)?(?:images?|pictures?|photos?) (?:of|for) (?:the\s+)?(.+?)$/i);
+        if (imageOfMatch?.[1]) subject = normalizeImageSearchQuery(imageOfMatch[1]);
+    }
+    if (!subject && message) {
+        const recipeForMatch = message.match(/recipe\s+for\s+(?:the\s+)?(.+?)(?:\s+with|\s+and|\s*$)/i);
+        if (recipeForMatch?.[1]) subject = normalizeImageSearchQuery(recipeForMatch[1]);
+    }
+    if (!subject && responseText) {
+        const firstLine = responseText.trim().split('\n').map(l => l.trim()).find(l => l.length > 0);
+        if (firstLine && firstLine.length < 80 && !/\bis a\b|\bare\b/.test(firstLine)) {
+            subject = normalizeImageSearchQuery(firstLine);
         }
     }
-    // 4. Final fallback: if still empty, use the whole message
-    if (!subject) subject = message.trim();
+    if (!subject && message) {
+        subject = normalizeImageSearchQuery(message);
+    }
     console.log('[IMAGE DEBUG] Extracted subject for image search:', subject);
     return subject;
 }

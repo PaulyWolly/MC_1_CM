@@ -1,8 +1,8 @@
 /*
   SCAN_MEDIA_LIBRARY_TV-SHOWS.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -25,10 +25,12 @@ function logWithAnimation(message, step = 0) {
 const MEDIA_ROOT = 'S:/MEDIA/TV-SHOWS';
 const OUTPUT_FILE = path.join(__dirname, '../../public/components/MediaLibrary/data/tv-shows/tv-shows-unified.json');
 
-// Get TMDB ID from command line arguments
+// Get command line arguments
 const args = process.argv.slice(2);
 const tmdbIdArg = args.find(arg => arg.startsWith('--tmdb-id='));
 const TMDB_ID = tmdbIdArg ? tmdbIdArg.split('=')[1] : null;
+const showNameArg = args.find(arg => arg.startsWith('--show='));
+const SHOW_NAME = showNameArg ? showNameArg.split('=')[1] : null;
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
 function isVideoFile(filename) {
@@ -171,8 +173,9 @@ function findEpisodeVideoFiles(showPath, seasonNum, episodeNum) {
 
 /**
  * Create episode object following the EXACT template structure
+ * CRITICAL: NEVER overwrites existing images - only adds new ones if missing
  */
-function createEpisodeObject(episodeNum, seasonNum, showTitle, showPath, videoFiles, tmdbEpisodeData = null) {
+function createEpisodeObject(episodeNum, seasonNum, showTitle, showPath, videoFiles, tmdbEpisodeData = null, existingEpisode = null) {
     const primaryVideo = videoFiles.length > 0 ? videoFiles[0] : null;
     
     // Extract episode title from filename or use TMDB data
@@ -187,19 +190,36 @@ function createEpisodeObject(episodeNum, seasonNum, showTitle, showPath, videoFi
     // Format episode title: "Show Name (Year) | S1E1 | Episode Title" (NO leading zeros)
     const formattedTitle = `${showTitle} | S${seasonNum}E${episodeNum} | ${episodeTitle}`;
     
+    // CRITICAL: NEVER overwrite existing images - only use them if they exist
+    // Only add new images if NO existing images are present
+    let episodeStill = null;
+    if (existingEpisode?.still && !existingEpisode.still.includes('placeholder')) {
+        // PRESERVE existing still - DO NOT OVERWRITE
+        episodeStill = existingEpisode.still;
+    } else if (existingEpisode?.thumbnail && !existingEpisode.thumbnail.includes('placeholder')) {
+        // PRESERVE existing thumbnail - DO NOT OVERWRITE
+        episodeStill = existingEpisode.thumbnail;
+    } else if (tmdbEpisodeData?.still_path) {
+        // Only add NEW image if no existing image
+        episodeStill = `https://image.tmdb.org/t/p/w500${tmdbEpisodeData.still_path}`;
+    } else {
+        // Placeholder only if nothing exists
+        episodeStill = `https://via.placeholder.com/400x225/333/666?text=S${seasonNum}E${episodeNum}`;
+    }
+    
     const episode = {
         title: formattedTitle,
         absPath: primaryVideo ? primaryVideo.absPath : null,
         path: primaryVideo ? primaryVideo.path.replace('S:/MEDIA/', '') : null, // Remove S:/MEDIA/ prefix for relative path
-        duration: tmdbEpisodeData?.runtime || 22, // Default 22 minutes for TV episodes
+        duration: existingEpisode?.duration || tmdbEpisodeData?.runtime || 22, // Preserve existing duration
         season: parseInt(seasonNum),
         episode: parseInt(episodeNum),
         type: "episode",
         isSpecials: false,
         videoFormat: primaryVideo ? primaryVideo.ext : null,
         supportsVideo: videoFiles.length > 0,
-        still: tmdbEpisodeData?.still_path ? `https://image.tmdb.org/t/p/w500${tmdbEpisodeData.still_path}` : `https://via.placeholder.com/400x225/333/666?text=S${seasonNum}E${episodeNum}`,
-        thumbnail: tmdbEpisodeData?.still_path ? `https://image.tmdb.org/t/p/w500${tmdbEpisodeData.still_path}` : `https://via.placeholder.com/400x225/333/666?text=S${seasonNum}E${episodeNum}`
+        still: episodeStill,
+        thumbnail: episodeStill
     };
     
     return episode;
@@ -235,6 +255,7 @@ async function processShowDirectory(showDir, showName, existingData, tmdbData = 
     const show = {
         // Top-level fields (basic info)
         TMDBTitle: existingShow?.TMDBTitle || showName.replace(/\s*\(\d{4}\)\s*$/, ''),
+        dateAdded: existingShow?.dateAdded || new Date().toISOString(), // Add date when show was added to library (right after TMDBTitle)
         type: "tvshow",
         isMovie: false,
         normalizedKey: normalizedKey,
@@ -289,11 +310,31 @@ async function processShowDirectory(showDir, showName, existingData, tmdbData = 
             // Get TMDB season data if available
             const tmdbSeasonData = tmdbData?.seasons?.[parseInt(seasonNum)];
             
-            // Create new season data
+            // Get existing season data to preserve images
+            const existingSeason = existingShow?.seasons?.[seasonNum];
+            
+            // CRITICAL: NEVER overwrite existing images - only use them if they exist
+            // Only add new images if NO existing images are present
+            let seasonPoster = null;
+            if (existingSeason?.poster && !existingSeason.poster.includes('placeholder')) {
+                // PRESERVE existing poster
+                seasonPoster = existingSeason.poster;
+            } else if (existingSeason?.season_poster && !existingSeason.season_poster.includes('placeholder')) {
+                // PRESERVE existing season_poster
+                seasonPoster = existingSeason.season_poster;
+            } else if (tmdbSeasonData?.poster_path) {
+                // Only add NEW image if no existing image
+                seasonPoster = `https://image.tmdb.org/t/p/w260_and_h390_bestv2${tmdbSeasonData.poster_path}`;
+            } else {
+                // Placeholder only if nothing exists
+                seasonPoster = `https://via.placeholder.com/260x390/333/666?text=Season ${seasonNum}`;
+            }
+            
+            // Create new season data - PRESERVE existing images at all costs
             const newSeasonData = {
-                poster: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w260_and_h390_bestv2${tmdbSeasonData.poster_path}` : `https://via.placeholder.com/260x390/333/666?text=Season ${seasonNum}`,
-                season_poster: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w260_and_h390_bestv2${tmdbSeasonData.poster_path}` : `https://via.placeholder.com/260x390/333/666?text=Season ${seasonNum}`,
-                season_thumbnail: tmdbSeasonData?.poster_path ? `https://image.tmdb.org/t/p/w260_and_h390_bestv2${tmdbSeasonData.poster_path}` : `https://via.placeholder.com/260x390/333/666?text=Season ${seasonNum}`,
+                poster: seasonPoster,
+                season_poster: seasonPoster,
+                season_thumbnail: seasonPoster,
                 episodes: {}
             };
             
@@ -306,12 +347,13 @@ async function processShowDirectory(showDir, showName, existingData, tmdbData = 
             {
                 const episodeFiles = fs.readdirSync(seasonPath).filter(file => isVideoFile(file));
                 
-                // Group episodes by episode number
+                // Group episodes by episode number (REMOVE LEADING ZEROS)
                 const episodeGroups = {};
                 for (const file of episodeFiles) {
                     const episodeMatch = file.match(/[Ss]\d+[Ee](\d+)/i);
                     if (episodeMatch) {
-                        const episodeNum = episodeMatch[1];
+                        // Parse as integer to remove leading zeros (e.g., "01" -> "1")
+                        const episodeNum = parseInt(episodeMatch[1], 10).toString();
                         if (!episodeGroups[episodeNum]) {
                             episodeGroups[episodeNum] = [];
                         }
@@ -336,15 +378,20 @@ async function processShowDirectory(showDir, showName, existingData, tmdbData = 
                     // Get TMDB episode data if available
                     const tmdbEpisodeData = tmdbSeasonData?.episodes?.find(ep => ep.episode_number === parseInt(episodeNum));
                     
-                    // Create new episode data
-                    const newEpisodeData = createEpisodeObject(episodeNum, seasonNum, showName, showPath, videoFiles, tmdbEpisodeData);
+                    // Get existing episode data to preserve images
+                    // Use episodeNum as key (already has leading zeros removed)
+                    const episodeKey = episodeNum;
+                    const existingEpisode = existingSeason?.episodes?.[episodeNum] || existingSeason?.episodes?.[episodeKey];
+                    
+                    // Create new episode data - preserve existing images if TMDB data not available
+                    const newEpisodeData = createEpisodeObject(episodeNum, seasonNum, showName, showPath, videoFiles, tmdbEpisodeData, existingEpisode);
                     
                     // CONVERT: Use filesystem data as the source of truth
                     // This ensures JSON structure matches filesystem structure
                     const episode = newEpisodeData;
                     
-                    // Use episode number as key (no leading zeros to match filesystem)
-                    const episodeKey = episodeNum;
+                    // Use episode number as key (no leading zeros - already parsed above)
+                    // episodeKey was already defined above
                     season.episodes[episodeKey] = episode;
                 }
             }
@@ -453,13 +500,36 @@ async function main() {
         console.log(`⚠️ [SCAN] Could not load existing data: ${e.message}`);
     }
 
-    // Get all show directories
-    const showDirs = fs.readdirSync(MEDIA_ROOT).filter(item => {
+    // Get all show directories (or filter to single show if specified)
+    let showDirs = fs.readdirSync(MEDIA_ROOT).filter(item => {
         const itemPath = path.join(MEDIA_ROOT, item);
         return fs.statSync(itemPath).isDirectory() && !isBackupFolder(item);
     });
 
-    console.log(`🔍 [SCAN] Found ${showDirs.length} show directories`);
+    // Filter to single show if --show parameter provided
+    if (SHOW_NAME) {
+        const matchingShows = showDirs.filter(dir => {
+            const dirLower = dir.toLowerCase();
+            const searchLower = SHOW_NAME.toLowerCase();
+            return dirLower.includes(searchLower) || searchLower.includes(dirLower);
+        });
+        
+        if (matchingShows.length === 0) {
+            console.error(`❌ [SCAN] Error: No TV show found matching "${SHOW_NAME}"`);
+            console.log(`📋 Available shows: ${showDirs.slice(0, 10).join(', ')}${showDirs.length > 10 ? '...' : ''}`);
+            process.exit(1);
+        } else if (matchingShows.length > 1) {
+            console.log(`⚠️ [SCAN] Multiple shows found matching "${SHOW_NAME}":`);
+            matchingShows.forEach(show => console.log(`   - ${show}`));
+            console.log(`⚠️ [SCAN] Using first match: ${matchingShows[0]}`);
+            showDirs = [matchingShows[0]];
+        } else {
+            showDirs = matchingShows;
+            console.log(`🎯 [SCAN] Scanning single show: ${showDirs[0]}`);
+        }
+    }
+
+    console.log(`🔍 [SCAN] Found ${showDirs.length} show directory${showDirs.length === 1 ? '' : 'ies'} to process`);
 
     // Fetch TMDB data if ID provided
     // Note: This script processes existing shows and preserves their existing TMDB data

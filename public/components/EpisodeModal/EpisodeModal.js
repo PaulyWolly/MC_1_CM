@@ -1,8 +1,8 @@
 /*
   EPISODEMODAL.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -389,11 +389,18 @@ class EpisodeModal {
                     episodeLabel = `S${seasonNum}E${episodeNum}`;
                 }
                 
+                console.log('[EPISODE-MODAL] ==========================================');
+                console.log('[EPISODE-MODAL] Comparing episode:', episodeLabel);
+                console.log('[EPISODE-MODAL] Current episode info:', currentEpisodeInfo);
+                console.log('[EPISODE-MODAL] Episode seasonNum:', seasonNum, 'episodeNum:', episodeNum);
+                console.log('[EPISODE-MODAL] Current seasonNumber:', currentEpisodeInfo?.seasonNumber, 'episodeNumber:', currentEpisodeInfo?.episodeNumber);
+                
                 const isCurrentEpisode = currentEpisodeInfo && 
                     currentEpisodeInfo.seasonNumber === seasonNum && 
                     currentEpisodeInfo.episodeNumber === episodeNum;
                 
-                console.log('[EPISODE-MODAL] Episode', episodeLabel, 'isCurrentEpisode:', isCurrentEpisode);
+                console.log('[EPISODE-MODAL] isCurrentEpisode result:', isCurrentEpisode);
+                console.log('[EPISODE-MODAL] ==========================================');
                 
                 const statusText = isCurrentEpisode ? ' (Currently Playing)' : '';
                 const buttonClass = isCurrentEpisode ? 'episode-button current-episode' : 'episode-button';
@@ -522,32 +529,84 @@ class EpisodeModal {
 
     // Get current episode info
     getCurrentEpisodeInfo() {
+        console.log('[EPISODE-MODAL] ==========================================');
+        console.log('[EPISODE-MODAL] 🔍 GETTING CURRENT EPISODE INFO');
+        console.log('[EPISODE-MODAL] ==========================================');
+        
         // Get current episode info from VideoPlayer
-        if (window.videoPlayer && window.videoPlayer.currentFile) {
-            const currentFile = window.videoPlayer.currentFile;
-            const filePath = currentFile.absPath || currentFile.name;
+        if (window.videoPlayer) {
+            console.log('[EPISODE-MODAL] VideoPlayer found');
+            console.log('[EPISODE-MODAL] currentMediaItem:', window.videoPlayer.currentMediaItem);
+            console.log('[EPISODE-MODAL] currentFile:', window.videoPlayer.currentFile);
             
-            if (filePath) {
-                // Extract episode info from current file
-                const episodeInfo = this.extractEpisodeInfo(filePath);
-                console.log('[EPISODE-MODAL] Current episode info:', episodeInfo);
-                return episodeInfo;
+            // Try currentMediaItem first (most reliable)
+            if (window.videoPlayer.currentMediaItem) {
+                const currentMediaItem = window.videoPlayer.currentMediaItem;
+                console.log('[EPISODE-MODAL] Trying currentMediaItem');
+                console.log('[EPISODE-MODAL] FULL currentMediaItem object:', currentMediaItem);
+                console.log('[EPISODE-MODAL] currentMediaItem.absPath:', currentMediaItem.absPath);
+                console.log('[EPISODE-MODAL] currentMediaItem.path:', currentMediaItem.path);
+                console.log('[EPISODE-MODAL] currentMediaItem.title:', currentMediaItem.title);
+                console.log('[EPISODE-MODAL] currentMediaItem.season:', currentMediaItem.season);
+                console.log('[EPISODE-MODAL] currentMediaItem.episode:', currentMediaItem.episode);
+                
+                // PRIORITY 1: Check if season and episode are directly available (fastest and most reliable)
+                if (currentMediaItem.season !== undefined && currentMediaItem.episode !== undefined) {
+                    const episodeInfo = {
+                        seasonNumber: parseInt(currentMediaItem.season),
+                        episodeNumber: parseInt(currentMediaItem.episode),
+                        showName: this.extractShowName(currentMediaItem.title || currentMediaItem.name || '')
+                    };
+                    console.log('[EPISODE-MODAL] ✅ SUCCESS: Using direct season/episode info:', episodeInfo);
+                    console.log('[EPISODE-MODAL] ==========================================');
+                    return episodeInfo;
+                }
+                
+                // PRIORITY 2: Try to get file path and extract episode info
+                // Use path first (has full filename with S1E8) instead of absPath (which is just folder)
+                const filePath = currentMediaItem.path || currentMediaItem.filePath || currentMediaItem.absPath || currentMediaItem.name;
+                console.log('[EPISODE-MODAL] Extracted filePath:', filePath);
+                
+                if (filePath) {
+                    // Extract episode info from current file
+                    const episodeInfo = this.extractEpisodeInfo(filePath);
+                    console.log('[EPISODE-MODAL] ✅ SUCCESS: Extracted episode info:', episodeInfo);
+                    console.log('[EPISODE-MODAL] ==========================================');
+                    return episodeInfo;
+                }
+            }
+            
+            // Fallback: try currentFile
+            if (window.videoPlayer.currentFile) {
+                const currentFile = window.videoPlayer.currentFile;
+                console.log('[EPISODE-MODAL] Trying currentFile fallback');
+                
+                // Check if season/episode are directly available
+                if (currentFile.season !== undefined && currentFile.episode !== undefined) {
+                    const episodeInfo = {
+                        seasonNumber: parseInt(currentFile.season),
+                        episodeNumber: parseInt(currentFile.episode),
+                        showName: this.extractShowName(currentFile.title || currentFile.name || '')
+                    };
+                    console.log('[EPISODE-MODAL] ✅ SUCCESS: Using direct season/episode info (from currentFile):', episodeInfo);
+                    console.log('[EPISODE-MODAL] ==========================================');
+                    return episodeInfo;
+                }
+                
+                const filePath = currentFile.absPath || currentFile.path || currentFile.name;
+                console.log('[EPISODE-MODAL] FilePath:', filePath);
+                
+                if (filePath) {
+                    const episodeInfo = this.extractEpisodeInfo(filePath);
+                    console.log('[EPISODE-MODAL] ✅ SUCCESS: Extracted episode info (from currentFile):', episodeInfo);
+                    console.log('[EPISODE-MODAL] ==========================================');
+                    return episodeInfo;
+                }
             }
         }
         
-        // Fallback: try to get from currentMediaItem
-        if (window.videoPlayer && window.videoPlayer.currentMediaItem) {
-            const currentMediaItem = window.videoPlayer.currentMediaItem;
-            const filePath = currentMediaItem.path || currentMediaItem.absPath;
-            
-            if (filePath) {
-                const episodeInfo = this.extractEpisodeInfo(filePath);
-                console.log('[EPISODE-MODAL] Current episode info (from currentMediaItem):', episodeInfo);
-                return episodeInfo;
-            }
-        }
-        
-        console.log('[EPISODE-MODAL] No current episode info found');
+        console.log('[EPISODE-MODAL] ❌ FAILURE: No current episode info found');
+        console.log('[EPISODE-MODAL] ==========================================');
         return null;
     }
 

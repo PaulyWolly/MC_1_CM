@@ -1,8 +1,8 @@
 /*
   SCAN_MEDIA_LIBRARY_MOVIES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -449,6 +449,29 @@ async function main() {
         // BULLETPROOF: Create a set of all existing keys (normalized to lowercase) for fast lookup
         const existingKeysSet = new Set(Object.keys(existingData).map(key => key.toLowerCase()));
         
+        // ALSO: Create a map of existing movies by their folder path (absPath) from JSON data
+        // This catches duplicates where the same folder exists with different titles (e.g., "X-Men 2" vs "X2")
+        const existingPathsSet = new Set();
+        for (const [key, movie] of Object.entries(existingData)) {
+            // Check the movie's absPath (folder path) - this is the primary folder path
+            if (movie.absPath) {
+                const normalizedPath = movie.absPath.replace(/\\/g, '/').toLowerCase().trim();
+                existingPathsSet.add(normalizedPath);
+            }
+            // Also check all files' directory paths (the folder containing the file)
+            // This catches cases where absPath might not be set but files are
+            if (movie.files && Array.isArray(movie.files)) {
+                movie.files.forEach(file => {
+                    if (file.absPath) {
+                        // Get the directory path (folder) from the file path
+                        const fileDir = path.dirname(file.absPath).replace(/\\/g, '/').toLowerCase().trim();
+                        existingPathsSet.add(fileDir);
+                    }
+                });
+            }
+        }
+        console.log(`📊 [SCAN] Built path set with ${existingPathsSet.size} existing folder paths from JSON`);
+        
         const mediaTree = await walkMediaWithTMDB(MEDIA_ROOT, '', existingKeysSet);
         const flatFolders = flattenFolders(mediaTree);
         
@@ -496,6 +519,45 @@ async function main() {
                     continue; // SKIP - don't touch existing movies!
                 }
                 
+                // ALSO CHECK: Check if this folder path already exists in JSON data (catches different titles for same folder)
+                // Use the JSON data structure - check absPath from existing movies
+                const folderAbsPath = path.join(MEDIA_ROOT, folder.path).replace(/\\/g, '/').toLowerCase().trim();
+                
+                // Check if this folder path exists in any existing movie's absPath or files' directory paths
+                if (existingPathsSet.has(folderAbsPath)) {
+                    // Find which existing movie has this path from JSON data
+                    let existingMovieKey = null;
+                    let foundPath = null;
+                    for (const [key, movie] of Object.entries(existingData)) {
+                        // Check movie's absPath
+                        if (movie.absPath) {
+                            const moviePath = movie.absPath.replace(/\\/g, '/').toLowerCase().trim();
+                            if (moviePath === folderAbsPath) {
+                                existingMovieKey = key;
+                                foundPath = movie.absPath;
+                                break;
+                            }
+                        }
+                        // Check files' directory paths
+                        if (movie.files && Array.isArray(movie.files)) {
+                            for (const file of movie.files) {
+                                if (file.absPath) {
+                                    const fileDirPath = path.dirname(file.absPath).replace(/\\/g, '/').toLowerCase().trim();
+                                    if (fileDirPath === folderAbsPath) {
+                                        existingMovieKey = key;
+                                        foundPath = path.dirname(file.absPath);
+                                        break;
+                                    }
+                                }
+                            }
+                            if (existingMovieKey) break;
+                        }
+                    }
+                    console.log(`⏭️ [SCAN] ✅ SKIPPING existing movie by path: "${folder.path}" → "${normalizedKey}" (found in JSON as: "${existingMovieKey}" with path: "${foundPath}")`);
+                    existingMoviesSkipped++;
+                    continue; // SKIP - this folder already exists in the JSON with a different title!
+                }
+                
                 console.log(`➕ [SCAN] ✅ NEW movie found: "${folder.path}" → "${normalizedKey}"`);
                 newMoviesList.push(`${folder.path} → ${normalizedKey}`); // Track this new movie
                 
@@ -521,6 +583,7 @@ async function main() {
                     isMovie: true,
                     title: processedTitle, // Use the processed title with era designator
                     TMDBTitle: folder.path, // Use the original title for TMDB (without our custom era designators)
+                    dateAdded: new Date().toISOString(), // Add date when movie was added to library (right after TMDBTitle)
                     year: year,
                     normalizedKey: normalizedKey,
                     tmdbId: folder.tmdbId,

@@ -1,8 +1,8 @@
 /*
   NORMALIZATIONSERVICE.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -48,6 +48,10 @@ function normalizeKey(name) {
     .replace(/\bLtd\.\b/gi, 'ltd')
     .replace(/\bCorp\.\b/gi, 'corp')
     .replace(/\bLLC\b/gi, 'llc')
+    // CRITICAL: Split compound words before normalization (e.g., "spiderman" -> "spider man")
+    .replace(/\bSpiderMan\b/gi, 'Spider Man')
+    .replace(/\bspiderman\b/gi, 'spider man')
+    .replace(/\bSpider-Man\b/gi, 'Spider Man')
     // CRITICAL: Standardize X-Men variations to "x.men" for internal consistency
     .replace(/\bX[-\s]*Men\b/gi, 'X-Men')
     .replace(/\bXmen\b/gi, 'X-Men')
@@ -267,8 +271,8 @@ function normalizeKey(name) {
     .replace(/\s+Themselves\s+/gi, '.themselves.')
     // Convert all other spaces to dots
     .replace(/\s+/g, '.')
-    // Handle hyphens in abbreviations (like Wall-E -> Wall.E)
-    .replace(/([a-zA-Z])-([a-zA-Z])/g, '$1.$2')
+    // Convert ALL hyphens to dots (e.g., X-Men -> X.Men, FirstName-LastName -> FirstName.LastName)
+    .replace(/-/g, '.')
     // Remove special characters except dots, parentheses, and brackets
     .replace(/[^a-zA-Z0-9.\[\]()]/g, '')
     // Clean up multiple dots

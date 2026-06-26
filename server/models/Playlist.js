@@ -1,8 +1,8 @@
 /*
   PLAYLIST.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -19,8 +19,11 @@ const VideoSchema = new mongoose.Schema({
 const PlaylistSchema = new mongoose.Schema({
   userId: { type: String, required: true, index: true },
   name: { type: String, required: true },
+  displayKey: { type: String, index: true },
   videos: [VideoSchema],
   createdAt: { type: Date, default: Date.now }
 });
+
+PlaylistSchema.index({ userId: 1, displayKey: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Playlist', PlaylistSchema); 

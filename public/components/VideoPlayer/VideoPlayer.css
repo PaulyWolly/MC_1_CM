@@ -1,8 +1,8 @@
 /*
   VIDEOPLAYER.CSS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -116,6 +116,7 @@
     box-shadow: 0 3px 6px rgba(0,0,0,0.4);
     transform: translateY(-1px);
     cursor: pointer !important; /* Force pointer cursor on hover too */
+    margin-top: 1px;
 }
 
 .video-player-amplify-btn.active {
@@ -133,7 +134,7 @@
     display: flex;
     align-items: center;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgb(188 14 14 / 80%);
     border-radius: 6px;
     border: 1px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);

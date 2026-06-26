@@ -1,8 +1,8 @@
 /*
   MERGE-PLAYLIST-DUPLICATES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -10,10 +10,11 @@ const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 
-require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+require('dotenv').config({ path: path.join(__dirname, '../../server/.env') });
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/multichat';
 
 const Playlist = require('../../server/models/Playlist');
+const { getPlaylistVisibleNameKey } = require('../../utils/playlistNameNormalizer');
 
 async function main() {
   await mongoose.connect(mongoUri);
@@ -23,20 +24,25 @@ async function main() {
   const playlists = await Playlist.find({});
   console.log(`Found ${playlists.length} playlists`);
 
-  // Group by normalized name (trimmed, lowercased)
+  // Group by display-normalized name (matches what user sees in UI)
   const groups = {};
   playlists.forEach(pl => {
-    const norm = pl.name.trim().toLowerCase();
+    const norm = getPlaylistVisibleNameKey(pl.name);
+    if (!norm) return;
     if (!groups[norm]) groups[norm] = [];
     groups[norm].push(pl);
   });
 
   let mergedCount = 0;
   for (const [normName, group] of Object.entries(groups)) {
-    if (group.length < 2) continue; // Only process duplicates
+    if (group.length < 2) continue;
     mergedCount++;
-    // Sort by createdAt, keep the oldest
-    group.sort((a, b) => a.createdAt - b.createdAt);
+    // Keep playlist with most videos, then oldest
+    group.sort((a, b) => {
+      const countDiff = (b.videos?.length || 0) - (a.videos?.length || 0);
+      if (countDiff !== 0) return countDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
     const keeper = group[0];
     const toMerge = group.slice(1);
     // Merge videos (by videoId)

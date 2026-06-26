@@ -1,8 +1,8 @@
 /*
   SERVER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -2400,40 +2400,250 @@ async function handlePhi3Mini4kInstructResponse(completion, res, message, startT
 // GOOGLE IMAGE SEARCH ENDPOINT
 // =====================================================
 
-// Google Image Search endpoint
+const IMAGE_PROXY_CACHE = new Map();
+const IMAGE_PROXY_USER_AGENT = 'MultiChat_Chatty/2.0 (local recipe image search)';
+const ALLOWED_IMAGE_HOSTS = new Set([
+    'upload.wikimedia.org',
+    'encrypted-tbn0.gstatic.com',
+    'lh3.googleusercontent.com'
+]);
+
+function isAllowedImageProxyUrl(urlStr) {
+    try {
+        const u = new URL(urlStr);
+        return u.protocol === 'https:' && ALLOWED_IMAGE_HOSTS.has(u.hostname);
+    } catch {
+        return false;
+    }
+}
+
+async function fetchImageToCache(url) {
+    if (IMAGE_PROXY_CACHE.has(url)) {
+        return IMAGE_PROXY_CACHE.get(url);
+    }
+    const resp = await axios.get(url, {
+        responseType: 'arraybuffer',
+        headers: { 'User-Agent': IMAGE_PROXY_USER_AGENT },
+        timeout: 15000
+    });
+    const entry = {
+        buffer: Buffer.from(resp.data),
+        contentType: resp.headers['content-type'] || 'image/jpeg'
+    };
+    IMAGE_PROXY_CACHE.set(url, entry);
+    if (IMAGE_PROXY_CACHE.size > 200) {
+        const oldest = IMAGE_PROXY_CACHE.keys().next().value;
+        IMAGE_PROXY_CACHE.delete(oldest);
+    }
+    return entry;
+}
+
+/** Serial prefetch avoids Wikimedia 429 when browser loads many images at once */
+async function warmupImageCache(images) {
+    for (const img of images) {
+        const url = img.thumbnail || img.link;
+        if (!isAllowedImageProxyUrl(url)) continue;
+        try {
+            await fetchImageToCache(url);
+            await new Promise(resolve => setTimeout(resolve, 120));
+        } catch (err) {
+            console.warn('[IMAGE PROXY] warmup failed:', url.slice(0, 70), err.message);
+        }
+    }
+}
+
+function wrapImagesForProxy(images) {
+    return images.map(img => {
+        const displayUrl = img.thumbnail || img.link;
+        if (!isAllowedImageProxyUrl(displayUrl)) return { ...img, originalUrl: displayUrl };
+        return {
+            ...img,
+            originalUrl: displayUrl,
+            link: `/api/image-proxy?url=${encodeURIComponent(displayUrl)}`
+        };
+    });
+}
+
+app.get('/api/image-proxy', async (req, res) => {
+    const url = req.query.url;
+    if (!url || !isAllowedImageProxyUrl(url)) {
+        return res.status(400).send('Invalid image URL');
+    }
+    try {
+        const entry = await fetchImageToCache(url);
+        res.set('Content-Type', entry.contentType);
+        res.set('Cache-Control', 'public, max-age=86400');
+        res.send(entry.buffer);
+    } catch (err) {
+        console.warn('[IMAGE PROXY] fetch failed:', err.message);
+        res.status(502).send('Failed to fetch image');
+    }
+});
+
+function getGoogleCseApiKey() {
+    return process.env.GOOGLE_CSE_API_KEY || process.env.GOOGLE_API_KEY;
+}
+
+async function fetchGoogleCustomSearchImages(searchQuery, start = 1) {
+    const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+        params: {
+            key: getGoogleCseApiKey(),
+            cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
+            q: searchQuery,
+            searchType: 'image',
+            num: 10,
+            start
+        }
+    });
+    return (response.data.items || []).map(item => ({
+        link: item.link,
+        title: item.title || searchQuery,
+        thumbnail: item.image?.thumbnailLink,
+        contextLink: item.image?.contextLink
+    }));
+}
+
+function normalizeImageSearchQuery(query) {
+    if (!query || typeof query !== 'string') return '';
+    let q = query.trim();
+    q = q.replace(/^(?:here are some relevant images (?:of|for)\s*)+/i, '');
+    q = q.replace(/^(?:(?:a|an|the)\s+)?(?:recipe\s+for|recipe\s+of)\s+/i, '');
+    q = q.replace(/^(?:for|of|about)\s+(?:a|an|the)\s+/i, '');
+    q = q.replace(/^(?:a|an|the)\s+/i, '');
+    q = q.replace(/\brecipe\b/gi, ' ').replace(/\s+/g, ' ').trim();
+    q = q.replace(/\s+(?:with\s+)?(?:images?|pictures?|photos?)\s*$/i, '').trim();
+    // AI response paragraph used as query — keep leading subject only
+    if (q.length > 60 || /\bis a\b|\bare a\b|\bwas a\b/i.test(q)) {
+        const lead = q.match(/^(.{3,80}?)\s+(?:is|are|was|were)\s+(?:a|an|the)\b/i);
+        if (lead?.[1]) q = lead[1].trim();
+    }
+    if (q.length > 80) q = q.slice(0, 80).replace(/\s+\S*$/, '').trim();
+    return q || query.trim().slice(0, 80);
+}
+
+function isProbablyRecipeQuery(query) {
+    return /\b(recipe|cake|cookie|pie|bread|soup|salad|stew|pasta|dessert|bake|roast|crum(?:b|ble))\b/i.test(query);
+}
+
+function isLikelyUsefulPhoto(img) {
+    const text = `${img.title || ''} ${img.link || ''}`.toLowerCase();
+    if (/\.pdf|\.djvu|recipe book|cookbook|calibration|chart|guide|manual|encyclopedia/i.test(text)) {
+        return false;
+    }
+    if (/\.(jpe?g|png|webp|gif)(\?|$|\/)/i.test(img.link || '')) return true;
+    return !/\bbook\b|\bguide\b/i.test(text);
+}
+
+function scoreImageRelevance(img, subject, recipeMode) {
+    const text = `${img.title || ''} ${img.link || ''}`.toLowerCase();
+    const terms = subject.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    let score = 0;
+    for (const term of terms) {
+        if (text.includes(term)) score += 3;
+    }
+    if (recipeMode) {
+        if (/\bcrumb\b|\bstreusel|\bcoffee cake|\bcrumb cake|\bkuchen\b/i.test(text)) score += 4;
+        if (/\bcrab cake\b/i.test(text) && /\bcrumb\b/i.test(subject) && !/\bcrab\b/i.test(subject)) score -= 8;
+    }
+    return score;
+}
+
+/** Fallback when Google CSE key/project mismatch — no API key required */
+async function fetchWikimediaCommonsImages(searchQuery, start = 1) {
+    const subject = normalizeImageSearchQuery(searchQuery);
+    const recipeMode = isProbablyRecipeQuery(subject);
+    const limit = 10;
+    const offset = Math.max(0, start - 1);
+    const wikiQuery = recipeMode
+        ? `${subject} food -book -pdf -cookbook`
+        : `${subject} -book -pdf -cookbook`;
+    const response = await axios.get('https://commons.wikimedia.org/w/api.php', {
+        params: {
+            action: 'query',
+            generator: 'search',
+            gsrsearch: wikiQuery,
+            gsrlimit: limit + 20,
+            gsrnamespace: 6,
+            gsroffset: offset,
+            prop: 'imageinfo',
+            iiprop: 'url',
+            iiurlwidth: 400,
+            format: 'json'
+        },
+        headers: { 'User-Agent': 'MultiChat_Chatty/2.0 (local image search)' }
+    });
+    const pages = response.data.query?.pages || {};
+    return Object.values(pages)
+        .map(page => {
+            const info = page.imageinfo?.[0];
+            if (!info?.url) return null;
+            return {
+                link: info.url,
+                title: (page.title || '').replace(/^File:/, '') || subject,
+                thumbnail: info.thumburl || info.url,
+                contextLink: info.descriptionurl || info.url
+            };
+        })
+        .filter(Boolean)
+        .filter(isLikelyUsefulPhoto)
+        .sort((a, b) => scoreImageRelevance(b, subject, recipeMode) - scoreImageRelevance(a, subject, recipeMode))
+        .slice(0, limit);
+}
+
+// Google Image Search — tries Google CSE, falls back to Wikimedia Commons
 app.get('/api/google-image-search', async (req, res) => {
     try {
-        const searchQuery = req.query.q;
-        if (!searchQuery) {
+        const rawQuery = req.query.q;
+        if (!rawQuery) {
             return res.status(400).json({ error: 'Search query is required' });
         }
 
-        // Log the exact query being sent to Google CSE
-        console.log('Google Image Search query:', searchQuery);
-
+        const searchQuery = normalizeImageSearchQuery(rawQuery);
         const start = parseInt(req.query.start, 10) || 1;
-        const response = await axios.get(`https://www.googleapis.com/customsearch/v1`, {
-            params: {
-                key: process.env.GOOGLE_API_KEY,
-                cx: process.env.GOOGLE_SEARCH_ENGINE_ID,
-                q: searchQuery,
-                searchType: 'image',
-                num: 10,  // 10 images per request
-                start // <-- support pagination
+        console.log('[IMAGE SEARCH] query:', searchQuery, rawQuery !== searchQuery ? `(from: ${rawQuery})` : '', 'start:', start);
+
+        let googleErrorMsg = null;
+        if (getGoogleCseApiKey() && process.env.GOOGLE_SEARCH_ENGINE_ID) {
+            try {
+                const images = await fetchGoogleCustomSearchImages(searchQuery, start);
+                if (images.length > 0) {
+                    return res.json({ images, source: 'google', start, nextStart: start + 10 });
+                }
+            } catch (googleError) {
+                googleErrorMsg = googleError.response?.data?.error?.message || googleError.message;
+                console.warn('[IMAGE SEARCH] Google CSE failed:', googleErrorMsg);
             }
+        }
+
+        try {
+            const wikiImages = await fetchWikimediaCommonsImages(searchQuery, start);
+            if (wikiImages.length > 0) {
+                await warmupImageCache(wikiImages);
+                const images = wrapImagesForProxy(wikiImages);
+                console.log('[IMAGE SEARCH] Using Wikimedia fallback:', images.length, 'images');
+                return res.json({
+                    images,
+                    source: 'wikimedia',
+                    start,
+                    nextStart: start + 10,
+                    googleWarning: googleErrorMsg || undefined
+                });
+            }
+        } catch (wikiError) {
+            console.warn('[IMAGE SEARCH] Wikimedia fallback failed:', wikiError.message);
+        }
+
+        return res.status(503).json({
+            error: 'Image search unavailable',
+            details: googleErrorMsg || 'No images found from Google or Wikimedia',
+            fix: googleErrorMsg?.includes('does not have the access')
+                ? 'Custom Search API may be enabled on a different GCP project than GOOGLE_API_KEY. In Cloud Console: APIs & Services → Credentials → open your key and confirm the project matches where you enabled Custom Search (e.g. pw-new-app). Or create a new API key in that project and update server/.env.'
+                : 'Check server logs and run: node scripts/CHECK/check_google_image_search.js'
         });
-
-        const images = response.data.items.map(item => ({
-            link: item.link,
-            title: item.title,
-            thumbnail: item.image?.thumbnailLink,
-            contextLink: item.image?.contextLink
-        }));
-
-        res.json({ images });
     } catch (error) {
-        console.error('Error in Google Image Search:', error);
-        res.status(500).json({ error: 'Failed to fetch images', details: error.message });
+        const details = error.response?.data?.error?.message || error.message;
+        console.error('[IMAGE SEARCH] Error:', details);
+        res.status(500).json({ error: 'Failed to fetch images', details });
     }
 });
 

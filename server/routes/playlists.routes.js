@@ -1,16 +1,91 @@
 /*
   PLAYLISTS.ROUTES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
 const express = require('express');
 const Playlist = require('../models/Playlist');
 const mongoose = require('mongoose');
+const { getPlaylistVisibleName, getPlaylistVisibleNameKey } = require('../../utils/playlistNameNormalizer');
 
 const router = express.Router();
+
+function findDuplicatePlaylist(playlists, name, excludeId = null) {
+  const targetKey = getPlaylistVisibleNameKey(name);
+  if (!targetKey) return null;
+  return playlists.find((pl) => {
+    if (excludeId && pl._id.toString() === excludeId) return false;
+    const plKey = pl.displayKey || getPlaylistVisibleNameKey(pl.name);
+    return plKey === targetKey;
+  }) || null;
+}
+
+async function mergeDuplicatePlaylists(userId) {
+  const playlists = await Playlist.find({ userId });
+  const groups = {};
+
+  playlists.forEach((pl) => {
+    const key = pl.displayKey || getPlaylistVisibleNameKey(pl.name);
+    if (!key) return;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(pl);
+  });
+
+  let mergedSets = 0;
+  for (const group of Object.values(groups)) {
+    if (group.length < 2) {
+      const solo = group[0];
+      const canonicalName = getPlaylistVisibleName(solo.name);
+      const displayKey = getPlaylistVisibleNameKey(solo.name);
+      let changed = false;
+      if (solo.name !== canonicalName) {
+        solo.name = canonicalName;
+        changed = true;
+      }
+      if (solo.displayKey !== displayKey) {
+        solo.displayKey = displayKey;
+        changed = true;
+      }
+      if (changed) await solo.save();
+      continue;
+    }
+
+    group.sort((a, b) => {
+      const countDiff = (b.videos?.length || 0) - (a.videos?.length || 0);
+      if (countDiff !== 0) return countDiff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+
+    const keeper = group[0];
+    const toMerge = group.slice(1);
+    const displayKey = getPlaylistVisibleNameKey(keeper.name);
+    const canonicalName = getPlaylistVisibleName(keeper.name);
+    const seenVideoIds = new Set(keeper.videos.map((v) => v.videoId));
+
+    for (const pl of toMerge) {
+      for (const video of pl.videos) {
+        if (!seenVideoIds.has(video.videoId)) {
+          keeper.videos.push(video);
+          seenVideoIds.add(video.videoId);
+        }
+      }
+      await Playlist.deleteOne({ _id: pl._id });
+    }
+
+    keeper.name = canonicalName;
+    keeper.displayKey = displayKey;
+    await keeper.save();
+    mergedSets++;
+    console.log(
+      `[PLAYLISTS] Merged ${group.length} playlists into "${canonicalName}" (${keeper.videos.length} videos)`
+    );
+  }
+
+  return mergedSets;
+}
 
 console.log('>>>[PLAYLISTS.ROUTES] playlists.routes.js loaded');
 
@@ -36,8 +111,9 @@ router.get('/', requireAuth, async (req, res) => {
   console.log('>>>>>[GET] /api/playlists called for user:', req.userId);
   console.log('>>>>>[GET] MongoDB connection state:', mongoose.connection.readyState);
   try {
+    await mergeDuplicatePlaylists(req.userId);
     const playlists = await Playlist.find({ userId: req.userId }).sort({ createdAt: -1 });
-    console.log('>>>>>[GET] /api/playlists found playlists:', JSON.stringify(playlists, null, 2));
+    console.log('>>>>>[GET] /api/playlists found playlists:', playlists.length);
     res.json({ success: true, playlists });
   } catch (error) {
     console.error('Error in GET /api/playlists:', error);
@@ -56,15 +132,36 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Playlist name required' });
-    
-    const playlist = new Playlist({ 
-      userId: req.userId, 
-      name, 
-      videos: [] 
+
+    const existingPlaylists = await Playlist.find({ userId: req.userId });
+    const duplicate = findDuplicatePlaylist(existingPlaylists, name);
+    if (duplicate) {
+      return res.status(409).json({
+        error: 'DUPLICATE_NAME',
+        message: 'A playlist with this name already exists',
+        playlist: duplicate
+      });
+    }
+
+    const canonicalName = getPlaylistVisibleName(name);
+    const displayKey = getPlaylistVisibleNameKey(name);
+    const playlist = new Playlist({
+      userId: req.userId,
+      name: canonicalName,
+      displayKey,
+      videos: []
     });
     await playlist.save();
     res.json({ success: true, playlist });
   } catch (error) {
+    if (error.code === 11000) {
+      const existing = await Playlist.findOne({ userId: req.userId, displayKey: getPlaylistVisibleNameKey(name) });
+      return res.status(409).json({
+        error: 'DUPLICATE_NAME',
+        message: 'A playlist with this name already exists',
+        playlist: existing
+      });
+    }
     res.status(500).json({ error: 'Failed to create playlist' });
   }
 });
@@ -140,7 +237,18 @@ router.put('/:playlistId', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Playlist not found' });
     }
 
-    playlist.name = name;
+    const existingPlaylists = await Playlist.find({ userId: req.userId });
+    const duplicate = findDuplicatePlaylist(existingPlaylists, name, req.params.playlistId);
+    if (duplicate) {
+      return res.status(409).json({
+        error: 'DUPLICATE_NAME',
+        message: 'A playlist with this name already exists',
+        playlist: duplicate
+      });
+    }
+
+    playlist.name = getPlaylistVisibleName(name);
+    playlist.displayKey = getPlaylistVisibleNameKey(name);
     await playlist.save();
     res.json({ success: true, playlist });
   } catch (error) {

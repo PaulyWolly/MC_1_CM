@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.ROUTES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -104,6 +104,41 @@ router.get('/media-library-movies', (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to parse movies library', details: parseErr.message });
         }
     });
+});
+
+// POST - Get folder modification dates for multiple paths
+router.post('/folder-dates', (req, res) => {
+    try {
+        const { paths } = req.body;
+        
+        if (!Array.isArray(paths)) {
+            return res.status(400).json({ error: 'paths must be an array' });
+        }
+        
+        const dates = {};
+        
+        paths.forEach((folderPath) => {
+            try {
+                if (fs.existsSync(folderPath)) {
+                    const stats = fs.statSync(folderPath);
+                    // Use mtime (modification time) which reflects when folder was last modified
+                    dates[folderPath] = stats.mtime.toISOString();
+                } else {
+                    // If folder doesn't exist, set to null
+                    dates[folderPath] = null;
+                }
+            } catch (err) {
+                console.warn(`[FOLDER-DATES] Error getting stats for ${folderPath}:`, err.message);
+                dates[folderPath] = null;
+            }
+        });
+        
+        console.log(`[FOLDER-DATES] Returning dates for ${Object.keys(dates).length} folders`);
+        return res.json({ dates });
+    } catch (error) {
+        console.error('[FOLDER-DATES] Error:', error);
+        return res.status(500).json({ error: 'Failed to get folder dates', details: error.message });
+    }
 });
 
 module.exports = router; 

@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARY.CSS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -181,7 +181,7 @@
     flex-direction: column;
     align-items: center;
     width: 150px !important;
-    height: 32.0vh;
+    height: 34vh;
     min-width: 140px !important;
     max-width: 160px !important;
     padding: 10px 6px 12px 6px;
@@ -194,7 +194,7 @@
 .media-library-movie-card img {
     width: 100%;
     max-width: 140px;
-    height: 215px;
+    height: 200px;
     object-fit: cover;
     border-radius: 8px;
 }
@@ -563,11 +563,13 @@
 
 .media-library-modal-buttons {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
+    gap: 8px;
     font-size: .6rem;
-    margin-left: 23px;
-    position: relative;
-    left: 106px;
+    margin-left: 0;
+    position: static;
+    left: auto;
 }
 
 .video-player-btn {
@@ -764,7 +766,7 @@
     font-size: 28px;
     cursor: pointer;
     position: absolute;
-    right: 80px;
+    right: 6px;
     transition: all 0.2s ease;
     margin-left: 8px;
     display: flex;
@@ -926,7 +928,7 @@
 }
 
 .media-library-genre {
-  margin-left: 10px;
+  margin-left: 0px;
   font-size: 1em;
   border: 1px solid #888;
   border-radius: 3px;
@@ -1862,12 +1864,18 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 10px;
   }
   .watch-later-column-tvshows {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 10px;
   }
   .watch-later-section-title {
     font-size: 1.3em;
@@ -2212,29 +2220,29 @@
   .watch-later-grid {
     display: grid;
     grid-template-columns: repeat(3, .425fr);
-    /* gap: 15px; */
     row-gap: 60px;
+    padding: 12px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #888 #f1f1f1;
-    max-height: 55.5vh;
-    width: 41vw;
+    max-height: 49.5vh;
     margin-left: -8px; /* Reduce gap further to make content more compact */
   }
 
   .watch-later-tv-grid {
     display: grid;
     grid-template-columns: repeat(3, 0.425fr);
-    gap: 15px;
-    margin-left: 0px;
-    width: 100%;
+    gap: 8px;
+    margin-left: -8px;
+    max-width: 50vw;
+    padding: 10px;
     row-gap: 0px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: #888 #f1f1f1;
-    max-height: 55.4vh; /* Reduce gap further to make content more compact */
+    max-height: 49.5vh; /* Reduce gap further to make content more compact */
   }
 
   .watch-later-card {
@@ -2393,11 +2401,11 @@
   }
   
   .media-library-movie-card-movies {
-    width: 170px;
-    /* height: 41vh; */
+    width: 165px;
+    height: 40.5h;
     /* margin-left: 14px; */
-    /* padding: 10px; */
-    margin-bottom: -45px;
+    padding: 10px;
+    margin-bottom: -20px;
     left: 15px;
   }
   
@@ -2413,7 +2421,7 @@
 .watch-later-img-movie {
   width: 95%;
   display: block;
-  height: 200px;
+  height: 230px;
   margin: 0 auto;
 }
 
@@ -3919,6 +3927,17 @@
   text-align: left; /* Center the title text */
 }
 
+.watch-later-refresh-btn {
+  background: #f0f0f0;
+  color: white;
+  height: 28px;
+  width: 28px;
+  line-height: 1;
+  padding-right: 26px;
+  border: 1px solid #999;
+  border-radius: 4px;
+}
+
 /* COLLECTIONS SECTION TITLE STYLES - REMOVED CONFLICTING RULES */
 
 /* FAVORITES TV SHOWS SECTION TITLE STYLES */
@@ -4097,7 +4116,9 @@
 }
 
 .collections-header-text {
-  height: 50px;
+  /*height: 50px; */
+  padding-top: 17px;
+  margin-bottom: 10px;
 }
 
 .collections-container {
@@ -6231,7 +6252,7 @@ color: #fff;
 .my-pick-fixed {
   position: absolute !important;
   top: -74px !important;
-  right: 67px !important;
+  right: 30px !important;
   z-index: 10000 !important; /* Higher z-index to ensure it's on top */
   width: 120px !important;
   height: 48px !important;

@@ -1,8 +1,8 @@
 /*
   WATCHLATER.ROUTES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -285,6 +285,8 @@ router.post('/add', async (req, res) => {
                     console.log('[WATCH-LATER-API] ✅ Different episode of same show - NOT duplicate:', item.title, 'vs', itemData.title);
                     return false;
                 }
+                // Different shows should NOT be considered duplicates
+                return false;
             }
             
             return false;
@@ -460,12 +462,26 @@ router.delete('/remove', async (req, res) => {
         if (normalizedKey) {
             // Use normalizedKey for most reliable matching
             filteredItems = items.filter(item => {
-                // For TV shows, also check season/episode if provided
-                if (item.mediaType === 'tvshow' && season && episode) {
-                    return !(item.normalizedKey === normalizedKey && item.season == season && item.episode == episode);
+                // First check if normalizedKey matches
+                if (item.normalizedKey !== normalizedKey) {
+                    return true; // Keep items with different normalizedKey
                 }
-                // For movies or when no season/episode specified, just match normalizedKey
-                return item.normalizedKey !== normalizedKey;
+                
+                // For TV shows, check season/episode if both are provided
+                if (item.mediaType === 'tvshow' && season !== undefined && episode !== undefined) {
+                    // Only remove if season/episode also match
+                    if (item.season == season && item.episode == episode) {
+                        console.log(`[WATCH-LATER-API] Removing TV show episode: ${item.title} S${item.season}E${item.episode}`);
+                        return false; // Remove this specific episode
+                    } else {
+                        console.log(`[WATCH-LATER-API] Keeping TV show episode: ${item.title} S${item.season}E${item.episode} (target: S${season}E${episode})`);
+                        return true; // Keep different episodes
+                    }
+                }
+                
+                // For movies or TV shows without season/episode data, just match normalizedKey
+                console.log(`[WATCH-LATER-API] Removing ${item.mediaType}: ${item.title}`);
+                return false; // Remove this item
             });
         } else if (itemPath) {
             // Fallback to path matching
@@ -845,81 +861,5 @@ router.get('/archives/:filename', async (req, res) => {
     }
 });
 
-// DELETE - Remove item from Watch Later
-router.delete('/remove', async (req, res) => {
-    try {
-        // Support multiple identification methods for maximum compatibility
-        const normalizedKey = req.body.normalizedKey || req.query.normalizedKey;
-        const mediaId = req.body.mediaId || req.query.mediaId;
-        const mediaType = req.body.mediaType || req.query.mediaType;
-        const itemPath = req.body.path || req.query.path;
-        const season = req.body.season || req.query.season;
-        const episode = req.body.episode || req.query.episode;
-        
-        if (!normalizedKey && !mediaId && !itemPath) {
-            return res.status(400).json({ 
-                error: 'Missing required parameter: normalizedKey, mediaId, or path' 
-            });
-        }
-        
-        console.log('[WATCH-LATER-API] Removing item - normalizedKey:', normalizedKey, 'mediaId:', mediaId, 'mediaType:', mediaType, 'path:', itemPath, 'season:', season, 'episode:', episode);
-        
-        // SIMPLE APPROACH: Read array, filter out item, write array
-        const items = readWatchLaterJSON();
-        const originalCount = items.length;
-        
-        // Filter out the item to remove - prioritize normalizedKey for most reliable matching
-        let filteredItems;
-        if (normalizedKey) {
-            // Use normalizedKey for most reliable matching
-            filteredItems = items.filter(item => {
-                // For TV shows, also check season/episode if provided
-                if (item.mediaType === 'tvshow' && season && episode) {
-                    return !(item.normalizedKey === normalizedKey && item.season == season && item.episode == episode);
-                }
-                // For movies or when no season/episode specified, just match normalizedKey
-                return item.normalizedKey !== normalizedKey;
-            });
-        } else if (itemPath) {
-            // Fallback to path matching
-            const normalizedPath = itemPath.replace(/\\/g, '/').toLowerCase().trim();
-            filteredItems = items.filter(item => {
-                const itemPaths = [item.path, item.relPath, item.filePath, item.absPath]
-                    .filter(p => p)
-                    .map(p => p.replace(/\\/g, '/').toLowerCase().trim());
-                return !itemPaths.some(p => p === normalizedPath);
-            });
-        } else {
-            // Fallback to mediaId/mediaType matching
-            filteredItems = items.filter(item => 
-                !(item.mediaId === mediaId && item.mediaType === mediaType)
-            );
-        }
-        
-        const removedCount = originalCount - filteredItems.length;
-        console.log('[WATCH-LATER-API] Removed', removedCount, 'item(s). Remaining:', filteredItems.length);
-        
-        // Write back to JSON
-        writeWatchLaterJSON(filteredItems);
-        
-        // Also sync to MongoDB for backup
-        try {
-            await WatchLater.removeItem(mediaId, mediaType);
-        } catch (mongoError) {
-            console.warn('[WATCH-LATER-API] MongoDB sync failed (non-critical):', mongoError.message);
-        }
-        
-        res.json({
-            success: true,
-            message: 'Item removed from watch later',
-            itemCount: filteredItems.length,
-            removedCount: removedCount
-        });
-        
-    } catch (error) {
-        console.error('[WATCH-LATER-API] Remove error:', error);
-        res.status(500).json({ error: 'Failed to remove item from watch later' });
-    }
-});
 
 module.exports = router; 

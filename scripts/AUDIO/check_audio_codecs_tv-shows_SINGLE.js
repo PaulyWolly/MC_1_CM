@@ -1,8 +1,8 @@
 /*
   CHECK_AUDIO_CODECS_TV-SHOWS_SINGLE.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -103,6 +103,11 @@ async function scanSingleTVShowWithSeason(showName, seasonFilter) {
             );
         }
         logLine(`[AUDIO-SCAN] Found ${showFiles.length} episodes for show: ${showName}` + (seasonFilter ? `, season: ${seasonFilter}` : ''));
+        
+        // CRITICAL: Sort files chronologically by season and episode (S1E1, S1E2, S2E1, etc.)
+        const { sortFilesBySeasonEpisode } = require('../shared/TVShowFileSorter');
+        showFiles = sortFilesBySeasonEpisode(showFiles);
+        
         const results = [];
         let processed = 0;
         for (const episode of showFiles) {

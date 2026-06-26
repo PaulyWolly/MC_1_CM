@@ -1,8 +1,8 @@
 /*
   YOUTUBESEARCHMANAGER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -569,77 +569,72 @@ export default class YouTubeSearchManager {
 
      */
 
+  collectCacheKeysForQuery(query, searchType = "search") {
+    const baseQuery = typeof query === "string" ? query : query?.query;
+    if (!baseQuery) return [];
+
+    const normalizedQuery = this.normalizeYouTubeQuery(baseQuery).toLowerCase();
+    const underscoreQuery = baseQuery.replace(/\s+/g, "_").toLowerCase();
+    const baseQueryLower = baseQuery.toLowerCase();
+    const matchingKeys = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith("yt_")) continue;
+      const keyLower = key.toLowerCase();
+      if (
+        keyLower.includes(normalizedQuery) ||
+        keyLower.includes(underscoreQuery) ||
+        keyLower.includes(baseQueryLower)
+      ) {
+        matchingKeys.push(key);
+      }
+    }
+
+    return matchingKeys.sort((a, b) => {
+      const pageA = parseInt(a.match(/_p(\d+)_/)?.[1] || "0", 10);
+      const pageB = parseInt(b.match(/_p(\d+)_/)?.[1] || "0", 10);
+      return pageA - pageB;
+    });
+  }
+
   async saveQuery(query, searchType = "search") {
     try {
       console.log("💾 [YOUTUBE-DB] Saving query:", query, "type:", searchType);
 
-      // Get current search metadata
-
       const searchMetadata = {
-        searchType: searchType, // Use the actual search type instead of hardcoded 'search'
-
+        searchType: searchType,
         lastPageViewed: this.pagination?.currentPage || 1,
-
-        totalResults: "many", // Use "many" since YouTube doesn't provide accurate total counts
+        totalResults: "many",
       };
 
-      // Get cache keys for this query - use the actual search type
-
-      const cacheKeys = [];
-
-      let page = 1;
-
-      while (page <= 10) {
-        // Try multiple cache key formats to find existing cache
-        // CRITICAL: Always use lowercase for consistency
-        const possibleKeys = [
-          `yt_${searchType}_${query.toLowerCase().replace(/\s+/g, ".")}_p${page}_none`,
-          `yt_search_${query.toLowerCase().replace(/\s+/g, ".")}_p${page}_none`,
-          `yt_channel_${query.toLowerCase().replace(/\s+/g, ".")}_p${page}_none`,
-          `yt_movies_${query.toLowerCase().replace(/\s+/g, ".")}_p${page}_none`,
-          `yt_tv_${query.toLowerCase().replace(/\s+/g, ".")}_p${page}_none`,
-        ];
-
-        let foundKey = null;
-        for (const key of possibleKeys) {
-          if (localStorage.getItem(key)) {
-            foundKey = key;
-            break;
-          }
-        }
-
-        if (foundKey) {
-          cacheKeys.push(foundKey);
-          page++;
-        } else {
-          break;
-        }
-      }
-
-      // Prepare request data
+      const cacheKeys = this.collectCacheKeysForQuery(query, searchType);
+      const cachedPageCount = cacheKeys.length
+        ? new Set(
+            cacheKeys
+              .map((key) => parseInt(key.match(/_p(\d+)_/)?.[1] || "0", 10))
+              .filter((n) => n > 0)
+          ).size
+        : this.getCachedPageCount(query);
 
       const requestData = {
         query,
-
         userId: window.sessionId,
-
-        displayName: this.humanizeQuery ? this.humanizeQuery(query.replace(/^youtube\s+search\s+/i, "").trim()) : query.replace(/^youtube\s+search\s+/i, "").trim(),
-
+        displayName: this.humanizeQuery
+          ? this.humanizeQuery(query.replace(/^youtube\s+search\s+/i, "").trim())
+          : query.replace(/^youtube\s+search\s+/i, "").trim(),
         totalPages:
-          window.youtubePagination && window.youtubePagination.totalPages
-            ? window.youtubePagination.totalPages
-            : 1,
-
+          cachedPageCount ||
+          this.pagination?.currentPage ||
+          window.youtubePagination?.totalPages ||
+          1,
         videoCount:
           window.youtubePagination && window.youtubePagination.currentVideos
             ? window.youtubePagination.currentVideos.length
             : 0,
-
         cacheKeys,
-
         searchMetadata,
-
-        timestamp: Date.now(), // Always set a valid timestamp
+        timestamp: Date.now(),
       };
 
       // Send save request - use direct URL for development mode
@@ -733,49 +728,20 @@ export default class YouTubeSearchManager {
   isQuerySaved(query) {
     if (!query) return false;
 
-    const normalized =
-      typeof query === "string" ? query.trim().toLowerCase() : "";
+    const normalized = this.normalizeYouTubeQuery(
+      this.cleanQueryForDisplay(query)
+    );
+    if (!normalized || normalized.length < 2) return false;
 
-    // DEBUG: Log what we're checking
-    console.log(
-      `🔍 [IS-SAVED] Checking if query "${query}" (normalized: "${normalized}") is saved`
-    );
-    console.log(
-      `🔍 [IS-SAVED] SavedQueries Map size: ${this.savedQueries.size}`
-    );
-    console.log(
-      `🔍 [IS-SAVED] SavedQueries keys:`,
-      Array.from(this.savedQueries.keys())
-    );
-
-    // Strategy 1: Exact normalized match
     for (const key of this.savedQueries.keys()) {
-      const keyNormalized = key.trim().toLowerCase();
-      if (keyNormalized === normalized) {
-        console.log(
-          `🔍 [IS-SAVED] Found exact match: "${key}" matches "${query}"`
-        );
+      const savedNormalized = this.normalizeYouTubeQuery(
+        this.cleanQueryForDisplay(key)
+      );
+      if (savedNormalized && savedNormalized === normalized) {
         return true;
       }
     }
 
-    // Strategy 2: Partial match (for cases where queries might be stored differently)
-    const cleanQuery = this.cleanQueryForDisplay(query);
-    for (const key of this.savedQueries.keys()) {
-      const keyClean = this.cleanQueryForDisplay(key);
-      if (
-        keyClean === cleanQuery ||
-        keyClean.includes(cleanQuery) ||
-        cleanQuery.includes(keyClean)
-      ) {
-        console.log(
-          `🔍 [IS-SAVED] Found partial match: "${key}" matches "${query}"`
-        );
-        return true;
-      }
-    }
-
-    console.log(`🔍 [IS-SAVED] No match found for "${query}"`);
     return false;
   }
 
@@ -812,18 +778,11 @@ export default class YouTubeSearchManager {
           ledIndicator.style.opacity = "1";
         }
 
-        // Disable save button for saved queries
-
         if (saveButton) {
-          saveButton.classList.add("disabled");
-
-          saveButton.title = "Already saved to database";
-
-          saveButton.style.opacity = "0.3";
-
-          saveButton.style.cursor = "not-allowed";
-
-          saveButton.onclick = null;
+          saveButton.classList.remove("disabled");
+          saveButton.title = "Update saved search (refresh pages in database)";
+          saveButton.style.opacity = "0.85";
+          saveButton.style.cursor = "pointer";
         }
       } else {
         // Hide LED for unsaved queries
@@ -3572,13 +3531,15 @@ export default class YouTubeSearchManager {
 
     dbQueries.forEach((q) => {
       const queryText = q.query || q.displayName || q;
-      
-      // Use humanized version for deduplication to avoid duplicates like "Animal Planet" vs "Animal_Planet"
-      const humanizedQuery = this.humanizeQuery ? this.humanizeQuery(queryText) : queryText.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      const humanizedQuery = this.humanizeQuery
+        ? this.humanizeQuery(queryText)
+        : queryText.replace(/[._]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
       const humanizedKey = humanizedQuery.toLowerCase().trim();
+      if (!humanizedKey || humanizedKey.length < 2) return;
 
       dbHumanizedSet.add(humanizedKey);
-      dbQueryMap.set(humanizedKey, q); // Store original DB query for reference
+      dbQueryMap.set(humanizedKey, q);
     });
 
     // Add local queries first (they have cached data and are prioritized)
@@ -3588,20 +3549,22 @@ export default class YouTubeSearchManager {
       const humanizedQuery = this.humanizeQuery ? this.humanizeQuery(query.query) : query.query.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       const humanizedKey = humanizedQuery.toLowerCase().trim();
 
-      // Check if this query exists in the database using multiple matching strategies
       let hasDBRecord = false;
       let dbQuery = null;
 
-      // Strategy 1: Exact humanized match
+      // Exact humanized match only — partial includes() falsely marked unsaved queries as saved
       if (dbHumanizedSet.has(humanizedKey)) {
         hasDBRecord = true;
         dbQuery = dbQueryMap.get(humanizedKey);
       } else {
-        // Strategy 2: Check if any DB query contains this query (for partial matches)
+        const normalizedLocal = this.normalizeYouTubeQuery(query.query);
         for (const [dbHumanized, dbQ] of dbQueryMap) {
+          const normalizedDb = this.normalizeYouTubeQuery(dbQ.query || dbHumanized);
           if (
-            dbHumanized.includes(humanizedKey) ||
-            humanizedKey.includes(dbHumanized)
+            normalizedLocal &&
+            normalizedDb &&
+            normalizedLocal.length >= 2 &&
+            normalizedLocal === normalizedDb
           ) {
             hasDBRecord = true;
             dbQuery = dbQ;
@@ -4617,55 +4580,30 @@ export default class YouTubeSearchManager {
         query.source === "database" ||
         this.isQuerySaved(query.query);
 
-      // Always show the save icon, but disable it if already saved
-
       saveIcon.className = "history-action-icon save-icon";
-
       saveIcon.innerHTML = "💾";
+      saveIcon.title = isSaved
+        ? "Update saved search (refresh pages in database)"
+        : "Save to database";
+      saveIcon.style.opacity = isSaved ? "0.85" : "1";
+      saveIcon.style.cursor = "pointer";
+      saveIcon.classList.remove("disabled");
 
-      if (isSaved) {
-        // Already saved - show disabled save icon (but keep it visible)
-
-        saveIcon.classList.add("disabled");
-
-        saveIcon.title = "Already saved to database";
-
-        saveIcon.style.opacity = "0.3";
-
-        saveIcon.style.cursor = "not-allowed";
-
-        // Remove any existing click handler
-
-        saveIcon.onclick = null;
-      } else {
-        // Not saved - show active save icon
-
-        saveIcon.title = "Save to database";
-
-        saveIcon.style.opacity = "1";
-
-        saveIcon.style.cursor = "pointer";
-
-        saveIcon.onclick = async (e) => {
+      saveIcon.onclick = async (e) => {
           e.stopPropagation();
 
           console.log(
             "💾 [SAVE-CLICK] Save icon clicked for query:",
-            query.query
+            query.query,
+            isSaved ? "(update)" : "(new)"
           );
 
-          // Show immediate visual feedback
-
           saveIcon.style.opacity = "0.5";
-
           saveIcon.title = "Saving...";
-
           saveIcon.style.cursor = "wait";
 
           try {
-            // Wait for save to complete
-
-            await this.saveQuery(query.query);
+            await this.saveQuery(query.query, query.type || "search");
 
             console.log("💾 [SAVE-CLICK] Save completed successfully");
 
@@ -4743,34 +4681,17 @@ export default class YouTubeSearchManager {
               );
             }
 
-            // Disable the save icon immediately
+            saveIcon.classList.remove("disabled");
+            saveIcon.title = "Update saved search (refresh pages in database)";
+            saveIcon.style.opacity = "0.85";
+            saveIcon.style.cursor = "pointer";
+            saveIcon.style.pointerEvents = "";
 
-            console.log(
-              "💾 [SAVE-CLICK] Save icon BEFORE disable:",
-              saveIcon.outerHTML
-            );
-            saveIcon.classList.add("disabled");
-
-            saveIcon.title = "Already saved to database";
-
-            saveIcon.style.opacity = "0.3";
-
-            saveIcon.style.cursor = "not-allowed";
-
-            saveIcon.style.pointerEvents = "none";
-            saveIcon.onclick = null;
-
-            console.log(
-              "💾 [SAVE-CLICK] Save icon AFTER disable:",
-              saveIcon.outerHTML
-            );
-            console.log("💾 [SAVE-CLICK] Disabled save icon");
-
-            // Show success toast with humanized query name
             if (window.showToast) {
               const humanizedQuery = this.humanizeQuery(query.query);
+              const pageCount = this.getCachedPageCount(query.query);
               window.showToast(
-                `✅ "${humanizedQuery}" saved to database`,
+                `✅ "${humanizedQuery}" saved to database (${pageCount} pages)`,
                 "success"
               );
             }
@@ -4810,7 +4731,6 @@ export default class YouTubeSearchManager {
             }
           }
         };
-      }
 
       col3.appendChild(saveIcon);
 

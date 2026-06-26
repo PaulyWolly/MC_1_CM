@@ -1,8 +1,8 @@
 /*
   PLAYLIST.SERVICE.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -55,6 +55,9 @@ class PlaylistService {
         body: JSON.stringify({ name })
       });
       const data = await response.json();
+      if (response.status === 409 && data.error === 'DUPLICATE_NAME') {
+        return { duplicate: true, playlist: data.playlist };
+      }
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create playlist');
       }
@@ -110,6 +113,9 @@ class PlaylistService {
         body: JSON.stringify({ name: newName })
       });
       const data = await response.json();
+      if (response.status === 409 && data.error === 'DUPLICATE_NAME') {
+        return { duplicate: true, playlist: data.playlist };
+      }
       if (!response.ok) {
         throw new Error(data.error || 'Failed to rename playlist');
       }

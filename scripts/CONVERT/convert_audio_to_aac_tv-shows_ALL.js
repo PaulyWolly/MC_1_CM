@@ -1,8 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_TV-SHOWS_ALL.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -12,6 +12,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
+const { sortTVShowFilesChronologically } = require('../shared/TVShowFileSorter');
 
 // Import logging helper
 const { logToFile } = require('../logging-helper');
@@ -242,6 +243,9 @@ async function main() {
         // Display analysis results
         console.log('\n📊 Audio Codec Analysis Results:');
         console.log(`  ✅ Already AAC: ${alreadyAAC.length}`);
+        // CRITICAL: Sort files needing conversion chronologically (S1E1, S1E2, S2E1, etc.)
+        filesNeedingConversion = sortTVShowFilesChronologically(filesNeedingConversion);
+        
         console.log(`  🔴 Needs Conversion: ${filesNeedingConversion.length}`);
         console.log(`  ⚠️  Errors: ${errors.length}`);
         

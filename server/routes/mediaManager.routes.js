@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.ROUTES.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -73,16 +73,18 @@ router.post('/scan-movies', async (req, res) => {
     // UPDATED: Use the new unified movies format
     const outputFile = path.join(__dirname, '../../public/components/MediaLibrary/data/movies/movies-unified.json');
     let beforeCount = 0;
+    let beforeData = {}; // Store before data for comparison
     
     try {
       if (fs.existsSync(outputFile)) {
-        const beforeData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
+        beforeData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
         // UPDATED: Count movies in the new unified format
         beforeCount = Object.keys(beforeData).length;
         console.log(`[SCAN-MOVIES] Before scan: ${beforeCount} movies in database`);
       }
     } catch (e) {
       console.log('[SCAN-MOVIES] Could not read existing file, assuming 0 movies');
+      beforeData = {}; // Ensure it's an object even on error
     }
     
     // Run the scan script
@@ -139,36 +141,75 @@ router.post('/scan-movies', async (req, res) => {
       if (fs.existsSync(outputFile)) {
         const afterData = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
         
-        // Since we can't easily compare before/after data, let's return all movies
-        // and let the client filter for ones that need TMDB data
-        const allMovies = Object.entries(afterData);
-        console.log(`[SCAN-MOVIES] Total movies in database: ${allMovies.length}`);
-        
-        // Filter for movies that need TMDB data completion
-        // These are movies that were previously scanned but are awaiting Media Manager completion
-        newMoviesData = allMovies
-          .filter(([key, movie]) => {
-            // A movie needs TMDB data if it has an empty cast array (previously scanned, awaiting MM completion)
-            // or is missing essential TMDB metadata
-            const hasEmptyCast = !movie.cast || movie.cast.length === 0;
-            const missingPoster = !movie.poster || movie.poster === '';
-            const missingDescription = !movie.description || movie.description === '';
-            
-            // Show movies that are awaiting Media Manager completion
-            return hasEmptyCast || missingPoster || missingDescription;
-          })
-          .map(([key, movie]) => ({
-            key: key,
-            title: movie.title || movie.TMDBTitle || movie.name || 'Unknown Title',
-            year: movie.year || 'Unknown Year',
-            path: movie.path || movie.absPath || 'Unknown Path',
-            tmdbId: movie.tmdbId || null,
-            poster: movie.poster || null,
-            description: movie.description || movie.overview || 'No description available'
-          }));
+        // PROPERLY identify new movies by comparing before and after keys
+        if (newMovies > 0) {
+          // Get the keys from before and after
+          const beforeKeys = new Set(Object.keys(beforeData || {}).map(k => k.toLowerCase()));
+          const afterKeys = Object.keys(afterData);
+          
+          // Find movies that exist in after but not in before
+          const trulyNewMovies = afterKeys.filter(key => !beforeKeys.has(key.toLowerCase()));
+          
+          console.log(`[SCAN-MOVIES] Found ${trulyNewMovies.length} truly new movies by key comparison`);
+          
+          newMoviesData = trulyNewMovies
+            .map(key => {
+              const movie = afterData[key];
+              return {
+                key: key,
+                title: movie.title || movie.TMDBTitle || movie.name || 'Unknown Title',
+                year: movie.year || 'Unknown Year',
+                path: movie.path || movie.absPath || movie.relPath || 'Unknown Path',
+                absPath: movie.absPath || null,
+                tmdbId: movie.tmdbId || null,
+                poster: movie.poster || null,
+                description: movie.description || movie.overview || 'No description available',
+                cast: movie.cast || []
+              };
+            })
+            .filter(movie => {
+              // Only include movies that need TMDB data completion
+              const hasEmptyCast = !movie.cast || movie.cast.length === 0;
+              const missingPoster = !movie.poster || movie.poster === '';
+              const missingDescription = !movie.description || movie.description === '';
+              
+              return hasEmptyCast || missingPoster || missingDescription;
+            });
+        } else {
+          // No new movies detected, but check for movies missing TMDB data
+          // This helps when movies were added but need completion
+          console.log('[SCAN-MOVIES] No new movies detected, checking for movies missing TMDB data...');
+          const allMovies = Object.entries(afterData);
+          
+          newMoviesData = allMovies
+            .map(([key, movie]) => ({
+              key: key,
+              title: movie.title || movie.TMDBTitle || movie.name || 'Unknown Title',
+              year: movie.year || 'Unknown Year',
+              path: movie.path || movie.absPath || movie.relPath || 'Unknown Path',
+              absPath: movie.absPath || null,
+              tmdbId: movie.tmdbId || null,
+              poster: movie.poster || null,
+              description: movie.description || movie.overview || 'No description available',
+              cast: movie.cast || []
+            }))
+            .filter(movie => {
+              // Only include movies that need TMDB data completion
+              const hasEmptyCast = !movie.cast || movie.cast.length === 0;
+              const missingPoster = !movie.poster || movie.poster === '';
+              const missingDescription = !movie.description || movie.description === '';
+              
+              return hasEmptyCast || missingPoster || missingDescription;
+            })
+            .slice(0, 20); // Limit to first 20 for performance
+          
+          console.log(`[SCAN-MOVIES] Found ${newMoviesData.length} movies missing TMDB data (out of ${allMovies.length} total)`);
+        }
         
         console.log(`[SCAN-MOVIES] Found ${newMoviesData.length} movies awaiting Media Manager completion`);
-        console.log(`[SCAN-MOVIES] Sample movie data:`, newMoviesData.slice(0, 3));
+        if (newMoviesData.length > 0) {
+          console.log(`[SCAN-MOVIES] Sample movie data:`, newMoviesData.slice(0, 3));
+        }
       }
     } catch (e) {
       console.error('[SCAN-MOVIES] Error reading movie data:', e);
@@ -356,6 +397,7 @@ router.post('/process-movie-scripts', async (req, res) => {
         isMovie: true,
         title: title,
         TMDBTitle: bestMatch.title, // Use TMDB title for proper display
+        dateAdded: new Date().toISOString(), // Add date when movie was added to library (right after TMDBTitle)
         year: year,
         normalizedKey: normalizedKey,
         tmdbId: bestMatch.id,
@@ -396,6 +438,11 @@ router.post('/process-movie-scripts', async (req, res) => {
         // Movie exists, update it with new metadata
         console.log(`[SAVE] Updating existing movie: ${normalizedKey}`);
         const existingMovie = moviesData[normalizedKey];
+        
+        // Preserve dateAdded if it exists, otherwise set it (for movies added before this field existed)
+        if (!existingMovie.dateAdded) {
+          existingMovie.dateAdded = new Date().toISOString();
+        }
         
         // Update fields but preserve existing files and path
         existingMovie.title = title || existingMovie.title;
@@ -555,7 +602,8 @@ router.post('/save', async (req, res) => {
         showPath,
         path: showPath,
         folders: [], // Empty folders - will be populated by scan later
-        files: []    // Empty files - will be populated by scan later
+        files: [],    // Empty files - will be populated by scan later
+        dateAdded: new Date().toISOString() // Add date when show was added to library
       };
       
       console.log('[TV SAVE] Created show object with basic info only');
@@ -564,6 +612,11 @@ router.post('/save', async (req, res) => {
       
       if (idx !== -1) {
         console.log('[TV SAVE] Updating existing show at index:', idx);
+        // Preserve dateAdded if it exists, otherwise set it (for shows added before this field existed)
+        const existingShow = tvData[idx];
+        if (existingShow && existingShow.dateAdded) {
+          showObj.dateAdded = existingShow.dateAdded;
+        }
         tvData[idx] = showObj;
       } else {
         console.log('[TV SAVE] Adding new show');
@@ -628,6 +681,7 @@ router.post('/save', async (req, res) => {
       isMovie: true,
       title: title || '',
       TMDBTitle: title || '', // Set TMDBTitle to the same as title for proper display
+      dateAdded: new Date().toISOString(), // Add date when movie was added to library (right after TMDBTitle)
       year: year || '',
       normalizedKey: normalizedKey, // This should already be cleaned by the client
       tmdbId: tmdbId || null,
@@ -663,6 +717,11 @@ router.post('/save', async (req, res) => {
       // Movie exists, update it with new metadata
       console.log(`[SAVE] Updating existing movie: ${normalizedKey}`);
       const existingMovie = moviesData[normalizedKey];
+      
+      // Preserve dateAdded if it exists, otherwise set it (for movies added before this field existed)
+      if (!existingMovie.dateAdded) {
+        existingMovie.dateAdded = new Date().toISOString();
+      }
       
       // Update fields but preserve existing files and path
       existingMovie.title = title || existingMovie.title;
@@ -1290,6 +1349,7 @@ router.post('/add-movie-unified', async (req, res) => {
       isMovie: true,
       title: title,
       TMDBTitle: title,
+      dateAdded: new Date().toISOString(), // Add date when movie was added to library (right after TMDBTitle)
       year: extractYearFromTitle(title),
       normalizedKey: normalizedKey,
       tmdbId: tmdbId,

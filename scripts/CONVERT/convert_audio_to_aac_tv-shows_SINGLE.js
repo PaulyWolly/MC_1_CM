@@ -1,8 +1,8 @@
 /*
   CONVERT_AUDIO_TO_AAC_TV-SHOWS_SINGLE.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -12,6 +12,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
+const { sortTVShowFilesChronologically } = require('../shared/TVShowFileSorter');
 
 // Simple logging function
 function logToFile(module, message) {
@@ -75,8 +76,14 @@ if (!inputArg) {
   process.exit(1);
 }
 
+// Allow passing either:
+// 1) Display name or normalized key (no slashes)
+// 2) Full path to show folder
+// 3) Full path to a specific season folder (e.g., .../Season 3 or .../Season 03)
 let showFolder = inputArg;
-if (!inputArg.match(/[\/]/)) {
+let targetSeasonFilter = null; // e.g. '3' when input path points to a specific Season
+
+if (!inputArg.match(/[\\\/]/)) {
   // Check if input is a normalized key (contains dots)
   if (inputArg.includes('.')) {
     // This might be a normalized key, try to find the display name
@@ -96,6 +103,19 @@ if (!inputArg.match(/[\/]/)) {
     }
     showFolder = folder;
     showStatus(`Found TV show folder: ${showFolder}`, 'success');
+  }
+} else {
+  // If a full path was provided, normalize to the show root folder
+  const base = path.basename(showFolder);
+  const seasonMatch = base.match(/^season\s*(\d{1,2})$/i);
+  if (seasonMatch) {
+    // Capture season number and move up to the show folder
+    targetSeasonFilter = seasonMatch[1]; // e.g. '3' or '03'
+    const parent = path.dirname(showFolder);
+    showFolder = parent;
+    showStatus(`Detected season folder input. Targeting Season ${targetSeasonFilter} only. Show folder: ${showFolder}`, 'info');
+  } else {
+    showStatus(`Using provided folder: ${showFolder}`, 'info');
   }
 }
 
@@ -161,8 +181,125 @@ async function convertFile(inputPath, currentIndex, totalFiles, startTime, bkups
     }
 }
 
+// Scan file system directly for video files (finds ALL files, even new ones not in unified data)
+function scanFilesFromFileSystem(targetFolder, seasonFilter) {
+    const files = [];
+    
+    if (!fs.existsSync(targetFolder)) {
+        return files;
+    }
+    
+    // Determine if targetFolder is a season folder or show folder
+    const isSeasonFolder = /season\s*\d+/i.test(path.basename(targetFolder));
+    let scanPath = targetFolder;
+    let showName = path.basename(targetFolder); // Default to folder name
+    
+    if (isSeasonFolder) {
+        // We're already in a season folder, get show name from parent
+        showName = path.basename(path.dirname(targetFolder));
+        scanPath = targetFolder;
+    } else if (seasonFilter) {
+        // We need to scan a specific season folder
+        const seasonFolders = ['Season ' + seasonFilter, 'Season ' + seasonFilter.padStart(2, '0'), 'S' + seasonFilter.padStart(2, '0'), 'S' + seasonFilter];
+        let foundSeasonPath = null;
+        
+        for (const seasonName of seasonFolders) {
+            const testPath = path.join(targetFolder, seasonName);
+            if (fs.existsSync(testPath)) {
+                foundSeasonPath = testPath;
+                break;
+            }
+        }
+        
+        if (foundSeasonPath) {
+            scanPath = foundSeasonPath;
+            showName = path.basename(targetFolder); // Show name is the parent folder
+        } else {
+            // Fallback: scan all season folders
+            scanPath = targetFolder;
+        }
+    }
+    
+    // Recursively find all video files
+    function getAllVideoFiles(dir) {
+        const results = [];
+        if (!fs.existsSync(dir)) return results;
+        
+        try {
+            const list = fs.readdirSync(dir);
+            for (const file of list) {
+                const filePath = path.join(dir, file);
+                try {
+                    const stat = fs.statSync(filePath);
+                    if (stat && stat.isDirectory()) {
+                        // Skip BKUP folders
+                        if (!/bku?p/i.test(file)) {
+                            results.push(...getAllVideoFiles(filePath));
+                        }
+                    } else if (/\.(mkv|mp4|avi|m4v)$/i.test(file) && !/_AAC\.(mkv|mp4|avi|m4v)$/i.test(file)) {
+                        // Only include video files, exclude already converted _AAC files
+                        results.push(filePath);
+                    }
+                } catch (e) {
+                    // Skip files we can't access
+                }
+            }
+        } catch (e) {
+            // Skip directories we can't read
+        }
+        
+        return results;
+    }
+    
+    const foundFiles = getAllVideoFiles(scanPath);
+    
+    // Extract season/episode info from filenames
+    for (const filePath of foundFiles) {
+        const fileName = path.basename(filePath);
+        const dirPath = path.dirname(filePath);
+        
+        // Try to extract season/episode from filename (S03E06, S3E6, etc.)
+        const match = fileName.match(/[Ss](\d{1,2})[Ee](\d{1,2})/);
+        let seasonNum = null;
+        let episodeNum = null;
+        
+        if (match) {
+            seasonNum = String(parseInt(match[1], 10)); // Normalize '03' -> '3'
+            episodeNum = String(parseInt(match[2], 10));
+        } else {
+            // Try to get season from parent folder name
+            const parentDir = path.basename(dirPath);
+            const seasonMatch = parentDir.match(/season\s*(\d{1,2})/i);
+            if (seasonMatch) {
+                seasonNum = String(parseInt(seasonMatch[1], 10));
+                // Try to get episode from filename number
+                const epMatch = fileName.match(/[Ee](\d{1,2})|(\d{1,2})[^0-9]/);
+                if (epMatch) {
+                    episodeNum = String(parseInt(epMatch[1] || epMatch[2], 10));
+                }
+            }
+        }
+        
+        // Skip if season filter doesn't match
+        if (seasonFilter && seasonNum && String(parseInt(seasonFilter, 10)) !== seasonNum) {
+            continue;
+        }
+        
+        files.push({
+            path: filePath,
+            title: `${showName} ${seasonNum ? 'S' + seasonNum.padStart(2, '0') : ''}${episodeNum ? 'E' + episodeNum.padStart(2, '0') : ''} - ${fileName}`,
+            season: seasonNum || '?',
+            episode: episodeNum || '?',
+            originalPath: filePath,
+            fromFileSystem: true // Flag to indicate this came from file system scan
+        });
+    }
+    
+    return files;
+}
+
 // Extract file paths from unified data structure
-function extractFilesFromUnifiedData(unifiedData, showFolder) {
+function extractFilesFromUnifiedData(unifiedData, showFolder, seasonFilter) {
     const files = [];
     const showName = path.basename(showFolder);
     
@@ -200,6 +337,12 @@ function extractFilesFromUnifiedData(unifiedData, showFolder) {
     
     // Extract all episode file paths using absPath if available, otherwise path
     for (const [seasonNum, season] of Object.entries(showData.seasons)) {
+        // If a season filter was provided (from a Season folder input), respect it
+        if (seasonFilter) {
+            const normalizedSeason = String(parseInt(seasonNum, 10)); // '03' -> '3'
+            const normalizedFilter = String(parseInt(seasonFilter, 10));
+            if (normalizedSeason !== normalizedFilter) continue;
+        }
         if (season.episodes) {
             for (const [episodeNum, episode] of Object.entries(season.episodes)) {
                 let filePath = null;
@@ -228,7 +371,7 @@ function extractFilesFromUnifiedData(unifiedData, showFolder) {
     return files;
 }
 
-// Update unified data with new AAC file names
+// Update unified data with new AAC file names - AUTO-CREATES entries if they don't exist!
 function updateUnifiedDataWithAACFiles(unifiedData, showFolder, conversionResults) {
     const showName = path.basename(showFolder);
     
@@ -238,7 +381,7 @@ function updateUnifiedDataWithAACFiles(unifiedData, showFolder, conversionResult
         .replace(/\.+/g, '.')
         .replace(/^\.|\.$/g, '');
     
-    // Find the show in unified data
+    // Find or CREATE the show in unified data
     let showData = null;
     let foundKey = null;
     
@@ -246,6 +389,7 @@ function updateUnifiedDataWithAACFiles(unifiedData, showFolder, conversionResult
         showData = unifiedData[normalizedKey];
         foundKey = normalizedKey;
     } else {
+        // Try to find by matching display name
         for (const [key, show] of Object.entries(unifiedData)) {
             if (show.title && show.title.toLowerCase().includes(showName.toLowerCase())) {
                 showData = show;
@@ -255,51 +399,147 @@ function updateUnifiedDataWithAACFiles(unifiedData, showFolder, conversionResult
         }
     }
     
-    if (!showData || !showData.seasons) {
-        logToFile('convert_audio_to_aac_tv-shows', `❌ [UPDATE] Show not found in unified data: ${showName}`);
-        return false;
+    // AUTO-CREATE show entry if it doesn't exist!
+    // BUT: NEVER overwrite existing metadata - always preserve TMDB data, cast, posters, etc.
+    if (!showData) {
+        // CRITICAL: Check if an entry already exists with this normalized key but we failed to find it
+        // This can happen if the entry exists but has a slightly different structure
+        const existingEntry = unifiedData[normalizedKey];
+        if (existingEntry && typeof existingEntry === 'object') {
+            // Entry exists! Use it instead of creating a new one
+            logToFile('convert_audio_to_aac_tv-shows', `✅ [FOUND] Using existing entry at key: ${normalizedKey}`);
+            showData = existingEntry;
+            foundKey = normalizedKey;
+        } else {
+            // Truly new entry - create minimal structure
+            logToFile('convert_audio_to_aac_tv-shows', `📝 [CREATE] Creating new show entry in unified data: ${showName} (key: ${normalizedKey})`);
+            showData = {
+                title: showName,
+                seasons: {}
+            };
+            unifiedData[normalizedKey] = showData;
+            foundKey = normalizedKey;
+        }
+    } else {
+        // IMPORTANT: Preserve all existing show-level metadata (poster, cast, description, etc.)
+        // We only update episode file paths, never overwrite show metadata
+        logToFile('convert_audio_to_aac_tv-shows', `✅ [PRESERVE] Found existing show entry at key: ${foundKey} - preserving all metadata (poster, cast, description, etc.)`);
+    }
+    
+    if (!showData.seasons) {
+        showData.seasons = {};
     }
     
     logToFile('convert_audio_to_aac_tv-shows', `✅ [UPDATE] Updating unified data for show: ${foundKey}`);
     
-    let updatedCount = 0;
+    // IMPORTANT: Log what metadata exists to ensure we're preserving it
+    const hasMetadata = !!(showData.poster || showData.cast || showData.description || showData.TMDBTitle);
+    if (hasMetadata) {
+        logToFile('convert_audio_to_aac_tv-shows', `✅ [METADATA] Show has rich metadata - will preserve: poster=${!!showData.poster}, cast=${!!showData.cast}, description=${!!showData.description}`);
+    }
     
-    // Update each converted file in the unified data
+    let updatedCount = 0;
+    let createdCount = 0;
+    
+    // Update or CREATE each converted file in the unified data
     for (const result of conversionResults) {
         if (!result.success) continue;
         
         const { season, episode, originalPath, newFileName } = result;
         
-        // Find the episode in the unified data
-        if (showData.seasons[season] && showData.seasons[season].episodes && showData.seasons[season].episodes[episode]) {
-            const episodeData = showData.seasons[season].episodes[episode];
-            
-            // Update the file paths to point to the new AAC file
-            const newPath = originalPath.replace(path.basename(originalPath), newFileName);
-            const newAbsPath = result.aacPath;
-            
-            // Update all path fields
-            if (episodeData.path) episodeData.path = newPath;
-            if (episodeData.absPath) episodeData.absPath = newAbsPath;
-            if (episodeData.relPath) episodeData.relPath = newPath;
-            if (episodeData.filePath) episodeData.filePath = newPath;
-            
-            // Update the episode title to reflect AAC conversion
-            if (episodeData.title) {
-                episodeData.title = episodeData.title.replace(/\.mkv$/, '_AAC.mkv');
-            }
-            
-            // Update the name field
-            if (episodeData.name) {
-                episodeData.name = episodeData.name.replace(/\.mkv$/, '_AAC.mkv');
-            }
-            
-            updatedCount++;
-            logToFile('convert_audio_to_aac_tv-shows', `📝 [UPDATE] Updated S${season}E${episode}: ${newFileName}`);
+        // AUTO-CREATE season if it doesn't exist
+        // IMPORTANT: Preserve existing season metadata (poster, season_poster, etc.)
+        if (!showData.seasons[season]) {
+            logToFile('convert_audio_to_aac_tv-shows', `📝 [CREATE] Creating Season ${season} entry`);
+            showData.seasons[season] = {
+                episodes: {}
+            };
+        } else {
+            // Preserve all existing season metadata (poster, season_poster, etc.)
+            logToFile('convert_audio_to_aac_tv-shows', `✅ [PRESERVE] Season ${season} exists - preserving all season metadata`);
         }
+        
+        // AUTO-CREATE episode if it doesn't exist
+        if (!showData.seasons[season].episodes) {
+            showData.seasons[season].episodes = {};
+        }
+        
+        const isNewEpisode = !showData.seasons[season].episodes[episode];
+        
+        // PRESERVE existing episode metadata if it exists
+        const existingEpisodeData = showData.seasons[season].episodes[episode] || {};
+        
+        if (isNewEpisode) {
+            logToFile('convert_audio_to_aac_tv-shows', `📝 [CREATE] Creating S${season}E${episode} entry`);
+            createdCount++;
+        } else {
+            logToFile('convert_audio_to_aac_tv-shows', `📝 [UPDATE] Preserving metadata for S${season}E${episode}`);
+        }
+        
+        // Calculate relative path from tvShowsRoot
+        const relPath = path.relative(tvShowsRoot, result.aacPath).replace(/\\/g, '/');
+        const baseFileName = path.basename(result.aacPath, path.extname(result.aacPath));
+        const fileName = path.basename(result.aacPath);
+        
+        // Determine title - preserve existing if it's a proper TMDB title, otherwise use filename
+        let episodeTitle = existingEpisodeData.title;
+        if (!episodeTitle || episodeTitle === 'Unknown' || (episodeTitle === baseFileName && episodeTitle.length < 30) || !episodeTitle.includes('|')) {
+            episodeTitle = baseFileName;
+        }
+        
+        // BUILD episode data in the STANDARD FORMAT matching other episodes
+        // Field order matches the standard JSON structure: title, absPath, path, duration, season, episode, type, etc.
+        const episodeData = {
+            // Standard fields in correct order (matching other episodes)
+            "title": episodeTitle,
+            "absPath": result.aacPath,
+            "path": relPath,
+            "duration": existingEpisodeData.duration || null,
+            "season": season,
+            "episode": episode,
+            "type": existingEpisodeData.type || "episode",
+            "isSpecials": existingEpisodeData.isSpecials || false,
+            "videoFormat": existingEpisodeData.videoFormat || path.extname(result.aacPath),
+            "supportsVideo": existingEpisodeData.supportsVideo !== undefined ? existingEpisodeData.supportsVideo : true,
+            
+            // TMDB metadata fields (preserve if they exist)
+            "still": existingEpisodeData.still || null,
+            "thumbnail": existingEpisodeData.thumbnail || null,
+            "image": existingEpisodeData.image || null,
+            "tmdbId": existingEpisodeData.tmdbId || null,
+            "airDate": existingEpisodeData.airDate || null,
+            "overview": existingEpisodeData.overview || null,
+            "voteAverage": existingEpisodeData.voteAverage || null,
+            "voteCount": existingEpisodeData.voteCount || null,
+            
+            // Additional path fields (preserve if they exist, add if needed)
+            ...(existingEpisodeData.relPath && { "relPath": existingEpisodeData.relPath }),
+            ...(existingEpisodeData.filePath && { "filePath": existingEpisodeData.filePath }),
+            ...(existingEpisodeData.name && { "name": existingEpisodeData.name }),
+            ...(existingEpisodeData.fileName && { "fileName": existingEpisodeData.fileName }),
+            
+            // Audio conversion fields (always update these)
+            "audioConvertedToAAC": true,
+            "audioConversionDate": new Date().toISOString(),
+            "audioCodec": "aac"
+        };
+        
+        // Update path-related fields if they don't match
+        if (!episodeData.relPath) episodeData.relPath = relPath;
+        if (!episodeData.filePath) episodeData.filePath = relPath;
+        if (!episodeData.name) episodeData.name = fileName;
+        if (!episodeData.fileName) episodeData.fileName = fileName;
+        
+        // Store the updated episode data back (in standard format matching all other episodes)
+        showData.seasons[season].episodes[episode] = episodeData;
+        
+        updatedCount++;
+        const action = isNewEpisode ? 'Created' : 'Updated';
+        logToFile('convert_audio_to_aac_tv-shows', `📝 [${action}] S${season}E${episode}: ${newFileName}`);
     }
     
-    logToFile('convert_audio_to_aac_tv-shows', `✅ [UPDATE] Updated ${updatedCount} episodes in unified data`);
+    const summary = `✅ [UPDATE] ${updatedCount} episodes processed (${createdCount} created, ${updatedCount - createdCount} updated)`;
+    logToFile('convert_audio_to_aac_tv-shows', summary);
     return updatedCount > 0;
 }
 
@@ -313,36 +553,83 @@ async function main() {
         const timelineSteps = ['Load Data', 'Extract Files', 'Check Codecs', 'Convert Audio', 'Update Data'];
         showTimeline(0, timelineSteps.length, timelineSteps);
         
-        showStatus('Loading unified TV shows data...', 'info');
-        
-        if (!fs.existsSync(UNIFIED_DATA_PATH)) {
-            const errorMsg = 'tv-shows-unified.json not found!';
-            logToFile('convert_audio_to_aac_tv-shows', errorMsg);
-            showStatus(errorMsg, 'error');
-            showStatus('Make sure the unified data file exists in the correct location.', 'info');
-            return;
+        // Load unified data if it exists (optional - script works without it!)
+        let unifiedData = {};
+        if (fs.existsSync(UNIFIED_DATA_PATH)) {
+            showStatus('Loading unified TV shows data...', 'info');
+            try {
+                unifiedData = JSON.parse(fs.readFileSync(UNIFIED_DATA_PATH, 'utf8'));
+                showStatus('✅ Loaded unified data', 'success');
+            } catch (e) {
+                showStatus(`⚠️  Could not parse unified data, will work with file system only: ${e.message}`, 'warning');
+                unifiedData = {};
+            }
+        } else {
+            showStatus('⚠️  Unified data not found - will scan file system directly (this is fine!)', 'info');
         }
         
-        const unifiedData = JSON.parse(fs.readFileSync(UNIFIED_DATA_PATH, 'utf8'));
-        
-        // Extract files from unified data structure
+        // PRIORITIZE: Scan file system FIRST to find ALL files (including new ones not in JSON yet)
         showTimeline(1, timelineSteps.length, timelineSteps);
-        showStatus('Extracting file paths from unified data...', 'info');
-        const showFiles = extractFilesFromUnifiedData(unifiedData, showFolder);
+        showStatus('Scanning file system for ALL video files...', 'info');
+        const fileSystemFiles = scanFilesFromFileSystem(showFolder, targetSeasonFilter);
+        
+        // Also check unified data for any additional metadata
+        let unifiedFiles = [];
+        if (Object.keys(unifiedData).length > 0) {
+            showStatus('Checking unified data for additional files...', 'info');
+            unifiedFiles = extractFilesFromUnifiedData(unifiedData, showFolder, targetSeasonFilter);
+        }
+        
+        // Merge files from both sources, prioritizing file system (it has the newest files!)
+        const fileMap = new Map();
+        
+        // Helper function to normalize paths for comparison (handles both forward and backslashes)
+        function normalizePathForComparison(filePath) {
+            return filePath.replace(/\\/g, '/').toLowerCase();
+        }
+        
+        // Add file system files FIRST (they're the source of truth for what exists)
+        for (const file of fileSystemFiles) {
+            const normalizedPath = normalizePathForComparison(file.path);
+            fileMap.set(normalizedPath, file);
+        }
+        
+        // Add unified data files if they exist and aren't already found
+        for (const file of unifiedFiles) {
+            const normalizedPath = normalizePathForComparison(file.path);
+            if (!fileMap.has(normalizedPath)) {
+                // File in unified data but not in file system - might be moved/deleted, skip
+                continue;
+            }
+            // Merge metadata from unified data if available
+            const existingFile = fileMap.get(normalizedPath);
+            if (!existingFile.title || existingFile.title.includes('Unknown')) {
+                existingFile.title = file.title;
+            }
+        }
+        
+        let showFiles = Array.from(fileMap.values());
 
         if (showFiles.length === 0) {
-            showStatus(`No files found for show: ${showFolder}`, 'warning');
+            showStatus(`No video files found in: ${showFolder}`, 'warning');
             return;
         }
+        
+        // CRITICAL: Sort files chronologically by season and episode (S1E1, S1E2, S2E1, etc.)
+        showFiles = sortTVShowFilesChronologically(showFiles);
 
-        const startMsg = `Found ${showFiles.length} files to check`;
+        const fileSystemCount = fileSystemFiles.length;
+        const unifiedCount = unifiedFiles.length;
+        const mergedCount = showFiles.length;
+        
+        const startMsg = `Found ${mergedCount} files (${fileSystemCount} from file system${unifiedCount > 0 ? ', ' + unifiedCount + ' in unified data' : ''})`;
         logToFile('convert_audio_to_aac_tv-shows', startMsg);
         showStatus(startMsg, 'success');
         
         // Check which files actually need conversion
         showTimeline(2, timelineSteps.length, timelineSteps);
         showStatus('Checking audio codecs for all files...', 'info');
-        const filesNeedingConversion = [];
+        let filesNeedingConversion = [];
         const alreadyAAC = [];
         const errors = [];
         
@@ -392,6 +679,9 @@ async function main() {
         
         clearProgress();
         
+        // CRITICAL: Sort files needing conversion chronologically (S1E1, S1E2, S2E1, etc.)
+        filesNeedingConversion = sortTVShowFilesChronologically(filesNeedingConversion);
+        
         // Display analysis results
         console.log('\n📊 Audio Codec Analysis Results:');
         console.log(`  ✅ Already AAC: ${alreadyAAC.length}`);
@@ -405,11 +695,12 @@ async function main() {
             return;
         }
         
-        // Show files that need conversion
-        console.log('\n🔴 Files needing conversion:');
+        // Show files that need conversion (now sorted by season/episode)
+        console.log('\n🔴 Files needing conversion (sorted by season/episode):');
         filesNeedingConversion.forEach((item, index) => {
             const fileInfo = showFileInfo(item.path);
-            console.log(`  ${index + 1}. ${path.basename(item.path)} (${item.incompatibleCodecs.join(', ')}) ${fileInfo}`);
+            const seasonEp = `S${item.season || '?'}E${item.episode || '?'}`;
+            console.log(`  ${index + 1}. ${seasonEp} - ${path.basename(item.path)} (${item.incompatibleCodecs.join(', ')}) ${fileInfo}`);
         });
         
         console.log(`\n⚠️  WARNING: This will create backups and move original files to BKUP folder!`);
@@ -419,11 +710,18 @@ async function main() {
         console.log(`   • Make sure you have enough disk space for backups`);
         console.log(`   Files to convert: ${filesNeedingConversion.length}`);
         
-        // Ask for confirmation
-        console.log('\nPress Enter to continue or Ctrl+C to cancel...');
-        await new Promise(resolve => {
-            process.stdin.once('data', resolve);
-        });
+        // Check for --yes or --auto flag to skip confirmation
+        const skipConfirmation = process.argv.includes('--yes') || process.argv.includes('--auto');
+        
+        if (!skipConfirmation) {
+            // Ask for confirmation
+            console.log('\nPress Enter to continue or Ctrl+C to cancel...');
+            await new Promise(resolve => {
+                process.stdin.once('data', resolve);
+            });
+        } else {
+            console.log('\n✅ Auto-confirming (--yes flag detected)...');
+        }
         
         // Create BKUP folder for this conversion
         const showName = path.basename(showFolder);
@@ -513,19 +811,26 @@ async function main() {
             await new Promise(resolve => setTimeout(resolve, 500));
         }
         
-        // Update unified data
+        // Update unified data (ALWAYS save, even if starting from scratch!)
         if (converted > 0) {
             showTimeline(4, timelineSteps.length, timelineSteps);
             showStatus('Updating unified data...', 'info');
             
-            // Update the unified data with new AAC file names
+            // Update the unified data with new AAC file names (auto-creates if needed)
             const updateSuccess = updateUnifiedDataWithAACFiles(unifiedData, showFolder, results.filter(r => r.success));
             
             if (updateSuccess) {
-                // Save the updated unified data
+                // Ensure directory exists before writing
+                const unifiedDataDir = path.dirname(UNIFIED_DATA_PATH);
+                if (!fs.existsSync(unifiedDataDir)) {
+                    fs.mkdirSync(unifiedDataDir, { recursive: true });
+                    logToFile('convert_audio_to_aac_tv-shows', `📁 [CREATE] Created directory: ${unifiedDataDir}`);
+                }
+                
+                // Save the updated unified data (creates file if it didn't exist!)
                 fs.writeFileSync(UNIFIED_DATA_PATH, JSON.stringify(unifiedData, null, 2));
                 showStatus('✅ Updated tv-shows-unified.json with new AAC file names', 'success');
-                logToFile('convert_audio_to_aac_tv-shows', '✅ [UPDATE] Successfully updated unified data file');
+                logToFile('convert_audio_to_aac_tv-shows', '✅ [UPDATE] Successfully saved unified data file');
             } else {
                 showStatus('⚠️ Failed to update unified data', 'warning');
                 logToFile('convert_audio_to_aac_tv-shows', '⚠️ [UPDATE] Failed to update unified data');

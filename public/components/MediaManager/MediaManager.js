@@ -1,8 +1,8 @@
 /*
   MEDIAMANAGER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/15/2025 @8:00AM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -630,7 +630,9 @@ class MediaManager {
           const selectedCount = Array.from(rowCheckboxes).filter(cb => cb.checked).length;
             
             if (selectedCount === 0) {
-              alert('Please select at least one movie first.');
+              if (window.mediaManager && window.mediaManager.showModalToast) {
+                window.mediaManager.showModalToast('Please select at least one movie first.', 'warning');
+              }
               dropdown.selectedIndex = 0;
               return;
             }
@@ -639,7 +641,9 @@ class MediaManager {
             if (window.mediaManager && window.mediaManager.handleBatchAction) {
               window.mediaManager.handleBatchAction(action, selectedCount);
             } else {
-          alert(`Batch action: ${action}\nRows selected: ${selectedCount}`);
+              if (window.mediaManager && window.mediaManager.showModalToast) {
+                window.mediaManager.showModalToast(`Batch action: ${action} | Rows selected: ${selectedCount}`, 'info');
+              }
             }
             
           dropdown.selectedIndex = 0;
@@ -944,24 +948,30 @@ class MediaManager {
     console.log('[MediaManager] Movie form cleared - ready for next movie');
   }
 
-  handleClose() {
+  async handleClose() {
     // Check if there are unprocessed movies from scan results
     const hasUnprocessedMovies = this.scanResultsMovies && this.scanResultsMovies.length > 0;
     
     if (hasUnprocessedMovies) {
-      // Show friendly confirmation but allow user to close
-      const confirmClose = confirm(
-        `You still have ${this.scanResultsMovies.length} unprocessed movies.\n\n` +
-        `Are you sure you want to close the Media Manager?\n\n` +
-        `(You can re-scan later to continue adding them)`
-      );
-      
-      if (!confirmClose) {
-        console.log('[MediaManager] User cancelled close - keeping MediaManager open');
-        return; // User chose to stay - don't close
+      // Use custom confirm modal instead of blocking JS confirm
+      if (window.ConfirmModalComponent) {
+        const confirmClose = await window.ConfirmModalComponent.confirm({
+          title: 'Unprocessed Movies',
+          message: `You still have ${this.scanResultsMovies.length} unprocessed movie${this.scanResultsMovies.length > 1 ? 's' : ''}.\n\nAre you sure you want to close the Media Manager?\n\n(You can re-scan later to continue adding them)`,
+          confirmText: 'Close Anyway',
+          cancelText: 'Stay'
+        });
+        
+        if (!confirmClose) {
+          console.log('[MediaManager] User cancelled close - keeping MediaManager open');
+          return; // User chose to stay - don't close
+        }
+        
+        console.log('[MediaManager] User confirmed close despite unprocessed movies');
+      } else {
+        // Fallback: if ConfirmModalComponent not available, just close (non-blocking)
+        console.log('[MediaManager] ConfirmModalComponent not available, closing without confirmation');
       }
-      
-      console.log('[MediaManager] User confirmed close despite unprocessed movies');
     }
     
     // User confirmed close or no unprocessed movies - proceed with closing
@@ -1218,6 +1228,32 @@ class MediaManager {
         }
         
         this.showModalToast('Movie added successfully! All files scanned and metadata saved.', 'success');
+        
+        // Refresh MediaLibrary if it's open so the new movie appears immediately
+        if (window.mediaLibraryManager) {
+          // Clear the movies cache so fresh data is loaded
+          if (typeof window.mediaLibraryManager.invalidateCache === 'function') {
+            window.mediaLibraryManager.invalidateCache('movies');
+            console.log('[MediaManager] Cleared movies cache');
+          }
+          
+          // If MediaLibrary is open and showing movies tab, refresh it
+          if (window.mediaLibraryManager.isModalOpen && window.mediaLibraryManager.currentTab === 'movies') {
+            console.log('[MediaManager] Refreshing MediaLibrary movies tab...');
+            // Reload movies data and refresh the display
+            window.mediaLibraryManager.loadFromJSON('movies').then(async (moviesData) => {
+              if (moviesData && moviesData.length > 0) {
+                window.mediaLibraryManager.moviesData = moviesData;
+                window.mediaLibraryManager.mediaLibraryRaw = moviesData;
+                // Update the display
+                await window.mediaLibraryManager.updateModalContent();
+                console.log('[MediaManager] MediaLibrary refreshed with new movie');
+              }
+            }).catch(err => {
+              console.error('[MediaManager] Error refreshing MediaLibrary:', err);
+            });
+          }
+        }
         
         // Remove the added movie from scan results and from the displayed list
         if (this.currentMovieBeingAdded && this.scanResultsMovies) {
@@ -2572,17 +2608,13 @@ class MediaManager {
     
     if (!episode) return;
     
-    // For now, just show episode details in a simple alert
+    // Show episode details in a toast notification
     // In a full implementation, this would open an edit form
-    const details = `
-Episode ${episode.episodeNumber}
-File: ${episode.filename}
-Path: ${episode.filePath}
-Size: ${this.formatFileSize(episode.size)}
-Modified: ${new Date(episode.modified).toLocaleString()}
-    `;
+    const details = `Episode ${episode.episodeNumber} | File: ${episode.filename} | Size: ${this.formatFileSize(episode.size)} | Modified: ${new Date(episode.modified).toLocaleString()}`;
     
-    alert(details);
+    if (this.showModalToast) {
+      this.showModalToast(details, 'info', 8000);
+    }
   }
 
   updateSeasonEpisodeCount(seasonNum) {
@@ -4463,15 +4495,6 @@ MediaManager.prototype.displayNewMoviesList = function(newMoviesData) {
   if (!moviesListContainer) {
     moviesListContainer = document.createElement('div');
     moviesListContainer.className = 'new-movies-list-container';
-    moviesListContainer.style.cssText = `
-      margin-top: 20px;
-      padding: 15px;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 8px;
-      max-height: 300px;
-      overflow-y: auto;
-    `;
     
     // Insert after the action buttons
     const actionButtons = this.containerElement.querySelector('.media-manager-action-buttons');
@@ -4485,42 +4508,39 @@ MediaManager.prototype.displayNewMoviesList = function(newMoviesData) {
   
   // Add header
   const header = document.createElement('h4');
+  header.className = 'new-movies-list-header';
   header.textContent = `New Movies Found (${newMoviesData.length}):`;
-  header.style.cssText = 'color: #4CAF50; margin: 0 0 10px 0; font-size: 16px;';
   moviesListContainer.appendChild(header);
   
   // Add bullet point list
   const list = document.createElement('ul');
-  list.style.cssText = 'margin: 0; padding-left: 20px; color: #fff;';
+  list.className = 'new-movies-list';
   
   newMoviesData.forEach((movie, index) => {
     const listItem = document.createElement('li');
-    listItem.style.cssText = 'margin-bottom: 8px; line-height: 1.4;';
+    listItem.className = 'new-movies-list-item';
     listItem.setAttribute('data-movie-key', movie.key || movie.title); // For removal after adding
     
     // Create clickable movie entry
     const movieEntry = document.createElement('div');
-    movieEntry.style.cssText = 'cursor: pointer; padding: 5px; border-radius: 4px; transition: background-color 0.2s;';
-    movieEntry.addEventListener('mouseenter', () => {
-      movieEntry.style.backgroundColor = '#333';
-    });
-    movieEntry.addEventListener('mouseleave', () => {
-      movieEntry.style.backgroundColor = 'transparent';
-    });
+    movieEntry.className = 'new-movies-list-entry';
     movieEntry.addEventListener('click', () => {
       this.currentMovieBeingAdded = movie; // Track which movie is being added
       this.populateFormWithMovie(movie);
     });
     
-    // Movie title and year
+    // Movie title and year - check if title already contains year to avoid duplication
     const title = document.createElement('strong');
-    title.textContent = `${movie.title} (${movie.year})`;
-    title.style.color = '#4CAF50';
+    title.className = 'new-movies-list-title';
+    // Check if title already contains a year in parentheses
+    const yearPattern = /\(\d{4}\)/;
+    const titleAlreadyHasYear = yearPattern.test(movie.title);
+    title.textContent = titleAlreadyHasYear ? movie.title : `${movie.title} (${movie.year})`;
     
     // Movie path
     const path = document.createElement('div');
+    path.className = 'new-movies-list-path';
     path.textContent = movie.path;
-    path.style.cssText = 'font-size: 12px; color: #888; margin-top: 2px;';
     
     movieEntry.appendChild(title);
     movieEntry.appendChild(path);
@@ -4532,8 +4552,8 @@ MediaManager.prototype.displayNewMoviesList = function(newMoviesData) {
   
   // Add instruction text
   const instruction = document.createElement('div');
+  instruction.className = 'new-movies-list-instruction';
   instruction.textContent = 'Click on any movie to populate the form above with its details.';
-  instruction.style.cssText = 'margin-top: 10px; font-size: 12px; color: #888; font-style: italic;';
   moviesListContainer.appendChild(instruction);
 };
 

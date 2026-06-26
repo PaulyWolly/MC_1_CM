@@ -1,8 +1,8 @@
 /*
   MEDIALIBRARYMANAGER.JS
-  Version: 1.30
-  AppName: MultiChat_Chatty [v1.30]
-  Updated: 10/13/2025 @4:00PM
+  Version: 2.0
+  AppName: MultiChat_Chatty [v2.0]
+  Updated: 12/31/2025 @10:00AM
   Created by Paul Welby
 */
 
@@ -31,6 +31,8 @@ class MediaLibraryManager {
     this.isRefreshing = false;
 
     this.isInitialized = false; // Track if MediaLibraryManager is fully ready
+
+    this.continueInitRunning = false; // Guard to prevent concurrent continueInit() execution
 
     this.isWatchLaterLoading = false; // Prevent multiple simultaneous Watch Later loads
 
@@ -434,7 +436,17 @@ class MediaLibraryManager {
         return null; // Other tabs don't use JSON files
       }
 
-      const response = await fetch(endpoint);
+      // Add cache-busting to prevent stale data after server restart
+      const cacheBuster = `?t=${Date.now()}&v=${Math.random()}&nocache=${performance.now()}`;
+      const fullEndpoint = endpoint.includes('?') ? endpoint + '&' + cacheBuster.substring(1) : endpoint + cacheBuster;
+      
+      const response = await fetch(fullEndpoint, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -696,8 +708,17 @@ class MediaLibraryManager {
 
   async loadTVShowsData() {
     try {
+      // Add cache-busting to prevent stale data after server restart
+      const cacheBuster = `?t=${Date.now()}&v=${Math.random()}&nocache=${performance.now()}`;
       const response = await fetch(
-        "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json"
+        "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json" + cacheBuster,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
       );
 
       if (response.ok) {
@@ -977,10 +998,17 @@ class MediaLibraryManager {
         : {};
 
       // Load TV shows data with timeout handling
-
+      // Use multiple cache-busting strategies to ensure fresh data after server restart
       const tvShowsResponse = await fetch(
         "/components/MediaLibrary/data/tv-shows/tv-shows-unified.json?t=" +
-          Date.now()
+          Date.now() + "&v=" + Math.random() + "&nocache=" + performance.now(),
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
       );
 
       this.unifiedTVData = tvShowsResponse.ok
@@ -1048,6 +1076,11 @@ class MediaLibraryManager {
   }
 
   async init() {
+    // Guard: Prevent multiple init() calls
+    if (this.isInitialized) {
+      return;
+    }
+    
     this.isLoading = false;
 
     // Mark as initialized immediately so UI can be used
@@ -1094,17 +1127,24 @@ class MediaLibraryManager {
       };
 
       checkVideoPlayer();
+      // If videoPlayer doesn't exist, start initialization immediately without waiting
+      // The polling will handle videoPlayer assignment when it becomes available
+      this.continueInit();
     }
-
-    // Start essential initialization immediately
-
-    this.continueInit();
   }
 
   async continueInit() {
-    // Load essential data first
+    // Guard: Prevent concurrent execution of continueInit()
+    if (this.continueInitRunning) {
+      return;
+    }
+    
+    this.continueInitRunning = true;
+    
+    try {
+      // Load essential data first
 
-    await this.loadAllMediaData();
+      await this.loadAllMediaData();
 
     // Load posters and images in background (non-blocking)
 
@@ -1146,7 +1186,11 @@ class MediaLibraryManager {
 
     // Update collection buttons to show current collection status
 
-    await this.updateCollectionButtons();
+      await this.updateCollectionButtons();
+    } finally {
+      // Reset flag to allow future calls
+      this.continueInitRunning = false;
+    }
   }
 
   async loadAllMediaData() {
@@ -1317,6 +1361,9 @@ class MediaLibraryManager {
 
       const tvShowsData = await tvShowsResponse.json();
 
+      // Store TV shows data in unifiedTVData
+      this.unifiedTVData = tvShowsData;
+
       const loisClarkData =
         tvShowsData["lois.and.clark.the.new.adventures.of.superman.(1993)"];
 
@@ -1337,6 +1384,9 @@ class MediaLibraryManager {
       }
 
       const moviesData = await moviesResponse.json();
+
+      // Store movies data in unifiedMovieData
+      this.unifiedMovieData = moviesData;
 
       // Data is automatically combined via the computed property
 
@@ -1808,9 +1858,9 @@ class MediaLibraryManager {
 
       { id: "collections", label: "Collections" },
 
-      { id: "suggestions", label: "Suggestions" },
-
       { id: "watchlater", label: "Watch Later" },
+      
+      { id: "suggestions", label: "Suggestions" },
     ];
 
     return `
@@ -1854,11 +1904,14 @@ class MediaLibraryManager {
 
     const tvSidebar = document.getElementById("mediaLibraryAZSidebarTVShow");
 
-    // Only show on main Movies and TV-Shows pages
+    // Only show on main Movies and TV-Shows pages (not on episode/season/detail pages)
 
-    const isMainMoviesPage = modalContent.classList.contains("movies");
+    const isMainMoviesPage = modalContent.classList.contains("movies") && 
+                             !modalContent.classList.contains("moviedetails");
 
-    const isMainTVShowsPage = modalContent.classList.contains("tvshows");
+    const isMainTVShowsPage = modalContent.classList.contains("tvshows") && 
+                              !modalContent.classList.contains("tv-showseason") &&
+                              !modalContent.classList.contains("tv-showepisodes");
 
     if (movieSidebar) {
       if (isMainMoviesPage) {
@@ -2001,6 +2054,11 @@ class MediaLibraryManager {
 
                   <option value="desc">Z-A</option>
 
+                  ${this.currentTab === "collections" ? `
+                  <option value="count-desc">Most Items</option>
+                  <option value="count-asc">Least Items</option>
+                  ` : ""}
+
                 </select>
 
 
@@ -2067,6 +2125,11 @@ class MediaLibraryManager {
     const modalContent = modal.querySelector(".media-library-modal-content");
 
     if (modalContent) {
+      // Check if we're viewing episodes/season/details - use instance state
+      const isViewingEpisodes = !!this.currentTVSeason;
+      const isViewingSeason = !!this.currentTVShow && !this.currentTVSeason;
+      const isViewingMovieDetails = !!this.currentMovie;
+      
       // Remove all possible tab classes first
 
       modalContent.classList.remove(
@@ -2080,10 +2143,27 @@ class MediaLibraryManager {
 
         "suggestions",
 
-        "watchlater"
+        "watchlater",
+
+        "moviedetails",
+
+        "tv-showseason",
+
+        "tv-showepisodes"
       );
 
+      // Add current tab class
       modalContent.classList.add(this.currentTab);
+      
+      // Preserve episode/season/details classes if we're viewing them
+      if (isViewingEpisodes) {
+        modalContent.classList.add("tv-showepisodes");
+      } else if (isViewingSeason) {
+        modalContent.classList.add("tv-showseason");
+      }
+      if (isViewingMovieDetails) {
+        modalContent.classList.add("moviedetails");
+      }
     }
 
     document.body.appendChild(modal);
@@ -2617,6 +2697,12 @@ class MediaLibraryManager {
           // For movies and other tabs, get movie genres
 
           genres = await this.getCommonGenres();
+          
+          // Add special filter options for movies tab
+          if (this.currentTab === "movies") {
+            genres.push("LATEST");
+            genres.push("Christmas");
+          }
         }
 
         console.log("[DEBUG] Raw genres:", genres);
@@ -2694,6 +2780,42 @@ class MediaLibraryManager {
         );
 
         actorDropdown.value = this.selectedActor || "All Actors";
+      }
+
+      // Update sort dropdown based on current tab
+      const sortDropdown = document.getElementById("mediaLibrarySort");
+      if (sortDropdown) {
+        const currentValue = sortDropdown.value || "asc";
+        sortDropdown.innerHTML = "";
+        
+        // Base options for all tabs
+        const baseOptions = [
+          { value: "asc", text: "A-Z" },
+          { value: "desc", text: "Z-A" }
+        ];
+        
+        // Add Collections-specific options
+        if (this.currentTab === "collections") {
+          baseOptions.push(
+            { value: "count-desc", text: "Most Items" },
+            { value: "count-asc", text: "Least Items" }
+          );
+        }
+        
+        baseOptions.forEach(opt => {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.text;
+          sortDropdown.appendChild(option);
+        });
+        
+        // Restore previous value if it exists, otherwise default to "asc"
+        if (baseOptions.find(opt => opt.value === currentValue)) {
+          sortDropdown.value = currentValue;
+        } else {
+          sortDropdown.value = "asc";
+          this.sortBy = "asc";
+        }
       }
 
       console.log("[DEBUG] Dropdowns rebuilt successfully");
@@ -3575,9 +3697,8 @@ class MediaLibraryManager {
     if (isTV) {
       dotKey = mediaItem.normalizedKey || window.normalizeKey(showName);
     } else {
-      // For movies, use the showName directly (which should be the actual key from unifiedData)
-
-      dotKey = showName;
+      // For movies, prioritize normalizedKey, otherwise normalize the showName to match JSON keys
+      dotKey = mediaItem.normalizedKey || window.normalizeKey(showName);
     }
 
     // For both movies and TV shows, try the normalizedKey first, then fallback to derived keys
@@ -3937,7 +4058,34 @@ class MediaLibraryManager {
       .join(" ");
 
     // Special corrections for common titles
+    // IMPORTANT: Apply hyphenated titles FIRST to prevent Roman numeral corrections from interfering
+    
+    // Hyphenated titles - common movies with hyphens (apply these FIRST)
+    const hyphenatedCorrections = {
+      "X Men": "X-Men",
+      "X Files": "X-Files",
+      "Ant Man": "Ant-Man",
+      "Ant Man & The Wasp": "Ant-Man & The Wasp",
+      "Ben Hur": "Ben-Hur",
+      "Half Blood Prince": "Half-Blood Prince",
+      "Ex Girlfriend": "Ex-Girlfriend",
+      "Spider Man": "Spider-Man",
+      "Rock A Bye Baby": "Rock-A-Bye Baby",
+      "Wall E": "Wall-E",
+      "E T": "E.T.",
+    };
 
+    // Apply hyphenated corrections first
+    for (const [incorrect, correct] of Object.entries(hyphenatedCorrections)) {
+      if (displayTitle.includes(incorrect)) {
+        displayTitle = displayTitle.replace(
+          new RegExp(`\\b${incorrect.replace(/ /g, "\\s+")}\\b`, "g"),
+          correct
+        );
+      }
+    }
+
+    // Other corrections
     const corrections = {
       "Mr & Mrs Smith": "Mr. & Mrs. Smith",
 
@@ -3967,24 +4115,11 @@ class MediaLibraryManager {
 
       "Corp Of The Lambs": "Corp. of the Lambs",
 
-      // Hyphenated titles - common movies with hyphens
-      "Ant Man": "Ant-Man",
-      "Ant Man & The Wasp": "Ant-Man & The Wasp",
-      "Ben Hur": "Ben-Hur",
-      "Half Blood Prince": "Half-Blood Prince",
-      "Ex Girlfriend": "Ex-Girlfriend",
-      "X Men": "X-Men",
-      "X Files": "X-Files",
-      "Spider Man": "Spider-Man",
-      "Rock A Bye Baby": "Rock-A-Bye Baby",
-      "Wall E": "Wall-E",
-      "E T": "E.T.",
-      "Mr & Mrs Smith": "Mr. & Mrs. Smith",
-
       // Capitalization corrections
       Extended: "EXTENDED",
 
-      // Roman numeral corrections
+      // Roman numeral corrections - only apply to standalone Roman numerals
+      // Use word boundaries and check context to avoid matching "X" in "X-Men", "X-Files", etc.
       Ii: "2",
       Iii: "3",
       Iv: "4",
@@ -3993,7 +4128,8 @@ class MediaLibraryManager {
       Vii: "7",
       Viii: "8",
       Ix: "9",
-      X: "10",
+      // Only convert "X" to "10" if it's NOT part of a hyphenated word (X-Men, X-Files, etc.)
+      // We'll handle this with a more specific regex
 
       // Punctuation corrections
       "Planes Trains & Automobiles": "Planes, Trains & Automobiles",
@@ -4027,8 +4163,7 @@ class MediaLibraryManager {
       Corp: "Corp.",
     };
 
-    // Apply corrections
-
+    // Apply other corrections
     for (const [incorrect, correct] of Object.entries(corrections)) {
       if (displayTitle.includes(incorrect)) {
         displayTitle = displayTitle.replace(
@@ -4036,6 +4171,35 @@ class MediaLibraryManager {
           correct
         );
       }
+    }
+
+    // Apply Roman numeral corrections with special handling for "X"
+    // Only convert "X" to "10" if it's a standalone word and NOT followed by a hyphen
+    // This prevents "X-Men" from becoming "10-Men"
+    const romanNumeralCorrections = {
+      Ii: "2",
+      Iii: "3",
+      Iv: "4",
+      V: "5",
+      Vi: "6",
+      Vii: "7",
+      Viii: "8",
+      Ix: "9",
+    };
+
+    for (const [incorrect, correct] of Object.entries(romanNumeralCorrections)) {
+      if (displayTitle.includes(incorrect)) {
+        displayTitle = displayTitle.replace(
+          new RegExp(`\\b${incorrect}\\b`, "g"),
+          correct
+        );
+      }
+    }
+
+    // Special handling for "X" - only convert to "10" if it's standalone and NOT part of a hyphenated word
+    // Match "X" only when it's a word boundary and NOT followed by a hyphen
+    if (displayTitle.match(/\bX\b(?!-)/)) {
+      displayTitle = displayTitle.replace(/\bX\b(?!-)/g, "10");
     }
 
     // Add year back if it was present
@@ -4098,8 +4262,17 @@ class MediaLibraryManager {
     }
 
     // Use the absPath directly from JSON - no path manipulation needed
-
-    const videoUrl = `/api/video?path=${encodeURIComponent(unifiedMovie.files[0].absPath)}`;
+    const filePath = unifiedMovie.files[0].absPath;
+    
+    // Log for debugging
+    console.log(`[BRAND-NEW-PLAYMEDIA] Playing movie: ${unifiedMovie.TMDBTitle}`);
+    console.log(`[BRAND-NEW-PLAYMEDIA] File path: ${filePath}`);
+    
+    // Ensure the path is properly formatted (handle both forward and backward slashes)
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    
+    const videoUrl = `/api/video?path=${encodeURIComponent(filePath)}`;
+    console.log(`[BRAND-NEW-PLAYMEDIA] Video URL: ${videoUrl}`);
 
     // FORCE: Set return location before closing modal
 
@@ -4366,6 +4539,12 @@ class MediaLibraryManager {
       console.log('[SAVE-TO-JSON] Successfully saved', data.length, 'items to JSON');
       return result;
     } catch (error) {
+      // Gracefully handle server unavailability - don't break the UI
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        console.warn('[SAVE-TO-JSON] Server unavailable - data saved to localStorage only. Ensure server is running.');
+        // Return success to prevent UI errors, data is already in localStorage
+        return { success: true, message: 'Saved to localStorage (server unavailable)' };
+      }
       console.error('[SAVE-TO-JSON] Failed to save to JSON:', error);
       throw error;
     }
@@ -4413,8 +4592,11 @@ class MediaLibraryManager {
         try {
           await this.saveWatchLaterToJSON(resumeList);
         } catch (error) {
+          // Only show error if it's not a server unavailability issue
+          if (error.message !== 'Failed to fetch' && error.name !== 'TypeError') {
           console.error("[WATCH-LATER-UPDATE] Failed to save to JSON:", error);
           this.showToast("Failed to update Watch Later", "error");
+          }
         }
 
         // Refresh the Watch Later grid if it's currently visible
@@ -5273,9 +5455,22 @@ class MediaLibraryManager {
 
       .replace(/CORP_ABBREV/gi, "Corp.");
 
-    // Clean up extra spaces and capitalize
+    // Clean up extra spaces
 
     title = title.replace(/\s+/g, " ").trim();
+
+    // Convert spaces between capitalized words to hyphens (restore original hyphens)
+    // Pattern: Single letter or capitalized word + space + capitalized word
+    // Examples: "X Men" -> "X-Men", "First Name" -> "First-Name"
+    title = title.replace(/\b([A-Z])\s+([A-Z][a-z]+)\b/g, "$1-$2");
+    title = title.replace(/\b([A-Z][a-z]+)\s+([A-Z][a-z]+)\b/g, (match, p1, p2) => {
+      // Only convert if both words are relatively short (likely hyphenated compound)
+      // Skip if it's clearly two separate words (like "Star Trek" or "The Matrix")
+      if (p1.length <= 8 && p2.length <= 8 && !/\b(Star|The|A|An|And|Of|In|On|At|To|For|With|From)\b/i.test(p1)) {
+        return `${p1}-${p2}`;
+      }
+      return match;
+    });
 
     title = this.capitalizeTitle(title);
 
@@ -5921,7 +6116,19 @@ class MediaLibraryManager {
 
       case "collections":
         this.collectionsSearchQuery = searchValue;
-
+        
+        // Sync Collections header search input
+        const collectionsPageSearch = document.getElementById("collectionsPageSearch");
+        if (collectionsPageSearch) {
+          collectionsPageSearch.value = searchValue;
+        }
+        
+        // Update Collections clear button visibility
+        const collectionsClearBtn = document.getElementById("collectionsClearSearchBtn");
+        if (collectionsClearBtn) {
+          collectionsClearBtn.style.display = searchValue ? "flex" : "none";
+        }
+        
         break;
 
       case "watchlater":
@@ -5941,11 +6148,27 @@ class MediaLibraryManager {
     }
 
     // Debounce the actual search execution to prevent excessive refreshes
-
+    // For collections tab, update grid directly for immediate feedback
     this.searchTimeout = setTimeout(async () => {
       try {
-        await this.updateModalContent();
-
+        if (this.currentTab === "collections") {
+          // For collections, update grid directly for immediate refresh
+          const grid = document.getElementById("mediaGrid");
+          if (grid) {
+            const newHtml = await this.renderCollectionsTab();
+            grid.innerHTML = newHtml;
+            console.log(`[SEARCH] Collections grid updated with search: "${searchValue}"`);
+            
+            // Re-attach collection handlers after DOM update
+            this.attachCollectionHandlers();
+          } else {
+            await this.updateModalContent();
+          }
+        } else {
+          // For other tabs, use standard updateModalContent
+          await this.updateModalContent();
+        }
+        
         await this.updateCount();
       } catch (error) {
         console.error("[SEARCH] Error during search:", error);
@@ -5954,13 +6177,54 @@ class MediaLibraryManager {
   }
 
   async handleSortChange(event) {
-    this.sortBy = event.target.value;
-
-    // Use updateModalContent to handle all tabs including TV-Shows
-
-    await this.updateModalContent();
-
-    await this.updateCount();
+    const newSortValue = event.target.value;
+    console.log(`[SORT-CHANGE] Sort changed to: "${newSortValue}" on tab: "${this.currentTab}"`);
+    
+    this.sortBy = newSortValue;
+    
+    // Sync sort dropdowns if on Collections tab
+    if (this.currentTab === "collections") {
+      const collectionsPageSort = document.getElementById("collectionsPageSort");
+      const mainSort = document.getElementById("mediaLibrarySort");
+      
+      // Sync both dropdowns
+      if (collectionsPageSort && event.target.id === "collectionsPageSort") {
+        // Collections header sort changed - update main sort
+        if (mainSort) {
+          mainSort.value = this.sortBy;
+          console.log(`[SORT-CHANGE] Synced main sort dropdown to: "${this.sortBy}"`);
+        }
+      } else if (mainSort && event.target.id === "mediaLibrarySort") {
+        // Main sort changed - update Collections header sort
+        if (collectionsPageSort) {
+          collectionsPageSort.value = this.sortBy;
+          console.log(`[SORT-CHANGE] Synced collections page sort dropdown to: "${this.sortBy}"`);
+        }
+      }
+      
+      // Trigger immediate re-render with new sort
+      console.log(`[SORT-CHANGE] Re-rendering collections with sort: "${this.sortBy}"`);
+      
+      // Update the grid with the newly sorted collections
+      const grid = document.getElementById("mediaGrid");
+      if (grid) {
+        const newHtml = await this.renderCollectionsTab();
+        grid.innerHTML = newHtml;
+        console.log(`[SORT-CHANGE] Grid updated with sorted collections`);
+        
+        // Re-attach collection handlers after DOM update
+        this.attachCollectionHandlers();
+      } else {
+        // Fallback: use updateModalContent if grid not found
+        await this.updateModalContent();
+      }
+      
+      await this.updateCount();
+    } else {
+      // Use updateModalContent to handle all tabs including TV-Shows
+      await this.updateModalContent();
+      await this.updateCount();
+    }
   }
 
   // Add: A-Z sidebar rendering
@@ -6458,7 +6722,7 @@ class MediaLibraryManager {
     // Apply genre filter if not "All Genres"
 
     if (this.selectedGenre && this.selectedGenre !== "All Genres") {
-      filtered = this.filterByGenre(filtered, this.selectedGenre);
+      filtered = await this.filterByGenre(filtered, this.selectedGenre);
     }
 
     // Apply actor filter if not "All Actors"
@@ -6468,8 +6732,14 @@ class MediaLibraryManager {
     }
 
     // For movies, sort by original display title; for favorites, preserve original order; for others, sort by name
-
+    // BUT: Skip sorting if LATEST filter is active (it already sorted by dateAdded)
+    
     if (this.currentTab === "movies") {
+      // If LATEST filter is active, return filtered items as-is (already sorted by dateAdded)
+      if (this.selectedGenre === "LATEST") {
+        return filtered;
+      }
+      
       return filtered.slice().sort((a, b) => {
         const titleA = (
           a.TMDBTitle ||
@@ -6904,11 +7174,6 @@ class MediaLibraryManager {
               /Season\s+\d+/i.test(displayTitle);
 
             if (hasEpisodePattern) {
-              console.log(
-                "[DEBUG - WATCH-LATER] ✅ Moving TV show from movies to TV shows (episode pattern detected):",
-                displayTitle
-              );
-
               isActuallyTVShow = true;
 
               correctlyCategorizedTVShows.push({
@@ -6963,49 +7228,9 @@ class MediaLibraryManager {
                   cleanMatch ||
                   (containsMatch && mediaTitle.length > 8)
                 ) {
-                  console.log(
-                    "[DEBUG - WATCH-LATER] 🔍 Found match in unified data:",
-                    {
-                      displayTitle,
-
-                      cleanTitle: cleanTitleForMatching,
-
-                      mediaTitle,
-
-                      isMovie: mediaData.isMovie,
-
-                      type: mediaData.type,
-
-                      matchType: exactMatch
-                        ? "exact"
-                        : cleanMatch
-                          ? "clean"
-                          : "contains",
-                    }
-                  );
-
                   // Only move to TV shows if it's actually a TV show (isMovie === false)
 
                   if (mediaData.isMovie === false) {
-                    console.log(
-                      "[DEBUG - WATCH-LATER] ✅ Moving TV show from movies to TV shows (found TV show with isMovie=false):",
-                      {
-                        displayTitle,
-
-                        cleanTitle: cleanTitleForMatching,
-
-                        mediaTitle,
-
-                        isMovie: mediaData.isMovie,
-
-                        matchType: exactMatch
-                          ? "exact"
-                          : cleanMatch
-                            ? "clean"
-                            : "contains",
-                      }
-                    );
-
                     isActuallyTVShow = true;
 
                     // Add to TV shows array with correct type
@@ -7021,26 +7246,6 @@ class MediaLibraryManager {
                     break;
                   } else {
                     // It's a movie, keep it in movies
-
-                    console.log(
-                      "[DEBUG - WATCH-LATER] ✅ Confirmed movie (found movie with isMovie=true):",
-                      {
-                        displayTitle,
-
-                        cleanTitle: cleanTitleForMatching,
-
-                        mediaTitle,
-
-                        isMovie: mediaData.isMovie,
-
-                        matchType: exactMatch
-                          ? "exact"
-                          : cleanMatch
-                            ? "clean"
-                            : "contains",
-                      }
-                    );
-
                     break;
                   }
                 }
@@ -7055,21 +7260,7 @@ class MediaLibraryManager {
           }
         });
 
-        console.log(
-          "[DEBUG - WATCH-LATER] - Movies:",
-          correctlyCategorizedMovies.length,
-          "(was",
-          movies.length,
-          ")"
-        );
-
-        console.log(
-          "[DEBUG - WATCH-LATER] - TV Shows:",
-          correctlyCategorizedTVShows.length,
-          "(was",
-          tvshows.length,
-          ")"
-        );
+        // Debug logs removed - data categorization complete
       } else {
         // No unified data available, use original arrays
 
@@ -7299,19 +7490,26 @@ class MediaLibraryManager {
       // Helper for TV show label and screenshot
 
       const getTvShowLabel = (item) => {
-        // Use unified data fields instead of path parsing!
+        // Use TV shows data fields instead of path parsing!
 
         let show = item.title || item.TMDBTitle || item.name || "";
         let code = item.season && item.episode ? `S${item.season}E${item.episode}` : "";
         let year = item.year || "";
 
-        // If we don't have the data from the item, try to get it from unified data
+        // Strip existing year in title to avoid duplicate years in label
+        const existingYearMatch = (show || "").match(/\((\d{4})\)/);
+        if (existingYearMatch) {
+          if (!year) year = existingYearMatch[1];
+          show = show.replace(/\(\d{4}\)/, "").trim();
+        }
+
+        // If we don't have the data from the item, try to get it from TV shows data
         if (!show || !code) {
           const normalizedKey = item.normalizedKey;
-          if (normalizedKey && this.unifiedData && this.unifiedData[normalizedKey]) {
-            const unifiedItem = this.unifiedData[normalizedKey];
+          if (normalizedKey && this.unifiedTVData && this.unifiedTVData[normalizedKey]) {
+            const unifiedItem = this.unifiedTVData[normalizedKey];
             show = unifiedItem.title || unifiedItem.TMDBTitle || unifiedItem.name || show;
-            year = unifiedItem.year || year;
+            if (!year) year = unifiedItem.year || ""; // only set if missing
             
             // For episodes, we need to find the specific episode data
             if (unifiedItem.seasons && item.season && item.episode) {
@@ -7324,6 +7522,27 @@ class MediaLibraryManager {
                 }
               }
             }
+          }
+        }
+
+        // Generic fallback S/E extraction if still missing
+        if (!code) {
+          const sources = [
+            item.title || "",
+            item.name || "",
+            item.filename || "",
+            item.path || item.filePath || "",
+          ]
+            .filter(Boolean)
+            .join(" \n ");
+
+          let m = sources.match(/S\s?(\d{1,2})\s*E\s?(\d{1,2})/i);
+          if (!m) m = sources.match(/season[ _-]?(\d{1,2}).*?episode[ _-]?(\d{1,2})/i);
+          if (!m) m = sources.match(/S(\d{1,2}).*?EP?(?:isode)?[ _-]?(\d{1,2})/i);
+          if (m) {
+            const sNum = parseInt(m[1], 10);
+            const eNum = parseInt(m[2], 10);
+            if (!isNaN(sNum) && !isNaN(eNum)) code = `S${sNum}E${eNum}`;
           }
         }
 
@@ -7356,7 +7575,7 @@ class MediaLibraryManager {
 
         if (show && code) {
           const capitalizedShow = capitalizeShowName(show);
-
+          
           const finalLabel = year
             ? `${capitalizedShow} (${year}): ${code}`
             : `${capitalizedShow}: ${code}`;
@@ -8135,13 +8354,48 @@ class MediaLibraryManager {
     let code = item.season && item.episode ? `S${item.season}E${item.episode}` : "";
     let year = item.year || "";
 
-    // If we don't have the data from the item, try to get it from unified data
+    // Normalize year: if the show string already contains a year like "(2015)",
+    // extract it once and avoid appending a duplicate later.
+    const existingYearMatch = (show || "").match(/\((\d{4})\)/);
+    if (existingYearMatch) {
+      if (!year) year = existingYearMatch[1];
+      // Strip year from the show string so we don't render it twice
+      show = show.replace(/\(\d{4}\)/, "").trim();
+    }
+
+    // If we don't have S/E code yet, try to parse it generically from
+    // available strings (title, name, filename, path)
+    if (!code) {
+      const sources = [
+        item.title || "",
+        item.name || "",
+        item.filename || "",
+        item.path || item.filePath || "",
+      ]
+        .filter(Boolean)
+        .join(" \n ");
+
+      // Common patterns: S01E05, S1E5, Season 1 Episode 5, S 1 E 5
+      let m = sources.match(/S\s?(\d{1,2})\s*E\s?(\d{1,2})/i);
+      if (!m) m = sources.match(/season[ _-]?(\d{1,2}).*?episode[ _-]?(\d{1,2})/i);
+      if (!m) m = sources.match(/S(\d{1,2}).*?EP?(?:isode)?[ _-]?(\d{1,2})/i);
+      if (m) {
+        const sNum = parseInt(m[1], 10);
+        const eNum = parseInt(m[2], 10);
+        if (!isNaN(sNum) && !isNaN(eNum)) code = `S${sNum}E${eNum}`;
+      }
+    }
+
+    // If we don't have the data from the item, try to get it from TV shows data
     if (!show || !code) {
       const normalizedKey = item.normalizedKey;
-      if (normalizedKey && this.unifiedData && this.unifiedData[normalizedKey]) {
-        const unifiedItem = this.unifiedData[normalizedKey];
+      if (normalizedKey && this.unifiedTVData && this.unifiedTVData[normalizedKey]) {
+        const unifiedItem = this.unifiedTVData[normalizedKey];
         show = unifiedItem.title || unifiedItem.TMDBTitle || unifiedItem.name || show;
-        year = unifiedItem.year || year;
+        // Only use year from unified data if we don't already have one from the item
+        if (!year) {
+          year = unifiedItem.year || "";
+        }
         
         // For episodes, we need to find the specific episode data
         if (unifiedItem.seasons && item.season && item.episode) {
@@ -8185,7 +8439,7 @@ class MediaLibraryManager {
 
     if (show && code) {
       const capitalizedShow = capitalizeShowName(show);
-
+      
       const finalLabel = year
         ? `${capitalizedShow} (${year}): ${code}`
         : `${capitalizedShow}: ${code}`;
@@ -8889,9 +9143,217 @@ class MediaLibraryManager {
     );
   }
 
-  filterByGenre(items, selectedGenre) {
+  async filterByGenre(items, selectedGenre) {
     if (!selectedGenre || selectedGenre === "All Genres") return items;
 
+    // Handle special filter options
+    if (selectedGenre === "LATEST") {
+      // For LATEST, use dateAdded field from JSON (all entries now have this)
+      // Sort ALL items by dateAdded (newest first)
+      console.log(`[GENRE-FILTER] LATEST filter: sorting ${items.length} items by dateAdded`);
+      
+      // Ensure all items have dateAdded by looking it up from unifiedData if needed
+      const itemsWithDates = items.map(item => {
+        // Look up dateAdded from unifiedData by normalizedKey (always check, even if item has it)
+        const key = item.normalizedKey || item.title || Object.keys(this.unifiedMovieData || {}).find(k => {
+          const dataItem = this.unifiedMovieData[k];
+          return dataItem && (
+            dataItem === item ||
+            (dataItem.TMDBTitle === item.TMDBTitle) ||
+            (dataItem.title === item.title) ||
+            (dataItem.absPath === item.absPath)
+          );
+        });
+        
+        let dateAdded = item.dateAdded;
+        
+        if (key) {
+          // Try movies first
+          if (this.unifiedMovieData && this.unifiedMovieData[key] && this.unifiedMovieData[key].dateAdded) {
+            dateAdded = this.unifiedMovieData[key].dateAdded;
+          }
+          // Try TV shows if not found in movies
+          else if (this.unifiedTVData && this.unifiedTVData[key] && this.unifiedTVData[key].dateAdded) {
+            dateAdded = this.unifiedTVData[key].dateAdded;
+          }
+        }
+        
+        // If still no dateAdded found, try searching by title/TMDBTitle
+        if (!dateAdded) {
+          const searchTitle = item.TMDBTitle || item.title;
+          if (searchTitle) {
+            // Search in movies
+            for (const [k, movie] of Object.entries(this.unifiedMovieData || {})) {
+              if ((movie.TMDBTitle === searchTitle || movie.title === searchTitle) && movie.dateAdded) {
+                dateAdded = movie.dateAdded;
+                console.log(`[GENRE-FILTER] Found dateAdded by title search: ${searchTitle} = ${dateAdded}`);
+                break;
+              }
+            }
+            // Search in TV shows if not found
+            if (!dateAdded) {
+              for (const [k, show] of Object.entries(this.unifiedTVData || {})) {
+                if ((show.TMDBTitle === searchTitle || show.title === searchTitle) && show.dateAdded) {
+                  dateAdded = show.dateAdded;
+                  console.log(`[GENRE-FILTER] Found dateAdded by title search (TV): ${searchTitle} = ${dateAdded}`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        if (!dateAdded) {
+          console.warn(`[GENRE-FILTER] No dateAdded found for item: ${item.TMDBTitle || item.title} (key: ${key})`);
+        }
+        
+        return { ...item, dateAdded: dateAdded || item.dateAdded };
+      });
+      
+      // Sort by dateAdded (newest first)
+      const sorted = itemsWithDates.slice().sort((a, b) => {
+        // Both have dateAdded - sort by date (newest first)
+        if (a.dateAdded && b.dateAdded) {
+          const dateA = new Date(a.dateAdded);
+          const dateB = new Date(b.dateAdded);
+          const diff = dateB - dateA;
+          
+          // Debug logging for first few comparisons
+          if (Math.abs(diff) < 1000 || (a.TMDBTitle && a.TMDBTitle.includes('Santa')) || (b.TMDBTitle && b.TMDBTitle.includes('Santa'))) {
+            console.log(`[GENRE-FILTER] Comparing: "${a.TMDBTitle || a.title}" (${a.dateAdded}) vs "${b.TMDBTitle || b.title}" (${b.dateAdded}) = ${diff > 0 ? 'B newer' : diff < 0 ? 'A newer' : 'equal'}`);
+          }
+          
+          return diff;
+        }
+        
+        // Items with dateAdded come before items without
+        if (a.dateAdded) return -1;
+        if (b.dateAdded) return 1;
+        
+        // Both missing dateAdded - maintain original order
+        return 0;
+      });
+      
+      const withDates = sorted.filter(item => item.dateAdded).length;
+      const withoutDates = sorted.length - withDates;
+      
+      console.log(`[GENRE-FILTER] LATEST filter: ${withDates} items with dateAdded, ${withoutDates} without`);
+      if (sorted.length > 0) {
+        console.log(`[GENRE-FILTER] LATEST filter: First 20 items (newest first):`, sorted.slice(0, 20).map((item, idx) => ({
+          rank: idx + 1,
+          title: item.TMDBTitle || item.title,
+          dateAdded: item.dateAdded || 'MISSING',
+          normalizedKey: item.normalizedKey,
+          date: item.dateAdded ? new Date(item.dateAdded).toLocaleString() : 'N/A'
+        })));
+        
+        // Check specifically for Christmas movies
+        const christmasMovies = sorted.filter(item => {
+          const title = (item.TMDBTitle || item.title || '').toLowerCase();
+          return title.includes('christmas') || title.includes('santa') || title.includes('rudolph') || 
+                 title.includes('red one') || title.includes('scrooge') || title.includes('elf');
+        });
+        console.log(`[GENRE-FILTER] Found ${christmasMovies.length} Christmas movies in sorted list:`, 
+          christmasMovies.slice(0, 10).map((item, idx) => ({
+            rank: sorted.indexOf(item) + 1,
+            title: item.TMDBTitle || item.title,
+            dateAdded: item.dateAdded || 'MISSING'
+          }))
+        );
+      }
+      
+      // Return ALL sorted items (newest first)
+      return sorted;
+    }
+    
+    if (selectedGenre === "Christmas") {
+      // Filter movies that are Christmas-related (use title matching as primary, collection as secondary)
+      console.log(`[GENRE-FILTER] Christmas filter: checking ${items.length} items`);
+      const filtered = [];
+      const titleMatches = [];
+      const collectionMatches = [];
+      
+      // First pass: Title-based matching (fast and reliable)
+      for (const item of items) {
+        const title = (item.TMDBTitle || item.title || '').toLowerCase();
+        const isChristmasTitle = title.includes('christmas') || 
+                                 title.includes('santa') || 
+                                 title.includes('rudolph') || 
+                                 title.includes('scrooge') || 
+                                 title.includes('elf') ||
+                                 title.includes('red one') ||
+                                 title.includes('wonderful life') ||
+                                 title.includes('holiday') && (title.includes('christmas') || title.includes('holiday'));
+        
+        if (isChristmasTitle) {
+          titleMatches.push(item);
+        }
+      }
+      
+      // Second pass: Collection-based matching (for movies in Christmas collection but not in title)
+      for (const item of titleMatches) {
+        let itemKey = item.normalizedKey;
+        if (!itemKey) {
+          itemKey = Object.keys(this.unifiedMovieData || {}).find(k => {
+            const dataItem = this.unifiedMovieData[k];
+            return dataItem === item || 
+                   (dataItem && dataItem.normalizedKey === item.normalizedKey) ||
+                   (dataItem && dataItem.TMDBTitle === item.TMDBTitle) ||
+                   (dataItem && dataItem.title === item.title);
+          });
+        }
+        
+        if (itemKey) {
+          try {
+            const isInChristmas = await this.isInCollection(itemKey, "Christmas");
+            if (isInChristmas) {
+              collectionMatches.push(item);
+            }
+          } catch (error) {
+            // If collection check fails, still include if title matches
+            console.warn(`[GENRE-FILTER] Error checking collection for ${itemKey}:`, error);
+          }
+        }
+      }
+      
+      // Combine: Use title matches (they're already Christmas-related)
+      filtered.push(...titleMatches);
+      
+      // Also check collection for items not already matched by title
+      const titleMatchedKeys = new Set(titleMatches.map(item => item.normalizedKey || item.TMDBTitle || item.title));
+      for (const item of items) {
+        if (!titleMatchedKeys.has(item.normalizedKey || item.TMDBTitle || item.title)) {
+          let itemKey = item.normalizedKey;
+          if (!itemKey) {
+            itemKey = Object.keys(this.unifiedMovieData || {}).find(k => {
+              const dataItem = this.unifiedMovieData[k];
+              return dataItem === item || 
+                     (dataItem && dataItem.TMDBTitle === item.TMDBTitle) ||
+                     (dataItem && dataItem.title === item.title);
+            });
+          }
+          
+          if (itemKey) {
+            try {
+              const isInChristmas = await this.isInCollection(itemKey, "Christmas");
+              if (isInChristmas) {
+                filtered.push(item);
+              }
+            } catch (error) {
+              // Skip if collection check fails
+            }
+          }
+        }
+      }
+      
+      console.log(`[GENRE-FILTER] Christmas filter found ${filtered.length} movies (${titleMatches.length} by title, ${filtered.length - titleMatches.length} by collection)`);
+      if (filtered.length > 0) {
+        console.log(`[GENRE-FILTER] Christmas movies:`, filtered.slice(0, 15).map(item => item.TMDBTitle || item.title));
+      }
+      return filtered;
+    }
+
+    // Standard genre filtering
     const genre = selectedGenre.toLowerCase();
 
     return items.filter((item) => {
@@ -12945,131 +13407,65 @@ class MediaLibraryManager {
     try {
       const collectionsData = await this.getStructuredCollections();
 
-      // Search through ALL collection types, not just my_collections
-
+      // Search through ALL collection types - check ALL categories, not just one
       let collectionItems = [];
+      let foundCategory = null;
 
-      // Check my_collections first
+      // Define all categories to search
+      const categories = [
+        'my_collections',
+        'genres',
+        'actors',
+        'directors',
+        'creative',
+        'decades'
+      ];
 
-      if (
-        collectionsData.collections.my_collections &&
-        collectionsData.collections.my_collections[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.my_collections[collectionName];
+      // Search through ALL categories (not using else if)
+      for (const category of categories) {
+        if (
+          collectionsData.collections[category] &&
+          collectionsData.collections[category][collectionName]
+        ) {
+          const collectionData = collectionsData.collections[category][collectionName];
+          
+          console.log(`[COLLECTIONS] Found "${collectionName}" in category: ${category}`, collectionData);
 
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
+          // Extract all items from both movies and tvshows arrays
+          collectionData.forEach((item) => {
+            if (item && item.media && item.items && Array.isArray(item.items)) {
+              collectionItems = collectionItems.concat(item.items);
+            }
+          });
+          
+          foundCategory = category;
+          // Don't break - continue searching in case collection exists in multiple categories
+        }
       }
 
-      // Check genres
-      else if (
-        collectionsData.collections.genres &&
-        collectionsData.collections.genres[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.genres[collectionName];
-
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
-      }
-
-      // Check actors
-      else if (
-        collectionsData.collections.actors &&
-        collectionsData.collections.actors[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.actors[collectionName];
-
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
-      }
-
-      // Check directors
-      else if (
-        collectionsData.collections.directors &&
-        collectionsData.collections.directors[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.directors[collectionName];
-
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
-      }
-
-      // Check creative collections
-      else if (
-        collectionsData.collections.creative &&
-        collectionsData.collections.creative[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.creative[collectionName];
-
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
-      }
-
-      // Check decades
-      else if (
-        collectionsData.collections.decades &&
-        collectionsData.collections.decades[collectionName]
-      ) {
-        const collectionData =
-          collectionsData.collections.decades[collectionName];
-
-        // Extract all items from both movies and tvshows arrays
-
-        collectionItems = [];
-
-        collectionData.forEach((item) => {
-          if (item && item.media && item.items && Array.isArray(item.items)) {
-            collectionItems = collectionItems.concat(item.items);
-          }
-        });
-      }
-
-      // console.log('[DEBUG - COLLECTIONS] Viewing collection:', collectionName, collectionItems);
+      console.log(`[COLLECTIONS] Viewing collection "${collectionName}":`, {
+        foundIn: foundCategory,
+        itemCount: collectionItems.length,
+        items: collectionItems.slice(0, 5) // Log first 5 items for debugging
+      });
 
       if (collectionItems.length > 0) {
         await this.showCollectionModal(collectionName, collectionItems);
       } else {
-        this.showToast(`Collection "${collectionName}" is empty`, "info");
+        // Additional debugging: check if collection exists in flattened view
+        const allCollections = {};
+        categories.forEach(cat => {
+          if (collectionsData.collections[cat]) {
+            Object.assign(allCollections, collectionsData.collections[cat]);
+          }
+        });
+        
+        if (allCollections[collectionName]) {
+          console.error(`[COLLECTIONS] Collection "${collectionName}" exists but has no items!`, allCollections[collectionName]);
+          this.showToast(`Collection "${collectionName}" exists but contains no valid items. Please check the collection data.`, "error");
+        } else {
+          this.showToast(`Collection "${collectionName}" not found in any category`, "error");
+        }
       }
     } catch (error) {
       console.error("[DEBUG - COLLECTIONS] Error viewing collection:", error);
@@ -14721,69 +15117,77 @@ class MediaLibraryManager {
         collectionItems.slice(0, 5)
       );
 
-      // Get the collection data directly from collections-unified.json instead of relying on passed parameter
+      // Use the collectionItems parameter if provided and has items, otherwise re-extract from collections data
+      let movies = [];
+      let tvShows = [];
 
-      const collectionsData = await this.getCollections();
-
-      const collections = collectionsData.collections || {};
-
-      // Search for the collection in all categories (my_collections, genres, actors, directors, creative, decades)
-
-      let targetCollection = [];
-
-      const categories = [
-        "my_collections",
-        "genres",
-        "actors",
-        "directors",
-        "creative",
-        "decades",
-      ];
-
-      for (const category of categories) {
-        if (collections[category] && collections[category][collectionName]) {
-          targetCollection = collections[category][collectionName];
-
-          console.log(
-            "[DEBUG - MODAL] Found collection in category:",
-            category
-          );
-
-          break;
-        }
-      }
-
-      console.log(
-        "[DEBUG - MODAL] Collection data for",
-        collectionName,
-        ":",
-        targetCollection
-      );
-
-      // Use the structured format directly - get movies and tvshows from their respective arrays
-
-      const movies = [];
-
-      const tvShows = [];
-
-      if (Array.isArray(targetCollection)) {
-        targetCollection.forEach((item) => {
-          if (
-            item &&
-            item.media === "movies" &&
-            item.items &&
-            Array.isArray(item.items)
-          ) {
-            movies.push(...item.items);
-          } else if (
-            item &&
-            item.media === "tvshows" &&
-            item.items &&
-            Array.isArray(item.items)
-          ) {
-            tvShows.push(...item.items);
+      if (collectionItems && Array.isArray(collectionItems) && collectionItems.length > 0) {
+        // Use the items that were already extracted in viewCollection
+        console.log("[DEBUG - MODAL] Using provided collectionItems:", collectionItems.length, "items");
+        
+        // Separate into movies and TV shows by checking unified data
+        for (const itemKey of collectionItems) {
+          if (typeof itemKey === 'string' && this.unifiedData && this.unifiedData[itemKey]) {
+            const item = this.unifiedData[itemKey];
+            if (item.type === 'tvshow' || item.isTVShow) {
+              tvShows.push(itemKey);
+            } else {
+              movies.push(itemKey);
+            }
+          } else {
+            // If not found in unified data, assume it's a movie (most common case)
+            movies.push(itemKey);
           }
-        });
+        }
+      } else {
+        // Fallback: Re-extract from collections data if collectionItems is empty or not provided
+        console.log("[DEBUG - MODAL] Re-extracting from collections data (collectionItems was empty)");
+        
+        const collectionsData = await this.getCollections();
+        const collections = collectionsData.collections || {};
+
+        // Search for the collection in ALL categories (don't break after first match)
+        const categories = [
+          "my_collections",
+          "genres",
+          "actors",
+          "directors",
+          "creative",
+          "decades",
+        ];
+
+        for (const category of categories) {
+          if (collections[category] && collections[category][collectionName]) {
+            const targetCollection = collections[category][collectionName];
+
+            console.log(
+              "[DEBUG - MODAL] Found collection in category:",
+              category
+            );
+
+            // Extract items from this category
+            if (Array.isArray(targetCollection)) {
+              targetCollection.forEach((item) => {
+                if (
+                  item &&
+                  item.media === "movies" &&
+                  item.items &&
+                  Array.isArray(item.items)
+                ) {
+                  movies.push(...item.items);
+                } else if (
+                  item &&
+                  item.media === "tvshows" &&
+                  item.items &&
+                  Array.isArray(item.items)
+                ) {
+                  tvShows.push(...item.items);
+                }
+              });
+            }
+            // Don't break - continue searching in case collection exists in multiple categories
+          }
+        }
       }
 
       console.log(
@@ -14865,25 +15269,142 @@ class MediaLibraryManager {
           let posterPath = "/assets/img/placeholder-poster.jpg";
 
           if (this.unifiedData) {
-            // Direct lookup using the normalized key from collections
+            // Strategy 1: Direct lookup using the normalized key from collections
             movieData = this.unifiedData[path];
 
             if (movieData && movieData.type === "movie") {
               posterPath =
                 movieData.poster || "/assets/img/placeholder-poster.jpg";
-            } else {
-              // Fallback: search for similar key patterns
-              for (const [key, item] of Object.entries(this.unifiedData)) {
-                if (
-                  item.type === "movie" &&
-                  key
-                    .toLowerCase()
-                    .includes(path.toLowerCase().replace(/\./g, " "))
-                ) {
-                  movieData = item;
-                  posterPath =
-                    item.poster || "/assets/img/placeholder-poster.jpg";
-                  break;
+              } else {
+                // Extract pathWithoutYear once for use in multiple strategies
+                const pathWithoutYear = path.replace(/\.\((\d{4})\)$/, "");
+                
+                // Strategy 2: Try character variations (e.g., "&" -> "and", "and" -> "&")
+                if (!movieData) {
+                  const variations = [path]; // Start with original
+                  
+                  // Convert & to and
+                  if (path.includes("&")) {
+                    variations.push(path.replace(/&/g, "and"));
+                  }
+                  
+                  // Convert and to &
+                  if (path.includes(".and.")) {
+                    variations.push(path.replace(/\.and\./g, ".&."));
+                  }
+                  
+                  for (const variant of variations) {
+                    if (this.unifiedData[variant] && this.unifiedData[variant].type === "movie") {
+                      movieData = this.unifiedData[variant];
+                      posterPath = movieData.poster || "/assets/img/placeholder-poster.jpg";
+                      console.log(`[COLLECTIONS-MODAL] Found movie with character variation: ${path} -> ${variant}`);
+                      break;
+                    }
+                  }
+                }
+                
+                // Strategy 3: Try with year variations (e.g., "ben.hur" -> "ben.hur.(1959)")
+                if (!movieData) {
+                  // First try exact matches with common years
+                  const commonYears = ["1959", "1987", "2000", "2010", "2020", "1984", "1990", "2005", "2015"];
+                  const possibleKeys = [path]; // Original path first
+                  
+                  // Also try variations with &/and conversion
+                  const baseVariations = [pathWithoutYear];
+                  if (pathWithoutYear.includes("&")) {
+                    baseVariations.push(pathWithoutYear.replace(/&/g, "and"));
+                  }
+                  if (pathWithoutYear.includes(".and.")) {
+                    baseVariations.push(pathWithoutYear.replace(/\.and\./g, ".&."));
+                  }
+                  
+                  for (const base of baseVariations) {
+                    for (const year of commonYears) {
+                      possibleKeys.push(`${base}.(${year})`);
+                    }
+                  }
+
+                  for (const tryKey of possibleKeys) {
+                    if (this.unifiedData[tryKey] && this.unifiedData[tryKey].type === "movie") {
+                      movieData = this.unifiedData[tryKey];
+                      posterPath = movieData.poster || "/assets/img/placeholder-poster.jpg";
+                      console.log(`[COLLECTIONS-MODAL] Found movie with year variation: ${path} -> ${tryKey}`);
+                      break;
+                    }
+                  }
+                }
+
+                // Strategy 3b: Search for any key that starts with pathWithoutYear and has a year (with &/and variations)
+                if (!movieData && pathWithoutYear) {
+                  const yearPattern = /\.\((\d{4})\)$/;
+                  const pathVariations = [pathWithoutYear];
+                  
+                  // Add &/and variations
+                  if (pathWithoutYear.includes("&")) {
+                    pathVariations.push(pathWithoutYear.replace(/&/g, "and"));
+                  }
+                  if (pathWithoutYear.includes(".and.")) {
+                    pathVariations.push(pathWithoutYear.replace(/\.and\./g, ".&."));
+                  }
+                  
+                  for (const [key, item] of Object.entries(this.unifiedData)) {
+                    if (item.type === "movie" && yearPattern.test(key)) {
+                      const keyWithoutYear = key.replace(yearPattern, "");
+                      
+                      // Check against all variations
+                      for (const pathVar of pathVariations) {
+                        if (keyWithoutYear === pathVar || 
+                            keyWithoutYear.toLowerCase() === pathVar.toLowerCase()) {
+                          movieData = item;
+                          posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                          console.log(`[COLLECTIONS-MODAL] Found movie with any year: ${path} -> ${key}`);
+                          break;
+                        }
+                      }
+                      if (movieData) break;
+                    }
+                  }
+                }
+
+              // Strategy 4: Search for similar key patterns (fuzzy matching)
+              if (!movieData) {
+                const pathLower = path.toLowerCase().replace(/\./g, " ").replace(/&/g, "and");
+                for (const [key, item] of Object.entries(this.unifiedData)) {
+                  if (item.type === "movie") {
+                    const keyLower = key.toLowerCase().replace(/\./g, " ").replace(/&/g, "and");
+                    // Check if the path is contained in the key or vice versa
+                    if (keyLower.includes(pathLower) || pathLower.includes(keyLower)) {
+                      // Additional check: ensure it's a reasonable match (not too different)
+                      const pathWords = pathLower.split(/\s+/).filter(w => w.length > 2);
+                      const keyWords = keyLower.split(/\s+/).filter(w => w.length > 2);
+                      const matchingWords = pathWords.filter(w => keyWords.some(kw => kw.includes(w) || w.includes(kw)));
+                      
+                      if (matchingWords.length >= Math.min(pathWords.length, keyWords.length) * 0.7) {
+                        movieData = item;
+                        posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                        console.log(`[COLLECTIONS-MODAL] Found movie with fuzzy match: ${path} -> ${key}`);
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Strategy 5: Try matching by converted title
+              if (!movieData) {
+                const convertedTitle = this.convertNormalizedKeyToDisplayTitle(path);
+                for (const [key, item] of Object.entries(this.unifiedData)) {
+                  if (item.type === "movie" && item.TMDBTitle) {
+                    // Compare converted title with TMDBTitle (normalize &/and)
+                    const normalizedTitle = item.TMDBTitle.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/&/g, "and");
+                    const normalizedConverted = convertedTitle.toLowerCase().replace(/[^a-z0-9]/g, "").replace(/&/g, "and");
+                    if (normalizedTitle === normalizedConverted) {
+                      movieData = item;
+                      posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                      console.log(`[COLLECTIONS-MODAL] Found movie by title match: ${path} -> ${key} (${item.TMDBTitle})`);
+                      break;
+                    }
+                  }
                 }
               }
             }
@@ -15840,8 +16361,8 @@ class MediaLibraryManager {
             await this.removeFromCollection(collectionName, path);
 
             // Remove the item card from the modal
-
-            const itemCard = e.target.closest(".modal-collections-item");
+            // Note: Items use classes "modal-collections-item-movies" and "modal-collections-item-tvshows"
+            const itemCard = e.target.closest(".modal-collections-item-movies, .modal-collections-item-tvshows");
 
             if (itemCard) {
               itemCard.remove();
@@ -15863,22 +16384,23 @@ class MediaLibraryManager {
       });
 
       // Add click handlers for media items (movies and TV shows)
-
-      modal
-
-        .querySelectorAll(".modal-collections-item")
-
-        .forEach((item, index) => {
+      // Note: Items use classes "modal-collections-item-movies" and "modal-collections-item-tvshows"
+      const mediaItems = modal.querySelectorAll(".modal-collections-item-movies, .modal-collections-item-tvshows");
+      console.log(`[COLLECTIONS-MODAL] Attaching click handlers to ${mediaItems.length} media items`);
+      
+      mediaItems.forEach((item, index) => {
           item.addEventListener("click", async (e) => {
             // Don't trigger if clicking on action buttons
 
             if (e.target.closest(".modal-collections-item-actions")) {
+              console.log("[COLLECTIONS-MODAL] Click on action button, ignoring");
               return;
             }
 
             const path = item.dataset.path;
-
             const type = item.dataset.type;
+            
+            console.log(`[COLLECTIONS-MODAL] Media item clicked: path="${path}", type="${type}"`);
 
             try {
               if (type === "movie") {
@@ -15899,6 +16421,10 @@ class MediaLibraryManager {
             }
           });
         });
+      
+      if (mediaItems.length === 0) {
+        console.warn("[COLLECTIONS-MODAL] No media items found to attach handlers to!");
+      }
     } catch (error) {
       console.error(
         "[COLLECTIONS] Error attaching simple collection modal handlers:",
@@ -15916,28 +16442,99 @@ class MediaLibraryManager {
 
   async playMovieFromCollectionsModal(path) {
     try {
+      console.log(`[COLLECTIONS-PLAY] Attempting to play movie with path: "${path}"`);
+      
       // Load unified data if not already loaded
-
       if (!this.unifiedData || Object.keys(this.unifiedData).length === 0) {
         await this.loadUnifiedData();
       }
 
-      // Find the movie in unified data using the collection key
-
+      // Find the movie in unified data using the same strategies as the collection modal
       let movieData = null;
 
+      // Strategy 1: Direct lookup
       if (this.unifiedData && this.unifiedData[path]) {
         movieData = this.unifiedData[path];
+        console.log(`[COLLECTIONS-PLAY] Found movie via direct lookup: "${path}"`);
       } else {
+        // Strategy 2: Try character variations (e.g., "&" -> "and", "and" -> "&")
+        const variations = [path];
+        if (path.includes("&")) {
+          variations.push(path.replace(/&/g, "and"));
+        }
+        if (path.includes(".and.")) {
+          variations.push(path.replace(/\.and\./g, ".&."));
+        }
+        
+        for (const variant of variations) {
+          if (this.unifiedData[variant] && this.unifiedData[variant].type === "movie") {
+            movieData = this.unifiedData[variant];
+            console.log(`[COLLECTIONS-PLAY] Found movie via character variation: "${path}" -> "${variant}"`);
+            break;
+          }
+        }
+      }
+      
+      // Strategy 3: Try with year variations if still not found
+      if (!movieData) {
+        const pathWithoutYear = path.replace(/\.\((\d{4})\)$/, "");
+        const commonYears = ["1959", "1987", "2000", "2010", "2020", "1984", "1990", "2005", "2015", "1994", "2002", "2003", "2004", "2015", "2016", "2024", "2025"];
+        const baseVariations = [pathWithoutYear];
+        if (pathWithoutYear.includes("&")) {
+          baseVariations.push(pathWithoutYear.replace(/&/g, "and"));
+        }
+        if (pathWithoutYear.includes(".and.")) {
+          baseVariations.push(pathWithoutYear.replace(/\.and\./g, ".&."));
+        }
+        
+        for (const base of baseVariations) {
+          for (const year of commonYears) {
+            const tryKey = `${base}.(${year})`;
+            if (this.unifiedData[tryKey] && this.unifiedData[tryKey].type === "movie") {
+              movieData = this.unifiedData[tryKey];
+              console.log(`[COLLECTIONS-PLAY] Found movie via year variation: "${path}" -> "${tryKey}"`);
+              break;
+            }
+          }
+          if (movieData) break;
+        }
+      }
+      
+      // Strategy 4: Search for any key that matches (fuzzy)
+      if (!movieData) {
+        const pathLower = path.toLowerCase().replace(/\./g, " ").replace(/&/g, "and");
+        for (const [key, item] of Object.entries(this.unifiedData)) {
+          if (item.type === "movie") {
+            const keyLower = key.toLowerCase().replace(/\./g, " ").replace(/&/g, "and");
+            if (keyLower.includes(pathLower) || pathLower.includes(keyLower)) {
+              const pathWords = pathLower.split(/\s+/).filter(w => w.length > 2);
+              const keyWords = keyLower.split(/\s+/).filter(w => w.length > 2);
+              const matchingWords = pathWords.filter(w => keyWords.some(kw => kw.includes(w) || w.includes(kw)));
+              
+              if (matchingWords.length >= Math.min(pathWords.length, keyWords.length) * 0.7) {
+                movieData = item;
+                console.log(`[COLLECTIONS-PLAY] Found movie via fuzzy match: "${path}" -> "${key}"`);
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (!movieData) {
         console.error(
-          "[COLLECTIONS] Movie not found in unified data for key:",
-          path
+          "[COLLECTIONS-PLAY] Movie not found in unified data for key:",
+          path,
+          "Available keys sample:",
+          Object.keys(this.unifiedData).slice(0, 10)
         );
 
         this.showToast("Movie not found in library", "error");
 
         return;
       }
+      
+      console.log(`[COLLECTIONS-PLAY] Found movie data:`, movieData);
 
       // Close the collections modal
 
@@ -16359,13 +16956,13 @@ class MediaLibraryManager {
   updateCollectionCounts(modal, collectionName) {
     try {
       // Count remaining movies and TV shows
-
+      // Note: Items use classes "modal-collections-item-movies" and "modal-collections-item-tvshows"
       const movies = modal.querySelectorAll(
-        '.modal-collections-item[data-type="movie"]'
+        '.modal-collections-item-movies[data-type="movie"]'
       );
 
       const tvShows = modal.querySelectorAll(
-        '.modal-collections-item[data-type="tvshow"]'
+        '.modal-collections-item-tvshows[data-type="tvshow"]'
       );
 
       // Update the count displays
@@ -18531,25 +19128,88 @@ class MediaLibraryManager {
             let posterPath = "/assets/img/placeholder-poster.jpg";
 
             if (this.unifiedData) {
-              // Direct lookup using the normalized key from collections
+              // Strategy 1: Direct lookup using the normalized key from collections
               movieData = this.unifiedData[path];
 
               if (movieData && movieData.type === "movie") {
                 posterPath =
                   movieData.poster || "/assets/img/placeholder-poster.jpg";
               } else {
-                // Fallback: search for similar key patterns
-                for (const [key, item] of Object.entries(this.unifiedData)) {
-                  if (
-                    item.type === "movie" &&
-                    key
-                      .toLowerCase()
-                      .includes(path.toLowerCase().replace(/\./g, " "))
-                  ) {
-                    movieData = item;
-                    posterPath =
-                      item.poster || "/assets/img/placeholder-poster.jpg";
+                // Strategy 2: Try with year variations (e.g., "ben.hur" -> "ben.hur.(1959)")
+                const pathWithoutYear = path.replace(/\.\((\d{4})\)$/, "");
+                
+                // First try exact matches with common years
+                const commonYears = ["1959", "1987", "2000", "2010", "2020", "1984", "1990", "2005", "2015"];
+                const possibleKeys = [path]; // Original path first
+                
+                for (const year of commonYears) {
+                  possibleKeys.push(`${pathWithoutYear}.(${year})`);
+                }
+
+                for (const tryKey of possibleKeys) {
+                  if (this.unifiedData[tryKey] && this.unifiedData[tryKey].type === "movie") {
+                    movieData = this.unifiedData[tryKey];
+                    posterPath = movieData.poster || "/assets/img/placeholder-poster.jpg";
+                    console.log(`[COLLECTIONS] Found movie with year variation: ${path} -> ${tryKey}`);
                     break;
+                  }
+                }
+
+                // Strategy 2b: Search for any key that starts with pathWithoutYear and has a year
+                if (!movieData && pathWithoutYear) {
+                  const yearPattern = /\.\((\d{4})\)$/;
+                  for (const [key, item] of Object.entries(this.unifiedData)) {
+                    if (item.type === "movie" && yearPattern.test(key)) {
+                      const keyWithoutYear = key.replace(yearPattern, "");
+                      if (keyWithoutYear === pathWithoutYear || 
+                          keyWithoutYear.toLowerCase() === pathWithoutYear.toLowerCase()) {
+                        movieData = item;
+                        posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                        console.log(`[COLLECTIONS] Found movie with any year: ${path} -> ${key}`);
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                // Strategy 3: Search for similar key patterns (fuzzy matching)
+                if (!movieData) {
+                  const pathLower = path.toLowerCase().replace(/\./g, " ");
+                  for (const [key, item] of Object.entries(this.unifiedData)) {
+                    if (item.type === "movie") {
+                      const keyLower = key.toLowerCase().replace(/\./g, " ");
+                      // Check if the path is contained in the key or vice versa
+                      if (keyLower.includes(pathLower) || pathLower.includes(keyLower)) {
+                        // Additional check: ensure it's a reasonable match (not too different)
+                        const pathWords = pathLower.split(/\s+/).filter(w => w.length > 2);
+                        const keyWords = keyLower.split(/\s+/).filter(w => w.length > 2);
+                        const matchingWords = pathWords.filter(w => keyWords.some(kw => kw.includes(w) || w.includes(kw)));
+                        
+                        if (matchingWords.length >= Math.min(pathWords.length, keyWords.length) * 0.7) {
+                          movieData = item;
+                          posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                          console.log(`[COLLECTIONS] Found movie with fuzzy match: ${path} -> ${key}`);
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+
+                // Strategy 4: Try matching by converted title
+                if (!movieData) {
+                  const convertedTitle = this.convertNormalizedKeyToDisplayTitle(path);
+                  for (const [key, item] of Object.entries(this.unifiedData)) {
+                    if (item.type === "movie" && item.TMDBTitle) {
+                      // Compare converted title with TMDBTitle
+                      if (item.TMDBTitle.toLowerCase().replace(/[^a-z0-9]/g, "") === 
+                          convertedTitle.toLowerCase().replace(/[^a-z0-9]/g, "")) {
+                        movieData = item;
+                        posterPath = item.poster || "/assets/img/placeholder-poster.jpg";
+                        console.log(`[COLLECTIONS] Found movie by title match: ${path} -> ${key} (${item.TMDBTitle})`);
+                        break;
+                      }
+                    }
                   }
                 }
               }
@@ -18827,20 +19487,39 @@ class MediaLibraryManager {
         });
 
         // Apply search filter if there's a search query
+        // Search is case-insensitive and supports partial matches
 
         let filteredCollections = nonEmptyCollections;
 
         if (this.collectionsSearchQuery && this.collectionsSearchQuery.trim()) {
-          const searchTerm = this.collectionsSearchQuery.toLowerCase().trim();
+          // Normalize search term: convert to lowercase and trim whitespace
+          const rawSearchQuery = this.collectionsSearchQuery.trim();
+          const searchTerm = rawSearchQuery.toLowerCase();
 
+          console.log(
+            `[COLLECTIONS-SEARCH] Original query: "${rawSearchQuery}" → Normalized: "${searchTerm}"`
+          );
+          console.log(
+            `[COLLECTIONS-SEARCH] Searching in ${nonEmptyCollections.length} collections`
+          );
+
+          // Filter collections: case-insensitive partial match
           filteredCollections = nonEmptyCollections.filter((name) => {
-            return name.toLowerCase().includes(searchTerm);
+            // Normalize collection name to lowercase for comparison
+            const nameNormalized = String(name || "").toLowerCase();
+            const matches = nameNormalized.includes(searchTerm);
+            
+            if (matches) {
+              console.log(
+                `[COLLECTIONS-SEARCH] ✓ Match: "${name}" (normalized: "${nameNormalized}") contains "${searchTerm}"`
+              );
+            }
+            return matches;
           });
 
           console.log(
-            `[COLLECTIONS-SEARCH] Filtering collections by "${searchTerm}":`,
-            filteredCollections.length,
-            "results"
+            `[COLLECTIONS-SEARCH] Found ${filteredCollections.length} matching collections:`,
+            filteredCollections
           );
         }
 
@@ -18865,45 +19544,106 @@ class MediaLibraryManager {
         }
 
         // Apply saved order if available (excluding "My PICK" since it's positioned absolutely)
+        // Only apply saved order if no explicit sort is active (when sortBy is undefined/null, use saved order)
+        // If sortBy is set (even to "asc"), use that sort instead of saved order
+        const sortValue = this.sortBy;
+        const actualSortValue = sortValue || "asc"; // Default to "asc" if not set
+        const useSavedOrder = !sortValue && !this.collectionsSearchQuery;
+        
+        console.log(`[COLLECTIONS-SORT] sortValue: "${sortValue}", actualSortValue: "${actualSortValue}", useSavedOrder: ${useSavedOrder}`);
+        
+        if (useSavedOrder) {
+          const savedOrder = this.getCollectionOrder();
 
-        const savedOrder = this.getCollectionOrder();
+          if (savedOrder && savedOrder.length > 0) {
+            // Filter out "My PICK" from saved order
 
-        if (savedOrder && savedOrder.length > 0) {
-          // Filter out "My PICK" from saved order
+            const filteredSavedOrder = savedOrder.filter(
+              (name) => name !== "My PICK"
+            );
 
-          const filteredSavedOrder = savedOrder.filter(
-            (name) => name !== "My PICK"
-          );
+            // Merge saved order with current collections (add any new collections at the end)
 
-          // Merge saved order with current collections (add any new collections at the end)
+            const orderedCollections = [];
 
-          const orderedCollections = [];
+            // Add collections from saved order
 
-          // Add collections from saved order
+            filteredSavedOrder.forEach((name) => {
+              if (filteredCollections.includes(name)) {
+                orderedCollections.push(name);
+              }
+            });
 
-          filteredSavedOrder.forEach((name) => {
-            if (filteredCollections.includes(name)) {
-              orderedCollections.push(name);
-            }
-          });
+            // Add any new collections that weren't in the saved order
 
-          // Add any new collections that weren't in the saved order
+            filteredCollections.forEach((name) => {
+              if (!orderedCollections.includes(name)) {
+                orderedCollections.push(name);
+              }
+            });
 
-          filteredCollections.forEach((name) => {
-            if (!orderedCollections.includes(name)) {
-              orderedCollections.push(name);
-            }
-          });
-
-          filteredCollections.splice(
-            0,
-            filteredCollections.length,
-            ...orderedCollections
-          );
+            filteredCollections.splice(
+              0,
+              filteredCollections.length,
+              ...orderedCollections
+            );
+            
+            console.log(`[COLLECTIONS-SORT] Applied saved order (${filteredCollections.length} collections)`);
+          }
         } else {
+          console.log(`[COLLECTIONS-SORT] Skipping saved order - using sort: "${actualSortValue}"`);
         }
 
-        // If no saved order, filteredCollections is already sorted alphabetically
+        // Apply sorting based on sortBy setting
+        // Always sort if not using saved order
+        if (!useSavedOrder) {
+          console.log(`[COLLECTIONS-SORT] Applying sort: "${actualSortValue}" to ${filteredCollections.length} collections`);
+          
+          filteredCollections.sort((a, b) => {
+          const collectionA = collections[a] || [];
+          const collectionB = collections[b] || [];
+          
+          // Count items in each collection
+          let countA = 0;
+          let countB = 0;
+          
+          if (Array.isArray(collectionA)) {
+            collectionA.forEach((item) => {
+              if (item && item.items && Array.isArray(item.items)) {
+                countA += item.items.length;
+              }
+            });
+          }
+          
+          if (Array.isArray(collectionB)) {
+            collectionB.forEach((item) => {
+              if (item && item.items && Array.isArray(item.items)) {
+                countB += item.items.length;
+              }
+            });
+          }
+          
+          switch (actualSortValue) {
+            case "desc":
+              // Z-A
+              return b.localeCompare(a);
+            case "count-desc":
+              // Most items first
+              return countB - countA;
+            case "count-asc":
+              // Least items first
+              return countA - countB;
+            case "asc":
+            default:
+              // A-Z (default)
+              return a.localeCompare(b);
+          }
+          });
+          
+          console.log(`[COLLECTIONS-SORT] Sorted collections (first 5):`, filteredCollections.slice(0, 5));
+        } else {
+          console.log(`[COLLECTIONS-SORT] Using saved order, skipping sort`);
+        }
 
         // Show main collections list
 
@@ -18919,8 +19659,39 @@ class MediaLibraryManager {
 
         html += '<div class="movies-section-collections">';
 
-        html +=
-          '  <h3 class="section-title-movies-collections"><span class="collections-header-text">COLLECTIONS</span></h3>';
+        // Integrated header with title and controls all in the grey header area
+        const currentSearchValue = this.collectionsSearchQuery || "";
+        const currentSortValue = this.sortBy || "asc";
+        html += `
+          <div class="section-title-movies-collections collections-header-integrated">
+            <span class="collections-header-text">COLLECTIONS</span>
+            <div class="collections-header-controls">
+              <div class="collections-search-container">
+                <input type="text" 
+                  id="collectionsPageSearch" 
+                  class="collections-page-search" 
+                  placeholder="Search Collections..." 
+                  value="${currentSearchValue}"
+                  oninput="window.mediaLibraryManager.handleCollectionsPageSearch(event)">
+                <button class="collections-clear-search" 
+                  id="collectionsClearSearchBtn"
+                  onclick="window.mediaLibraryManager.clearCollectionsPageSearch()" 
+                  title="Clear search"
+                  style="display: ${currentSearchValue ? 'flex' : 'none'};"
+                  >&times;</button>
+              </div>
+              <select id="collectionsPageSort" class="collections-page-sort" onchange="window.mediaLibraryManager.handleSortChange(event)">
+                <option value="asc" ${currentSortValue === "asc" ? "selected" : ""}>A-Z</option>
+                <option value="desc" ${currentSortValue === "desc" ? "selected" : ""}>Z-A</option>
+                <option value="count-desc" ${currentSortValue === "count-desc" ? "selected" : ""}>Most Items</option>
+                <option value="count-asc" ${currentSortValue === "count-asc" ? "selected" : ""}>Least Items</option>
+              </select>
+              <button class="collections-create-btn" onclick="window.mediaLibraryManager.showCreateCollectionDialog()" title="Create New Collection">
+                ➕ Create Collection
+              </button>
+            </div>
+          </div>
+        `;
 
         // Add My PICK card in the Collections section header
 
@@ -19159,6 +19930,38 @@ class MediaLibraryManager {
 
         html += "</div>";
 
+        // Sync Collections header controls with main top bar controls
+        setTimeout(() => {
+          const collectionsPageSearch = document.getElementById("collectionsPageSearch");
+          const mainSearch = document.getElementById("mediaLibrarySearch");
+          if (collectionsPageSearch && mainSearch) {
+            // Sync main search to Collections page search
+            const searchValue = this.collectionsSearchQuery || "";
+            collectionsPageSearch.value = searchValue;
+            mainSearch.value = searchValue;
+            
+            // Update clear button visibility
+            const clearBtn = document.getElementById("collectionsClearSearchBtn");
+            if (clearBtn) {
+              clearBtn.style.display = searchValue ? "flex" : "none";
+            }
+            
+            const mainClearBtn = document.getElementById("mediaLibraryClearSearch");
+            if (mainClearBtn) {
+              mainClearBtn.style.display = searchValue ? "flex" : "none";
+            }
+          }
+          
+          const collectionsPageSort = document.getElementById("collectionsPageSort");
+          const mainSort = document.getElementById("mediaLibrarySort");
+          if (collectionsPageSort && mainSort) {
+            // Sync main sort to Collections page sort
+            const sortValue = this.sortBy || "asc";
+            collectionsPageSort.value = sortValue;
+            mainSort.value = sortValue;
+          }
+        }, 50);
+
         // Add click-to-move functionality after rendering
 
         setTimeout(() => {
@@ -19208,6 +20011,265 @@ class MediaLibraryManager {
         "</div>"
       );
     }
+  }
+
+  /**
+   * Handle search input on Collections page
+   */
+  async handleCollectionsPageSearch(event) {
+    const searchValue = event.target.value;
+    this.collectionsSearchQuery = searchValue;
+    
+    // Also update main search input to keep them in sync
+    const mainSearch = document.getElementById("mediaLibrarySearch");
+    if (mainSearch) {
+      mainSearch.value = searchValue;
+    }
+    
+    // Update clear button visibility
+    const clearBtn = document.getElementById("collectionsClearSearchBtn");
+    if (clearBtn) {
+      clearBtn.style.display = searchValue ? "flex" : "none";
+    }
+    
+    // Update main clear button too
+    const mainClearBtn = document.getElementById("mediaLibraryClearSearch");
+    if (mainClearBtn) {
+      mainClearBtn.style.display = searchValue ? "flex" : "none";
+    }
+    
+    // Debounce the re-render to avoid too many updates while typing
+    if (this.collectionsSearchTimeout) {
+      clearTimeout(this.collectionsSearchTimeout);
+    }
+    
+    this.collectionsSearchTimeout = setTimeout(async () => {
+      // Re-render collections with new search and update the grid
+      const grid = document.getElementById("mediaGrid");
+      if (grid) {
+        const newHtml = await this.renderCollectionsTab();
+        grid.innerHTML = newHtml;
+        console.log(`[COLLECTIONS-SEARCH] Grid updated with search: "${searchValue}"`);
+        
+        // Re-attach collection handlers after DOM update
+        this.attachCollectionHandlers();
+      } else {
+        // Fallback: use updateModalContent if grid not found
+        await this.updateModalContent();
+      }
+      
+      await this.updateCount();
+    }, 300);
+  }
+
+  /**
+   * Clear Collections page search
+   */
+  async clearCollectionsPageSearch() {
+    this.collectionsSearchQuery = "";
+    
+    // Clear Collections page search input
+    const searchInput = document.getElementById("collectionsPageSearch");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+    
+    // Clear main search input too
+    const mainSearch = document.getElementById("mediaLibrarySearch");
+    if (mainSearch) {
+      mainSearch.value = "";
+    }
+    
+    // Hide clear buttons
+    const clearBtn = document.getElementById("collectionsClearSearchBtn");
+    if (clearBtn) {
+      clearBtn.style.display = "none";
+    }
+    
+    const mainClearBtn = document.getElementById("mediaLibraryClearSearch");
+    if (mainClearBtn) {
+      mainClearBtn.style.display = "none";
+    }
+    
+    // Clear any pending search timeout
+    if (this.collectionsSearchTimeout) {
+      clearTimeout(this.collectionsSearchTimeout);
+    }
+    
+    // Re-render collections with cleared search and update the grid
+    const grid = document.getElementById("mediaGrid");
+    if (grid) {
+      const newHtml = await this.renderCollectionsTab();
+      grid.innerHTML = newHtml;
+      console.log(`[COLLECTIONS-SEARCH] Grid updated - search cleared, showing all collections`);
+      
+      // Re-attach collection handlers after DOM update
+      this.attachCollectionHandlers();
+    } else {
+      // Fallback: use updateModalContent if grid not found
+      await this.updateModalContent();
+    }
+    
+    await this.updateCount();
+  }
+
+  /**
+   * Show dialog to create a new collection from the Collections page
+   */
+  async showCreateCollectionDialog() {
+    // Create modal overlay
+    const overlay = document.createElement("div");
+    overlay.className = "collections-create-overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 30000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    `;
+
+    // Create modal dialog
+    const modal = document.createElement("div");
+    modal.className = "collections-create-modal";
+    modal.style.cssText = `
+      background: #1a1a1a;
+      border: 2px solid #4a9eff;
+      border-radius: 10px;
+      padding: 30px;
+      min-width: 400px;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    `;
+
+    modal.innerHTML = `
+      <h2 style="color: #4a9eff; margin-top: 0; margin-bottom: 20px;">Create New Collection</h2>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; color: #fff; margin-bottom: 8px; font-weight: bold;">Collection Name:</label>
+        <input type="text" id="newCollectionNameInput" placeholder="Enter collection name..." 
+          style="width: 100%; padding: 10px; border: 1px solid #4a9eff; border-radius: 5px; background: #2a2a2a; color: #fff; font-size: 14px;"
+          autofocus>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; color: #fff; margin-bottom: 8px; font-weight: bold;">Category:</label>
+        <select id="newCollectionCategorySelect" 
+          style="width: 100%; padding: 10px; border: 1px solid #4a9eff; border-radius: 5px; background: #2a2a2a; color: #fff; font-size: 14px;">
+          <option value="My Collections">My Collections</option>
+          <option value="Actors">Actors</option>
+          <option value="Directors">Directors</option>
+          <option value="Genres">Genres</option>
+          <option value="Creative">Creative</option>
+          <option value="Years">Years</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="createCollectionCancelBtn" 
+          style="padding: 10px 20px; border: 1px solid #666; border-radius: 5px; background: #333; color: #fff; cursor: pointer; font-size: 14px;">
+          Cancel
+        </button>
+        <button id="createCollectionSaveBtn" 
+          style="padding: 10px 20px; border: none; border-radius: 5px; background: #4a9eff; color: #fff; cursor: pointer; font-size: 14px; font-weight: bold;">
+          Create
+        </button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Focus input
+    const nameInput = modal.querySelector("#newCollectionNameInput");
+    nameInput.focus();
+
+    // Handle Enter key
+    nameInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        document.getElementById("createCollectionSaveBtn").click();
+      }
+    });
+
+    // Handle Cancel
+    document.getElementById("createCollectionCancelBtn").onclick = () => {
+      document.body.removeChild(overlay);
+    };
+
+    // Handle Create
+    document.getElementById("createCollectionSaveBtn").onclick = async () => {
+      const collectionName = nameInput.value.trim();
+      const categorySelect = modal.querySelector("#newCollectionCategorySelect");
+      const category = categorySelect ? categorySelect.value : "My Collections";
+
+      if (!collectionName) {
+        this.showToast("Please enter a collection name", "error");
+        return;
+      }
+
+      // Check if collection already exists
+      const collections = await this.getCollections();
+      if (collections[collectionName]) {
+        this.showToast(`Collection "${collectionName}" already exists`, "error");
+        return;
+      }
+
+      // Map display names to internal category names
+      const categoryMap = {
+        "My Collections": "my_collections",
+        Genres: "genres",
+        Creative: "creative",
+        Directors: "directors",
+        Actors: "actors",
+        Years: "decades",
+      };
+
+      const internalCategory = categoryMap[category] || "my_collections";
+
+      // Create the collection in the file structure
+      try {
+        await this.addToCollectionInFile(
+          collectionName,
+          null, // No item to add initially
+          internalCategory
+        );
+
+        // Create empty collection structure
+        const structuredCollections = await this.getStructuredCollections();
+        if (!structuredCollections.collections[internalCategory][collectionName]) {
+          structuredCollections.collections[internalCategory][collectionName] = [
+            { created: new Date().toISOString() },
+            { media: "movies", items: [] },
+            { media: "tvshows", items: [] },
+          ];
+          
+          // Save to file
+          await fetch("/api/collections/save-json", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(structuredCollections),
+          });
+        }
+
+        this.showToast(`Collection "${collectionName}" created successfully!`, "success");
+        document.body.removeChild(overlay);
+        
+        // Refresh collections view
+        await this.renderCollectionsTab();
+        await this.updateCount();
+      } catch (error) {
+        console.error("[CREATE COLLECTION] Error:", error);
+        this.showToast(`Error creating collection: ${error.message}`, "error");
+      }
+    };
+
+    // Close on overlay click
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    };
   }
 
   // --- UTILITY METHODS ---
@@ -19542,10 +20604,13 @@ class MediaLibraryManager {
         }
       }
     } catch (error) {
+      // Gracefully handle missing files - not critical for functionality
+      if (error.message !== 'Failed to fetch') {
       console.warn(
         "[ACTORS] Error loading actors from collections-unified.json:",
         error
       );
+      }
     }
 
     // Fallback to collection-listing.json if needed
@@ -19563,10 +20628,13 @@ class MediaLibraryManager {
         }
       }
     } catch (error) {
+      // Gracefully handle missing files - not critical for functionality
+      if (error.message !== 'Failed to fetch') {
       console.warn(
         "[ACTORS] Error loading actors from collection-listing.json:",
         error
       );
+      }
     }
 
     console.log(
@@ -20674,41 +21742,66 @@ class MediaLibraryManager {
     if (this.unifiedData && showName) {
       // console.log("[DEBUG - SEASON] Using ONLY unified data for:", showName);
 
-      // Convert showName to normalized key format using the same logic as our robust system
-
-      let normalizedKey = showName.toLowerCase().trim();
-
-      // Use the year from show.about.year if available, otherwise extract from title
-
-      let year = null;
-
-      if (show.about && show.about.year) {
-        year = show.about.year;
-
-        // console.log("[DEBUG - SEASON] Using year from about.year:", year);
-      } else {
-        // Extract year from title as fallback
-
-        const yearMatch = showName.match(/\((\d{4})\)/);
-
-        if (yearMatch) {
-          year = yearMatch[1];
-
-          // console.log("[DEBUG - SEASON] Using year from title:", year);
+      // First, check if the show object has a normalizedKey (from tvShowsData array)
+      let normalizedKey = null;
+      
+      if (show && show.normalizedKey) {
+        normalizedKey = show.normalizedKey;
+        // console.log("[DEBUG - SEASON] Using normalizedKey from show object:", normalizedKey);
+      } else if (this.tvShowsData && Array.isArray(this.tvShowsData)) {
+        // Try to find the show in tvShowsData by path or name to get its normalizedKey
+        const showPathOrName = typeof showOrPath === 'string' ? showOrPath : (show.path || show.name || '');
+        const matchingShow = this.tvShowsData.find(
+          (item) => 
+            item.path === showPathOrName || 
+            item.name === showName || 
+            item.title === showName
+        );
+        if (matchingShow && matchingShow.normalizedKey) {
+          normalizedKey = matchingShow.normalizedKey;
+          // console.log("[DEBUG - SEASON] Using normalizedKey from tvShowsData:", normalizedKey);
         }
       }
 
-      // Remove the year from title and add it back with dot format
+      // If we don't have normalizedKey yet, convert showName to normalized key format
+      if (!normalizedKey) {
+        normalizedKey = showName.toLowerCase().trim();
 
-      normalizedKey = normalizedKey.replace(/\s*\(\d{4}\)/, "");
+        // Use the year from show.about.year if available, otherwise extract from title
 
-      if (year) {
-        normalizedKey += ".(" + year + ")";
+        let year = null;
+
+        if (show && show.about && show.about.year) {
+          year = show.about.year;
+
+          // console.log("[DEBUG - SEASON] Using year from about.year:", year);
+        } else if (show && show.year) {
+          year = String(show.year);
+          // console.log("[DEBUG - SEASON] Using year from show.year:", year);
+        } else {
+          // Extract year from title as fallback
+
+          const yearMatch = showName.match(/\((\d{4})\)/);
+
+          if (yearMatch) {
+            year = yearMatch[1];
+
+            // console.log("[DEBUG - SEASON] Using year from title:", year);
+          }
+        }
+
+        // Remove the year from title and add it back with dot format
+
+        normalizedKey = normalizedKey.replace(/\s*\(\d{4}\)/, "");
+
+        if (year) {
+          normalizedKey += ".(" + year + ")";
+        }
+
+        // Replace & with and before removing special characters
+
+        normalizedKey = normalizedKey.replace(/&/g, "and");
       }
-
-      // Replace & with and before removing special characters
-
-      normalizedKey = normalizedKey.replace(/&/g, "and");
 
       // Replace hyphens with spaces to preserve word separation
 
@@ -20777,17 +21870,17 @@ class MediaLibraryManager {
         }
       }
 
-      // console.log("[DEBUG - SEASON] Found show key in unified data:", showKey);
+      // console.log("[DEBUG - SEASON] Found show key in TV shows data:", showKey);
 
-      if (showKey && this.unifiedData[showKey].seasons) {
-        // console.log("[DEBUG - SEASON] Building seasons from unified data only");
+      if (showKey && this.unifiedTVData[showKey].seasons) {
+        // console.log("[DEBUG - SEASON] Building seasons from TV shows data only");
 
         const allSeasons = [];
 
-        // Add regular numbered seasons from unified data
+        // Add regular numbered seasons from TV shows data
 
-        for (const seasonNum in this.unifiedData[showKey].seasons) {
-          const seasonData = this.unifiedData[showKey].seasons[seasonNum];
+        for (const seasonNum in this.unifiedTVData[showKey].seasons) {
+          const seasonData = this.unifiedTVData[showKey].seasons[seasonNum];
 
           // Skip non-numeric season keys (these are special content)
 
@@ -20821,18 +21914,18 @@ class MediaLibraryManager {
 
         // console.log("[DEBUG - SEASON] Checking for Featurettes in unified data for show:", showKey);
 
-        // console.log("[DEBUG - SEASON] Available seasons keys:", Object.keys(this.unifiedData[showKey].seasons));
+        // console.log("[DEBUG - SEASON] Available seasons keys:", Object.keys(this.unifiedTVData[showKey].seasons));
 
-        // console.log("[DEBUG - SEASON] Full seasons object:", this.unifiedData[showKey].seasons);
+        // console.log("[DEBUG - SEASON] Full seasons object:", this.unifiedTVData[showKey].seasons);
 
         // console.log("[DEBUG - SEASON] Data loading timestamp:", new Date().toISOString());
 
-        // console.log("[DEBUG - SEASON] Unified data keys count:", Object.keys(this.unifiedData).length);
+        // console.log("[DEBUG - SEASON] TV shows data keys count:", Object.keys(this.unifiedTVData).length);
 
         // FORCE Featurettes to work - check if it exists in the JSON directly
 
-        if (this.unifiedData[showKey].seasons.Featurettes) {
-          const featurettesData = this.unifiedData[showKey].seasons.Featurettes;
+        if (this.unifiedTVData[showKey].seasons.Featurettes) {
+          const featurettesData = this.unifiedTVData[showKey].seasons.Featurettes;
 
           const episodeCount = featurettesData.episodes
             ? Object.keys(featurettesData.episodes).length
@@ -20865,8 +21958,8 @@ class MediaLibraryManager {
           );
         }
 
-        if (this.unifiedData[showKey].seasons.Specials) {
-          const specialsData = this.unifiedData[showKey].seasons.Specials;
+        if (this.unifiedTVData[showKey].seasons.Specials) {
+          const specialsData = this.unifiedTVData[showKey].seasons.Specials;
 
           const episodeCount = specialsData.episodes
             ? Object.keys(specialsData.episodes).length
@@ -20891,8 +21984,8 @@ class MediaLibraryManager {
           // console.log("[DEBUG - SEASON] Added Specials section with", episodeCount, "episodes");
         }
 
-        if (this.unifiedData[showKey].seasons.Extras) {
-          const extrasData = this.unifiedData[showKey].seasons.Extras;
+        if (this.unifiedTVData[showKey].seasons.Extras) {
+          const extrasData = this.unifiedTVData[showKey].seasons.Extras;
 
           const episodeCount = extrasData.episodes
             ? Object.keys(extrasData.episodes).length
@@ -20959,12 +22052,12 @@ class MediaLibraryManager {
 
     // );
 
-    if (typeof showPath === "object" && showPath && showPath.data) {
-      show = showPath.data;
-    } else if (typeof showPath === "object" && showPath) {
-      show = showPath;
-    } else {
-      show = this.findShowByPath(showPath);
+      if (typeof showPath === "object" && showPath && showPath.data) {
+        show = showPath.data;
+      } else if (typeof showPath === "object" && showPath) {
+        show = showPath;
+      } else {
+        show = this.findShowByPath(showPath);
     }
 
     // console.log("[DEBUG - EPISODES] show object:", show);
@@ -21905,9 +22998,9 @@ class MediaLibraryManager {
 
     const target = (showPath || "").replace(/\\/g, "/").toLowerCase();
 
-    // FIRST: Try to find the show directly in unified data using the normalized key
+    // FIRST: Try to find the show directly in TV shows data using the normalized key
 
-    if (this.unifiedData && Object.keys(this.unifiedData).length > 0) {
+    if (this.unifiedTVData && Object.keys(this.unifiedTVData).length > 0) {
       // Extract the show name from the path (e.g., "TV-SHOWS/Lost in Space (2018)" -> "Lost in Space (2018)")
 
       let showName = target;
@@ -21945,28 +23038,28 @@ class MediaLibraryManager {
 
       normalizedKey = normalizedKey.replace(/\s+/g, ".");
 
-      // Look for exact match in unified data
+      // Look for exact match in TV shows data
 
-      if (this.unifiedData[normalizedKey]) {
+      if (this.unifiedTVData[normalizedKey]) {
         return {
           name:
-            this.unifiedData[normalizedKey].title ||
-            this.unifiedData[normalizedKey].TMDBTitle ||
+            this.unifiedTVData[normalizedKey].title ||
+            this.unifiedTVData[normalizedKey].TMDBTitle ||
             showName,
 
           path: `TV-SHOWS/${showName}`,
 
           normalizedKey: normalizedKey,
 
-          TMDBTitle: this.unifiedData[normalizedKey].TMDBTitle,
+          TMDBTitle: this.unifiedTVData[normalizedKey].TMDBTitle,
 
-          data: this.unifiedData[normalizedKey],
+          data: this.unifiedTVData[normalizedKey],
         };
       }
 
       // Try to find a key that starts with our normalized key (handles year in parentheses)
 
-      const availableKeys = Object.keys(this.unifiedData);
+      const availableKeys = Object.keys(this.unifiedTVData);
 
       const matchingKey = availableKeys.find(
         (key) =>
@@ -21974,29 +23067,35 @@ class MediaLibraryManager {
           key.startsWith(normalizedKey + "(")
       );
 
-      // If no match found, try a more flexible search for Star Trek shows
-
-      if (!matchingKey && showName.toLowerCase().includes("star trek")) {
-        const starTrekKey = availableKeys.find(
-          (key) =>
-            key.toLowerCase().includes("star.trek") &&
-            key.toLowerCase().includes("strange.new.worlds")
+      // If no exact match found, try a more flexible search
+      if (!matchingKey) {
+        const flexibleKey = availableKeys.find(
+          (key) => {
+            const keyLower = key.toLowerCase();
+            const normalizedLower = normalizedKey.toLowerCase();
+            
+            // Try various matching strategies
+            return (
+              keyLower.includes(normalizedLower) ||
+              normalizedLower.includes(keyLower) ||
+              // Handle cases where the key might have additional words
+              keyLower.startsWith(normalizedLower.split('.')[0]) ||
+              // Handle year variations
+              keyLower.includes(normalizedLower.replace(/\(\d{4}\)/, ''))
+            );
+          }
         );
-
-        if (starTrekKey) {
+        
+        if (flexibleKey) {
           return {
             name:
-              this.unifiedData[starTrekKey].title ||
-              this.unifiedData[starTrekKey].TMDBTitle ||
+              this.unifiedTVData[flexibleKey].title ||
+              this.unifiedTVData[flexibleKey].TMDBTitle ||
               showName,
-
             path: `TV-SHOWS/${showName}`,
-
-            normalizedKey: starTrekKey,
-
-            TMDBTitle: this.unifiedData[starTrekKey].TMDBTitle,
-
-            data: this.unifiedData[starTrekKey],
+            normalizedKey: flexibleKey,
+            TMDBTitle: this.unifiedTVData[flexibleKey].TMDBTitle,
+            data: this.unifiedTVData[flexibleKey],
           };
         }
       }
@@ -22004,49 +23103,20 @@ class MediaLibraryManager {
       if (matchingKey) {
         return {
           name:
-            this.unifiedData[matchingKey].title ||
-            this.unifiedData[matchingKey].TMDBTitle ||
+            this.unifiedTVData[matchingKey].title ||
+            this.unifiedTVData[matchingKey].TMDBTitle ||
             showName,
 
           path: `TV-SHOWS/${showName}`,
 
           normalizedKey: matchingKey,
 
-          TMDBTitle: this.unifiedData[matchingKey].TMDBTitle,
+          TMDBTitle: this.unifiedTVData[matchingKey].TMDBTitle,
 
-          data: this.unifiedData[matchingKey],
+          data: this.unifiedTVData[matchingKey],
         };
       }
 
-      // Special case for Jupiter's Legacy
-
-      if (
-        normalizedKey.includes("jupiter") &&
-        normalizedKey.includes("legacy")
-      ) {
-        const jupiterKey = availableKeys.find(
-          (key) =>
-            key.toLowerCase().includes("jupiter") &&
-            key.toLowerCase().includes("legacy")
-        );
-
-        if (jupiterKey) {
-          return {
-            name:
-              this.unifiedData[jupiterKey].title ||
-              this.unifiedData[jupiterKey].TMDBTitle ||
-              showName,
-
-            path: `TV-SHOWS/${showName}`,
-
-            normalizedKey: jupiterKey,
-
-            TMDBTitle: this.unifiedData[jupiterKey].TMDBTitle,
-
-            data: this.unifiedData[jupiterKey],
-          };
-        }
-      }
     }
 
     // FALLBACK: Search through the old TV shows structure (for backward compatibility)
@@ -22277,10 +23347,10 @@ class MediaLibraryManager {
 
           // console.log("[SEASON IMAGE] Found show key:", showKey);
 
-          if (showKey && this.unifiedData[showKey].seasons) {
+          if (showKey && this.unifiedTVData[showKey].seasons) {
             console.log(
               "[SEASON IMAGE] Available seasons in show:",
-              Object.keys(this.unifiedData[showKey].seasons)
+              Object.keys(this.unifiedTVData[showKey].seasons)
             );
 
             // Try to find the special content section
@@ -22289,17 +23359,17 @@ class MediaLibraryManager {
 
             if (
               seasonPath.toLowerCase().includes("specials") &&
-              this.unifiedData[showKey].seasons.Specials
+              this.unifiedTVData[showKey].seasons.Specials
             ) {
               specialContentKey = "Specials";
             } else if (
               seasonPath.toLowerCase().includes("featurettes") &&
-              this.unifiedData[showKey].seasons.Featurettes
+              this.unifiedTVData[showKey].seasons.Featurettes
             ) {
               specialContentKey = "Featurettes";
             } else if (
               seasonPath.toLowerCase().includes("extras") &&
-              this.unifiedData[showKey].seasons.Extras
+              this.unifiedTVData[showKey].seasons.Extras
             ) {
               specialContentKey = "Extras";
             }
@@ -22308,10 +23378,10 @@ class MediaLibraryManager {
 
             if (
               specialContentKey &&
-              this.unifiedData[showKey].seasons[specialContentKey]
+              this.unifiedTVData[showKey].seasons[specialContentKey]
             ) {
               const specialContentData =
-                this.unifiedData[showKey].seasons[specialContentKey];
+                this.unifiedTVData[showKey].seasons[specialContentKey];
 
               // console.log("[SEASON IMAGE] Special content data keys:", Object.keys(specialContentData));
 
@@ -23249,6 +24319,12 @@ class MediaLibraryManager {
         if (show.data.name) {
         }
       }
+      
+      // If show has a normalizedKey, use it for lookup
+      if (show.normalizedKey) {
+        showName = show.normalizedKey;
+        console.log("[DEBUG - CAST] Using normalizedKey from show:", show.normalizedKey);
+      }
     }
 
     // Load description and cast
@@ -23309,10 +24385,15 @@ class MediaLibraryManager {
 
     let cast = [];
 
-    if (this.unifiedData && cleanShowName) {
+    // Use normalizedKey from show object if available, otherwise normalize cleanShowName
+    let normalizedKey = null;
+    if (show && show.normalizedKey) {
+      normalizedKey = show.normalizedKey;
+      console.log("[DEBUG - CAST] Using normalizedKey from show object:", normalizedKey);
+    } else if (this.unifiedTVData && cleanShowName) {
       // Convert showName to normalized key format
 
-      let normalizedKey = cleanShowName.toLowerCase().trim();
+      normalizedKey = cleanShowName.toLowerCase().trim();
 
       // Replace & with and before removing special characters
 
@@ -23325,34 +24406,65 @@ class MediaLibraryManager {
       normalizedKey = normalizedKey.replace(/\.{2,}/g, ".");
 
       normalizedKey = normalizedKey.replace(/^\.+|\.+$/g, "");
+    }
+    
+    if (this.unifiedTVData && normalizedKey) {
+      console.log("[DEBUG - CAST] Looking for show. cleanShowName:", cleanShowName, "normalizedKey:", normalizedKey);
+      console.log("[DEBUG - CAST] Available keys in unifiedTVData:", Object.keys(this.unifiedTVData).slice(0, 5));
 
-      // Try to find the show in unified data
+      // Try to find the show in TV shows data
 
-      let showKey = Object.keys(this.unifiedData).find(
+      let showKey = Object.keys(this.unifiedTVData).find(
         (key) => key === normalizedKey
       );
 
       if (!showKey) {
-        showKey = Object.keys(this.unifiedData).find(
+        showKey = Object.keys(this.unifiedTVData).find(
           (key) =>
             key.startsWith(normalizedKey + ".") ||
             key.startsWith(normalizedKey + "(")
         );
       }
+      
+      // Also try matching by removing year from normalizedKey
+      if (!showKey) {
+        const keyWithoutYear = normalizedKey.replace(/\.\(\d{4}\)$/, "");
+        showKey = Object.keys(this.unifiedTVData).find(
+          (key) => key === keyWithoutYear || key.startsWith(keyWithoutYear + ".")
+        );
+      }
+      
+      // Also try reverse - if normalizedKey has year, try without it
+      if (!showKey && normalizedKey.includes("(")) {
+        const keyWithYear = normalizedKey;
+        showKey = Object.keys(this.unifiedTVData).find(
+          (key) => key === keyWithYear || key.startsWith(keyWithYear)
+        );
+      }
 
-      if (showKey && this.unifiedData[showKey]) {
+      if (showKey && this.unifiedTVData[showKey]) {
         description =
-          this.unifiedData[showKey].description ||
-          this.unifiedData[showKey].overview ||
+          this.unifiedTVData[showKey].description ||
+          this.unifiedTVData[showKey].overview ||
           "";
 
-        cast = (this.unifiedData[showKey].cast || []).map((actor) => ({
+        const rawCast = this.unifiedTVData[showKey].cast || [];
+        console.log("[DEBUG - CAST] Found cast in unified data:", rawCast.length, "actors");
+        console.log("[DEBUG - CAST] First actor:", rawCast[0]);
+        
+        cast = rawCast.map((actor) => ({
           name: actor.name,
 
           character: actor.character,
 
-          profile_path: actor.profile_path,
+          profile_path: actor.profile || actor.profile_path,
+          profile: actor.profile || actor.profile_path,
         }));
+        
+        console.log("[DEBUG - CAST] Mapped cast:", cast.length, "actors");
+        console.log("[DEBUG - CAST] First mapped actor profile:", cast[0]?.profile);
+      } else {
+        console.log("[DEBUG - CAST] Show not found in unifiedTVData. cleanShowName:", cleanShowName, "normalizedKey:", normalizedKey, "showKey:", showKey);
       }
     }
 
@@ -23419,7 +24531,7 @@ class MediaLibraryManager {
 
                 <div class=\"media-library-cast-card\">
 
-                    <div class=\"media-library-cast-avatar cast-image-tooltip\" style=\"background-image:url('${actor.profile_path || actor.profile || "/assets/img/placeholder-poster.jpg"}');\" alt=\"${actor.name || actor}\" data-tooltip=\"${actor.character || "Character name not available"}\"></div>
+                    <div class=\"media-library-cast-avatar cast-image-tooltip\" style=\"background-image:url('${actor.profile || actor.profile_path || "/assets/img/placeholder-poster.jpg"}');\" alt=\"${actor.name || actor}\" data-tooltip=\"${actor.character || "Character name not available"}\"></div>
 
                     <div class=\"media-library-cast-name\">${actor.name || actor}</div>
 
@@ -25489,6 +26601,9 @@ class MediaLibraryManager {
     if (grid) {
       const domStartTime = performance.now();
 
+      // Clear the grid first to prevent duplicates
+      grid.innerHTML = '';
+
       // Use DocumentFragment for faster DOM insertion
       const fragment = document.createDocumentFragment();
       const tempDiv = document.createElement("div");
@@ -26855,6 +27970,7 @@ class MediaLibraryManager {
   ) {
     console.log('═══════════════════════════════════════════════════');
     console.log('🚨 [SAVE-DEBUG] >>> saveResumeProgress CALLED <<<');
+    console.log('🚨 [SAVE-DEBUG] >>> UPDATED VERSION WITH EXTRACTION FIX <<<');
     console.log('═══════════════════════════════════════════════════');
     console.log('🚨 [SAVE-DEBUG] mediaItem:', mediaItem);
     console.log('🚨 [SAVE-DEBUG] currentTime:', currentTime, 'duration:', duration);
@@ -26897,8 +28013,42 @@ class MediaLibraryManager {
         return;
       }
 
-      // Get current resume list from JSON
-      let resumeList = this.getResumeList();
+            // CRITICAL FIX: Ensure we have the current resume list before saving
+            // Load data first to prevent overwriting existing entries
+            console.log('🚨 [SAVE-DEBUG] Loading existing Watch Later data before saving...');
+            await this.loadWatchLaterData();
+            let resumeList = this.getResumeList();
+            
+            console.log('🚨 [SAVE-DEBUG] Current resume list length:', resumeList.length);
+            if (resumeList.length === 0) {
+              console.warn('🚨 [SAVE-DEBUG] ⚠️  WARNING: Resume list is empty - this may cause data loss!');
+              console.warn('🚨 [SAVE-DEBUG] Attempting to load from backup or retry...');
+              
+              // Try one more time to load data
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+              await this.loadWatchLaterData();
+              resumeList = this.getResumeList();
+              console.log('🚨 [SAVE-DEBUG] Retry - Resume list length:', resumeList.length);
+            }
+            
+            // FINAL SAFETY CHECK: Don't save if we still have no data
+            if (resumeList.length === 0) {
+              console.error('🚨 [SAVE-DEBUG] ❌ CRITICAL ERROR: Cannot save - no existing Watch Later data loaded!');
+              console.error('🚨 [SAVE-DEBUG] This would cause complete data loss. Aborting save operation.');
+              this.showToast("Error: Cannot save - no existing data loaded. Please refresh and try again.", "error");
+              return;
+            }
+            
+            // CREATE BACKUP: Save current data before making changes
+            console.log('🚨 [SAVE-DEBUG] Creating backup of current Watch Later data...');
+            try {
+              const backupData = JSON.stringify(resumeList, null, 2);
+              const backupKey = `watchLater_backup_${Date.now()}`;
+              localStorage.setItem(backupKey, backupData);
+              console.log('🚨 [SAVE-DEBUG] Backup created with key:', backupKey);
+            } catch (backupError) {
+              console.warn('🚨 [SAVE-DEBUG] Could not create backup:', backupError);
+            }
 
       // UNIVERSAL MATCHER: Find unified item using comprehensive matching
 
@@ -26958,6 +28108,7 @@ class MediaLibraryManager {
         // For TV shows, find existing entry by multiple criteria to ensure we catch all variations
 
         existingItem = resumeList.find((item) => {
+          console.log('🚨 [SAVE-DEBUG] Checking existing TV show item:', item.title, 'vs new item:', mediaItem.title);
           // Check by path first
 
           const itemPath = (item.path || "")
@@ -26992,29 +28143,30 @@ class MediaLibraryManager {
             }
           }
 
-          // Check by show name and season/episode for TV shows
-
-          if (mediaItem.title && item.title) {
-            const mediaShowName = this.extractShowName(mediaItem.title);
-
-            const itemShowName = this.extractShowName(item.title);
-
-            const mediaSeason = this.extractSeasonNumber(mediaItem);
-
-            const itemSeason = this.extractSeasonNumber(item);
-
-            const mediaEpisode = this.extractEpisodeNumber(mediaItem);
-
-            const itemEpisode = this.extractEpisodeNumber(item);
-
-            if (
-              mediaShowName &&
-              itemShowName &&
-              mediaShowName.toLowerCase() === itemShowName.toLowerCase() &&
-              mediaSeason === itemSeason &&
-              mediaEpisode === itemEpisode
-            ) {
-              return true;
+          // SIMPLIFIED: Use standardized structure for reliable matching
+          // Check by normalizedKey + season/episode for TV shows
+          
+          const itemKey = item.normalizedKey;
+          const mediaKey = mediaItem.normalizedKey;
+          
+          const itemSeason = item.season;
+          const itemEpisode = item.episode;
+          const mediaSeason = mediaItem.season || this.extractSeasonNumber(mediaItem);
+          const mediaEpisode = mediaItem.episode || this.extractEpisodeNumber(mediaItem);
+          
+          console.log('🚨 [SAVE-DEBUG] Comparing TV show details:', {
+            itemKey, mediaKey,
+            itemSeason, mediaSeason,
+            itemEpisode, mediaEpisode
+          });
+          
+          // Match by normalizedKey + season + episode
+          if (itemKey && mediaKey && itemKey === mediaKey) {
+            if (itemSeason && mediaSeason && itemEpisode && mediaEpisode) {
+              if (itemSeason === mediaSeason && itemEpisode === mediaEpisode) {
+                console.log('🚨 [SAVE-DEBUG] Found existing TV show by normalizedKey + season/episode match:', itemKey, 'S' + itemSeason + 'E' + itemEpisode);
+                return true;
+              }
             }
           }
 
@@ -27024,6 +28176,7 @@ class MediaLibraryManager {
         // Remove the existing TV show entry if found
 
         if (existingItem) {
+          console.log('🚨 [SAVE-DEBUG] Removing existing TV show entry:', existingItem.title);
           resumeList = resumeList.filter((item) => item !== existingItem);
 
           // Also remove from MongoDB to ensure complete cleanup
@@ -27043,6 +28196,8 @@ class MediaLibraryManager {
               );
             }
           }
+        } else {
+          console.log('🚨 [SAVE-DEBUG] No existing TV show entry found, will add new entry');
         }
       } else {
         // For movies, use the SAME overwrite behavior as TV shows - ensure only ONE entry per movie
@@ -27273,75 +28428,34 @@ class MediaLibraryManager {
 
           const baseItem = unifiedItem || mediaItem;
 
+          // STANDARDIZED: Use complete template structure for reliable deletion
           savedItem = {
-            // === COMPLETE UNIFIED DATA STRUCTURE ===
-
-            // Start with the complete unified object (has all the correct data)
-
-            ...baseItem,
-
-            // === WATCH LATER SPECIFIC OVERRIDES ===
-
-            // Override/add Watch Later specific properties
-
+            // Core identification
+            id: baseItem.normalizedKey || this.generateMediaId(baseItem, "movie"),
+            normalizedKey: baseItem.normalizedKey,
+            mediaType: "movie",
+            
+            // Display data
+            title: baseItem.title || baseItem.TMDBTitle,
+            poster: baseItem.poster,
+            year: baseItem.year,
+            
+            // Playback data
             currentTime,
-
             duration,
-
             lastWatched: existingItem ? existingItem.lastWatched : Date.now(),
 
-            type: "movie",
-
-            mediaType: "movie", // For MongoDB compatibility
-
-            // Generate mediaId for MongoDB
-
-            mediaId: this.generateMediaId(baseItem, "movie"),
-
-            // Ensure path is present
-
+            // File paths (complete set for all deletion methods)
             path: savePath,
-
-            filePath: savePath, // For MongoDB compatibility
-
-            fileName: savePath
-              ? savePath.split(/[\\/]/).pop()
-              : baseItem.title || "Unknown",
-
-            // Ensure absPath is present for movies - construct full path for proper playback
-
-            absPath:
-              baseItem.absPath ||
-              (baseItem.files && baseItem.files.length > 0
-                ? baseItem.files[0].absPath
-                : null) ||
-              (savePath.startsWith("S:/")
-                ? savePath
-                : `S:/MEDIA/MOVIES/${savePath}`),
-
-            // Ensure relPath is present for Watch Later compatibility
-
-            relPath: baseItem.relPath || savePath,
-
-            // === PRESERVE ALL UNIFIED DATA FIELDS ===
-
-            // These are now part of the MongoDB schema and will be saved
-
-            TMDBTitle: baseItem.TMDBTitle,
-
-            normalizedKey: baseItem.normalizedKey || normalizedKey,
-
-            poster: baseItem.poster,
-
-            about: baseItem.about,
-
-            genres: baseItem.genres,
-
-            cast: baseItem.cast,
-
-            files: baseItem.files || [],
-
-            tmdbId: baseItem.tmdbId,
+            absPath: baseItem.absPath ||
+                     (baseItem.files && baseItem.files.length > 0 ? baseItem.files[0].absPath : null) ||
+                     (savePath.startsWith("S:/") ? savePath : `S:/MEDIA/MOVIES/${savePath}`),
+            filePath: savePath, // Required for path-based deletion fallback
+            
+            // Metadata (complete set for MongoDB compatibility)
+            addedAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            mediaId: baseItem.normalizedKey || this.generateMediaId(baseItem, "movie")
           };
         } else {
           // For TV shows, save the complete episode object
@@ -27351,75 +28465,63 @@ class MediaLibraryManager {
 
           const baseItem = unifiedItem || mediaItem;
 
+          // STANDARDIZED: Use complete template structure for reliable deletion
           savedItem = {
-            // === COMPLETE UNIFIED DATA STRUCTURE ===
-
-            // Start with the complete unified object (has all the correct data)
-
-            ...baseItem,
-
-            // === WATCH LATER SPECIFIC OVERRIDES ===
-
-            // Override/add Watch Later specific properties
-
-            currentTime,
-
-            duration,
-
-            lastWatched: Date.now(), // For TV shows, always use current time since we're overwriting
-
-            type: "tvshow",
-
-            mediaType: "tvshow", // For MongoDB compatibility
-
-            // CRITICAL: Ensure normalizedKey is preserved for internal data consistency
-            normalizedKey: baseItem.normalizedKey || (unifiedItem ? unifiedItem.normalizedKey : null),
-
-            // Generate mediaId for MongoDB
-
-            mediaId: this.generateMediaId(baseItem, "tvshow"),
-
-            // Ensure path is present
-
-            path: savePath,
-
-            // Ensure filePath is present for TV shows - use relative path for API compatibility
-
-            filePath: savePath, // Use the relative path for API calls
-
-            fileName: savePath
-              ? savePath.split(/[\\/]/).pop()
-              : baseItem.title || "Unknown",
-
-            // Ensure absPath is present for TV shows - construct full path for proper playback
-
-            absPath:
-              baseItem.absPath ||
-              (baseItem.files && baseItem.files.length > 0
-                ? baseItem.files[0].absPath
-                : null) ||
-              (savePath.startsWith("S:/")
-                ? savePath
-                : `S:/MEDIA/TV-SHOWS/${savePath}`),
-
-            // Use unified data for season/episode info if available
-
-            season: baseItem.season || this.extractSeasonNumber(baseItem),
-            episode: baseItem.episode || this.extractEpisodeNumber(baseItem),
-            episodeTitle: baseItem.episodeTitle || baseItem.title,
-
-            // === PRESERVE ALL UNIFIED DATA FIELDS ===
-
-            // These are now part of the MongoDB schema and will be saved
-
-            TMDBTitle: baseItem.TMDBTitle,
+            // Core identification
+            id: baseItem.normalizedKey || this.generateMediaId(baseItem, "tvshow"),
             normalizedKey: baseItem.normalizedKey,
+            mediaType: "tvshow",
+
+            // Display data
+            title: baseItem.title || baseItem.TMDBTitle,
             poster: baseItem.poster,
-            about: baseItem.about,
-            genres: baseItem.genres,
-            cast: baseItem.cast,
-            files: baseItem.files,
-            tmdbId: baseItem.tmdbId,
+            year: baseItem.year,
+
+            // TV show specific - prioritize mediaItem (specific episode) over baseItem (show data)
+            // Use savePath for extraction since it contains the actual file path with season/episode info
+            season: (() => {
+              console.log('🚨 [SEASON-DEBUG] >>> ENTERING SEASON EXTRACTION <<<');
+              console.log('🚨 [SEASON-DEBUG] mediaItem:', mediaItem);
+              console.log('🚨 [SEASON-DEBUG] baseItem:', baseItem);
+              console.log('🚨 [SEASON-DEBUG] savePath:', savePath);
+              const extracted = this.extractSeasonNumber({...mediaItem, path: savePath});
+              console.log('🚨 [SEASON-DEBUG] mediaItem.season:', mediaItem.season, 'baseItem.season:', baseItem.season, 'extracted:', extracted, 'savePath:', savePath);
+              // PRIORITIZE EXTRACTED VALUE - use it even if mediaItem has values
+              const result = extracted || mediaItem.season || baseItem.season || this.extractSeasonNumber(baseItem);
+              console.log('🚨 [SEASON-DEBUG] FINAL SEASON RESULT:', result);
+              return result;
+            })(),
+            episode: (() => {
+              console.log('🚨 [EPISODE-DEBUG] >>> ENTERING EPISODE EXTRACTION <<<');
+              const extracted = this.extractEpisodeNumber({...mediaItem, path: savePath});
+              console.log('🚨 [EPISODE-DEBUG] mediaItem.episode:', mediaItem.episode, 'baseItem.episode:', baseItem.episode, 'extracted:', extracted, 'savePath:', savePath);
+              // PRIORITIZE EXTRACTED VALUE - use it even if mediaItem has values
+              const result = extracted || mediaItem.episode || baseItem.episode || this.extractEpisodeNumber(baseItem);
+              console.log('🚨 [EPISODE-DEBUG] FINAL EPISODE RESULT:', result);
+              return result;
+            })(),
+            episodeTitle: (() => {
+              const extracted = this.extractEpisodeTitle({...mediaItem, path: savePath});
+              console.log('🚨 [TITLE-DEBUG] mediaItem.episodeTitle:', mediaItem.episodeTitle, 'baseItem.episodeTitle:', baseItem.episodeTitle, 'extracted:', extracted, 'savePath:', savePath);
+              return mediaItem.episodeTitle || baseItem.episodeTitle || extracted || baseItem.title;
+            })(),
+
+            // Playback data
+            currentTime,
+            duration,
+            lastWatched: Date.now(),
+            
+            // File paths (complete set for all deletion methods)
+            path: savePath,
+            absPath: baseItem.absPath ||
+                     (baseItem.files && baseItem.files.length > 0 ? baseItem.files[0].absPath : null) ||
+                     (savePath.startsWith("S:/") ? savePath : `S:/MEDIA/TV-SHOWS/${savePath}`),
+            filePath: savePath, // Required for path-based deletion fallback
+            
+            // Metadata (complete set for MongoDB compatibility)
+            addedAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            mediaId: baseItem.normalizedKey || this.generateMediaId(baseItem, "tvshow")
           };
         }
 
@@ -27901,6 +29003,7 @@ class MediaLibraryManager {
   }
 
   // Helper method to convert Windows paths to web-ready format
+  // ALWAYS use absPath from JSON - it has the correct folder names
 
   convertPathToWebFormat(path) {
     if (!path) return null;
@@ -27908,27 +29011,22 @@ class MediaLibraryManager {
     let webPath = path;
 
     // If it's a Windows path with backslashes, convert to forward slashes
-
     if (path.includes("\\")) {
       webPath = path.replace(/\\/g, "/");
     }
 
-    // If it's an absolute path starting with drive letter, extract the relative part
-
+    // If it's an absolute path from JSON (e.g., "S:/MEDIA/TV-SHOWS/Show Name/Season/Episode.mp4")
+    // Extract just the relative part (e.g., "Show Name/Season/Episode.mp4")
+    // The server will prepend "S:/MEDIA/TV-SHOWS/" automatically
     if (webPath.match(/^[A-Z]:\//)) {
-      // Remove drive letter and MEDIA/TV-SHOWS prefix
-
       webPath = webPath.replace(/^[A-Z]:\/MEDIA\/TV-SHOWS\//i, "");
+      return webPath;
     }
 
-    // IMPORTANT: If the path starts with TV-SHOWS, keep it for the server
-
-    // The server expects paths like "TV-SHOWS/Show Name/Season/Episode"
-
+    // If the path already starts with "TV-SHOWS/", remove that prefix
+    // The server expects relative paths without the TV-SHOWS prefix
     if (webPath.startsWith("TV-SHOWS/")) {
-      // Keep the TV-SHOWS prefix - the server needs it
-
-      return webPath;
+      webPath = webPath.substring(9); // Remove "TV-SHOWS/"
     }
 
     return webPath;
@@ -27976,6 +29074,46 @@ class MediaLibraryManager {
 
     // PRESERVE ALL ORIGINAL EPISODE DATA for TV show detection
 
+    const normalizedEpisodeNumber =
+      selectedEpisode.episode ??
+      selectedEpisode.episodeNumber ??
+      (typeof selectedEpisode.episodeNum === "number"
+        ? selectedEpisode.episodeNum
+        : null);
+
+    const normalizedSeasonNumber =
+      selectedEpisode.season ??
+      selectedEpisode.seasonNumber ??
+      (typeof selectedEpisode.seasonNum === "number"
+        ? selectedEpisode.seasonNum
+        : null);
+
+    const resolveAbsolutePath = () => {
+      if (selectedEpisode.absPath) {
+        return selectedEpisode.absPath;
+      }
+
+      const pathToUse = selectedEpisode.path || selectedEpisode.filePath;
+      if (!pathToUse) {
+        return null;
+      }
+
+      // Normalize separators
+      let normalized = pathToUse.replace(/\//g, "\\");
+
+      // If already absolute, return as-is
+      if (/^[A-Z]:\\/.test(normalized)) {
+        return normalized;
+      }
+
+      // Remove optional leading "TV-SHOWS\" prefix to prevent duplication
+      if (normalized.toUpperCase().startsWith("TV-SHOWS\\")) {
+        normalized = normalized.substring("TV-SHOWS\\".length);
+      }
+
+      return `S:\\MEDIA\\TV-SHOWS\\${normalized}`;
+    };
+
     const episodeData = {
       // Preserve original episode structure
 
@@ -27997,21 +29135,7 @@ class MediaLibraryManager {
 
       // Fix: Only prepend S:\\MEDIA\\TV-SHOWS\\ if the path doesn't already start with it
 
-      absPath:
-        selectedEpisode.absPath ||
-        (() => {
-          const pathToUse = selectedEpisode.path;
-
-          if (
-            pathToUse &&
-            (pathToUse.startsWith("S:\\MEDIA\\TV-SHOWS\\") ||
-              pathToUse.startsWith("S:/MEDIA/TV-SHOWS/"))
-          ) {
-            return pathToUse;
-          }
-
-          return `S:\\MEDIA\\TV-SHOWS\\${pathToUse}`;
-        })(),
+      absPath: resolveAbsolutePath(),
 
       // Preserve all original paths for TV show detection logic
 
@@ -28021,9 +29145,9 @@ class MediaLibraryManager {
 
       // FORCE EPISODE METADATA for TV show detection
 
-      season: selectedEpisode.season || 1,
+      season: normalizedSeasonNumber || 1,
 
-      episode: selectedEpisode.episode || 1,
+      episode: normalizedEpisodeNumber || 1,
 
       still: selectedEpisode.still,
 
@@ -28032,24 +29156,8 @@ class MediaLibraryManager {
       isSpecials: selectedEpisode.isSpecials,
     };
 
-    // Convert the absolute path to web-ready format for video playback
-
-    if (
-      selectedEpisode.absPath ||
-      selectedEpisode.filePath ||
-      selectedEpisode.path
-    ) {
-      const originalPath =
-        selectedEpisode.absPath ||
-        selectedEpisode.filePath ||
-        selectedEpisode.path;
-
-      const webPath = this.convertPathToWebFormat(originalPath);
-
-      // Add web-ready path for video playback while preserving original paths
-
-      episodeData.webPath = webPath;
-    }
+    // JSON media object already has all the correct data - no path conversion needed
+    // Video player will use absPath directly from the JSON object
 
     console.log(
       "[DEBUG - PREPARE] Prepared episode data (FORCING TV show fields):",
@@ -28564,33 +29672,89 @@ class MediaLibraryManager {
           "items"
         );
 
-        // SIMPLE RULE: Just match by normalizedKey and remove the item!
+        // CRITICAL FIX: Match by multiple criteria to prevent deleting wrong episodes
         const updatedData = currentData.filter((item) => {
-          // If both items have normalizedKey, use that for matching
-            if (item.normalizedKey && itemToDelete.normalizedKey) {
-              if (item.normalizedKey === itemToDelete.normalizedKey) {
+          // First check if normalizedKey matches
+          if (item.normalizedKey && itemToDelete.normalizedKey && 
+              item.normalizedKey === itemToDelete.normalizedKey) {
+            
+            // For TV shows, also check season/episode
+            if (item.mediaType === 'tvshow' && itemToDelete.mediaType === 'tvshow') {
+              // Check if season and episode match
+              const itemSeason = parseInt(item.season) || 0;
+              const itemEpisode = parseInt(item.episode) || 0;
+              const targetSeason = parseInt(itemToDelete.season) || 0;
+              const targetEpisode = parseInt(itemToDelete.episode) || 0;
+              
+              if (itemSeason === targetSeason && itemEpisode === targetEpisode) {
                 console.log(
+                  "[REMOVE-RESUME-PROGRESS] ✅ Found TV show match by normalizedKey + season/episode:",
+                  item.title,
+                  `S${itemSeason}E${itemEpisode}`,
+                  `key: ${item.normalizedKey}`
+                );
+                return false; // Remove this specific episode
+              } else {
+                console.log(
+                  "[REMOVE-RESUME-PROGRESS] ⏭️  Same show, different episode - keeping:",
+                  item.title,
+                  `S${itemSeason}E${itemEpisode}`,
+                  `(target: S${targetSeason}E${targetEpisode})`
+                );
+                return true; // Keep this episode (different season/episode)
+              }
+            }
+            
+            // For movies or other media types, just match normalizedKey
+            if (item.mediaType === itemToDelete.mediaType) {
+              console.log(
                 "[REMOVE-RESUME-PROGRESS] ✅ Found match by normalizedKey:",
                 item.title,
                 `(${item.mediaType})`,
                 `key: ${item.normalizedKey}`
+              );
+              return false; // Remove this item
+            }
+          }
+
+          // Fallback: if no normalizedKey, match by title (but be more specific for TV shows)
+          if (item.title && itemToDelete.title) {
+            const itemTitle = item.title.toLowerCase().trim();
+            const targetTitle = itemToDelete.title.toLowerCase().trim();
+
+            if (itemTitle === targetTitle) {
+              // For TV shows, also check season/episode in title
+              if (item.mediaType === 'tvshow' && itemToDelete.mediaType === 'tvshow') {
+                const itemSeason = parseInt(item.season) || 0;
+                const itemEpisode = parseInt(item.episode) || 0;
+                const targetSeason = parseInt(itemToDelete.season) || 0;
+                const targetEpisode = parseInt(itemToDelete.episode) || 0;
+                
+                if (itemSeason === targetSeason && itemEpisode === targetEpisode) {
+                  console.log(
+                    "[REMOVE-RESUME-PROGRESS] ✅ Found TV show match by title + season/episode:",
+                    item.title,
+                    `S${itemSeason}E${itemEpisode}`
+                  );
+                  return false; // Remove this specific episode
+                } else {
+                  console.log(
+                    "[REMOVE-RESUME-PROGRESS] ⏭️  Same show title, different episode - keeping:",
+                    item.title,
+                    `S${itemSeason}E${itemEpisode}`,
+                    `(target: S${targetSeason}E${targetEpisode})`
+                  );
+                  return true; // Keep this episode
+                }
+              } else {
+                // For movies, exact title match is fine
+                console.log(
+                  "[REMOVE-RESUME-PROGRESS] ✅ Found match by title:",
+                  item.title,
+                  `(${item.mediaType})`
                 );
                 return false; // Remove this item
               }
-            }
-
-          // Fallback: if no normalizedKey, match by title
-            if (item.title && itemToDelete.title) {
-              const itemTitle = item.title.toLowerCase().trim();
-              const targetTitle = itemToDelete.title.toLowerCase().trim();
-
-              if (itemTitle === targetTitle) {
-                console.log(
-                "[REMOVE-RESUME-PROGRESS] ✅ Found match by title:",
-                item.title,
-                `(${item.mediaType})`
-                );
-                return false; // Remove this item
             }
           }
 
@@ -28800,8 +29964,26 @@ class MediaLibraryManager {
       return this.cache.watchlater.data.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
     }
     
-    // If no cache data, try to load from JSON file
+    // If no cache data, try to load from JSON file synchronously
     console.log("[WATCH-LATER] No cache data, attempting to load from JSON file...");
+    
+    // CRITICAL FIX: Don't return empty array - this causes data loss!
+    // Instead, try to load data synchronously or return a safe fallback
+    try {
+      // Try to get data from localStorage as fallback while JSON loads
+      const fallbackData = localStorage.getItem('watchLaterData');
+      if (fallbackData) {
+        const parsed = JSON.parse(fallbackData);
+        if (Array.isArray(parsed)) {
+          console.log("[WATCH-LATER] Using localStorage fallback:", parsed.length, "items");
+          return parsed.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
+        }
+      }
+    } catch (error) {
+      console.warn("[WATCH-LATER] localStorage fallback failed:", error);
+    }
+    
+    // Start async load but don't return empty array
     this.loadWatchLaterData().then(() => {
       console.log("[WATCH-LATER] Data loaded, triggering UI update...");
       this.updateWatchLaterGrid();
@@ -28809,7 +29991,8 @@ class MediaLibraryManager {
       console.error("[WATCH-LATER] Failed to load data:", error);
     });
     
-    // Return empty array for now, will be updated when data loads
+    // Return empty array as last resort, but warn about potential data loss
+    console.warn("[WATCH-LATER] ⚠️  Returning empty array - this may cause data loss if saving!");
     return [];
   }
 
@@ -28819,16 +30002,23 @@ class MediaLibraryManager {
 
     const originalCount = resumeList.length;
 
-    // Group items by normalized path and title
+    // Group items by unique identifier (show + season + episode for TV, title for movies)
 
     const groups = {};
 
     resumeList.forEach((item) => {
-      const path = (item.path || "").replace(/\\/g, "/").toLowerCase().trim();
-
+      let key;
+      
+      // For TV shows, use show title + season + episode for unique identification
+      if (item.mediaType === 'tvshow' && item.season && item.episode) {
+        const showTitle = (item.title || item.TMDBTitle || "").toLowerCase().trim();
+        key = `${showTitle}_s${item.season}e${item.episode}`;
+      } else {
+        // For movies or items without season/episode, use path or title
+        const path = (item.path || "").replace(/\\/g, "/").toLowerCase().trim();
       const title = (item.title || "").toLowerCase().trim();
-
-      const key = path || title; // Use path if available, otherwise title
+        key = path || title; // Use path if available, otherwise title
+      }
 
       if (!groups[key]) {
         groups[key] = [];
@@ -28859,7 +30049,11 @@ class MediaLibraryManager {
 
     cleanedList.sort((a, b) => (b.lastWatched || 0) - (a.lastWatched || 0));
 
-    // localStorage removed - using JSON only
+    // Save the cleaned list back to JSON file
+    if (cleanedList.length !== originalCount) {
+      console.log(`[WATCH-LATER] Removed ${originalCount - cleanedList.length} duplicate entries`);
+      this.saveWatchLaterToJSON(cleanedList);
+    }
 
     return cleanedList;
   }
@@ -32033,6 +33227,102 @@ class MediaLibraryManager {
     this.logActivity('Checking database status...');
     this.logActivity('Database status: Connected and healthy');
     this.showToast('📊 Database status: Healthy', 'success');
+  }
+
+  // Generate a unique media ID
+  generateMediaId(mediaItem, mediaType) {
+    if (!mediaItem) return null;
+    
+    // Use normalizedKey if available
+    if (mediaItem.normalizedKey) {
+      return mediaItem.normalizedKey;
+    }
+    
+    // Generate from title and year
+    const title = mediaItem.title || mediaItem.TMDBTitle || 'unknown';
+    const year = mediaItem.year || '';
+    const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '.');
+    
+    return `${cleanTitle}${year ? `.(${year})` : ''}`;
+  }
+
+  // Extract season number from media item
+  extractSeasonNumber(mediaItem) {
+    if (!mediaItem) return null;
+    
+    // Try to extract from path first (most reliable)
+    const path = mediaItem.path || mediaItem.absPath || mediaItem.filePath || '';
+    const seasonMatch = path.match(/[Ss](\d{1,2})/);
+    if (seasonMatch) {
+      return parseInt(seasonMatch[1], 10);
+    }
+    
+    // Try to extract from title
+    const title = mediaItem.title || '';
+    const titleSeasonMatch = title.match(/[Ss](\d{1,2})/);
+    if (titleSeasonMatch) {
+      return parseInt(titleSeasonMatch[1], 10);
+    }
+    
+    // Fallback to existing season value
+    if (mediaItem.season !== undefined && mediaItem.season !== null) {
+      return mediaItem.season;
+    }
+    
+    return null;
+  }
+
+  // Extract episode number from media item
+  extractEpisodeNumber(mediaItem) {
+    if (!mediaItem) return null;
+    
+    // Try to extract from path first (most reliable)
+    const path = mediaItem.path || mediaItem.absPath || mediaItem.filePath || '';
+    const episodeMatch = path.match(/[Ee](\d{1,2})/);
+    if (episodeMatch) {
+      return parseInt(episodeMatch[1], 10);
+    }
+    
+    // Try to extract from title
+    const title = mediaItem.title || '';
+    const titleEpisodeMatch = title.match(/[Ee](\d{1,2})/);
+    if (titleEpisodeMatch) {
+      return parseInt(titleEpisodeMatch[1], 10);
+    }
+    
+    // Fallback to existing episode value
+    if (mediaItem.episode !== undefined && mediaItem.episode !== null) {
+      return mediaItem.episode;
+    }
+    
+    return null;
+  }
+
+  // Extract episode title from media item
+  extractEpisodeTitle(mediaItem) {
+    if (!mediaItem) return null;
+    
+    // First check if episode title is already available
+    if (mediaItem.episodeTitle) {
+      return mediaItem.episodeTitle;
+    }
+    
+    // Try to extract from title (format: "Show Name | S1E1 | Episode Title")
+    const title = mediaItem.title || '';
+    const titleMatch = title.match(/\|\s*S\d+E\d+\s*\|\s*(.+)$/);
+    if (titleMatch) {
+      return titleMatch[1].trim();
+    }
+    
+    // Try to extract from filename (format: "Show.Name.S1E1.Episode.Title.mkv")
+    const path = mediaItem.path || mediaItem.absPath || mediaItem.filePath || '';
+    const filename = path.split(/[\\/]/).pop() || '';
+    const filenameMatch = filename.match(/S\d+E\d+[._](.+?)(?:\.[^.]+)?$/);
+    if (filenameMatch) {
+      return filenameMatch[1].replace(/[._]/g, ' ').trim();
+    }
+    
+    return null;
   }
 }
 
