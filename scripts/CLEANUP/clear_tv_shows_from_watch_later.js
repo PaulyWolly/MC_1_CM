@@ -9,9 +9,10 @@
 const fs = require('fs');
 const path = require('path');
 
-// Paths
-const JSON_FILE = path.join(__dirname, 'public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
+const ROOT_DIR = path.join(__dirname, '../..');
+const JSON_FILE = path.join(ROOT_DIR, 'public/components/MediaLibrary/data/watch-later/watch-later-unified.json');
 const BACKUP_FILE = path.join(__dirname, 'watch-later-backup-before-tv-clear.json');
+const LOCAL_STORAGE_SCRIPT = path.join(__dirname, 'clear_localStorage_tv_shows.js');
 
 console.log('🧹 CLEARING TV SHOWS FROM WATCH LATER');
 console.log('=====================================');
@@ -94,14 +95,14 @@ if (window.mediaLibraryManager) {
 console.log('🎉 DONE! TV shows cleared from localStorage');
 `;
 
-    fs.writeFileSync('clear_localStorage_tv_shows.js', localStorageScript, 'utf8');
-    console.log('✅ Created localStorage clearing script: clear_localStorage_tv_shows.js');
+    fs.writeFileSync(LOCAL_STORAGE_SCRIPT, localStorageScript, 'utf8');
+    console.log('✅ Created localStorage clearing script:', LOCAL_STORAGE_SCRIPT);
 
     console.log('\n🎉 COMPLETE!');
     console.log('============');
     console.log('1. ✅ JSON file updated (TV shows removed)');
     console.log('2. ✅ Backup created:', BACKUP_FILE);
-    console.log('3. ✅ localStorage script created: clear_localStorage_tv_shows.js');
+    console.log('3. ✅ localStorage script created:', LOCAL_STORAGE_SCRIPT);
     console.log('\n📋 NEXT STEPS:');
     console.log('1. Run the localStorage script in your browser console');
     console.log('2. Check Watch Later UI - should show only movies');

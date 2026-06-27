@@ -1,9 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
+const ROOT_DIR = path.join(__dirname, '../..');
+
 const COLLECTIONS_FILES = [
-  path.join(__dirname, 'public/components/MediaLibrary/data/collections.json'),
-  path.join(__dirname, 'public/components/MediaLibrary/data/collections/collections-unified.json')
+  path.join(ROOT_DIR, 'public/components/MediaLibrary/data/collections.json'),
+  path.join(ROOT_DIR, 'public/components/MediaLibrary/data/collections/collections-unified.json')
 ];
 
 // Define corrections for old format keys to new format keys
