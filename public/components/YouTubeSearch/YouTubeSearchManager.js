@@ -403,48 +403,46 @@ export default class YouTubeSearchManager {
 
      */
 
+  getQueryMergeKey(queryText) {
+    if (!queryText) return "";
+    const cleaned = this.cleanQueryForDisplay(String(queryText));
+    const humanized = this.humanizeQuery(cleaned);
+    return humanized.toLowerCase().trim();
+  }
+
+  getQueryNormalizedKey(queryText) {
+    return this.normalizeYouTubeQuery(this.cleanQueryForDisplay(String(queryText || "")));
+  }
+
   async loadSavedQueries() {
     try {
-      // Use the correct endpoint to load saved queries from the database
-
       const response = await fetch(`/api/youtube/history/${window.sessionId}`);
+      const payload = await response.json();
+      const queries = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.queries)
+          ? payload.queries
+          : null;
 
-      const queries = await response.json();
-
-      if (response.ok && Array.isArray(queries)) {
+      if (response.ok && queries) {
         this.savedQueries.clear();
 
         queries.forEach((queryData) => {
-          // Handle both old format (just strings) and new format (objects with metadata)
-
           if (typeof queryData === "string") {
-            // Old format - just query string
-
             this.savedQueries.set(queryData, {
               query: queryData,
-
-              searchType: "search", // Default to search for old data
-
+              searchType: "search",
               timestamp: Date.now(),
-
               isSaved: true,
             });
           } else {
-            // New format - object with metadata including searchType
-
             this.savedQueries.set(queryData.query, {
               query: queryData.query,
-
               searchType: queryData.searchType || "search",
-
               displayName: queryData.displayName,
-
               timestamp: queryData.timestamp || Date.now(),
-
               totalPages: queryData.totalPages,
-
               videoCount: queryData.videoCount,
-
               isSaved: true,
             });
           }
@@ -680,36 +678,29 @@ export default class YouTubeSearchManager {
       const contentType = response.headers.get("content-type");
 
       if (!contentType || !contentType.includes("application/json")) {
-        console.warn(
-          "💾 [YOUTUBE-DB] Server returned non-JSON response, skipping save"
-        );
-
-        return;
+        throw new Error("Server returned non-JSON response while saving search");
       }
 
       const data = await response.json();
 
-      if (data.success) {
-        console.log("💾 [YOUTUBE-DB] Successfully saved query:", data.search);
-
-        // Update the savedQueries Map so isQuerySaved() returns true
-
-        this.savedQueries.set(query, data.search);
-
-        // Always reload saved queries from backend to ensure UI is in sync
-
-        await this.loadSavedQueries();
-
-        // CRITICAL: Update dropdown immediately to show saved status
-
-        console.log(
-          "💾 [YOUTUBE-DB] Updating dropdown immediately after saving query"
-        );
-
-        setTimeout(() => this.forceRefreshDropdown(), 100);
-      } else {
-        throw new Error(data.error || "Failed to save search");
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `Failed to save search (${response.status})`);
       }
+
+      console.log("💾 [YOUTUBE-DB] Successfully saved query:", data.search);
+
+      const saved = data.search;
+      this.savedQueries.set(saved.query, {
+        query: saved.query,
+        displayName: saved.displayName,
+        searchType: saved.searchMetadata?.searchType || searchType,
+        timestamp: saved.lastSearched || Date.now(),
+        totalPages: saved.totalPages,
+        videoCount: saved.videoCount,
+        isSaved: true,
+      });
+
+      await this.loadSavedQueries();
     } catch (error) {
       console.error("💾 [YOUTUBE-DB] Error saving query:", error);
 
@@ -728,15 +719,20 @@ export default class YouTubeSearchManager {
   isQuerySaved(query) {
     if (!query) return false;
 
-    const normalized = this.normalizeYouTubeQuery(
-      this.cleanQueryForDisplay(query)
-    );
+    const normalized = this.getQueryNormalizedKey(query);
     if (!normalized || normalized.length < 2) return false;
 
-    for (const key of this.savedQueries.keys()) {
-      const savedNormalized = this.normalizeYouTubeQuery(
-        this.cleanQueryForDisplay(key)
+    for (const saved of this.savedQueries.values()) {
+      const savedNormalized = this.getQueryNormalizedKey(
+        saved.query || saved.displayName
       );
+      if (savedNormalized && savedNormalized === normalized) {
+        return true;
+      }
+    }
+
+    for (const key of this.savedQueries.keys()) {
+      const savedNormalized = this.getQueryNormalizedKey(key);
       if (savedNormalized && savedNormalized === normalized) {
         return true;
       }
@@ -3530,36 +3526,29 @@ export default class YouTubeSearchManager {
     const dbQueryMap = new Map(); // Map to store original DB queries for exact matching
 
     dbQueries.forEach((q) => {
-      const queryText = q.query || q.displayName || q;
+      const mergeKey = this.getQueryMergeKey(q.displayName || q.query || q);
+      if (!mergeKey || mergeKey.length < 2) return;
 
-      const humanizedQuery = this.humanizeQuery
-        ? this.humanizeQuery(queryText)
-        : queryText.replace(/[._]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-      const humanizedKey = humanizedQuery.toLowerCase().trim();
-      if (!humanizedKey || humanizedKey.length < 2) return;
-
-      dbHumanizedSet.add(humanizedKey);
-      dbQueryMap.set(humanizedKey, q);
+      dbHumanizedSet.add(mergeKey);
+      dbQueryMap.set(mergeKey, q);
     });
 
     // Add local queries first (they have cached data and are prioritized)
 
     localQueries.forEach((query) => {
-      // Use humanized version for deduplication to avoid duplicates like "Animal Planet" vs "Animal_Planet"
-      const humanizedQuery = this.humanizeQuery ? this.humanizeQuery(query.query) : query.query.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const humanizedKey = humanizedQuery.toLowerCase().trim();
+      const humanizedKey = this.getQueryMergeKey(query.query);
+      if (!humanizedKey || humanizedKey.length < 2) return;
 
       let hasDBRecord = false;
       let dbQuery = null;
 
-      // Exact humanized match only — partial includes() falsely marked unsaved queries as saved
       if (dbHumanizedSet.has(humanizedKey)) {
         hasDBRecord = true;
         dbQuery = dbQueryMap.get(humanizedKey);
       } else {
-        const normalizedLocal = this.normalizeYouTubeQuery(query.query);
-        for (const [dbHumanized, dbQ] of dbQueryMap) {
-          const normalizedDb = this.normalizeYouTubeQuery(dbQ.query || dbHumanized);
+        const normalizedLocal = this.getQueryNormalizedKey(query.query);
+        for (const [, dbQ] of dbQueryMap) {
+          const normalizedDb = this.getQueryNormalizedKey(dbQ.query || dbQ.displayName);
           if (
             normalizedLocal &&
             normalizedDb &&
@@ -3592,10 +3581,9 @@ export default class YouTubeSearchManager {
 
     dbQueries.forEach((query) => {
       const queryText = query.query || query.displayName || query;
+      const humanizedKey = this.getQueryMergeKey(query.displayName || queryText);
 
-      // Use humanized version for deduplication to avoid duplicates like "Animal Planet" vs "Animal_Planet"
-      const humanizedQuery = this.humanizeQuery ? this.humanizeQuery(queryText) : queryText.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const humanizedKey = humanizedQuery.toLowerCase().trim();
+      if (!humanizedKey || humanizedKey.length < 2) return;
 
       if (!merged.has(humanizedKey)) {
         // Add DB entry if no cached version exists - PRESERVE displayName
@@ -4605,81 +4593,8 @@ export default class YouTubeSearchManager {
           try {
             await this.saveQuery(query.query, query.type || "search");
 
-            console.log("💾 [SAVE-CLICK] Save completed successfully");
-
-            // CRITICAL: Reload saved queries from database to ensure persistence
-
-            await this.loadSavedQueries();
-
-            console.log("💾 [SAVE-CLICK] Reloaded saved queries from database");
-
-            // Update the LED immediately to show it's saved
-
-            const statusIcon = item.querySelector(".history-status-icon");
-
-            console.log(
-              "💾 [SAVE-CLICK] Looking for status icon in item:",
-              item
-            );
-            console.log("💾 [SAVE-CLICK] Found status icon:", statusIcon);
-            if (statusIcon) {
-              console.log(
-                "💾 [SAVE-CLICK] Status icon BEFORE update:",
-                statusIcon.outerHTML
-              );
-              console.log(
-                "💾 [SAVE-CLICK] Status icon parent column:",
-                statusIcon.parentElement
-              );
-
-              // Update the LED to show saved state
-              statusIcon.classList.add("saved");
-
-              statusIcon.classList.remove("unsaved");
-
-              statusIcon.innerHTML = "🟢"; // Show emoji LED immediately
-
-              statusIcon.title = "Saved to database";
-
-              // Force visibility with multiple approaches
-              statusIcon.style.opacity = "1";
-
-              statusIcon.style.display = "inline-block";
-              statusIcon.style.visibility = "visible";
-              statusIcon.style.fontSize = "16px";
-              statusIcon.style.width = "16px";
-              statusIcon.style.height = "16px";
-              statusIcon.style.textAlign = "center";
-              statusIcon.style.lineHeight = "16px";
-              statusIcon.style.backgroundColor = "transparent";
-              statusIcon.style.border = "none";
-
-              console.log(
-                "💾 [SAVE-CLICK] Status icon AFTER update:",
-                statusIcon.outerHTML
-              );
-              console.log(
-                "💾 [SAVE-CLICK] Status icon computed style display:",
-                window.getComputedStyle(statusIcon).display
-              );
-              console.log(
-                "💾 [SAVE-CLICK] Status icon computed style opacity:",
-                window.getComputedStyle(statusIcon).opacity
-              );
-              console.log(
-                "💾 [SAVE-CLICK] Updated LED to show saved state - classes:",
-                statusIcon.className
-              );
-            } else {
-              console.warn(
-                "💾 [SAVE-CLICK] Could not find status icon to update"
-              );
-
-              console.log(
-                "💾 [SAVE-CLICK] Available elements in item:",
-                item.innerHTML
-              );
-            }
+            const updatedQueries = this.getAllQueriesForDropdown();
+            await this.renderQueryDropdown(updatedQueries, query.query);
 
             saveIcon.classList.remove("disabled");
             saveIcon.title = "Update saved search (refresh pages in database)";
@@ -4695,23 +4610,6 @@ export default class YouTubeSearchManager {
                 "success"
               );
             }
-
-            console.log("💾 [SAVE-CLICK] UI updated to show saved state");
-
-            const updatedQueries = this.getAllQueriesForDropdown();
-
-            console.log(
-              "[SAVE-PERSIST] Re-rendering dropdown with updated queries:",
-              updatedQueries.map((q) => q.query)
-            );
-
-            console.log(
-              "[SAVE-PERSIST] Current query for sorting:",
-              this.currentQuery
-            );
-            console.log("[SAVE-PERSIST] Query we just saved:", query.query);
-            // Use the query we just saved as the current query for sorting
-            this.renderQueryDropdown(updatedQueries, query.query);
           } catch (error) {
             console.error("💾 [SAVE-CLICK] Save failed:", error);
 

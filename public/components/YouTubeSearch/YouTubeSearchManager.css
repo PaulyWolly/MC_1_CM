@@ -858,17 +858,22 @@
 
 /* Individual elements within columns */
 .query-table .history-status-icon {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 0;
     margin: 0;
     position: static;
     left: auto;
+    font-size: 16px;
+    line-height: 16px;
+    text-align: center;
+    overflow: visible;
 }
 
 .query-table .history-status-icon.saved {
-    /* background-color: #4CAF50;
-    box-shadow: 0 0 6px #4caf50c7; */
+    opacity: 1 !important;
+    display: inline-block !important;
+    visibility: visible !important;
 }
 
 .query-table .query-page-count {
